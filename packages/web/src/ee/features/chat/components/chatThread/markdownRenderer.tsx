@@ -2,7 +2,7 @@
 
 import { CodeSnippet } from '@/app/components/codeSnippet';
 import { SearchQueryParams } from '@/lib/types';
-import { cn, createPathWithQueryParams } from '@/lib/utils';
+import { cn, createPathWithQueryParams, escapeMarkupMetacharacters } from '@/lib/utils';
 import type { Element, Root } from "hast";
 import { Schema as SanitizeSchema } from 'hast-util-sanitize';
 import { CopyIcon, ExternalLinkIcon, SearchIcon } from 'lucide-react';
@@ -81,7 +81,7 @@ function createRemarkReferencesPlugin(attachmentNames?: Map<string, string>) {
                                 className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation"
                                 title="Click to navigate to code"
                                 ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"
-                            >${displayText}</span>`
+                            >${escapeMarkupMetacharacters(displayText)}</span>`
                         }
                     },
                 ],
@@ -110,7 +110,7 @@ function createRemarkReferencesPlugin(attachmentNames?: Map<string, string>) {
                                 className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation ring-1 ring-inset ring-muted-foreground/40"
                                 title="Attached file — click to view"
                                 ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(attachmentReference))}"
-                            >${displayText}</span>`
+                            >${escapeMarkupMetacharacters(displayText)}</span>`
                         }
                     },
                 ],

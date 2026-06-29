@@ -3,7 +3,7 @@ import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attach
 import { getStorageBackend } from "@sourcebot/shared";
 import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
-import { isServiceError } from "@/lib/utils";
+import { escapeMarkupMetacharacters, isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import type { PrismaClient } from "@sourcebot/db";
@@ -944,7 +944,7 @@ const createPrompt = ({
         dynamicSections.push(dedent`
         <attachments_manifest>
         The user attached the following files to this conversation. They are user-provided evidence, DISTINCT from the indexed codebase. Read any of them on demand with the \`read_attachment\` tool by passing its \`id\`; the most recently added attachments may already be inlined in the latest user message. When you cite their content, use \`${ATTACHMENT_REFERENCE_PREFIX}{id:start-end}\` (never \`${FILE_REFERENCE_PREFIX}\`).
-        ${attachments.map(a => `- id: ${a.id} | filename: ${a.filename} | type: ${a.mediaType} | ${a.sizeBytes} bytes`).join('\n')}
+        ${attachments.map(a => `- id: ${a.id} | filename: ${escapeMarkupMetacharacters(a.filename)} | type: ${escapeMarkupMetacharacters(a.mediaType)} | ${a.sizeBytes} bytes`).join('\n')}
         </attachments_manifest>
         `);
     }

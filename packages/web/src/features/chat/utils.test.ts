@@ -777,6 +777,10 @@ describe('repairReferences for attachments', () => {
         expect(repairReferences('See `@attachment:{abc123:1-2}` here.')).toBe('See @attachment:{abc123:1-2} here.');
     });
 
+    test('repairs a malformed inline code block around an attachment reference', () => {
+        expect(repairReferences('See `@attachment:{abc123:1-2`} here.')).toBe('See @attachment:{abc123:1-2} here.');
+    });
+
     test('leaves a correctly formatted attachment reference unchanged', () => {
         const input = 'The error is at @attachment:{abc123:42-50} in the log.';
         expect(repairReferences(input)).toBe(input);

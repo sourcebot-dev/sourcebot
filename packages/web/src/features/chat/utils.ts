@@ -1,4 +1,5 @@
 import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/utils";
+import { escapeMarkupMetacharacters } from "@/lib/utils";
 import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
 import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
@@ -452,7 +453,9 @@ export const repairReferences = (text: string): string => {
         // Fix multiple ranges: keep only the first range
         .replace(/@attachment:\{(.+?):(\d+-\d+),[\d,-]+\}/g, '@attachment:{$1:$2}')
         // Fix inline code blocks around attachment references: `@attachment:{...}` -> @attachment:{...}
-        .replace(/`(@attachment:\{[^}]+\})`/g, '$1');
+        .replace(/`(@attachment:\{[^}]+\})`/g, '$1')
+        // Fix malformed inline code blocks: `@attachment:{...`} -> @attachment:{...}
+        .replace(/`(@attachment:\{[^`]+)`\}/g, '$1}');
 };
 
 // Extracts the user's text from a message by finding the first text part.
@@ -501,16 +504,14 @@ export const formatAttachmentsForPrompt = (attachments: AttachmentData[]): strin
         // Line-number the body so the model can cite specific lines, mirroring
         // how `read_file` / read_attachment present content.
         const text = escapeAttachmentBody(addLineNumbers(attachment.text));
-        // Keep the filename on a single line and escape quotes so the body
-        // can't break out of the tag (the client also sanitizes via
-        // sanitizeFilename).
-        const filename = attachment.filename
-            .replace(/\s+/g, ' ')
-            .replace(/"/g, '&quot;');
+        // Escape user-controlled metadata so it can't break out of the
+        // `<attachment ...>` tag's attributes.
+        const filename = escapeMarkupMetacharacters(attachment.filename);
+        const mediaType = escapeMarkupMetacharacters(attachment.mediaType);
         // The id lets the model correlate the inlined content with the
         // attachments manifest and cite it via @attachment:{id:...}.
         const idAttr = attachment.id ? `id="${attachment.id}" ` : '';
-        return `<attachment ${idAttr}filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
+        return `<attachment ${idAttr}filename="${filename}" media-type="${mediaType}">\n${text}\n</attachment>`;
     });
 
     return `<attachments>\n${blocks.join('\n')}\n</attachments>`;

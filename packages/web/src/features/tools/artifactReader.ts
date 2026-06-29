@@ -38,13 +38,17 @@ export const readArtifactContent = ({
     const start = (offset ?? 1) - 1;
     const end = start + Math.min(limit ?? ARTIFACT_READ_MAX_LINES, ARTIFACT_READ_MAX_LINES);
 
+    const startLine = (offset ?? 1);
+
     let bytes = 0;
     let truncatedByBytes = false;
     const slicedLines: string[] = [];
     for (const raw of lines.slice(start, end)) {
         const line = raw.length > MAX_LINE_LENGTH ? raw.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX : raw;
         const size = Buffer.byteLength(line, 'utf-8') + (slicedLines.length > 0 ? 1 : 0);
-        if (bytes + size > MAX_BYTES) {
+        // Always admit the first line, even if it alone exceeds the byte budget,
+        // so an oversized leading line can't stall paging on the same offset.
+        if (slicedLines.length > 0 && bytes + size > MAX_BYTES) {
             truncatedByBytes = true;
             break;
         }
@@ -52,8 +56,20 @@ export const readArtifactContent = ({
         bytes += size;
     }
 
+    // The slice is only empty when offset is past EOF (the first line is always
+    // admitted above). Report it explicitly rather than emitting an inverted
+    // range or an offset that would stall a retrying caller.
+    if (slicedLines.length === 0) {
+        return {
+            output: `${header}\n<content>\n(No lines to read: offset ${startLine} is past the end of the ${lines.length}-line artifact.)\n</content>`,
+            startLine,
+            endLine: startLine,
+            isTruncated: false,
+            totalLines: lines.length,
+        };
+    }
+
     const truncatedByLines = end < lines.length;
-    const startLine = (offset ?? 1);
     const lastReadLine = startLine + slicedLines.length - 1;
     const nextOffset = lastReadLine + 1;
 

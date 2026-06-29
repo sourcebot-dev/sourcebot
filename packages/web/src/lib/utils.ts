@@ -21,6 +21,19 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
+// Escapes XML/HTML metacharacters (and collapses newlines) in an untrusted
+// string before it's interpolated into markup, so it can't break out of a
+// single-line tag or attribute. `&` must be escaped first to avoid
+// double-encoding the entities below.
+export function escapeMarkupMetacharacters(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\r?\n/g, ' ');
+}
+
 /**
  * If `ref` starts with a 40-character hex SHA, truncate the SHA portion to
  * 7 characters and preserve any trailing operator suffix (e.g. `^`, `~1`).

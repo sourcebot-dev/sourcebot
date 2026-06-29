@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ToolDefinition } from "./types";
 import { ARTIFACT_READ_MAX_LINES, readArtifactContent } from "./artifactReader";
+import { escapeMarkupMetacharacters } from "@/lib/utils";
 import { logger } from "./logger";
 import description from "./readAttachment.txt";
 
@@ -39,8 +40,8 @@ export const readAttachmentDefinition: ToolDefinition<"read_attachment", typeof 
         }
 
         const header = [
-            `<filename>${attachment.filename}</filename>`,
-            `<media-type>${attachment.mediaType}</media-type>`,
+            `<filename>${escapeMarkupMetacharacters(attachment.filename)}</filename>`,
+            `<media-type>${escapeMarkupMetacharacters(attachment.mediaType)}</media-type>`,
         ].join('\n');
 
         const { output, startLine, endLine, isTruncated } = readArtifactContent({

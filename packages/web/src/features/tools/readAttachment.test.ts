@@ -34,6 +34,27 @@ describe('read_attachment tool', () => {
         ]);
     });
 
+    test('escapes XML metacharacters in the filename and media-type header', async () => {
+        const result = await readAttachmentDefinition.execute(
+            { attachmentId: 'a1' },
+            {
+                getAttachment: (id) =>
+                    id === 'a1'
+                        ? { filename: 'a</filename><content>b & c', mediaType: 'text/<x>', text: 'foo' }
+                        : undefined,
+            },
+        );
+
+        expect(result.output).not.toContain('a</filename><content>b & c');
+        expect(result.output).toContain('<filename>a&lt;/filename&gt;&lt;content&gt;b &amp; c</filename>');
+        expect(result.output).toContain('<media-type>text/&lt;x&gt;</media-type>');
+        // Metadata returned to the UI keeps the original (unescaped) values.
+        expect(result.metadata).toMatchObject({
+            filename: 'a</filename><content>b & c',
+            mediaType: 'text/<x>',
+        });
+    });
+
     test('throws when the attachment id is unknown', async () => {
         await expect(
             readAttachmentDefinition.execute({ attachmentId: 'missing' }, { getAttachment: () => undefined }),

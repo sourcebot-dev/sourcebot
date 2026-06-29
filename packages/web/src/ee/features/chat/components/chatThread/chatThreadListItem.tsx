@@ -508,7 +508,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     <div
                         className="sticky top-0"
                     >
-                        {(referencedFileSources.length > 0 || diagrams.length > 0) ? (
+                        {(referencedFileSources.length > 0 || referencedAttachments.length > 0 || diagrams.length > 0) ? (
                             sourcesView
                         ) : isNetworkActive ? (
                             <div className="space-y-4">
