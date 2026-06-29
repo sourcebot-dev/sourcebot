@@ -292,6 +292,14 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
         const isGuestUser = user === undefined;
         const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
 
+        // Snapshot the source chat's links before creating the duplicate; a
+        // concurrent delete could otherwise cascade them away first, leaving the
+        // copied messages pointing at blobs the new chat is never linked to.
+        const originalLinks = await prisma.chatAttachment.findMany({
+            where: { chatId: originalChat.id },
+            select: { attachmentId: true },
+        });
+
         const newChat = await prisma.chat.create({
             data: {
                 orgId: org.id,
@@ -306,10 +314,6 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
         // Copy the attachment links (metadata-only; no byte copy). The
         // duplicated messages reference the same blobs, and access stays
         // chat-derived through the new chat's links.
-        const originalLinks = await prisma.chatAttachment.findMany({
-            where: { chatId: originalChat.id },
-            select: { attachmentId: true },
-        });
         if (originalLinks.length > 0) {
             await prisma.chatAttachment.createMany({
                 data: originalLinks.map((link) => ({

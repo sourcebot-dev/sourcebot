@@ -98,7 +98,9 @@ export const GET = apiHandler(async (
             // Never let the browser sniff a different (potentially executable)
             // content type from the bytes.
             'X-Content-Type-Options': 'nosniff',
-            'Cache-Control': 'private, max-age=3600',
+            // Access is re-checked per request, so don't let the browser reuse
+            // these bytes after a logout / share revocation / visibility change.
+            'Cache-Control': 'private, no-store',
         },
     });
 }, { track: false });

@@ -205,13 +205,13 @@ export type PosthogEventMap = {
         selectedRepos?: string[],
     },
     chat_attachment_uploaded: {
-        source?: string,
+        source: string,
         mediaType: string,
         sizeBytes: number,
     },
     chat_attachment_degraded: {
         chatId: string,
-        source?: string,
+        source: string,
         droppedImageCount: number,
         modelProvider: string,
         model: string,

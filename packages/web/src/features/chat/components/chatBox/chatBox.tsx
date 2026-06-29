@@ -27,7 +27,7 @@ import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
-import { ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
@@ -58,6 +58,10 @@ interface ChatBoxProps {
     searchContexts: SearchContextQuery[];
     isLoginWallEnabled: boolean;
     isAuthenticated: boolean;
+    // Authoritative per-image byte cap from the server
+    // (SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES), threaded down for early
+    // client-side rejection. Defaults to the constant when not provided.
+    maxImageBytes?: number;
 }
 
 const ChatBoxComponent = ({
@@ -73,6 +77,7 @@ const ChatBoxComponent = ({
     isAuthenticated,
     selectedSearchScopes,
     searchContexts,
+    maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
 }: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -189,6 +194,7 @@ const ChatBoxComponent = ({
             {
                 allowImages: supportsImages,
                 existingImageCount: attachments.filter((attachment) => attachment.kind === 'image').length,
+                maxImageBytes,
             },
         );
         if (added.length > 0) {
@@ -214,7 +220,7 @@ const ChatBoxComponent = ({
 
         // Return focus to the prompt input so the user can keep typing.
         ReactEditor.focus(editor);
-    }, [attachments, toast, editor, supportsImages, uploadAndTrackImage, getOverBudgetWarning]);
+    }, [attachments, toast, editor, supportsImages, uploadAndTrackImage, getOverBudgetWarning, maxImageBytes]);
 
     const removeAttachment = useCallback((id: string) => {
         setAttachments((prev) => {
@@ -265,7 +271,7 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected" | "uploading"
+        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected" | "uploading" | "upload-error"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
@@ -293,6 +299,18 @@ const ChatBoxComponent = ({
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "uploading",
+            }
+        }
+
+        // A failed or ref-less image is dropped from `attachmentData` at submit,
+        // so block (rather than silently sending without it) until it's removed.
+        if (attachments.some((attachment) =>
+            attachment.kind === 'image' &&
+            (attachment.status === 'error' || !attachment.attachmentId)
+        )) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "upload-error",
             }
         }
 
@@ -354,6 +372,13 @@ const ChatBoxComponent = ({
             if (isSubmitDisabledReason === "uploading") {
                 toast({
                     description: "⚠️ Please wait for image uploads to finish",
+                    variant: "destructive",
+                });
+            }
+
+            if (isSubmitDisabledReason === "upload-error") {
+                toast({
+                    description: "⚠️ Remove failed image uploads before sending",
                     variant: "destructive",
                 });
             }

@@ -221,7 +221,11 @@ export type ReadFilesResult = {
 // the server's for early feedback. Rejected files yield an error, not a throw.
 export const readFilesAsAttachments = async (
     files: File[],
-    { allowImages, existingImageCount = 0 }: { allowImages: boolean; existingImageCount?: number },
+    { allowImages, existingImageCount = 0, maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES }: {
+        allowImages: boolean;
+        existingImageCount?: number;
+        maxImageBytes?: number;
+    },
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
@@ -255,8 +259,8 @@ export const readFilesAsAttachments = async (
                 errors.push(`${file.name}: the selected model does not support image input.`);
                 continue;
             }
-            if (file.size > ATTACHMENT_MAX_IMAGE_BYTES) {
-                errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_IMAGE_BYTES / (1024 * 1024))}MB image limit.`);
+            if (file.size > maxImageBytes) {
+                errors.push(`${file.name}: exceeds the ${Math.round(maxImageBytes / (1024 * 1024))}MB image limit.`);
                 continue;
             }
             if (imageCount >= ATTACHMENT_MAX_IMAGE_COUNT) {

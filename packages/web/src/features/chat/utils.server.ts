@@ -19,6 +19,11 @@ import { StatusCodes } from 'http-status-codes';
 
 const logger = createLogger('chat-utils');
 
+// Thrown inside the attachment-commit transaction when the atomic claim matches
+// fewer rows than expected (a concurrent send claimed one first), so the whole
+// transaction rolls back and we can surface a typed 400.
+class AttachmentClaimConflictError extends Error {}
+
 /**
  * Returns a FORBIDDEN ServiceError when the deployment lacks the `ask`
  * entitlement, or null when Ask is available. Gates the generative chat
@@ -187,16 +192,39 @@ export const commitMessageAttachments = async ({
     }
 
     if (idsToCommit.length > 0) {
-        await prisma.$transaction([
-            prisma.chatAttachment.createMany({
-                data: idsToCommit.map((attachmentId) => ({ chatId, attachmentId })),
-                skipDuplicates: true,
-            }),
-            prisma.attachment.updateMany({
-                where: { id: { in: idsToCommit } },
-                data: { status: AttachmentStatus.COMMITTED },
-            }),
-        ]);
+        try {
+            await prisma.$transaction(async (tx) => {
+                // Atomically claim the uploads: only rows still PENDING and owned
+                // by this user/org flip to COMMITTED. The pre-checks above can go
+                // stale, so if fewer rows match than we intend to commit, another
+                // send already claimed one — abort the whole commit.
+                const claimed = await tx.attachment.updateMany({
+                    where: {
+                        id: { in: idsToCommit },
+                        orgId,
+                        uploadedById: userId,
+                        status: AttachmentStatus.PENDING,
+                    },
+                    data: { status: AttachmentStatus.COMMITTED },
+                });
+                if (claimed.count !== idsToCommit.length) {
+                    throw new AttachmentClaimConflictError();
+                }
+                await tx.chatAttachment.createMany({
+                    data: idsToCommit.map((attachmentId) => ({ chatId, attachmentId })),
+                    skipDuplicates: true,
+                });
+            });
+        } catch (error) {
+            if (error instanceof AttachmentClaimConflictError) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'Invalid or unauthorized attachment reference.',
+                } satisfies ServiceError;
+            }
+            throw error;
+        }
     }
 
     return null;
@@ -230,16 +258,23 @@ export const deleteOrphanedAttachments = async ({
         return;
     }
 
-    const orphans = await prisma.attachment.findMany({
-        where: { id: { in: orphanedIds } },
-        select: { id: true, storageKey: true },
+    // Re-check link state inside the delete so a concurrent re-link (e.g. a
+    // duplicate-chat running in parallel) isn't cascaded away: only rows that
+    // still have zero links are deleted, and we sweep bytes for those rows only.
+    const orphans = await prisma.$transaction(async (tx) => {
+        const rows = await tx.attachment.findMany({
+            where: { id: { in: orphanedIds }, chats: { none: {} } },
+            select: { id: true, storageKey: true },
+        });
+        await tx.attachment.deleteMany({
+            where: { id: { in: rows.map((row) => row.id) }, chats: { none: {} } },
+        });
+        return rows;
     });
 
     const storage = getStorageBackend();
     await Promise.all(orphans.map((orphan) =>
         storage.delete(orphan.storageKey).catch(() => { /* best effort */ })));
-
-    await prisma.attachment.deleteMany({ where: { id: { in: orphanedIds } } });
 };
 
 export const updateChatMessages = async ({

@@ -35,8 +35,12 @@ export class AttachmentPruner {
 
         logger.debug(`Attachment pruner started. Pruning PENDING attachments older than ${ttlHours} hours.`);
 
-        // Run immediately on startup, then every hour.
-        this.pruneOrphanedAttachments();
+        // Run immediately on startup, then every hour. The startup call isn't
+        // awaited, so log any failure here: this worker exits on
+        // unhandledRejection, and the recurring schedule will retry.
+        this.pruneOrphanedAttachments().catch((error) => {
+            logger.warn(`Initial attachment prune failed: ${error}`);
+        });
         this.interval = setIntervalAsync(() => this.pruneOrphanedAttachments(), ONE_HOUR_MS);
     }
 
@@ -75,8 +79,16 @@ export class AttachmentPruner {
                 }
             }));
 
+            // Re-assert the orphan criteria in the delete itself: a concurrent
+            // send could have committed (PENDING -> COMMITTED + linked) a row in
+            // this batch after the findMany, and deleting by bare id would
+            // cascade that live link away.
             const result = await this.db.attachment.deleteMany({
-                where: { id: { in: batch.map((attachment) => attachment.id) } },
+                where: {
+                    id: { in: batch.map((attachment) => attachment.id) },
+                    status: AttachmentStatus.PENDING,
+                    createdAt: { lt: cutoff },
+                },
             });
             totalDeleted += result.count;
 

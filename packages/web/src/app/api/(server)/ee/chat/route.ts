@@ -78,11 +78,21 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const latestMessage = messages[messages.length - 1];
 
+            // `z.array(z.any())` permits an empty array; reject it before
+            // anything downstream dereferences the latest message.
+            if (!latestMessage) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'At least one message is required.',
+                } satisfies ServiceError;
+            }
+
             // Authoritatively enforce the per-turn inline-text budget (the client
             // gate can't be trusted), keeping oversized text out of the prompt and
             // the persisted messages. Only the user turn carries submitted text.
             if (
-                latestMessage?.role === 'user' &&
+                latestMessage.role === 'user' &&
                 getMessageTextBytes(latestMessage) > ATTACHMENT_MAX_TURN_TEXT_BYTES
             ) {
                 return {
@@ -90,20 +100,6 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: `Message and attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit.`,
                 } satisfies ServiceError;
-            }
-
-            // Verify and commit any binary attachments referenced by the latest
-            // message (links them to this chat, flips PENDING -> COMMITTED).
-            // Rejects forged/unauthorized attachment ids before the agent runs.
-            const attachmentError = await commitMessageAttachments({
-                prisma,
-                chatId: id,
-                orgId: org.id,
-                userId: user?.id,
-                message: latestMessage,
-            });
-            if (attachmentError) {
-                return attachmentError;
             }
 
             // From the language model ID, attempt to find the
@@ -118,6 +114,22 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: `Language model ${languageModel.model} is not configured.`,
                 } satisfies ServiceError;
+            }
+
+            // Verify and commit any binary attachments referenced by the latest
+            // message (links them to this chat, flips PENDING -> COMMITTED).
+            // Rejects forged/unauthorized attachment ids before the agent runs.
+            // Done after model validation so a rejected model can't leave
+            // attachments committed without a persisted message.
+            const attachmentError = await commitMessageAttachments({
+                prisma,
+                chatId: id,
+                orgId: org.id,
+                userId: user?.id,
+                message: latestMessage,
+            });
+            if (attachmentError) {
+                return attachmentError;
             }
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
@@ -137,7 +149,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             if (!supportsImages && latestImageAttachmentCount > 0) {
                 await captureEvent('chat_attachment_degraded', {
                     chatId: id,
-                    source: req.headers.get('X-Sourcebot-Client-Source') ?? undefined,
+                    source: req.headers.get('X-Sourcebot-Client-Source') ?? 'unknown',
                     droppedImageCount: latestImageAttachmentCount,
                     modelProvider: languageModelConfig.provider,
                     model: languageModelConfig.model,

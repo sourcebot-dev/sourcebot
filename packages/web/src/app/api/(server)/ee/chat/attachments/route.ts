@@ -91,7 +91,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             await captureEvent('chat_attachment_uploaded', {
-                source: req.headers.get('X-Sourcebot-Client-Source') ?? undefined,
+                source: req.headers.get('X-Sourcebot-Client-Source') ?? 'unknown',
                 mediaType,
                 sizeBytes,
             });

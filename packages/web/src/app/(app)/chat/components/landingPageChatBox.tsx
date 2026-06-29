@@ -19,6 +19,7 @@ interface LandingPageChatBox {
     searchContexts: SearchContextQuery[];
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
+    maxImageBytes: number;
 }
 
 export const LandingPageChatBox = ({
@@ -27,6 +28,7 @@ export const LandingPageChatBox = ({
     searchContexts,
     isAuthenticated,
     isLoginWallEnabled,
+    maxImageBytes,
 }: LandingPageChatBox) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>(SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
@@ -50,6 +52,7 @@ export const LandingPageChatBox = ({
                     isDisabled={isChatBoxDisabled}
                     isAuthenticated={isAuthenticated}
                     isLoginWallEnabled={isLoginWallEnabled}
+                    maxImageBytes={maxImageBytes}
                 />
                 <Separator />
                 <div className="relative">
