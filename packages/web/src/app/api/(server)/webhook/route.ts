@@ -78,24 +78,35 @@ const getRepositoryApiUrl = (payload: unknown) => {
 const resolveGithubApiBaseUrl = (payload: unknown) => {
     const repositoryApiUrl = getRepositoryApiUrl(payload);
     if (!repositoryApiUrl) {
-        return DEFAULT_GITHUB_API_BASE_URL;
+        return undefined;
     }
 
     try {
         const url = new URL(repositoryApiUrl);
         if (url.protocol !== "https:") {
-            return DEFAULT_GITHUB_API_BASE_URL;
+            return undefined;
         }
 
         const reposPathIndex = url.pathname.indexOf("/repos/");
         if (reposPathIndex === -1) {
-            return DEFAULT_GITHUB_API_BASE_URL;
+            return undefined;
         }
 
         return normalizeGithubApiBaseUrl(`${url.origin}${url.pathname.slice(0, reposPathIndex)}`);
     } catch {
-        return DEFAULT_GITHUB_API_BASE_URL;
+        return undefined;
     }
+};
+
+const getGithubAppForPayload = (payload: unknown) => {
+    const githubApiBaseUrl = resolveGithubApiBaseUrl(payload);
+    if (!githubApiBaseUrl) {
+        logger.warn('Received GitHub webhook event with missing or invalid repository URL');
+        return undefined;
+    }
+
+    logger.debug('Using GitHub API base URL for event', { githubApiBaseUrl });
+    return getGithubAppForBaseUrl(githubApiBaseUrl);
 };
 
 const getGithubAppForBaseUrl = (baseUrl: string) => {
@@ -205,15 +216,6 @@ export const POST = async (request: NextRequest) => {
             return Response.json({ status: 'ok' });
         }
 
-        const githubApiBaseUrl = resolveGithubApiBaseUrl(body);
-        logger.debug('Using GitHub API base URL for event', { githubApiBaseUrl });
-        const githubApp = getGithubAppForBaseUrl(githubApiBaseUrl);
-
-        if (!githubApp) {
-            logger.warn('Received GitHub webhook event but GitHub app env vars are not set');
-            return Response.json({ status: 'ok' });
-        }
-
         if (isPullRequestEvent(githubEvent, body)) {
             if (env.REVIEW_AGENT_AUTO_REVIEW_ENABLED === "false") {
                 logger.info('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
@@ -222,6 +224,11 @@ export const POST = async (request: NextRequest) => {
 
             if (!body.installation) {
                 logger.error('Received github pull request event but installation is not present');
+                return Response.json({ status: 'ok' });
+            }
+
+            const githubApp = getGithubAppForPayload(body);
+            if (!githubApp) {
                 return Response.json({ status: 'ok' });
             }
 
@@ -244,6 +251,11 @@ export const POST = async (request: NextRequest) => {
 
                 if (!body.installation) {
                     logger.error('Received github issue comment event but installation is not present');
+                    return Response.json({ status: 'ok' });
+                }
+
+                const githubApp = getGithubAppForPayload(body);
+                if (!githubApp) {
                     return Response.json({ status: 'ok' });
                 }
 

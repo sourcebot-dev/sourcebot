@@ -150,6 +150,31 @@ describe("POST /api/webhook", () => {
         expect(mocks.processGitHubPullRequest).toHaveBeenCalledWith(mocks.octokit, payload.pull_request);
     });
 
+    test("skips GitHub events with invalid repository API URLs", async () => {
+        const { POST } = await importRoute();
+        const payload = {
+            action: "opened",
+            installation: { id: 123 },
+            repository: {
+                url: "https://ghe.example.com/api/v3/projects/sourcebot-dev/sourcebot",
+            },
+            pull_request: { number: 1 },
+        };
+
+        await POST(createGitHubRequest(payload, {
+            "x-hub-signature-256": "sha256=signature",
+        }));
+
+        expect(mocks.verifyAndReceive).toHaveBeenCalledWith({
+            id: "delivery-id",
+            name: "pull_request",
+            payload: JSON.stringify(payload),
+            signature: "sha256=signature",
+        });
+        expect(mocks.getInstallationOctokit).not.toHaveBeenCalled();
+        expect(mocks.processGitHubPullRequest).not.toHaveBeenCalled();
+    });
+
     test("skips GitHub events when verification fails", async () => {
         mocks.verifyAndReceive.mockRejectedValue(new Error("invalid signature"));
         const { POST } = await importRoute();
