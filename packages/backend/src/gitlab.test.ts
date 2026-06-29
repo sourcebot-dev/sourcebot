@@ -141,16 +141,26 @@ test('shouldExcludeProject returns false when exclude.topics does not match any 
     })).toBe(false);
 });
 
-test('shouldExcludeProject include.topics matching is case-sensitive on the project side.', () => {
+test('shouldExcludeProject matches include.topics case-insensitively.', () => {
     const project = {
         path_with_namespace: 'test/project',
         topics: ['Backend'],
     } as unknown as ProjectSchema;
 
-    // The function lowercases config topics but not project topics,
-    // so 'Backend' does not match the lowercased pattern 'backend'.
     expect(shouldExcludeProject({
         project,
         include: { topics: ['backend'] },
+    })).toBe(false);
+});
+
+test('shouldExcludeProject matches exclude.topics case-insensitively.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        topics: ['Deprecated'],
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: { topics: ['deprecated'] },
     })).toBe(true);
 });
