@@ -99,7 +99,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
-        }, request)
+        })
     );
 
     if (isServiceError(response)) {
@@ -143,7 +143,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
             }
 
             return session.transport.handleRequest(request);
-        }, request)
+        })
     );
 
     if (isServiceError(result)) {

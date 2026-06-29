@@ -10,6 +10,7 @@ import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
+import { getCurrentRequest } from "@/lib/requestContext";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -30,8 +31,8 @@ type OptionalAuthContext =
     };
 
 
-export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, request?: Request) => {
-    const authContext = await getAuthContext(request);
+export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
+    const authContext = await getAuthContext();
 
     if (isServiceError(authContext)) {
         return authContext;
@@ -46,8 +47,8 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
     return fn({ user, org, role, prisma });
 };
 
-export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, request?: Request) => {
-    const authContext = await getAuthContext(request);
+export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
+    const authContext = await getAuthContext();
     if (isServiceError(authContext)) {
         return authContext;
     }
@@ -62,8 +63,8 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
     return fn(authContext);
 };
 
-export const getAuthContext = async (request?: Request): Promise<OptionalAuthContext | ServiceError> => {
-    const authResult = await getAuthenticatedUser(request);
+export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
+    const authResult = await getAuthenticatedUser();
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -132,7 +133,7 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
 
 type AuthSource = 'session' | 'oauth' | 'api_key';
 
-export const getAuthenticatedUser = async (request?: Request): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
+export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -149,7 +150,8 @@ export const getAuthenticatedUser = async (request?: Request): Promise<{ user: U
         return user ? { user, source: 'session' } : undefined;
     }
 
-    const requestHeaders = request?.headers ?? await headers();
+    const currentRequest = getCurrentRequest();
+    const requestHeaders = currentRequest?.headers ?? await headers();
 
     // If not, check for a Bearer token in the Authorization header.
     const authorizationHeader = requestHeaders.get("Authorization") ?? undefined;
@@ -171,12 +173,12 @@ export const getAuthenticatedUser = async (request?: Request): Promise<{ user: U
             });
             if (oauthToken && oauthToken.expiresAt > new Date()) {
                 if (oauthToken.dpopJkt) {
-                    if (authorization.scheme !== DPOP_AUTH_SCHEME || !request) {
+                    if (authorization.scheme !== DPOP_AUTH_SCHEME || !currentRequest) {
                         return undefined;
                     }
 
                     const proofResult = await verifyDpopProof({
-                        request,
+                        request: currentRequest,
                         proof: requestHeaders.get(DPOP_PROOF_HEADER),
                         expectedJkt: oauthToken.dpopJkt,
                         accessToken: bearerToken,

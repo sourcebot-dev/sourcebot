@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { Session } from 'next-auth';
+import { NextRequest } from 'next/server';
 import { notAuthenticated } from '../lib/serviceError';
 import { getAuthContext, getAuthenticatedUser, withAuth, withOptionalAuth } from './withAuth';
 import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from '../__mocks__/prisma';
@@ -7,6 +8,7 @@ import { OrgRole } from '@sourcebot/db';
 import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { userScopedPrismaClientExtension } from '@/prisma';
+import { runWithRequestContext } from '@/lib/requestContext';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -174,6 +176,40 @@ describe('getAuthenticatedUser', () => {
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
         expect(result?.source).toBe('api_key');
+        expect(prisma.apiKey.update).toHaveBeenCalledWith({
+            where: {
+                hash: 'apikey',
+            },
+            data: {
+                lastUsedAt: expect.any(Date),
+            },
+        });
+    });
+
+    test('should use the current request context when no request is passed', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+
+        const request = new NextRequest('https://sourcebot.example.com/api/test', {
+            headers: {
+                Authorization: 'Bearer sourcebot-apikey',
+            },
+        });
+
+        const result = await runWithRequestContext(request, () => getAuthenticatedUser());
+
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('api_key');
+        expect(mocks.headers).not.toHaveBeenCalled();
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
                 hash: 'apikey',
