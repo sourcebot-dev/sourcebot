@@ -381,6 +381,9 @@
                 },
                 "webUrl": {
                   "type": "string"
+                },
+                "indexedCommitHash": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -575,6 +578,9 @@
             "type": "string"
           },
           "externalWebUrl": {
+            "type": "string"
+          },
+          "commitSha": {
             "type": "string"
           }
         },
@@ -930,6 +936,9 @@
                   "type": "string"
                 },
                 "webUrl": {
+                  "type": "string"
+                },
+                "indexedCommitHash": {
                   "type": "string"
                 }
               },

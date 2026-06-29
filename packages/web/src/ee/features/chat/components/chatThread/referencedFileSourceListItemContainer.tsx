@@ -4,6 +4,7 @@ import { getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
+import { ErrorCode } from "@/lib/errorCodes";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback } from "react";
@@ -51,9 +52,15 @@ const ReferencedFileSourceListItemContainerComponent = ({
                 ref: fetchRef,
             });
 
-            // The pinned commit can disappear (e.g. a force-push + GC prunes it).
-            // Fall back once to the symbolic ref so the file still renders.
-            if (isServiceError(pinned) && fetchRef !== fileSource.revision) {
+            // The pinned commit can disappear (e.g. a force-push + GC prunes it),
+            // which surfaces as an unresolvable git ref. Only that case falls
+            // back to the symbolic ref; other errors (repo/path/access) are
+            // surfaced as-is so we don't silently render the wrong revision.
+            if (
+                isServiceError(pinned) &&
+                pinned.errorCode === ErrorCode.INVALID_GIT_REF &&
+                fetchRef !== fileSource.revision
+            ) {
                 return unwrapServiceError(getFileSource({
                     path: fileSource.path,
                     repo: fileSource.repo,

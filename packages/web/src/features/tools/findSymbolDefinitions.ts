@@ -63,6 +63,13 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
             codeHostType: repoInfoResult.codeHostType,
         };
 
+        // Pin to the indexed commit carried by the same search snapshot that
+        // produced these matches, rather than a follow-up repo-info lookup that
+        // could drift if the index advances in between.
+        const indexedCommitShaByRepo = new Map(
+            response.repositoryInfo.map((info) => [info.name, info.indexedCommitHash]),
+        );
+
         const metadata: FindSymbolDefinitionsMetadata = {
             symbol,
             matchCount,
@@ -72,7 +79,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
                 fileName: file.fileName,
                 repo: file.repository,
                 revision,
-                commitSha: repoInfoResult.indexedCommitHash,
+                commitSha: indexedCommitShaByRepo.get(file.repository),
             })),
         };
 
