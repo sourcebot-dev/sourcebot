@@ -81,6 +81,7 @@ describe('ChatThreadPanel', () => {
                 isAuthenticated={true}
                 isLoginWallEnabled={false}
                 maxImageBytes={10 * 1024 * 1024}
+                maxPdfBytes={32 * 1024 * 1024}
             />
         );
 

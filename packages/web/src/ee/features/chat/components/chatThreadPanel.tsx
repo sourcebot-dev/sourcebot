@@ -18,6 +18,7 @@ interface ChatThreadPanelProps {
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
     maxImageBytes: number;
+    maxPdfBytes: number;
     chatName?: string;
 }
 
@@ -38,6 +39,7 @@ export const ChatThreadPanel = ({
     isAuthenticated,
     isLoginWallEnabled,
     maxImageBytes,
+    maxPdfBytes,
     chatName,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
@@ -93,6 +95,7 @@ export const ChatThreadPanel = ({
                 isAuthenticated={isAuthenticated}
                 isLoginWallEnabled={isLoginWallEnabled}
                 maxImageBytes={maxImageBytes}
+                maxPdfBytes={maxPdfBytes}
                 chatName={chatName}
             />
         </div>

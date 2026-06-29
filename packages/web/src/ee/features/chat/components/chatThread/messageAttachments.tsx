@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AttachmentViewerDialog } from "@/features/chat/components/chatBox/attachmentViewerDialog";
-import { mediaTypeToModality } from "@/features/chat/attachments/modality";
+import { mediaTypeToDocumentType, mediaTypeToModality } from "@/features/chat/attachments/modality";
 import { AttachmentData } from "@/features/chat/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -71,6 +71,26 @@ export const MessageAttachments = ({ attachments, chatId, className }: MessageAt
                                     />
                                 </HoverCardContent>
                             </HoverCard>
+                        );
+                    }
+
+                    // Sent PDFs open in a new tab from their chat-scoped serving
+                    // URL (a download chip) rather than the inline viewer dialog.
+                    if (attachment.kind === 'blob' && mediaTypeToDocumentType(attachment.mediaType) === 'pdf') {
+                        return (
+                            <a
+                                key={attachment.attachmentId}
+                                href={getAttachmentServingUrl(chatId, attachment.attachmentId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex flex-row items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs hover:bg-accent transition-colors"
+                                title={`Open ${attachment.filename}`}
+                            >
+                                <VscodeFileIcon fileName={attachment.filename} className="w-3 h-3" />
+                                <span className="font-mono max-w-[160px] truncate">
+                                    {attachment.filename}
+                                </span>
+                            </a>
                         );
                     }
 

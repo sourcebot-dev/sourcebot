@@ -180,6 +180,7 @@ export default async function Page(props: PageProps) {
                 isAuthenticated={!!session}
                 isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
+                maxPdfBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES}
                 chatName={name ?? undefined}
             />
         </div>

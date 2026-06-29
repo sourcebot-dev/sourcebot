@@ -27,10 +27,11 @@ export const ChatPaneDropzone = ({ onFilesDropped, disabled, className, children
     const [dragFileCount, setDragFileCount] = useState(0);
 
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
-        // Accept images at the dropzone layer regardless of model capability;
-        // the chat box's add handler applies the authoritative image gate (and
-        // surfaces a precise message when the selected model is text-only).
-        accept: getAttachmentDropzoneAccept(true),
+        // Accept images and PDFs at the dropzone layer regardless of model
+        // capability; the chat box's add handler applies the authoritative gate
+        // (and surfaces a precise message when the selected model can't accept
+        // that type).
+        accept: getAttachmentDropzoneAccept(true, true),
         multiple: true,
         noClick: true,
         noKeyboard: true,

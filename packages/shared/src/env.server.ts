@@ -330,6 +330,14 @@ const options = {
         SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES: numberSchema.int().positive().default(10 * 1024 * 1024),
 
         /**
+         * Maximum size (in bytes) of a single PDF attachment uploaded to the
+         * Ask chat. Enforced server-side at upload time. PDFs are gated on the
+         * selected model's native PDF support (`supportedDocumentTypes`).
+         * @default 32 MiB
+         */
+        SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES: numberSchema.int().positive().default(32 * 1024 * 1024),
+
+        /**
          * How long (in hours) an uploaded-but-unlinked (PENDING) attachment
          * blob is retained before the orphan sweep deletes it and its bytes.
          * Covers "select a file then never send" abandonment. Set to 0 to

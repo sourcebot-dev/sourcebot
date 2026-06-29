@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { LanguageModel } from '@sourcebot/schemas/v3/languageModel.type';
-import { DocumentType, InputModality } from './types';
+import { DocumentType, InputModality, LanguageModelProvider } from './types';
 import { loadCatalog, resolveProviderId, type ModelsDevCatalog } from './modelsDevCatalog.server';
 
 // models.dev folds every accepted input — perceptual channels (text, image,
@@ -18,6 +18,37 @@ const isInputModality = (value: string): value is InputModality =>
 
 const isDocumentType = (value: string): value is DocumentType =>
     (DOCUMENT_TYPE_VALUES as readonly string[]).includes(value);
+
+// A model supporting a document type (per the catalog) is necessary but not
+// sufficient: the AI SDK provider adapter we route through must also be able to
+// translate that document into a `file` part for the wire. Several adapters
+// either only handle images (e.g. amazon-bedrock) or are back-end/version
+// dependent (openai-compatible, openrouter, xai), and will throw
+// `AI_UnsupportedFunctionalityError: 'file part media type application/pdf'` at
+// stream time even when the model itself accepts PDFs. We therefore intersect
+// the catalog's document support with this fail-closed allowlist of providers
+// whose adapter is known to carry PDF file parts. Anything not listed drops
+// PDF rather than risking a hard turn failure.
+//
+// @note Verify against the bundled `@ai-sdk/*` versions before adding a
+// provider here. `azure` routes through the OpenAI responses path (input_file)
+// so it is included; `xai`/`openrouter`/`amazon-bedrock` are intentionally
+// omitted pending confirmation in their adapter versions.
+const PDF_DOCUMENT_PROVIDERS: ReadonlySet<LanguageModelProvider> = new Set([
+    'anthropic',
+    'openai',
+    'azure',
+    'google-generative-ai',
+    'google-vertex',
+    'google-vertex-anthropic',
+]);
+
+/**
+ * Whether the AI SDK adapter for `provider` can carry an `application/pdf` file
+ * part. Fail-closed: providers not on the allowlist resolve to no PDF support.
+ */
+export const providerSupportsPdfDocuments = (provider: LanguageModelProvider): boolean =>
+    PDF_DOCUMENT_PROVIDERS.has(provider);
 
 export type ModelCapabilities = {
     inputModalities: InputModality[];
@@ -46,7 +77,13 @@ export const lookupModelCapabilities = (
     }
 
     const inputModalities = inputs.filter(isInputModality);
-    const supportedDocumentTypes = inputs.filter(isDocumentType);
+    // Narrow the catalog's document support to what the provider's adapter can
+    // actually send on the wire (see PDF_DOCUMENT_PROVIDERS): a model may accept
+    // PDFs while the adapter cannot carry the file part.
+    const supportedDocumentTypes = inputs
+        .filter(isDocumentType)
+        .filter((documentType) =>
+            documentType === 'pdf' ? providerSupportsPdfDocuments(config.provider) : true);
 
     // Every model accepts text, even if the catalog omits it from the list.
     if (!inputModalities.includes('text')) {

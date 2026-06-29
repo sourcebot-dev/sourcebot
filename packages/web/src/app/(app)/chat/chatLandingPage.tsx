@@ -72,6 +72,7 @@ export async function ChatLandingPage() {
                             isAuthenticated={!!session}
                             isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                             maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
+                            maxPdfBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES}
                         />
                     </CustomSlateEditor>
 

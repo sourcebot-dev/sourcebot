@@ -1,5 +1,5 @@
-import { BlobAttachment, InputModality, SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
-import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
+import { BlobAttachment, DocumentType, InputModality, SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { AttachmentCapabilities, isAttachmentAccepted, isNativeMediaType, mediaTypeToDocumentType, mediaTypeToModality } from "@/features/chat/attachments/modality";
 import { getStorageBackend } from "@sourcebot/shared";
 import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
@@ -43,16 +43,21 @@ type ResolvedTurnMedia = Map<string, { bytes: Buffer; mediaType: string }>;
 
 // A native (non-text) attachment part for a model message. The single place
 // that maps a stored blob to its model content part; extend this resolver to
-// add PDF / audio / video support.
-type ModelMediaPart = { type: 'image'; image: Buffer; mediaType: string };
+// add audio / video support. Images map to an `image` part; PDFs map to the AI
+// SDK `file` part (the provider decodes the document server-side).
+type ModelMediaPart =
+    | { type: 'image'; image: Buffer; mediaType: string }
+    | { type: 'file'; data: Buffer; mediaType: string };
 
 const buildModelMediaPart = (bytes: Buffer, mediaType: string): ModelMediaPart | undefined => {
-    const modality = mediaTypeToModality(mediaType);
-    if (modality === 'image') {
+    if (mediaTypeToModality(mediaType) === 'image') {
         return { type: 'image', image: bytes, mediaType };
     }
-    // audio / video / document modalities are not yet wired into the model
-    // content; callers leave a degrade marker in their place.
+    if (mediaTypeToDocumentType(mediaType) === 'pdf') {
+        return { type: 'file', data: bytes, mediaType };
+    }
+    // audio / video modalities are not yet wired into the model content;
+    // callers leave a degrade marker in their place.
     return undefined;
 };
 
@@ -84,26 +89,28 @@ const collectTextAttachments = (messages: SBChatMessage[]): TurnTextAttachment[]
     return [...byId.values()];
 };
 
-// The native-media (non-text) attachment blobs carried by a user message.
+// The native-media (non-text) attachment blobs carried by a user message. This
+// spans both capability axes: single-medium modalities (images) and compound
+// document types (PDFs).
 const getMediaBlobs = (message: SBChatMessage): BlobAttachment[] =>
     getUserMessageAttachments(message)
         .filter((attachment): attachment is BlobAttachment =>
-            attachment.kind === 'blob' && mediaTypeToModality(attachment.mediaType) !== undefined);
+            attachment.kind === 'blob' && isNativeMediaType(attachment.mediaType));
 
 // Reads the native-media attachment bytes for one user turn from the
-// StorageBackend. Fail-closed: only blobs whose modality the model accepts are
-// loaded, and only when linked to this chat (mirroring the serving route's
-// chat-derived access), so a text-only model resolves nothing here and the
-// builder leaves a marker instead.
+// StorageBackend. Fail-closed: only blobs the model can natively accept (by
+// modality or document type) are loaded, and only when linked to this chat
+// (mirroring the serving route's chat-derived access), so a text-only model
+// resolves nothing here and the builder leaves a marker instead.
 const resolveLatestTurnMedia = async ({
     message,
-    acceptedModalities,
+    capabilities,
     prisma,
     orgId,
     chatId,
 }: {
     message: SBChatMessage | undefined;
-    acceptedModalities: InputModality[];
+    capabilities: AttachmentCapabilities;
     prisma: PrismaClient;
     orgId?: number;
     chatId: string;
@@ -114,7 +121,7 @@ const resolveLatestTurnMedia = async ({
     }
 
     const acceptedBlobs = getMediaBlobs(message)
-        .filter((blob) => isMediaTypeAccepted(blob.mediaType, acceptedModalities));
+        .filter((blob) => isAttachmentAccepted(blob.mediaType, capabilities));
     if (acceptedBlobs.length === 0) {
         return result;
     }
@@ -145,12 +152,12 @@ const resolveLatestTurnMedia = async ({
 const buildUserModelMessage = ({
     message,
     isLatestUserTurn,
-    acceptedModalities,
+    capabilities,
     resolvedMedia,
 }: {
     message: SBChatMessage;
     isLatestUserTurn: boolean;
-    acceptedModalities: InputModality[];
+    capabilities: AttachmentCapabilities;
     resolvedMedia?: ResolvedTurnMedia;
 }): ModelMessage => {
     const text = getUserMessageText(message);
@@ -180,7 +187,7 @@ const buildUserModelMessage = ({
         return { role: 'user', content: baseText };
     }
 
-    const acceptedBlobs = mediaBlobs.filter((blob) => isMediaTypeAccepted(blob.mediaType, acceptedModalities));
+    const acceptedBlobs = mediaBlobs.filter((blob) => isAttachmentAccepted(blob.mediaType, capabilities));
     const unsupportedCount = mediaBlobs.length - acceptedBlobs.length;
 
     const mediaParts = acceptedBlobs
@@ -247,6 +254,10 @@ interface CreateMessageStreamResponseProps {
     // to text-only): attachments whose modality isn't listed are omitted from
     // the model content and a marker is left in their place.
     acceptedModalities?: InputModality[];
+    // Authoritative, server-resolved set of compound document types (e.g. PDF)
+    // the selected model can natively ingest. Fail-closed (defaults to none):
+    // documents whose type isn't listed are omitted and a marker is left.
+    supportedDocumentTypes?: DocumentType[];
 }
 
 export const createMessageStream = async ({
@@ -267,7 +278,14 @@ export const createMessageStream = async ({
     userId,
     orgId,
     acceptedModalities = [],
+    supportedDocumentTypes = [],
 }: CreateMessageStreamResponseProps) => {
+    // The model's native attachment capabilities across both axes, threaded
+    // into the media resolver and the per-turn content builder.
+    const attachmentCapabilities: AttachmentCapabilities = {
+        inputModalities: acceptedModalities,
+        supportedDocumentTypes,
+    };
     // Defense-in-depth: Ask Sourcebot is a paid feature. Every caller is
     // expected to gate on the `ask` entitlement before reaching here (see
     // checkAskEntitlement); this assertion backstops that contract so a future
@@ -294,7 +312,7 @@ export const createMessageStream = async ({
     const lastUserIndex = messages.map((message) => message.role).lastIndexOf('user');
     const resolvedLatestTurnMedia = await resolveLatestTurnMedia({
         message: lastUserIndex >= 0 ? messages[lastUserIndex] : undefined,
-        acceptedModalities,
+        capabilities: attachmentCapabilities,
         prisma,
         orgId,
         chatId,
@@ -306,7 +324,7 @@ export const createMessageStream = async ({
                 return buildUserModelMessage({
                     message,
                     isLatestUserTurn: index === lastUserIndex,
-                    acceptedModalities,
+                    capabilities: attachmentCapabilities,
                     resolvedMedia: index === lastUserIndex ? resolvedLatestTurnMedia : undefined,
                 });
             }

@@ -20,6 +20,16 @@ const mockAi = vi.hoisted(() => ({
     streamText: vi.fn(),
 }));
 
+// Stable storage-backend mock so tests can control the bytes returned for a
+// resolved attachment (the module returns the same object on every call).
+const mockStorage = vi.hoisted(() => ({
+    get: vi.fn(),
+    put: vi.fn(),
+    stat: vi.fn(),
+    createReadStream: vi.fn(),
+    delete: vi.fn(),
+}));
+
 vi.mock('@sourcebot/shared', () => ({
     createLogger: () => mockLogger,
     env: {
@@ -31,13 +41,7 @@ vi.mock('@sourcebot/shared', () => ({
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: 'false',
     },
     getDBConnectionString: () => 'postgresql://sourcebot:sourcebot@db.example.com:5432/sourcebot',
-    getStorageBackend: () => ({
-        get: vi.fn(),
-        put: vi.fn(),
-        stat: vi.fn(),
-        createReadStream: vi.fn(),
-        delete: vi.fn(),
-    }),
+    getStorageBackend: () => mockStorage,
 }));
 
 vi.mock('server-only', () => ({}));
@@ -80,6 +84,7 @@ vi.mock('@/features/tools', () => {
         listReposDefinition: createToolDefinition('list_repos'),
         listTreeDefinition: createToolDefinition('list_tree'),
         readFileDefinition: createToolDefinition('read_file'),
+        readAttachmentDefinition: createToolDefinition('read_attachment'),
         toVercelAITool: vi.fn((definition: { name: string }) => ({
             name: definition.name,
         })),
@@ -187,6 +192,10 @@ const runCreateMessageStream = async (
     opts: {
         promptCacheStrategy?: PromptCacheStrategy;
         selectedRepos?: string[];
+        prisma?: unknown;
+        orgId?: number;
+        acceptedModalities?: string[];
+        supportedDocumentTypes?: string[];
     } = {},
 ): Promise<StreamTextArgs> => {
     const convertedLastTurn: ModelMessage = {
@@ -200,7 +209,10 @@ const runCreateMessageStream = async (
         chatId: 'chat-id',
         messages,
         selectedRepos: opts.selectedRepos ?? [],
-        prisma: {},
+        prisma: opts.prisma ?? {},
+        orgId: opts.orgId,
+        acceptedModalities: opts.acceptedModalities,
+        supportedDocumentTypes: opts.supportedDocumentTypes,
         model: {},
         modelName: 'test-model',
         // Default to a no-op strategy so the approval-continuation tests below
@@ -452,5 +464,76 @@ describe('createMessageStream prompt caching', () => {
         });
 
         expect(first.system[0].content).toBe(second.system[0].content);
+    });
+});
+
+const createUserMessageWithPdf = (): SBChatMessage => ({
+    id: 'user-message',
+    role: 'user',
+    parts: [
+        {
+            type: 'text',
+            text: 'Summarize this document',
+        },
+        {
+            type: 'data-attachment',
+            data: {
+                kind: 'blob',
+                attachmentId: 'att-pdf-1',
+                filename: 'doc.pdf',
+                mediaType: 'application/pdf',
+                sizeBytes: 1234,
+            },
+        },
+    ],
+});
+
+describe('createMessageStream PDF attachments', () => {
+    const pdfBytes = Buffer.from('%PDF-1.7 fake pdf bytes');
+
+    const prismaWithPdf = () => ({
+        attachment: {
+            findMany: vi.fn().mockResolvedValue([
+                { id: 'att-pdf-1', storageKey: 'org/att-pdf-1', mediaType: 'application/pdf' },
+            ]),
+        },
+    });
+
+    test('sends the PDF as a model `file` part when the model supports PDF documents', async () => {
+        mockStorage.get.mockResolvedValue(pdfBytes);
+
+        const { messages } = await runCreateMessageStream([createUserMessageWithPdf()], {
+            prisma: prismaWithPdf(),
+            orgId: 1,
+            acceptedModalities: ['text'],
+            supportedDocumentTypes: ['pdf'],
+        });
+
+        const userMessage = messages[0];
+        expect(Array.isArray(userMessage.content)).toBe(true);
+        const parts = userMessage.content as Array<{ type: string; mediaType?: string; data?: Buffer }>;
+        const filePart = parts.find((part) => part.type === 'file');
+        expect(filePart).toBeDefined();
+        expect(filePart?.mediaType).toBe('application/pdf');
+        expect(filePart?.data).toEqual(pdfBytes);
+    });
+
+    test('omits the PDF and leaves a degrade note when the model does not support PDF documents', async () => {
+        const findMany = vi.fn().mockResolvedValue([]);
+        mockStorage.get.mockResolvedValue(pdfBytes);
+
+        const { messages } = await runCreateMessageStream([createUserMessageWithPdf()], {
+            prisma: { attachment: { findMany } },
+            orgId: 1,
+            acceptedModalities: ['text'],
+            supportedDocumentTypes: [],
+        });
+
+        const userMessage = messages[0];
+        // No accepted media → content is a plain string carrying the degrade note.
+        expect(typeof userMessage.content).toBe('string');
+        expect(userMessage.content as string).toContain('does not support that file type');
+        // Fail-closed: an unsupported document is never read from storage.
+        expect(findMany).not.toHaveBeenCalled();
     });
 });

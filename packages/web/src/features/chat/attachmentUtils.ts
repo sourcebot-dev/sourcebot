@@ -2,10 +2,13 @@
 
 import {
     ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES,
+    ATTACHMENT_ALLOWED_PDF_MIME_TYPES,
     ATTACHMENT_ALLOWED_TEXT_EXTENSIONS,
     ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
     ATTACHMENT_MAX_IMAGE_BYTES,
     ATTACHMENT_MAX_IMAGE_COUNT,
+    ATTACHMENT_MAX_PDF_BYTES,
+    ATTACHMENT_MAX_PDF_COUNT,
     ATTACHMENT_MAX_TURN_TEXT_BYTES,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES,
@@ -44,21 +47,48 @@ export type PendingImageAttachment = {
     error?: string;
 };
 
+// A PDF attachment selected in the chat box. Like images, the bytes are
+// uploaded to blob storage on select and `status`/`attachmentId` track that
+// upload. Unlike images there is no `previewUrl` (PDFs are not rendered as a
+// thumbnail); the tray shows a file-icon chip instead.
+export type PendingPdfAttachment = {
+    kind: 'pdf';
+    id: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    file: File;
+    status: 'uploading' | 'uploaded' | 'error';
+    attachmentId?: string;
+    error?: string;
+};
+
 // An attachment selected in the chat box but not yet submitted. For text
 // attachments the `id` is the stable handle carried into the message so the
-// content can be cited and resolved; for images it is a client-only list key
-// (images are addressed by their uploaded `attachmentId` instead).
-export type PendingAttachment = PendingTextAttachment | PendingImageAttachment;
+// content can be cited and resolved; for images and PDFs it is a client-only
+// list key (they are addressed by their uploaded `attachmentId` instead).
+export type PendingAttachment = PendingTextAttachment | PendingImageAttachment | PendingPdfAttachment;
+
+// Whether a pending attachment is an upload-backed blob (image or PDF): its
+// bytes are uploaded on select and it carries an `attachmentId`/`status`.
+export type PendingUploadAttachment = PendingImageAttachment | PendingPdfAttachment;
+
+export const isPendingUploadAttachment = (
+    attachment: PendingAttachment,
+): attachment is PendingUploadAttachment =>
+    attachment.kind === 'image' || attachment.kind === 'pdf';
 
 // Builds the comma-separated `accept` attribute for a native `<input type=file>`
 // so the OS picker only surfaces supported file types. Image types are included
-// only when the selected model can accept image input.
-export const getAttachmentAcceptAttribute = (includeImages: boolean): string => {
+// only when the selected model can accept image input; PDF only when it
+// natively supports PDF documents.
+export const getAttachmentAcceptAttribute = (includeImages: boolean, includePdf: boolean): string => {
     return [
         'text/*',
         ...ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
         ...ATTACHMENT_ALLOWED_TEXT_EXTENSIONS.map((extension) => `.${extension}`),
         ...(includeImages ? ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES : []),
+        ...(includePdf ? [...ATTACHMENT_ALLOWED_PDF_MIME_TYPES, '.pdf'] : []),
     ].join(',');
 }
 
@@ -66,8 +96,9 @@ export const getAttachmentAcceptAttribute = (includeImages: boolean): string => 
 // the OS dialog and drag overlay only surface supported file types. The
 // extension list is attached to `text/plain` so code files that report an empty
 // or unusual MIME type are still selectable by extension. Image types are
-// included only when the selected model can accept image input.
-export const getAttachmentDropzoneAccept = (includeImages: boolean): Record<string, string[]> => {
+// included only when the selected model can accept image input; PDF only when
+// it natively supports PDF documents.
+export const getAttachmentDropzoneAccept = (includeImages: boolean, includePdf: boolean): Record<string, string[]> => {
     const accept: Record<string, string[]> = {
         'text/*': [],
         'text/plain': ATTACHMENT_ALLOWED_TEXT_EXTENSIONS.map((extension) => `.${extension}`),
@@ -78,6 +109,11 @@ export const getAttachmentDropzoneAccept = (includeImages: boolean): Record<stri
     if (includeImages) {
         for (const mimeType of ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES) {
             accept[mimeType] = [];
+        }
+    }
+    if (includePdf) {
+        for (const mimeType of ATTACHMENT_ALLOWED_PDF_MIME_TYPES) {
+            accept[mimeType] = ['.pdf'];
         }
     }
     return accept;
@@ -110,6 +146,8 @@ export const toAttachmentData = (attachment: PendingAttachment): AttachmentData 
         };
     }
 
+    // Images and PDFs both become blob refs once their upload completes; an
+    // upload still in flight has no `attachmentId` and must not be referenced.
     if (attachment.status === 'uploaded' && attachment.attachmentId) {
         return {
             kind: 'blob',
@@ -153,6 +191,14 @@ export const isAllowedTextFile = (file: File): boolean => {
 
 export const isAllowedImageFile = (file: File): boolean => {
     return (ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type);
+}
+
+export const isAllowedPdfFile = (file: File): boolean => {
+    if ((ATTACHMENT_ALLOWED_PDF_MIME_TYPES as readonly string[]).includes(file.type)) {
+        return true;
+    }
+    // Some browsers report an empty type for PDFs; fall back to the extension.
+    return getExtension(file.name) === 'pdf';
 }
 
 const readAsText = (file: File): Promise<string> => {
@@ -217,21 +263,33 @@ export type ReadFilesResult = {
 };
 
 // Reads and validates files into pending attachments, enforcing the per-file
-// size, allowed-type, and per-message image-count caps (the per-turn text budget
-// is enforced at submit time). Text is read inline; images (when `allowImages`)
-// become pending uploads the caller then kicks off. The image-count cap mirrors
-// the server's for early feedback. Rejected files yield an error, not a throw.
+// size, allowed-type, and per-message image/PDF-count caps (the per-turn text
+// budget is enforced at submit time). Text is read inline; images (when
+// `allowImages`) and PDFs (when `allowPdf`) become pending uploads the caller
+// then kicks off. The count caps mirror the server's for early feedback.
+// Rejected files yield an error, not a throw.
 export const readFilesAsAttachments = async (
     files: File[],
-    { allowImages, existingImageCount = 0, maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES }: {
+    {
+        allowImages,
+        allowPdf,
+        existingImageCount = 0,
+        existingPdfCount = 0,
+        maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
+        maxPdfBytes = ATTACHMENT_MAX_PDF_BYTES,
+    }: {
         allowImages: boolean;
+        allowPdf: boolean;
         existingImageCount?: number;
+        existingPdfCount?: number;
         maxImageBytes?: number;
+        maxPdfBytes?: number;
     },
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
     let imageCount = existingImageCount;
+    let pdfCount = existingPdfCount;
 
     for (const file of files) {
         if (isAllowedTextFile(file)) {
@@ -283,16 +341,43 @@ export const readFilesAsAttachments = async (
             continue;
         }
 
+        if (isAllowedPdfFile(file)) {
+            if (!allowPdf) {
+                errors.push(`${file.name}: the selected model does not support PDF input.`);
+                continue;
+            }
+            if (file.size > maxPdfBytes) {
+                errors.push(`${file.name}: exceeds the ${Math.round(maxPdfBytes / (1024 * 1024))}MB PDF limit.`);
+                continue;
+            }
+            if (pdfCount >= ATTACHMENT_MAX_PDF_COUNT) {
+                errors.push(`You can attach at most ${ATTACHMENT_MAX_PDF_COUNT} PDFs per message.`);
+                continue;
+            }
+            attachments.push({
+                id: uuidv4(),
+                kind: 'pdf',
+                filename: sanitizeFilename(file.name),
+                mediaType: 'application/pdf',
+                sizeBytes: file.size,
+                file,
+                status: 'uploading',
+            });
+            pdfCount++;
+            continue;
+        }
+
         errors.push(`${file.name}: unsupported file type.`);
     }
 
     return { attachments, errors };
 }
 
-// Uploads an image attachment's bytes to blob storage, returning the committed
-// attachment metadata (including the server-assigned `attachmentId`). Throws
-// with a human-readable message on failure.
-export const uploadImageAttachment = async (file: File): Promise<{
+// Uploads a binary (blob) attachment's bytes to blob storage, returning the
+// committed attachment metadata (including the server-assigned `attachmentId`).
+// Used for both image and PDF attachments. Throws with a human-readable message
+// on failure.
+export const uploadBlobAttachment = async (file: File): Promise<{
     attachmentId: string;
     filename: string;
     mediaType: string;
@@ -311,7 +396,7 @@ export const uploadImageAttachment = async (file: File): Promise<{
 
     if (!response.ok) {
         const body = await response.json().catch(() => undefined);
-        throw new Error(body?.message ?? 'Failed to upload image.');
+        throw new Error(body?.message ?? 'Failed to upload file.');
     }
 
     return response.json();
