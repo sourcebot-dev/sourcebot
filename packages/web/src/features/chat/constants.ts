@@ -53,8 +53,8 @@ export const ATTACHMENT_ALLOWED_TEXT_MIME_TYPES = [
     'application/toml',
 ];
 
-// Allowlist for binary image attachments. Validated server-side by magic
-// bytes (never by client MIME/extension). `image/svg+xml` is intentionally
+// Allowlist for binary image attachments. Validated server-side by decoding
+// the image (never by client MIME/extension). `image/svg+xml` is intentionally
 // excluded (XML/script surface). Used client-side only to build the file
 // picker's `accept` filter and to gate the image-attach affordance.
 export const ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES = [

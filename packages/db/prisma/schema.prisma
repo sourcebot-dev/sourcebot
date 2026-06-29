@@ -639,7 +639,7 @@ model Attachment {
   /// Original (sanitized) filename supplied by the uploader.
   filename String
 
-  /// Final media type of the stored bytes (validated by magic bytes at upload).
+  /// Final media type of the stored bytes (validated by decoding at upload).
   mediaType String
 
   /// Size of the stored bytes.
@@ -649,9 +649,11 @@ model Attachment {
   checksum String
 
   /// The user who uploaded this blob. Uploads require authentication, so this
-  /// is always set (anonymous users cannot upload binary attachments).
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
-  uploadedById String
+  /// is set at creation (anonymous users cannot upload binary attachments). It
+  /// is nulled if the uploader is later deleted, so committed attachments
+  /// survive on the chats they're linked to.
+  uploadedBy   User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedById String?
 
   status AttachmentStatus @default(PENDING)
 

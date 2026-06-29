@@ -47,10 +47,21 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
+            // Authoritative size reject from the parsed file, independent of the
+            // (best-effort, spoofable) content-length header, before buffering
+            // the bytes into a Buffer.
+            if (file.size > maxImageBytes) {
+                return {
+                    statusCode: StatusCodes.REQUEST_TOO_LONG,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Attachment exceeds the ${Math.round(maxImageBytes / (1024 * 1024))}MB limit.`,
+                } satisfies ServiceError;
+            }
+
             const buffer = Buffer.from(await file.arrayBuffer());
 
-            // Authoritative content-type + size check by magic bytes (never the
-            // client-supplied MIME type or extension).
+            // Authoritative content-type + size check by decoding the image
+            // (never the client-supplied MIME type or extension).
             const validation = await validateImageAttachment(buffer, maxImageBytes);
             if (!validation.ok) {
                 return {

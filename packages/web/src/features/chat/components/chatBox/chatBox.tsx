@@ -434,7 +434,16 @@ const ChatBoxComponent = ({
         // are kept alive for the `submittedAttachments` redirect tray and revoked
         // on unmount (see the cleanup effect above).
         _onSubmit(editor.children, editor, attachmentData);
-        setSubmittedAttachments(attachments);
+        // Replace the prior submitted batch, revoking its preview URLs so they
+        // don't accumulate across repeated sends in a long-lived chat box.
+        setSubmittedAttachments((prev) => {
+            for (const attachment of prev) {
+                if (attachment.kind === 'image') {
+                    URL.revokeObjectURL(attachment.previewUrl);
+                }
+            }
+            return attachments;
+        });
         setAttachments([]);
     }, [
         isSubmitDisabled,
