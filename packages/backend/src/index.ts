@@ -8,6 +8,7 @@ import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { Api } from "./api.js";
+import { AttachmentPruner } from "./attachmentPruner.js";
 import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
@@ -55,10 +56,12 @@ const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, re
 const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
 const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
 const auditLogPruner = new AuditLogPruner(prisma);
+const attachmentPruner = new AttachmentPruner(prisma);
 
 connectionManager.startScheduler();
 await repoIndexManager.startScheduler();
 auditLogPruner.startScheduler();
+attachmentPruner.startScheduler();
 
 if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
     logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
@@ -99,6 +102,7 @@ const listenToShutdownSignals = () => {
             await repoPermissionSyncer.dispose()
             await accountPermissionSyncer.dispose()
             await auditLogPruner.dispose()
+            await attachmentPruner.dispose()
             await configManager.dispose()
 
             await prisma.$disconnect();
