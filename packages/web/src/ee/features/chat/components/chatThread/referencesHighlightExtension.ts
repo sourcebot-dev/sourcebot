@@ -1,6 +1,6 @@
 import { EditorState, Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { FileReference } from "@/features/chat/types";
+import { Reference } from "@/features/chat/types";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -33,7 +33,7 @@ const hoveredSelectedField = StateField.define<{ hoveredId?: string; selectedId?
     },
 });
 
-function getReferenceAtPos(references: FileReference[], x: number, y: number, view: EditorView): FileReference | undefined {
+function getReferenceAtPos(references: Reference[], x: number, y: number, view: EditorView): Reference | undefined {
     const pos = view.posAtCoords({ x, y });
     if (pos === null) {
         return undefined;
@@ -63,7 +63,7 @@ function getReferenceAtPos(references: FileReference[], x: number, y: number, vi
     return matchingRanges[0];
 }
 
-function buildDecorations(state: EditorState, references: FileReference[], hoveredId: string | undefined, selectedId: string | undefined): DecorationSet {
+function buildDecorations(state: EditorState, references: Reference[], hoveredId: string | undefined, selectedId: string | undefined): DecorationSet {
     const decorations: Range<Decoration>[] = [];
 
     for (const { range, id } of references) {
@@ -95,9 +95,9 @@ function buildDecorations(state: EditorState, references: FileReference[], hover
 }
 
 export function createReferencesHighlightExtension(
-    references: FileReference[],
-    onHoveredReferenceChanged: (reference?: FileReference) => void,
-    onSelectedReferenceChanged: (reference?: FileReference) => void,
+    references: Reference[],
+    onHoveredReferenceChanged: (reference?: Reference) => void,
+    onSelectedReferenceChanged: (reference?: Reference) => void,
 ) {
     const decorationField = StateField.define<DecorationSet>({
         create(state) {

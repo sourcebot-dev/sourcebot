@@ -46,8 +46,8 @@ export type PendingImageAttachment = {
 
 // An attachment selected in the chat box but not yet submitted. For text
 // attachments the `id` is the stable handle carried into the message so the
-// content can later be cited and resolved; for images it is a client-only list
-// key (images are addressed by their uploaded `attachmentId` instead).
+// content can be cited and resolved; for images it is a client-only list key
+// (images are addressed by their uploaded `attachmentId` instead).
 export type PendingAttachment = PendingTextAttachment | PendingImageAttachment;
 
 // Builds the comma-separated `accept` attribute for a native `<input type=file>`

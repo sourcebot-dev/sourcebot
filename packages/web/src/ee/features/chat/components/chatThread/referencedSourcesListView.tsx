@@ -4,17 +4,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { FileReference, FileSource } from "@/features/chat/types";
+import { FileSource, Reference } from "@/features/chat/types";
 import { tryResolveFileReference } from '@/features/chat/utils';
 import { ReferencedFileSourceListItemContainer } from "./referencedFileSourceListItemContainer";
+import { ReferencedAttachmentListItem } from "./referencedAttachmentListItem";
 import { DiagramPanelListItem } from "./diagramPanelListItem";
-import { PanelItem } from "@/ee/features/chat/useExtractPanelItems";
+import { PanelItem, ReferencedAttachment } from "@/ee/features/chat/useExtractPanelItems";
 import { PanelSelection, usePanelContext } from "@/ee/features/chat/panelContext";
 import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {
-    references: FileReference[];
+    references: Reference[];
     sources: FileSource[];
+    attachments?: ReferencedAttachment[];
     index: number;
     style: React.CSSProperties;
     orderedItems?: PanelItem[];
@@ -25,6 +27,7 @@ interface ReferencedSourcesListViewProps {
 const ReferencedSourcesListViewComponent = ({
     references,
     sources,
+    attachments = [],
     index,
     style,
     orderedItems = [],
@@ -82,6 +85,12 @@ const ReferencedSourcesListViewComponent = ({
         return `file-source-${fileSource.repo}-${fileSource.path}-${index}`;
     }, [index]);
 
+    const getAttachmentDomId = useCallback((attachment: ReferencedAttachment) => {
+        // Mirrors getFileId: the index keeps the DOM id unique across other
+        // ReferencedSourcesListView instances in the same thread.
+        return `attachment-${attachment.attachmentId}-${index}`;
+    }, [index]);
+
     const setEditorRef = useCallback((fileKey: string, ref: ReactCodeMirrorRef | null) => {
         if (ref) {
             editorRefsMap.current.set(fileKey, ref);
@@ -92,7 +101,7 @@ const ReferencedSourcesListViewComponent = ({
 
     // Memoize the computation of references grouped by file source
     const referencesGroupedByFile = useMemo(() => {
-        const groupedReferences = new Map<string, FileReference[]>();
+        const groupedReferences = new Map<string, Reference[]>();
 
         for (const fileSource of sources) {
             const fileKey = getFileId(fileSource);
@@ -108,17 +117,40 @@ const ReferencedSourcesListViewComponent = ({
         return groupedReferences;
     }, [references, sources, getFileId]);
 
+    // Attachment references grouped by the attachment they cite.
+    const referencesGroupedByAttachment = useMemo(() => {
+        const groupedReferences = new Map<string, Reference[]>();
+
+        for (const attachment of attachments) {
+            const domId = getAttachmentDomId(attachment);
+            const referencesInAttachment = references.filter((reference) =>
+                reference.type === 'attachment' && reference.attachmentId === attachment.attachmentId
+            );
+            groupedReferences.set(domId, referencesInAttachment);
+        }
+
+        return groupedReferences;
+    }, [references, attachments, getAttachmentDomId]);
+
     useEffect(() => {
-        if (!selectedReference || selectedReference.type !== 'file') {
+        if (!selectedReference) {
             return;
         }
 
-        const fileSource = tryResolveFileReference(selectedReference, sources);
-        if (!fileSource) {
-            return;
+        // Resolve the DOM id of the panel item that owns the selected reference,
+        // whether it's a file source or an attachment.
+        let fileId: string | undefined;
+        if (selectedReference.type === 'file') {
+            const fileSource = tryResolveFileReference(selectedReference, sources);
+            fileId = fileSource ? getFileId(fileSource) : undefined;
+        } else if (selectedReference.type === 'attachment') {
+            const attachment = attachments.find((a) => a.attachmentId === selectedReference.attachmentId);
+            fileId = attachment ? getAttachmentDomId(attachment) : undefined;
         }
 
-        const fileId = getFileId(fileSource);
+        if (!fileId) {
+            return;
+        }
 
         const fileSourceElement = document.getElementById(fileId);
 
@@ -194,7 +226,7 @@ const ReferencedSourcesListViewComponent = ({
                 behavior: 'instant',
             });
         }
-    }, [getFileId, sources, selectedReference]);
+    }, [getFileId, getAttachmentDomId, sources, attachments, selectedReference]);
 
     const onExpandedChanged = useCallback((fileId: string, isExpanded: boolean) => {
         if (isExpanded) {
@@ -241,6 +273,31 @@ const ReferencedSourcesListViewComponent = ({
                                 isHovered={hoveredDiagramId === item.diagram.id}
                                 onToggle={() => onToggleDiagram(item.diagram.id)}
                                 onJumpToInline={() => panel?.jumpToInlineDiagram(item.diagram.id)}
+                            />
+                        );
+                    }
+
+                    if (item.kind === 'attachment') {
+                        const attachment = item.attachment;
+                        const attachmentDomId = getAttachmentDomId(attachment);
+                        const referencesInAttachment = referencesGroupedByAttachment.get(attachmentDomId) || [];
+                        const hoveredReferenceInAttachment = referencesInAttachment.some(r => r.id === hoveredReference?.id) ? hoveredReference : undefined;
+                        const selectedReferenceInAttachment = referencesInAttachment.some(r => r.id === selectedReference?.id) ? selectedReference : undefined;
+
+                        return (
+                            <ReferencedAttachmentListItem
+                                key={attachmentDomId}
+                                id={attachmentDomId}
+                                code={attachment.text}
+                                filename={attachment.filename}
+                                references={referencesInAttachment}
+                                hoveredReference={hoveredReferenceInAttachment}
+                                selectedReference={selectedReferenceInAttachment}
+                                onHoveredReferenceChanged={onHoveredReferenceChanged}
+                                onSelectedReferenceChanged={onSelectedReferenceChanged}
+                                isExpanded={!collapsedFileIds.includes(attachmentDomId)}
+                                onExpandedChanged={(expanded) => onExpandedChanged(attachmentDomId, expanded)}
+                                ref={(ref) => setEditorRef(attachmentDomId, ref)}
                             />
                         );
                     }

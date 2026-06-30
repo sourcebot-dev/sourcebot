@@ -26,6 +26,9 @@ interface AnswerCardProps {
     chatId: string;
     traceId?: string;
     sources: FileSource[];
+    // Maps a cited attachment's id to its filename (attachments have no external
+    // URL, so the copy-to-markdown path flattens their citations to a label).
+    attachmentNames?: Map<string, string>;
 }
 
 const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
@@ -39,6 +42,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     chatId,
     traceId,
     sources,
+    attachmentNames,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line react-hooks/refs -- ref.current is passed to a custom hook, not used directly in render output
@@ -56,14 +60,14 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
 
     const onCopyAnswer = useCallback(() => {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const markdownText = convertLLMOutputToPortableMarkdown(answerText, baseUrl, sources);
+        const markdownText = convertLLMOutputToPortableMarkdown(answerText, baseUrl, sources, attachmentNames);
         navigator.clipboard.writeText(markdownText);
         toast({
             description: "✅ Copied to clipboard",
         });
         captureEvent('wa_chat_copy_answer_pressed', { chatId });
         return true;
-    }, [answerText, sources, chatId, captureEvent, toast]);
+    }, [answerText, sources, attachmentNames, chatId, captureEvent, toast]);
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
@@ -156,6 +160,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                     ref={markdownRendererRef}
                     content={answerText}
                     enableDiagrams={true}
+                    attachmentNames={attachmentNames}
                     // scroll-mt offsets the scroll position for headings to take account
                     // of the sticky "answer" header.
                     className="prose prose-sm max-w-none prose-headings:scroll-mt-14"

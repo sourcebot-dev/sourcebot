@@ -5,7 +5,7 @@ import {
     EditorView,
     WidgetType
 } from "@codemirror/view";
-import { FileReference } from "@/features/chat/types";
+import { Reference } from "@/features/chat/types";
 import React, { CSSProperties } from "react";
 import { createRoot } from "react-dom/client";
 import { CodeFoldingExpandButton } from "./codeFoldingExpandButton";
@@ -27,12 +27,12 @@ export interface FoldingState {
     visibleRanges: Range[];
     hiddenRegions: HiddenRegion[];
     totalLines: number;
-    references: FileReference[];
+    references: Reference[];
     padding: number;
 }
 
 // State effects for updating folding state
-export const updateReferencesEffect = StateEffect.define<FileReference[]>();
+export const updateReferencesEffect = StateEffect.define<Reference[]>();
 export const expandRegionEffect = StateEffect.define<{
     regionIndex: number;
     direction: 'up' | 'down';
@@ -41,7 +41,7 @@ export const expandRegionEffect = StateEffect.define<{
 
 // Range calculation utilities
 export const calculateVisibleRanges = (
-    references: FileReference[],
+    references: Reference[],
     totalLines: number,
     padding: number = 3
 ): Range[] => {
@@ -133,7 +133,7 @@ export const calculateHiddenRegions = (
 };
 
 export const createFoldingState = (
-    references: FileReference[],
+    references: Reference[],
     totalLines: number,
     padding: number = 3
 ): FoldingState => {
@@ -227,7 +227,7 @@ const mergeOverlappingRanges = (ranges: Range[]): Range[] => {
 };
 
 // Action creators for dispatching state updates
-export const updateReferences = (references: FileReference[]) => {
+export const updateReferences = (references: Reference[]) => {
     return {
         effects: [updateReferencesEffect.of(references)],
     };
@@ -351,7 +351,7 @@ interface FoldingStateWithDecorations extends FoldingState {
 }
 
 const createFoldingStateWithDecorations = (
-    references: FileReference[],
+    references: Reference[],
     totalLines: number,
     padding: number = 3
 ): FoldingStateWithDecorations => {
@@ -373,7 +373,7 @@ const createFoldingStateWithDecorations = (
 };
 
 export const createCodeFoldingExtension = (
-    references: FileReference[] = [],
+    references: Reference[] = [],
     padding: number = 3
 ): Extension => {
     const foldingStateField = StateField.define<FoldingStateWithDecorations>({

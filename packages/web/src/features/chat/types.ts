@@ -8,23 +8,38 @@ import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
 // EE agent's tools, but no runtime dependency on ee/ is introduced (erased at build).
 import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
-export type { FileSource, Source } from "@/features/tools/types";
+export type { AttachmentSource, FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";
+
+const lineRangeSchema = z.object({
+    startLine: z.number(),
+    endLine: z.number(),
+});
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
     id: z.string(),
     repo: z.string(),
     path: z.string(),
-    range: z.object({
-        startLine: z.number(),
-        endLine: z.number(),
-    }).optional(),
+    range: lineRangeSchema.optional(),
 });
 export type FileReference = z.infer<typeof fileReferenceSchema>;
 
+// A citation into a user-provided attachment. `id` is the derived, dedup/DOM
+// handle (see getAttachmentReferenceId); `attachmentId` is the stable handle to
+// the attachment itself, mirroring how a file reference carries both `id` and
+// its repo/path resolution handle.
+const attachmentReferenceSchema = z.object({
+    type: z.literal('attachment'),
+    id: z.string(),
+    attachmentId: z.string(),
+    range: lineRangeSchema.optional(),
+});
+export type AttachmentReference = z.infer<typeof attachmentReferenceSchema>;
+
 export const referenceSchema = z.discriminatedUnion('type', [
     fileReferenceSchema,
+    attachmentReferenceSchema,
 ]);
 export type Reference = z.infer<typeof referenceSchema>;
 
@@ -110,9 +125,9 @@ export type SBChatMessageToolTypes = {
 // and never travel in the `messages` JSON.
 export const textAttachmentSchema = z.object({
     kind: z.literal('text'),
-    // Stable, message-persisted handle for the attachment. Carried through from
-    // the pending attachment's client id so later features (citing/referencing
-    // attachment content) have a durable handle on every persisted attachment.
+    // Stable, message-persisted handle the agent cites and the panel resolves
+    // against. Carried through from the pending attachment's client id, so every
+    // persisted text attachment has had this since the feature shipped.
     id: z.string(),
     filename: z.string(),
     mediaType: z.string(),
