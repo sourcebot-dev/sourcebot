@@ -11,10 +11,6 @@ import {
     OAUTH_REFRESH_TOKEN_PREFIX,
 } from '@sourcebot/shared';
 import crypto from 'crypto';
-import { DEFAULT_SOURCEBOT_OAUTH_SCOPES } from './constants';
-import { formatOAuthScopeString } from './utils';
-
-const DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING = formatOAuthScopeString(DEFAULT_SOURCEBOT_OAUTH_SCOPES);
 
 // Generates a random authorization code, hashes it, and stores it alongside the
 // PKCE code challenge. Returns the raw code to be sent to the client.
@@ -203,7 +199,7 @@ export async function verifyAndRotateRefreshToken({
 
     const { token, hash: newTokenHash } = generateOAuthToken();
     const { token: refreshToken, hash: newRefreshHash } = generateOAuthRefreshToken();
-    const scope = existing.scope || DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING;
+    const scope = existing.scope;
     const tokenDpopJkt = existing.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([

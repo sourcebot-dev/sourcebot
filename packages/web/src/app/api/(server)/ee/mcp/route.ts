@@ -112,7 +112,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
-        }, { requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] })
+        }, { requiredOAuthScopes: ['mcp'] })
     );
 
     if (isServiceError(response)) {
@@ -156,7 +156,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
             }
 
             return session.transport.handleRequest(request);
-        }, { requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] })
+        }, { requiredOAuthScopes: ['mcp'] })
     );
 
     if (isServiceError(result)) {

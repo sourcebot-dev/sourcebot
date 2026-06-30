@@ -5,8 +5,8 @@ export const UNPERMITTED_SCHEMES = /^(javascript|data|vbscript):/i;
 
 export const SOURCEBOT_OAUTH_SCOPES = [
     "mcp"
-];
-export type SourcebotOauthScope = (typeof SOURCEBOT_OAUTH_SCOPES)[number];
+] as const;
+export type SourcebotOAuthScope = (typeof SOURCEBOT_OAUTH_SCOPES)[number];
 
 export const SOURCEBOT_MCP_OAUTH_SCOPE = 'mcp';
 export const DEFAULT_SOURCEBOT_OAUTH_SCOPES = [SOURCEBOT_MCP_OAUTH_SCOPE] as const;
