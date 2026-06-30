@@ -4,6 +4,9 @@ import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
 import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
+import { ErrorCode } from '@/lib/errorCodes';
+import { StatusCodes } from 'http-status-codes';
 
 export interface ConnectedOauthClient {
     id: string;
@@ -38,21 +41,32 @@ export const approveAuthorization = async ({
     redirectUri,
     codeChallenge,
     resource,
+    dpopJkt,
     state,
 }: {
     clientId: string;
     redirectUri: string;
     codeChallenge: string;
     resource: string | null;
+    dpopJkt: string | null;
     state: string | undefined;
 }) => sew(() =>
     withAuth(async ({ user }) => {
+        if (dpopJkt !== null && !isValidDpopJkt(dpopJkt)) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_QUERY_PARAMS,
+                message: 'Invalid dpop_jkt parameter.',
+            };
+        }
+
         const rawCode = await generateAndStoreAuthCode({
             clientId,
             userId: user.id,
             redirectUri,
             codeChallenge,
             resource,
+            dpopJkt,
         });
 
         const callbackUrl = new URL(redirectUri);
