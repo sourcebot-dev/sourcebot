@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed Ask Sourcebot mermaid diagrams overflowing their container by contain-fitting them to both width and height, and made revealing a diagram from the answer jump it into view instantly to avoid over/undershooting. [#1373](https://github.com/sourcebot-dev/sourcebot/pull/1373)
 - Verified GitHub review webhook deliveries before processing them. [#1378](https://github.com/sourcebot-dev/sourcebot/pull/1378)
 - Passed Zoekt index parameters via argv to preserve revision names with punctuation. [#1376](https://github.com/sourcebot-dev/sourcebot/pull/1376)
+- Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
 
 ## [5.0.4] - 2026-06-18
 
