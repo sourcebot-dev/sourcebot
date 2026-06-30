@@ -1,7 +1,7 @@
 'use client';
 
 import { approveAuthorization, denyAuthorization } from '@/ee/features/oauth/actions';
-import { isPermittedRedirectUrl } from '@/ee/features/oauth/constants';
+import { isPermittedRedirectUrl } from '@/ee/features/oauth/utils';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { isServiceError } from '@/lib/utils';
 import { ClientIcon } from './clientIcon';

@@ -3,7 +3,8 @@
 import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
-import { resolveGrantedOAuthScopes, UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { formatOAuthScopeString, resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
 import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 import { ErrorCode } from '@/lib/errorCodes';
 import type { ServiceError } from '@/lib/serviceError';
@@ -77,6 +78,7 @@ export const approveAuthorization = async ({
             userId: user.id,
             redirectUri,
             codeChallenge,
+            scope: formatOAuthScopeString(grantedScopes.scopes),
             resource,
             dpopJkt,
         });

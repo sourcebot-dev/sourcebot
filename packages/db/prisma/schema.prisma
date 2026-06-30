@@ -653,6 +653,7 @@ model OAuthAuthorizationCode {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   redirectUri   String
   codeChallenge String // BASE64URL(SHA-256(codeVerifier))
+  scope         String      @default("")
   resource      String? // RFC 8707: canonical URI of the target resource server
   dpopJkt       String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt     DateTime
@@ -666,7 +667,7 @@ model OAuthRefreshToken {
   client    OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope     String      @default("mcp")
+  scope     String      @default("")
   resource  String? // RFC 8707
   dpopJkt   String? // RFC 9449
   expiresAt DateTime
@@ -682,7 +683,7 @@ model OAuthToken {
   client     OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId     String
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope      String      @default("mcp")
+  scope      String      @default("")
   resource   String? // RFC 8707: canonical URI of the target resource server
   dpopJkt    String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt  DateTime

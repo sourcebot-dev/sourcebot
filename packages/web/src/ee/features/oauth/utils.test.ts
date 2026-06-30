@@ -2,11 +2,13 @@ import { expect, test, describe } from 'vitest';
 import {
     SOURCEBOT_MCP_OAUTH_SCOPE,
     UNPERMITTED_SCHEMES,
+} from './constants';
+import {
     hasRequiredOAuthScopes,
     isPermittedRedirectUrl,
     parseOAuthScopeString,
     resolveGrantedOAuthScopes,
-} from './constants';
+} from './utils';
 
 describe('OAuth scopes', () => {
     test('parses and deduplicates space-delimited scope strings', () => {

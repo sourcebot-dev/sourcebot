@@ -4,7 +4,7 @@ import { ConsentScreen } from './components/consentScreen';
 import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
-import { resolveGrantedOAuthScopes } from '@/ee/features/oauth/constants';
+import { resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
 import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 
 export const dynamic = 'force-dynamic';

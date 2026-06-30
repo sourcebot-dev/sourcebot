@@ -11,7 +11,8 @@ import {
     OAUTH_REFRESH_TOKEN_PREFIX,
 } from '@sourcebot/shared';
 import crypto from 'crypto';
-import { DEFAULT_SOURCEBOT_OAUTH_SCOPES, formatOAuthScopeString } from './constants';
+import { DEFAULT_SOURCEBOT_OAUTH_SCOPES } from './constants';
+import { formatOAuthScopeString } from './utils';
 
 const DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING = formatOAuthScopeString(DEFAULT_SOURCEBOT_OAUTH_SCOPES);
 
@@ -22,6 +23,7 @@ export async function generateAndStoreAuthCode({
     userId,
     redirectUri,
     codeChallenge,
+    scope,
     resource,
     dpopJkt,
 }: {
@@ -29,6 +31,7 @@ export async function generateAndStoreAuthCode({
     userId: string;
     redirectUri: string;
     codeChallenge: string;
+    scope: string;
     resource: string | null;
     dpopJkt: string | null;
 }): Promise<string> {
@@ -42,6 +45,7 @@ export async function generateAndStoreAuthCode({
             userId,
             redirectUri,
             codeChallenge,
+            scope,
             resource,
             dpopJkt,
             expiresAt: new Date(Date.now() + env.OAUTH_AUTHORIZATION_CODE_TTL_SECONDS * 1000),
@@ -123,6 +127,7 @@ export async function verifyAndExchangeCode({
 
     const { token, hash } = generateOAuthToken();
     const { token: refreshToken, hash: refreshHash } = generateOAuthRefreshToken();
+    const scope = authCode.scope;
     const tokenDpopJkt = authCode.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([
@@ -131,7 +136,7 @@ export async function verifyAndExchangeCode({
                 hash,
                 clientId,
                 userId: authCode.userId,
-                scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING,
+                scope,
                 resource: authCode.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
@@ -142,7 +147,7 @@ export async function verifyAndExchangeCode({
                 hash: refreshHash,
                 clientId,
                 userId: authCode.userId,
-                scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING,
+                scope,
                 resource: authCode.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
@@ -150,7 +155,7 @@ export async function verifyAndExchangeCode({
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING, dpopJkt: tokenDpopJkt };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope, dpopJkt: tokenDpopJkt };
 }
 
 // Verifies a refresh token, rotates it, and issues a new access token + refresh token.
