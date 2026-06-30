@@ -25,8 +25,9 @@ export const sanitizeFilename = (name: string): string => {
 }
 
 // A text attachment selected in the chat box but not yet submitted. The `id`
-// is a client-only key for list rendering and removal; it is stripped before
-// the attachment becomes part of a message.
+// is the stable handle carried into the message: it keys list rendering and
+// removal here, and is persisted onto the attachment so its content can later
+// be cited and resolved.
 export type PendingAttachment = TextAttachment & { id: string };
 
 // Builds the comma-separated `accept` attribute for a native `<input type=file>`
@@ -63,6 +64,7 @@ export const getSubmittedTextBytes = (text: string, attachments: PendingAttachme
 export const toAttachmentData = (attachment: PendingAttachment): AttachmentData => {
     return {
         kind: attachment.kind,
+        id: attachment.id,
         filename: attachment.filename,
         mediaType: attachment.mediaType,
         sizeBytes: attachment.sizeBytes,
