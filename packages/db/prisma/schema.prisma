@@ -27,9 +27,15 @@ enum ChatVisibility {
 /// Lifecycle status of an uploaded attachment blob.
 /// PENDING: uploaded but not yet linked to a chat (orphan until a message
 /// referencing it is sent). COMMITTED: linked to at least one chat.
+/// DELETING: condemned tombstone. The row is kept (as the only durable handle
+/// to the bytes) until the stored bytes are confirmed deleted, at which point
+/// the row is removed. A failed byte delete leaves the row DELETING for the
+/// attachment pruner's reclaim sweep to retry, so a transient storage error
+/// can never orphan bytes.
 enum AttachmentStatus {
   PENDING
   COMMITTED
+  DELETING
 }
 
 /// @note: The @map annotation is required to maintain backwards compatibility

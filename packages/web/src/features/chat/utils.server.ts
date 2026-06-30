@@ -230,11 +230,17 @@ export const commitMessageAttachments = async ({
 };
 
 /**
- * Deletes any of the given attachments that no longer have a `ChatAttachment`
- * link (and their stored bytes). Bytes are never removed by DB cascade, so this
- * is the refcount-aware byte sweep invoked after a chat (and its links) is
- * deleted. Best-effort on the storage layer: a missing/failed byte delete does
- * not block removing the DB row.
+ * Reclaims any of the given attachments that no longer have a `ChatAttachment`
+ * link, along with their stored bytes. Bytes are never removed by DB cascade,
+ * so this is the refcount-aware byte sweep invoked after a chat (and its links)
+ * is deleted.
+ *
+ * Uses the tombstone protocol so a transient storage error can never orphan
+ * bytes: an orphan is first atomically flipped to `DELETING` (the claim doubles
+ * as the concurrency guard — a row re-linked by a parallel duplicate-chat keeps
+ * a link and is skipped), then its bytes are deleted inline for low latency, and
+ * only then is the row removed. Any row whose byte delete fails is left
+ * `DELETING` for the backend pruner's reclaim sweep to retry.
  */
 export const deleteOrphanedAttachments = async ({
     prisma, attachmentIds,
@@ -246,34 +252,41 @@ export const deleteOrphanedAttachments = async ({
         return;
     }
 
-    const remainingLinks = await prisma.chatAttachment.findMany({
-        where: { attachmentId: { in: attachmentIds } },
-        select: { attachmentId: true },
+    // Atomically claim the orphans (committed blobs left with zero links) by
+    // flipping them to DELETING. A row re-linked concurrently still has a link,
+    // so `chats: { none: {} }` excludes it and it survives untouched.
+    const claimed = await prisma.attachment.updateMany({
+        where: {
+            id: { in: attachmentIds },
+            status: AttachmentStatus.COMMITTED,
+            chats: { none: {} },
+        },
+        data: { status: AttachmentStatus.DELETING },
     });
-    const stillLinked = new Set(remainingLinks.map((link) => link.attachmentId));
-    const orphanedIds = attachmentIds.filter((id) => !stillLinked.has(id));
 
-    if (orphanedIds.length === 0) {
+    if (claimed.count === 0) {
         return;
     }
 
-    // Re-check link state inside the delete so a concurrent re-link (e.g. a
-    // duplicate-chat running in parallel) isn't cascaded away: only rows that
-    // still have zero links are deleted, and we sweep bytes for those rows only.
-    const orphans = await prisma.$transaction(async (tx) => {
-        const rows = await tx.attachment.findMany({
-            where: { id: { in: orphanedIds }, chats: { none: {} } },
-            select: { id: true, storageKey: true },
-        });
-        await tx.attachment.deleteMany({
-            where: { id: { in: rows.map((row) => row.id) }, chats: { none: {} } },
-        });
-        return rows;
+    const tombstoned = await prisma.attachment.findMany({
+        where: { id: { in: attachmentIds }, status: AttachmentStatus.DELETING },
+        select: { id: true, storageKey: true },
     });
 
+    // Best-effort inline byte delete for low latency. Rows whose bytes are
+    // confirmed gone are removed now; the rest stay DELETING for the pruner.
     const storage = getStorageBackend();
-    await Promise.all(orphans.map((orphan) =>
-        storage.delete(orphan.storageKey).catch(() => { /* best effort */ })));
+    const settled = await Promise.allSettled(
+        tombstoned.map((attachment) => storage.delete(attachment.storageKey)));
+    const reclaimedIds = tombstoned
+        .filter((_, index) => settled[index].status === 'fulfilled')
+        .map((attachment) => attachment.id);
+
+    if (reclaimedIds.length > 0) {
+        await prisma.attachment.deleteMany({
+            where: { id: { in: reclaimedIds }, status: AttachmentStatus.DELETING },
+        });
+    }
 };
 
 export const updateChatMessages = async ({
