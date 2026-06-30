@@ -52,6 +52,7 @@ interface ChatThreadProps {
     isOwner?: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
+    maxImageBytes: number;
     chatName?: string;
 }
 
@@ -69,6 +70,7 @@ export const ChatThread = ({
     isOwner = true,
     isAuthenticated,
     isLoginWallEnabled,
+    maxImageBytes,
     chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -489,6 +491,7 @@ export const ChatThread = ({
                                     isDisabled={languageModels.length === 0}
                                     isAuthenticated={isAuthenticated}
                                     isLoginWallEnabled={isLoginWallEnabled}
+                                    maxImageBytes={maxImageBytes}
                                 />
                                 <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                                     <ChatBoxToolbar

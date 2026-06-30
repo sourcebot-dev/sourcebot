@@ -27,7 +27,10 @@ export const ChatPaneDropzone = ({ onFilesDropped, disabled, className, children
     const [dragFileCount, setDragFileCount] = useState(0);
 
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
-        accept: getAttachmentDropzoneAccept(),
+        // Accept images at the dropzone layer regardless of model capability;
+        // the chat box's add handler applies the authoritative image gate (and
+        // surfaces a precise message when the selected model is text-only).
+        accept: getAttachmentDropzoneAccept(true),
         multiple: true,
         noClick: true,
         noKeyboard: true,
@@ -39,7 +42,7 @@ export const ChatPaneDropzone = ({ onFilesDropped, disabled, className, children
             }
             if (fileRejections.length > 0) {
                 toast({
-                    description: `⚠️ Unsupported file type: ${fileRejections.map((rejection) => rejection.file.name).join(', ')}. Text files only.`,
+                    description: `⚠️ Unsupported file type: ${fileRejections.map((rejection) => rejection.file.name).join(', ')}.`,
                     variant: "destructive",
                 });
             }

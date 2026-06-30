@@ -24,6 +24,20 @@ enum ChatVisibility {
   PUBLIC
 }
 
+/// Lifecycle status of an uploaded attachment blob.
+/// PENDING: uploaded but not yet linked to a chat (orphan until a message
+/// referencing it is sent). COMMITTED: linked to at least one chat.
+/// DELETING: condemned tombstone. The row is kept (as the only durable handle
+/// to the bytes) until the stored bytes are confirmed deleted, at which point
+/// the row is removed. A failed byte delete leaves the row DELETING for the
+/// attachment pruner's reclaim sweep to retry, so a transient storage error
+/// can never orphan bytes.
+enum AttachmentStatus {
+  PENDING
+  COMMITTED
+  DELETING
+}
+
 /// @note: The @map annotation is required to maintain backwards compatibility
 /// with the existing database.
 /// @note: In the generated client, these mapped values will be in pascalCase.
@@ -272,6 +286,7 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  attachments Attachment[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
 
@@ -456,6 +471,7 @@ model User {
   chats Chat[]
   sharedChats ChatAccess[]
   repoVisits RepoVisit[]
+  uploadedAttachments Attachment[]
 
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
@@ -608,6 +624,69 @@ model Chat {
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 
   sharedWith ChatAccess[]
+
+  attachments ChatAttachment[]
+}
+
+/// A user-uploaded binary attachment blob (e.g. an image). The bytes live in
+/// the configured StorageBackend (keyed by `storageKey`), never in the DB.
+/// Attachments are NOT chat-bound: they are uploaded before any chat
+/// association exists, and linked to chats via `ChatAttachment`. Permissions
+/// are derived entirely from the linked chat(s); there are no independent ACLs.
+model Attachment {
+  id String @id @default(cuid())
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  /// Opaque key the StorageBackend uses to locate the bytes.
+  storageKey String
+
+  /// Original (sanitized) filename supplied by the uploader.
+  filename String
+
+  /// Final media type of the stored bytes (validated by decoding at upload).
+  mediaType String
+
+  /// Size of the stored bytes.
+  sizeBytes Int
+
+  /// Hex SHA-256 of the stored bytes (integrity / debugging; not used for dedup).
+  checksum String
+
+  /// The user who uploaded this blob. Uploads require authentication, so this
+  /// is set at creation (anonymous users cannot upload binary attachments). It
+  /// is nulled if the uploader is later deleted, so committed attachments
+  /// survive on the chats they're linked to.
+  uploadedBy   User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedById String?
+
+  status AttachmentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  chats ChatAttachment[]
+
+  @@index([status, createdAt])
+}
+
+/// Join table linking an `Attachment` blob to a `Chat`. This is the linker
+/// that makes chat duplication metadata-only (no byte copy) and keeps
+/// attachment access purely chat-derived. Deleting a chat cascades these rows;
+/// a separate sweep deletes `Attachment`s left with zero links (and their bytes).
+model ChatAttachment {
+  id String @id @default(cuid())
+
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  attachmentId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([chatId, attachmentId])
+  @@index([attachmentId])
 }
 
 /// Represents a user's access to a chat that has been shared with them.

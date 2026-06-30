@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData } from "@/features/chat/attachmentUtils";
+import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -26,13 +26,22 @@ import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
-import { ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
 
 export interface ChatBoxHandle {
     addFiles: (files: File[]) => void;
+}
+
+// Only inline-text attachments survive the login/upgrade redirect: image blobs
+// require an authenticated, entitled upload, so a redirected sender can't have
+// one, and a stashed blob ref would only fail to commit on re-submit.
+const getRedirectSafeAttachments = (attachments: PendingAttachment[]): AttachmentData[] => {
+    return attachments
+        .map(toAttachmentData)
+        .filter((attachment): attachment is AttachmentData => attachment?.kind === 'text');
 }
 
 interface ChatBoxProps {
@@ -48,6 +57,10 @@ interface ChatBoxProps {
     searchContexts: SearchContextQuery[];
     isLoginWallEnabled: boolean;
     isAuthenticated: boolean;
+    // Authoritative per-image byte cap from the server
+    // (SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES), threaded down for early
+    // client-side rejection. Defaults to the constant when not provided.
+    maxImageBytes?: number;
 }
 
 const ChatBoxComponent = ({
@@ -63,6 +76,7 @@ const ChatBoxComponent = ({
     isAuthenticated,
     selectedSearchScopes,
     searchContexts,
+    maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
 }: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -96,6 +110,41 @@ const ChatBoxComponent = ({
     const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
     const [submittedAttachments, setSubmittedAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
+
+    // Whether the selected model can accept image input (from #1372). Image
+    // attachments are gated on this; text attachments are always allowed.
+    const supportsImages = useMemo(
+        () => selectedLanguageModel?.inputModalities?.includes('image') ?? false,
+        [selectedLanguageModel],
+    );
+
+    // Uploads an image attachment's bytes and reflects the outcome back into the
+    // tray (status + server attachment id).
+    const uploadAndTrackImage = useCallback(async (item: PendingImageAttachment) => {
+        try {
+            const result = await uploadImageAttachment(item.file);
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? {
+                        ...attachment,
+                        status: 'uploaded',
+                        attachmentId: result.attachmentId,
+                        mediaType: result.mediaType,
+                        sizeBytes: result.sizeBytes,
+                    }
+                    : attachment));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'upload failed.';
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? { ...attachment, status: 'error', error: message }
+                    : attachment));
+            toast({
+                description: `⚠️ ${item.filename}: ${message}`,
+                variant: "destructive",
+            });
+        }
+    }, [toast]);
 
     // Set when the user triggers a paste with the OS raw-paste chord
     // (⌘⇧V / Ctrl+Shift+V). The subsequent `paste` event reads (and clears)
@@ -139,7 +188,14 @@ const ChatBoxComponent = ({
             return;
         }
 
-        const { attachments: added, errors } = await readFilesAsAttachments(files);
+        const { attachments: added, errors } = await readFilesAsAttachments(
+            files,
+            {
+                allowImages: supportsImages,
+                existingImageCount: attachments.filter((attachment) => attachment.kind === 'image').length,
+                maxImageBytes,
+            },
+        );
         if (added.length > 0) {
             setAttachments((prev) => [...prev, ...added]);
         }
@@ -153,12 +209,47 @@ const ChatBoxComponent = ({
             });
         }
 
+        // Upload image attachments immediately (upload-on-select); their refs
+        // are included at submit once the upload completes.
+        for (const item of added) {
+            if (item.kind === 'image') {
+                void uploadAndTrackImage(item);
+            }
+        }
+
         // Return focus to the prompt input so the user can keep typing.
         ReactEditor.focus(editor);
-    }, [attachments, toast, editor, getOverBudgetWarning]);
+    }, [attachments, toast, editor, supportsImages, uploadAndTrackImage, getOverBudgetWarning, maxImageBytes]);
 
     const removeAttachment = useCallback((id: string) => {
-        setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+        setAttachments((prev) => {
+            const target = prev.find((attachment) => attachment.id === id);
+            if (target?.kind === 'image') {
+                URL.revokeObjectURL(target.previewUrl);
+            }
+            return prev.filter((attachment) => attachment.id !== id);
+        });
+    }, []);
+
+    // Track the set of live image preview object URLs (pending or
+    // just-submitted) so they can be revoked when the chat box unmounts,
+    // preventing leaks across SPA navigations.
+    const liveObjectUrlsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const urls = new Set<string>();
+        for (const attachment of [...attachments, ...submittedAttachments]) {
+            if (attachment.kind === 'image') {
+                urls.add(attachment.previewUrl);
+            }
+        }
+        liveObjectUrlsRef.current = urls;
+    }, [attachments, submittedAttachments]);
+    useEffect(() => {
+        return () => {
+            for (const url of liveObjectUrlsRef.current) {
+                URL.revokeObjectURL(url);
+            }
+        };
     }, []);
 
     // Allow an ancestor pane-level drop zone to forward dropped files into this
@@ -200,7 +291,7 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected" | "uploading" | "upload-error"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
@@ -213,11 +304,33 @@ const ChatBoxComponent = ({
             }
         }
 
-        // Single per-turn bound on the submitted text (prompt + attachments).
+        // Single per-turn bound on the submitted inline text (prompt + text
+        // attachments). Image bytes are uploaded as blobs and excluded here.
         if (getSubmittedTextBytes(text, attachments) > ATTACHMENT_MAX_TURN_TEXT_BYTES) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "too-large",
+            }
+        }
+
+        // Block submission until in-flight image uploads finish so their refs
+        // are available when the message is built.
+        if (attachments.some((attachment) => attachment.kind === 'image' && attachment.status === 'uploading')) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "uploading",
+            }
+        }
+
+        // A failed or ref-less image is dropped from `attachmentData` at submit,
+        // so block (rather than silently sending without it) until it's removed.
+        if (attachments.some((attachment) =>
+            attachment.kind === 'image' &&
+            (attachment.status === 'error' || !attachment.attachmentId)
+        )) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "upload-error",
             }
         }
 
@@ -276,13 +389,27 @@ const ChatBoxComponent = ({
                 });
             }
 
+            if (isSubmitDisabledReason === "uploading") {
+                toast({
+                    description: "⚠️ Please wait for image uploads to finish",
+                    variant: "destructive",
+                });
+            }
+
+            if (isSubmitDisabledReason === "upload-error") {
+                toast({
+                    description: "⚠️ Remove failed image uploads before sending",
+                    variant: "destructive",
+                });
+            }
+
             return;
         }
 
         if (requiresLogin) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             captureEvent('wa_askgh_login_wall_prompted', {});
             setIsLoginDialogOpen(true);
@@ -292,14 +419,31 @@ const ChatBoxComponent = ({
         if (requiresUpgrade) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             setIsUpsellDialogOpen(true);
             return;
         }
 
-        _onSubmit(editor.children, editor, attachments.map(toAttachmentData));
-        setSubmittedAttachments(attachments);
+        const attachmentData = attachments
+            .map(toAttachmentData)
+            .filter((attachment): attachment is AttachmentData => attachment !== undefined);
+
+        // The persisted message renders images from the serving route (the
+        // uploader can read their own bytes pre-commit). The preview object URLs
+        // are kept alive for the `submittedAttachments` redirect tray and revoked
+        // on unmount (see the cleanup effect above).
+        _onSubmit(editor.children, editor, attachmentData);
+        // Replace the prior submitted batch, revoking its preview URLs so they
+        // don't accumulate across repeated sends in a long-lived chat box.
+        setSubmittedAttachments((prev) => {
+            for (const attachment of prev) {
+                if (attachment.kind === 'image') {
+                    URL.revokeObjectURL(attachment.previewUrl);
+                }
+            }
+            return attachments;
+        });
         setAttachments([]);
     }, [
         isSubmitDisabled,
@@ -484,6 +628,11 @@ const ChatBoxComponent = ({
                         className="mb-1.5"
                     />
                 )}
+                {attachments.some((attachment) => attachment.kind === 'image') && !supportsImages && (
+                    <p className="mb-1.5 text-xs text-amber-600 dark:text-amber-500">
+                        Images won&apos;t be sent: the selected model doesn&apos;t support image input.
+                    </p>
+                )}
                 <Editable
                     className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
@@ -521,6 +670,7 @@ const ChatBoxComponent = ({
                 <div className="flex flex-row items-center justify-end gap-1 z-10">
                     <AttachmentButton
                         onAddFiles={onAddFiles}
+                        acceptImages={supportsImages}
                         disabled={isDisabled || isRedirecting || isTurnInProgress}
                     />
                     {isRedirecting ? (

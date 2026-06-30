@@ -1,4 +1,6 @@
-import { SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { BlobAttachment, InputModality, SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
+import { getStorageBackend } from "@sourcebot/shared";
 import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
@@ -34,6 +36,142 @@ const dedent = _dedent.withOptions({ alignValues: true });
 
 const logger = createLogger('chat-agent');
 
+// Resolved attachment bytes for the whole chat, keyed by attachment id. Only
+// blobs the model can natively accept are loaded; the content builder
+// recomputes per-attachment status from the message to leave degrade markers.
+type ResolvedTurnMedia = Map<string, { bytes: Buffer; mediaType: string }>;
+
+// A native (non-text) attachment part for a model message. The single place
+// that maps a stored blob to its model content part; extend this resolver to
+// add PDF / audio / video support.
+type ModelMediaPart = { type: 'image'; image: Buffer; mediaType: string };
+
+const buildModelMediaPart = (bytes: Buffer, mediaType: string): ModelMediaPart | undefined => {
+    const modality = mediaTypeToModality(mediaType);
+    if (modality === 'image') {
+        return { type: 'image', image: bytes, mediaType };
+    }
+    // audio / video / document modalities are not yet wired into the model
+    // content; callers leave a degrade marker in their place.
+    return undefined;
+};
+
+// The native-media (non-text) attachment blobs carried by a user message.
+const getMediaBlobs = (message: SBChatMessage): BlobAttachment[] =>
+    getUserMessageAttachments(message)
+        .filter((attachment): attachment is BlobAttachment =>
+            attachment.kind === 'blob' && mediaTypeToModality(attachment.mediaType) !== undefined);
+
+// Reads native-media attachment bytes for every user turn in the chat from the
+// StorageBackend, keyed by attachment id. Media bytes are re-sent on every turn
+// (so attachments stay in context and the cached prefix stays byte-stable),
+// hence all turns are resolved here, not just the latest. Fail-closed: only
+// blobs whose modality the model accepts are loaded, and only when linked to
+// this chat (mirroring the serving route's chat-derived access), so a text-only
+// model resolves nothing here and the builder leaves a marker instead.
+const resolveTurnMedia = async ({
+    messages,
+    acceptedModalities,
+    prisma,
+    orgId,
+    chatId,
+}: {
+    messages: SBChatMessage[];
+    acceptedModalities: InputModality[];
+    prisma: PrismaClient;
+    orgId?: number;
+    chatId: string;
+}): Promise<ResolvedTurnMedia> => {
+    const result: ResolvedTurnMedia = new Map();
+    if (orgId === undefined) {
+        return result;
+    }
+
+    const acceptedBlobs = messages
+        .filter((message) => message.role === 'user')
+        .flatMap((message) => getMediaBlobs(message))
+        .filter((blob) => isMediaTypeAccepted(blob.mediaType, acceptedModalities));
+    if (acceptedBlobs.length === 0) {
+        return result;
+    }
+
+    // Dedupe ids: the same attachment may be re-referenced across turns.
+    const ids = [...new Set(acceptedBlobs.map((blob) => blob.attachmentId))];
+    const records = await prisma.attachment.findMany({
+        where: { id: { in: ids }, orgId, chats: { some: { chatId } } },
+    });
+
+    const storage = getStorageBackend();
+    await Promise.all(records.map(async (record) => {
+        try {
+            const bytes = await storage.get(record.storageKey);
+            result.set(record.id, { bytes, mediaType: record.mediaType });
+        } catch (error) {
+            logger.error(`Failed to read attachment ${record.id} from storage:`, error);
+        }
+    }));
+
+    return result;
+};
+
+// Builds the `ModelMessage` for a user turn: the text part (with any
+// inline-text attachments folded in) plus native media content parts. Media is
+// re-sent on every turn so attachments stay in context. When media is present
+// but omitted (an unsupported modality or a failed read), a short marker is
+// appended so the model knows context was dropped.
+const buildUserModelMessage = ({
+    message,
+    acceptedModalities,
+    resolvedMedia,
+}: {
+    message: SBChatMessage;
+    acceptedModalities: InputModality[];
+    resolvedMedia?: ResolvedTurnMedia;
+}): ModelMessage => {
+    const text = getUserMessageText(message);
+    const attachmentsBlock = formatAttachmentsForPrompt(
+        getUserMessageAttachments(message),
+    );
+    let baseText = attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text;
+
+    const mediaBlobs = getMediaBlobs(message);
+    if (mediaBlobs.length === 0) {
+        return { role: 'user', content: baseText };
+    }
+
+    const acceptedBlobs = mediaBlobs.filter((blob) => isMediaTypeAccepted(blob.mediaType, acceptedModalities));
+    const unsupportedCount = mediaBlobs.length - acceptedBlobs.length;
+
+    const mediaParts = acceptedBlobs
+        .map((blob) => {
+            const resolved = resolvedMedia?.get(blob.attachmentId);
+            return resolved ? buildModelMediaPart(resolved.bytes, resolved.mediaType) : undefined;
+        })
+        .filter((part): part is ModelMediaPart => part !== undefined);
+    const failedCount = acceptedBlobs.length - mediaParts.length;
+
+    // Distinguish the omission reasons so the model gets an accurate note.
+    const notes: string[] = [];
+    if (unsupportedCount > 0) {
+        notes.push(`${unsupportedCount} attachment(s) omitted (the selected model does not support that file type).`);
+    }
+    if (failedCount > 0) {
+        notes.push(`${failedCount} attachment(s) could not be loaded and were omitted.`);
+    }
+    if (notes.length > 0) {
+        baseText += `\n\n[Note: ${notes.join(' ')}]`;
+    }
+
+    if (mediaParts.length > 0) {
+        return {
+            role: 'user',
+            content: [{ type: 'text', text: baseText }, ...mediaParts],
+        };
+    }
+
+    return { role: 'user', content: baseText };
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
     await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
@@ -63,6 +201,11 @@ interface CreateMessageStreamResponseProps {
     metadata?: Partial<SBChatMessageMetadata>;
     userId?: string;
     orgId?: number;
+    // Authoritative, server-resolved set of input modalities the selected model
+    // can natively accept (from the models.dev catalog). Fail-closed (defaults
+    // to text-only): attachments whose modality isn't listed are omitted from
+    // the model content and a marker is left in their place.
+    acceptedModalities?: InputModality[];
 }
 
 export const createMessageStream = async ({
@@ -82,6 +225,7 @@ export const createMessageStream = async ({
     onError,
     userId,
     orgId,
+    acceptedModalities = [],
 }: CreateMessageStreamResponseProps) => {
     // Defense-in-depth: Ask Sourcebot is a paid feature. Every caller is
     // expected to gate on the `ask` entitlement before reaching here (see
@@ -102,20 +246,28 @@ export const createMessageStream = async ({
     // We will use this as the context we carry between messages.
     // Server requests always receive persisted messages between client streams, so evaluate them in the ready state.
     const incomingTurnProgress = getTurnProgressState({ messages, status: 'ready' });
+
+    // Media attachment bytes are re-sent on every turn (decision: keep
+    // attachments in context across turns rather than dropping them after the
+    // turn they were added). Re-sending the same bytes in the same position
+    // each turn also keeps the cached prefix byte-stable. Resolve the bytes for
+    // all user turns up-front, reading from the StorageBackend.
+    const resolvedMedia = await resolveTurnMedia({
+        messages,
+        acceptedModalities,
+        prisma,
+        orgId,
+        chatId,
+    });
+
     let messageHistory: ModelMessage[] =
-        messages.map((message, index): ModelMessage | undefined => {
+        (await Promise.all(messages.map(async (message, index): Promise<ModelMessage | undefined> => {
             if (message.role === 'user') {
-                // Fold inline-text attachments into this turn's content (not the
-                // system prompt) so they stay bound to their turn, re-emitted from
-                // the persisted parts.
-                const text = getUserMessageText(message);
-                const attachmentsBlock = formatAttachmentsForPrompt(
-                    getUserMessageAttachments(message),
-                );
-                return {
-                    role: 'user',
-                    content: attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text,
-                };
+                return buildUserModelMessage({
+                    message,
+                    acceptedModalities,
+                    resolvedMedia,
+                });
             }
 
             if (message.role === 'assistant') {
@@ -130,7 +282,9 @@ export const createMessageStream = async ({
                     }
                 }
             }
-        }).filter(message => message !== undefined);
+
+            return undefined;
+        }))).filter((message) => message !== undefined);
 
     // When the last assistant turn has approval responses (from the tool approval flow),
     // the turn is incomplete — it has no answer text, only a pending tool call that was

@@ -8,10 +8,11 @@ import { useRef } from "react";
 
 interface AttachmentButtonProps {
     onAddFiles: (files: File[]) => void;
+    acceptImages?: boolean;
     disabled?: boolean;
 }
 
-export const AttachmentButton = ({ onAddFiles, disabled }: AttachmentButtonProps) => {
+export const AttachmentButton = ({ onAddFiles, acceptImages = false, disabled }: AttachmentButtonProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
@@ -20,7 +21,7 @@ export const AttachmentButton = ({ onAddFiles, disabled }: AttachmentButtonProps
                 ref={inputRef}
                 type="file"
                 multiple
-                accept={getAttachmentAcceptAttribute()}
+                accept={getAttachmentAcceptAttribute(acceptImages)}
                 className="hidden"
                 onChange={(e) => {
                     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -46,7 +47,7 @@ export const AttachmentButton = ({ onAddFiles, disabled }: AttachmentButtonProps
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    Attach text files
+                    {acceptImages ? "Attach text files or images" : "Attach text files"}
                 </TooltipContent>
             </Tooltip>
         </>
