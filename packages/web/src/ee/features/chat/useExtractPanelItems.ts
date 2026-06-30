@@ -41,12 +41,12 @@ export interface ExtractedPanelItems {
 }
 
 // Builds the id -> attachment lookup the answer's @attachment references resolve
-// against. Only text attachments are renderable as evidence, and legacy ones
-// without a stable id can't be addressed, so both are filtered out.
+// against. Only text attachments are renderable as evidence (each carries a
+// stable id from creation), so non-text attachments are filtered out.
 const buildAttachmentIndex = (attachments: AttachmentData[]): Map<string, ReferencedAttachment> => {
     const index = new Map<string, ReferencedAttachment>();
     for (const attachment of attachments) {
-        if (attachment.kind === 'text' && attachment.id) {
+        if (attachment.kind === 'text') {
             index.set(attachment.id, {
                 attachmentId: attachment.id,
                 filename: attachment.filename,

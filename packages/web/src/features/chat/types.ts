@@ -126,8 +126,8 @@ export type SBChatMessageToolTypes = {
 export const textAttachmentSchema = z.object({
     kind: z.literal('text'),
     // Stable, message-persisted handle the agent cites and the panel resolves
-    // against. Legacy attachments persisted before this field existed may lack
-    // it; callers that build the manifest / resolve references guard for that.
+    // against. Carried through from the pending attachment's client id, so every
+    // persisted text attachment has had this since the feature shipped.
     id: z.string(),
     filename: z.string(),
     mediaType: z.string(),

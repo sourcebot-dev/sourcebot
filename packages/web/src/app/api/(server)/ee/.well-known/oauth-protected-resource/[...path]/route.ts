@@ -37,5 +37,6 @@ export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { p
         authorization_servers: [
             issuer
         ],
+        bearer_methods_supported: ['header'],
     });
 });

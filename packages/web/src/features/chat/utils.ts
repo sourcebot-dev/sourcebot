@@ -509,9 +509,9 @@ export const formatAttachmentsForPrompt = (attachments: AttachmentData[]): strin
         const filename = escapeMarkupMetacharacters(attachment.filename);
         const mediaType = escapeMarkupMetacharacters(attachment.mediaType);
         // The id lets the model correlate the inlined content with the
-        // attachments manifest and cite it via @attachment:{id:...}.
-        const idAttr = attachment.id ? `id="${attachment.id}" ` : '';
-        return `<attachment ${idAttr}filename="${filename}" media-type="${mediaType}">\n${text}\n</attachment>`;
+        // attachments manifest and cite it via @attachment:{id:...}. Every text
+        // attachment carries a stable id from creation, so it is always present.
+        return `<attachment id="${attachment.id}" filename="${filename}" media-type="${mediaType}">\n${text}\n</attachment>`;
     });
 
     return `<attachments>\n${blocks.join('\n')}\n</attachments>`;

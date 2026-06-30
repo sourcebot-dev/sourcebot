@@ -31,6 +31,7 @@ const VALID_AUTH_CODE = {
     // SHA-256('myverifier') base64url
     codeChallenge: 'Eb223qLjTQNFkRjCVsrDbsBk5ycPKwHdbHNRX99tTeQ',
     resource: null,
+    dpopJkt: null,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     createdAt: new Date(),
 };
@@ -59,6 +60,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({
@@ -77,6 +79,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -95,6 +98,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -109,6 +113,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -123,6 +128,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/wrong',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -137,6 +143,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'wrongverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -154,9 +161,53 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: 'https://other.com/api/mcp',
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_target' });
+    });
+
+    test('binds issued tokens to the DPoP proof thumbprint', async () => {
+        prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue(VALID_AUTH_CODE);
+        prisma.oAuthAuthorizationCode.delete.mockResolvedValue(VALID_AUTH_CODE);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndExchangeCode({
+            rawCode: VALID_CODE_HASH,
+            clientId: 'test-client-id',
+            redirectUri: 'http://localhost:9999/callback',
+            codeVerifier: 'myverifier',
+            resource: null,
+            dpopJkt: 'dpop-thumbprint',
+        });
+
+        expect(result).toMatchObject({ dpopJkt: 'dpop-thumbprint' });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+    });
+
+    test('returns invalid_dpop_proof if DPoP key does not match the bound authorization code', async () => {
+        prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue({
+            ...VALID_AUTH_CODE,
+            dpopJkt: 'expected-thumbprint',
+        });
+
+        const result = await verifyAndExchangeCode({
+            rawCode: VALID_CODE_HASH,
+            clientId: 'test-client-id',
+            redirectUri: 'http://localhost:9999/callback',
+            codeVerifier: 'myverifier',
+            resource: null,
+            dpopJkt: 'other-thumbprint',
+        });
+
+        expect(result).toMatchObject({ error: 'invalid_dpop_proof' });
+        expect(prisma.oAuthAuthorizationCode.delete).not.toHaveBeenCalled();
     });
 
     test('returns invalid_grant if code was already used (P2025)', async () => {
@@ -172,6 +223,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -188,6 +240,7 @@ describe('verifyAndExchangeCode', () => {
                 redirectUri: 'http://localhost:9999/callback',
                 codeVerifier: 'myverifier',
                 resource: null,
+                dpopJkt: null,
             })
         ).rejects.toThrow('DB connection lost');
     });
@@ -208,6 +261,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({
@@ -222,6 +276,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'invalid_prefix_token',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -237,6 +292,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_used',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -251,6 +307,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'wrong-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -267,6 +324,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -282,9 +340,52 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: 'https://other.com/api/mcp',
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_target' });
+    });
+
+    test('preserves the DPoP thumbprint when rotating a bound refresh token', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            dpopJkt: 'dpop-thumbprint',
+        });
+        prisma.oAuthRefreshToken.delete.mockResolvedValue(MOCK_REFRESH_TOKEN);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+            dpopJkt: 'dpop-thumbprint',
+        });
+
+        expect(result).toMatchObject({ dpopJkt: 'dpop-thumbprint' });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+    });
+
+    test('returns invalid_dpop_proof if DPoP key does not match the refresh token binding', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            dpopJkt: 'expected-thumbprint',
+        });
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+            dpopJkt: 'other-thumbprint',
+        });
+
+        expect(result).toMatchObject({ error: 'invalid_dpop_proof' });
+        expect(prisma.oAuthRefreshToken.delete).not.toHaveBeenCalled();
     });
 
     test('old refresh token is deleted during rotation', async () => {
@@ -297,6 +398,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(prisma.oAuthRefreshToken.delete).toHaveBeenCalledWith({ where: { hash: 'refreshtoken' } });
