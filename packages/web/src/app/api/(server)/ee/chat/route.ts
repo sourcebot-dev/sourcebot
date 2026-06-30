@@ -5,7 +5,7 @@ import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
 import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
-import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
+import { isAttachmentAccepted, isNativeMediaType } from "@/features/chat/attachments/modality";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
@@ -136,17 +136,19 @@ export const POST = apiHandler(async (req: NextRequest) => {
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
             // Authoritative, server-side resolution of the model's input
-            // modalities. The agent's multimodal content builder and degrade
-            // logic rely on this value, never the client.
-            const acceptedModalities = (await resolveModelCapabilities(languageModelConfig)).inputModalities;
+            // capabilities (single-medium modalities plus compound document
+            // types like PDF). The agent's multimodal content builder and
+            // degrade logic rely on these values, never the client.
+            const { inputModalities: acceptedModalities, supportedDocumentTypes } =
+                await resolveModelCapabilities(languageModelConfig);
 
             // If the latest message carries native-media attachments the selected
             // model cannot accept, the agent will degrade (omit the bytes). Record it.
             const droppedAttachmentCount = getUserMessageAttachments(latestMessage).filter(
                 (attachment) =>
                     attachment.kind === 'blob' &&
-                    mediaTypeToModality(attachment.mediaType) !== undefined &&
-                    !isMediaTypeAccepted(attachment.mediaType, acceptedModalities),
+                    isNativeMediaType(attachment.mediaType) &&
+                    !isAttachmentAccepted(attachment.mediaType, { inputModalities: acceptedModalities, supportedDocumentTypes }),
             ).length;
             if (droppedAttachmentCount > 0) {
                 await captureEvent('chat_attachment_degraded', {
@@ -220,6 +222,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 userId: user?.id,
                 orgId: org.id,
                 acceptedModalities,
+                supportedDocumentTypes,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                     const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({
@@ -247,6 +250,14 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     }
 
                     if (error instanceof Error) {
+                        // Backstop for the provider-adapter PDF gate: if a PDF
+                        // file part still reaches an adapter that can't carry it
+                        // (the model claims PDF support but the adapter throws
+                        // AI_UnsupportedFunctionalityError), surface a friendly
+                        // message instead of the raw SDK error.
+                        if (error.message.includes('file part media type application/pdf')) {
+                            return 'The selected model cannot accept PDF attachments. Remove the PDF or switch to a model that supports PDF input.';
+                        }
                         return error.message;
                     }
 

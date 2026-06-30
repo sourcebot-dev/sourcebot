@@ -42,6 +42,19 @@ export const ATTACHMENT_MAX_IMAGE_DIMENSION = 12000; // px per side
 // per-request memory/cost: each image is loaded and sent to the model.
 export const ATTACHMENT_MAX_IMAGE_COUNT = 10;
 
+// Fallback client-side PDF size cap for early rejection before upload. The
+// authoritative cap is SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES, fetched via
+// `useAttachmentLimits`; this default is only used while that loads or if it
+// fails (and matches the server default). 32MB matches common provider limits
+// (e.g. Anthropic's PDF request cap).
+export const ATTACHMENT_MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB per PDF
+
+// Max PDF (blob) attachments per message. Enforced server-side in
+// `commitMessageAttachments` (mirrored client-side for early feedback). PDFs are
+// far heavier per item than images (each page is rasterized by the provider),
+// so the cap is lower.
+export const ATTACHMENT_MAX_PDF_COUNT = 5;
+
 // A plain-text paste at or above either of these thresholds is automatically
 // converted into a text attachment instead of being inserted inline
 export const ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS = 1500;
@@ -69,6 +82,14 @@ export const ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES = [
     'image/jpeg',
     'image/webp',
     'image/gif',
+] as const;
+
+// Allowlist for binary PDF attachments. Validated server-side by sniffing the
+// `%PDF-` magic bytes (never by client MIME/extension). Used client-side only
+// to build the file picker's `accept` filter and to gate the PDF-attach
+// affordance, which is itself gated on the model's `supportedDocumentTypes`.
+export const ATTACHMENT_ALLOWED_PDF_MIME_TYPES = [
+    'application/pdf',
 ] as const;
 
 export const ATTACHMENT_ALLOWED_TEXT_EXTENSIONS = [

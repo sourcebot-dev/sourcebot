@@ -80,6 +80,36 @@ export const AttachmentTray = ({ attachments, onRemove, className }: AttachmentT
                                 />
                             </HoverCardContent>
                         </HoverCard>
+                    ) : attachment.kind === 'pdf' ? (
+                        // PDFs are not previewable pre-send (no chat-scoped serving
+                        // URL yet), so the chip is non-interactive and just reflects
+                        // the upload status.
+                        <div
+                            key={attachment.id}
+                            className="flex flex-row items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs"
+                            title={attachment.filename}
+                        >
+                            {attachment.status === 'uploading' ? (
+                                <Loader2 className="w-3 h-3 shrink-0 animate-spin text-muted-foreground" />
+                            ) : attachment.status === 'error' ? (
+                                <AlertCircle className="w-3 h-3 shrink-0 text-destructive" />
+                            ) : (
+                                <VscodeFileIcon fileName={attachment.filename} className="w-3 h-3" />
+                            )}
+                            <span className="font-mono max-w-[160px] truncate">
+                                {attachment.filename}
+                            </span>
+                            {onRemove && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(attachment.id)}
+                                    className="text-muted-foreground hover:text-foreground"
+                                    aria-label={`Remove ${attachment.filename}`}
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
                     ) : (
                         <div
                             key={attachment.id}

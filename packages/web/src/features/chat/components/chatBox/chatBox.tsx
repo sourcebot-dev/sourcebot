@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
+import { createPastedTextAttachment, getSubmittedTextBytes, isPendingUploadAttachment, PendingAttachment, PendingUploadAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadBlobAttachment } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
-import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_PDF_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
@@ -61,6 +61,10 @@ interface ChatBoxProps {
     // (SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES), threaded down for early
     // client-side rejection. Defaults to the constant when not provided.
     maxImageBytes?: number;
+    // Authoritative per-PDF byte cap from the server
+    // (SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES), threaded down for early
+    // client-side rejection. Defaults to the constant when not provided.
+    maxPdfBytes?: number;
 }
 
 const ChatBoxComponent = ({
@@ -77,6 +81,7 @@ const ChatBoxComponent = ({
     selectedSearchScopes,
     searchContexts,
     maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
+    maxPdfBytes = ATTACHMENT_MAX_PDF_BYTES,
 }: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -118,13 +123,21 @@ const ChatBoxComponent = ({
         [selectedLanguageModel],
     );
 
-    // Uploads an image attachment's bytes and reflects the outcome back into the
-    // tray (status + server attachment id).
-    const uploadAndTrackImage = useCallback(async (item: PendingImageAttachment) => {
+    // Whether the selected model natively supports PDF documents. PDF
+    // attachments are gated on this (a separate capability axis from image
+    // input); text attachments are always allowed.
+    const supportsPdf = useMemo(
+        () => selectedLanguageModel?.supportedDocumentTypes?.includes('pdf') ?? false,
+        [selectedLanguageModel],
+    );
+
+    // Uploads a blob attachment's (image or PDF) bytes and reflects the outcome
+    // back into the tray (status + server attachment id).
+    const uploadAndTrackBlob = useCallback(async (item: PendingUploadAttachment) => {
         try {
-            const result = await uploadImageAttachment(item.file);
+            const result = await uploadBlobAttachment(item.file);
             setAttachments((prev) => prev.map((attachment) =>
-                attachment.id === item.id && attachment.kind === 'image'
+                attachment.id === item.id && isPendingUploadAttachment(attachment)
                     ? {
                         ...attachment,
                         status: 'uploaded',
@@ -136,7 +149,7 @@ const ChatBoxComponent = ({
         } catch (error) {
             const message = error instanceof Error ? error.message : 'upload failed.';
             setAttachments((prev) => prev.map((attachment) =>
-                attachment.id === item.id && attachment.kind === 'image'
+                attachment.id === item.id && isPendingUploadAttachment(attachment)
                     ? { ...attachment, status: 'error', error: message }
                     : attachment));
             toast({
@@ -192,8 +205,11 @@ const ChatBoxComponent = ({
             files,
             {
                 allowImages: supportsImages,
+                allowPdf: supportsPdf,
                 existingImageCount: attachments.filter((attachment) => attachment.kind === 'image').length,
+                existingPdfCount: attachments.filter((attachment) => attachment.kind === 'pdf').length,
                 maxImageBytes,
+                maxPdfBytes,
             },
         );
         if (added.length > 0) {
@@ -212,14 +228,14 @@ const ChatBoxComponent = ({
         // Upload image attachments immediately (upload-on-select); their refs
         // are included at submit once the upload completes.
         for (const item of added) {
-            if (item.kind === 'image') {
-                void uploadAndTrackImage(item);
+            if (isPendingUploadAttachment(item)) {
+                void uploadAndTrackBlob(item);
             }
         }
 
         // Return focus to the prompt input so the user can keep typing.
         ReactEditor.focus(editor);
-    }, [attachments, toast, editor, supportsImages, uploadAndTrackImage, getOverBudgetWarning, maxImageBytes]);
+    }, [attachments, toast, editor, supportsImages, supportsPdf, uploadAndTrackBlob, getOverBudgetWarning, maxImageBytes, maxPdfBytes]);
 
     const removeAttachment = useCallback((id: string) => {
         setAttachments((prev) => {
@@ -633,6 +649,11 @@ const ChatBoxComponent = ({
                         Images won&apos;t be sent: the selected model doesn&apos;t support image input.
                     </p>
                 )}
+                {attachments.some((attachment) => attachment.kind === 'pdf') && !supportsPdf && (
+                    <p className="mb-1.5 text-xs text-amber-600 dark:text-amber-500">
+                        PDFs won&apos;t be sent: the selected model doesn&apos;t support PDF input.
+                    </p>
+                )}
                 <Editable
                     className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
@@ -671,6 +692,7 @@ const ChatBoxComponent = ({
                     <AttachmentButton
                         onAddFiles={onAddFiles}
                         acceptImages={supportsImages}
+                        acceptPdf={supportsPdf}
                         disabled={isDisabled || isRedirecting || isTurnInProgress}
                     />
                     {isRedirecting ? (

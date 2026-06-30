@@ -8,7 +8,8 @@ import fs from 'fs';
 import path from 'path';
 import { BlobAttachment, LanguageModelInfo, SBChatMessage } from './types';
 import { getUserMessageAttachments } from './utils';
-import { ATTACHMENT_MAX_IMAGE_COUNT } from './constants';
+import { ATTACHMENT_MAX_IMAGE_COUNT, ATTACHMENT_MAX_PDF_COUNT } from './constants';
+import { mediaTypeToDocumentType, mediaTypeToModality } from './attachments/modality';
 import { resolveModelCapabilities } from './modelCapabilities.server';
 import { loadCatalog } from './modelsDevCatalog.server';
 import { hasEntitlement } from '@/lib/entitlements';
@@ -139,12 +140,23 @@ export const commitMessageAttachments = async ({
         return null;
     }
 
-    // Authoritative per-message image cap (the client mirror can't be trusted).
-    if (blobRefs.length > ATTACHMENT_MAX_IMAGE_COUNT) {
+    // Authoritative per-message per-type cap (the client mirror can't be
+    // trusted). Images and PDFs are bounded independently since their
+    // per-request cost profiles differ.
+    const imageCount = blobRefs.filter((ref) => mediaTypeToModality(ref.mediaType) === 'image').length;
+    const pdfCount = blobRefs.filter((ref) => mediaTypeToDocumentType(ref.mediaType) === 'pdf').length;
+    if (imageCount > ATTACHMENT_MAX_IMAGE_COUNT) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
             message: `You can attach at most ${ATTACHMENT_MAX_IMAGE_COUNT} images per message.`,
+        } satisfies ServiceError;
+    }
+    if (pdfCount > ATTACHMENT_MAX_PDF_COUNT) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `You can attach at most ${ATTACHMENT_MAX_PDF_COUNT} PDFs per message.`,
         } satisfies ServiceError;
     }
 

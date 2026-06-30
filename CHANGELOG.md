@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added text file attachments to Ask Sourcebot, letting users attach text/code/config files to a chat message via the paperclip button, drag-and-drop, or paste, with large pastes auto-converted to attachments. [#1374](https://github.com/sourcebot-dev/sourcebot/pull/1374)
 - [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
 - [EE] Enabled Ask Sourcebot to cite user attachments as evidence, rendering the referenced attachment content in the answer and the right-panel evidence view. [#1394](https://github.com/sourcebot-dev/sourcebot/pull/1394)
+- [EE] Added PDF attachments to Ask Sourcebot, letting users attach PDFs that are sent natively to models that support PDF input (gated on the model's resolved document capabilities and the provider adapter's ability to carry PDF file parts). [#1402](https://github.com/sourcebot-dev/sourcebot/pull/1402)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)

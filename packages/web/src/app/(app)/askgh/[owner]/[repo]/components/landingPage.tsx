@@ -22,6 +22,7 @@ interface LandingPageProps {
     repoId: number;
     isAuthenticated: boolean;
     maxImageBytes: number;
+    maxPdfBytes: number;
 }
 
 export const LandingPage = ({
@@ -32,6 +33,7 @@ export const LandingPage = ({
     repoId,
     isAuthenticated,
     maxImageBytes,
+    maxPdfBytes,
 }: LandingPageProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
@@ -90,6 +92,7 @@ export const LandingPage = ({
                             isAuthenticated={isAuthenticated}
                             isLoginWallEnabled={true}
                             maxImageBytes={maxImageBytes}
+                            maxPdfBytes={maxPdfBytes}
                         />
                         <Separator />
                         <div className="relative">

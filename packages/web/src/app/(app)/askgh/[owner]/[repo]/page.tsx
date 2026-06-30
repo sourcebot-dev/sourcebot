@@ -70,6 +70,7 @@ export default async function GitHubRepoPage(props: PageProps) {
                     repoId={repoInfo.id}
                     isAuthenticated={!!session?.user}
                     maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
+                    maxPdfBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES}
                 />
             </CustomSlateEditor>
         </RepoIndexedGuard>

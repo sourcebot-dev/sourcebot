@@ -7,6 +7,7 @@ import { isServiceError } from "@/lib/utils";
 import { withAuth } from "@/middleware/withAuth";
 import { checkAskEntitlement } from "@/features/chat/utils.server";
 import { validateImageAttachment } from "@/features/chat/attachments/validation";
+import { looksLikePdf, validatePdfAttachment } from "@/features/chat/attachments/pdfValidation";
 import { sanitizeFilename } from "@/features/chat/attachments/filename";
 import { env, getStorageBackend } from "@sourcebot/shared";
 import { createHash, randomUUID } from "crypto";
@@ -16,15 +17,17 @@ import { NextRequest } from "next/server";
 export const POST = apiHandler(async (req: NextRequest) => {
     // Reject obviously-oversized bodies before reading them into memory. The
     // multipart envelope adds some overhead beyond the raw bytes, so allow a
-    // 1 MiB slack on top of the image cap; the exact byte cap is re-checked
-    // against the decoded buffer below.
+    // 1 MiB slack on top of the largest per-type cap; the exact (per-type) byte
+    // cap is re-checked against the decoded buffer below.
     const maxImageBytes = env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES;
+    const maxPdfBytes = env.SOURCEBOT_CHAT_ATTACHMENT_MAX_PDF_BYTES;
+    const maxAttachmentBytes = Math.max(maxImageBytes, maxPdfBytes);
     const contentLength = Number(req.headers.get('content-length') ?? 0);
-    if (contentLength > maxImageBytes + 1024 * 1024) {
+    if (contentLength > maxAttachmentBytes + 1024 * 1024) {
         return serviceErrorResponse({
             statusCode: StatusCodes.REQUEST_TOO_LONG,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: `Attachment exceeds the ${Math.round(maxImageBytes / (1024 * 1024))}MB limit.`,
+            message: `Attachment exceeds the ${Math.round(maxAttachmentBytes / (1024 * 1024))}MB limit.`,
         } satisfies ServiceError);
     }
 
@@ -49,20 +52,25 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             // Authoritative size reject from the parsed file, independent of the
             // (best-effort, spoofable) content-length header, before buffering
-            // the bytes into a Buffer.
-            if (file.size > maxImageBytes) {
+            // the bytes into a Buffer. Use the largest per-type cap here; the
+            // exact per-type cap is enforced by the type-specific validator.
+            if (file.size > maxAttachmentBytes) {
                 return {
                     statusCode: StatusCodes.REQUEST_TOO_LONG,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Attachment exceeds the ${Math.round(maxImageBytes / (1024 * 1024))}MB limit.`,
+                    message: `Attachment exceeds the ${Math.round(maxAttachmentBytes / (1024 * 1024))}MB limit.`,
                 } satisfies ServiceError;
             }
 
             const buffer = Buffer.from(await file.arrayBuffer());
 
-            // Authoritative content-type + size check by decoding the image
-            // (never the client-supplied MIME type or extension).
-            const validation = await validateImageAttachment(buffer, maxImageBytes);
+            // Authoritative content-type + size check by inspecting the bytes
+            // (never the client-supplied MIME type or extension). PDFs are
+            // sniffed by their `%PDF-` magic bytes; everything else is decoded
+            // as an image. The persisted `mediaType` comes from the validator.
+            const validation = looksLikePdf(buffer)
+                ? validatePdfAttachment(buffer, maxPdfBytes)
+                : await validateImageAttachment(buffer, maxImageBytes);
             if (!validation.ok) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,

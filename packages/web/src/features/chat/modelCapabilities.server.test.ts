@@ -12,7 +12,7 @@ vi.mock('@sourcebot/shared', () => ({
     }),
 }));
 
-import { lookupModelCapabilities, resolveModelCapabilities } from './modelCapabilities.server';
+import { lookupModelCapabilities, providerSupportsPdfDocuments, resolveModelCapabilities } from './modelCapabilities.server';
 import type { ModelsDevCatalog } from './modelsDevCatalog.server';
 
 const catalog: ModelsDevCatalog = {
@@ -44,6 +44,28 @@ const catalog: ModelsDevCatalog = {
             'image-only': { id: 'image-only', modalities: { input: ['image'], output: ['text'] } },
             // Catalogued model with no `modalities` object at all.
             'no-modalities-model': { id: 'no-modalities-model' },
+            // Text + pdf on a PDF-capable adapter.
+            'gpt-pdf': { id: 'gpt-pdf', modalities: { input: ['text', 'pdf'], output: ['text'] } },
+        },
+    },
+    // Providers whose adapter cannot carry a PDF file part even though the
+    // catalogued model lists `pdf` in its input modalities.
+    'amazon-bedrock': {
+        id: 'amazon-bedrock',
+        models: {
+            'claude-on-bedrock': {
+                id: 'claude-on-bedrock',
+                modalities: { input: ['text', 'image', 'pdf'], output: ['text'] },
+            },
+        },
+    },
+    xai: {
+        id: 'xai',
+        models: {
+            'grok-vision': {
+                id: 'grok-vision',
+                modalities: { input: ['text', 'image', 'pdf'], output: ['text'] },
+            },
         },
     },
 };
@@ -96,6 +118,41 @@ describe('lookupModelCapabilities', () => {
             inputModalities: ['text'],
             supportedDocumentTypes: [],
         });
+    });
+
+    test('keeps PDF support for a provider whose adapter can carry PDF file parts', () => {
+        expect(lookupModelCapabilities(catalog, model('openai', 'gpt-pdf'))).toEqual({
+            inputModalities: ['text'],
+            supportedDocumentTypes: ['pdf'],
+        });
+    });
+
+    test('drops PDF support for a provider whose adapter cannot carry PDF file parts, keeping modalities', () => {
+        // The catalog lists pdf for these models, but the adapter (amazon-bedrock
+        // is image-only; xai is version/back-end dependent) cannot send it, so we
+        // fail closed on the document axis while preserving image input.
+        expect(lookupModelCapabilities(catalog, model('amazon-bedrock', 'claude-on-bedrock'))).toEqual({
+            inputModalities: ['text', 'image'],
+            supportedDocumentTypes: [],
+        });
+        expect(lookupModelCapabilities(catalog, model('xai', 'grok-vision'))).toEqual({
+            inputModalities: ['text', 'image'],
+            supportedDocumentTypes: [],
+        });
+    });
+});
+
+describe('providerSupportsPdfDocuments', () => {
+    test('allows first-party adapters known to carry PDF file parts', () => {
+        for (const provider of ['anthropic', 'openai', 'azure', 'google-generative-ai', 'google-vertex', 'google-vertex-anthropic'] as const) {
+            expect(providerSupportsPdfDocuments(provider)).toBe(true);
+        }
+    });
+
+    test('fails closed for adapters that are image-only or back-end/version dependent', () => {
+        for (const provider of ['amazon-bedrock', 'xai', 'openrouter', 'openai-compatible', 'mistral', 'deepseek'] as const) {
+            expect(providerSupportsPdfDocuments(provider)).toBe(false);
+        }
     });
 });
 
