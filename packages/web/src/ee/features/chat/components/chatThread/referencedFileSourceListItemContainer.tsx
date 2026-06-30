@@ -1,6 +1,6 @@
 'use client';
 
-import { getFileSource } from "@/app/api/(client)/client";
+import { getFileFreshness, getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
@@ -72,6 +72,19 @@ const ReferencedFileSourceListItemContainerComponent = ({
         staleTime: Infinity,
     });
 
+    // Whether the cited file has changed since the pinned commit. Only checked
+    // for pinned sources; older un-pinned sources have nothing to compare.
+    const { data: freshness } = useQuery({
+        queryKey: ['fileFreshness', fileSource.repo, fileSource.path, fileSource.commitSha],
+        queryFn: () => unwrapServiceError(getFileFreshness({
+            repo: fileSource.repo,
+            path: fileSource.path,
+            sinceSha: fileSource.commitSha!,
+        })),
+        enabled: !!fileSource.commitSha,
+        staleTime: 5 * 60 * 1000,
+    });
+
     const handleRef = useCallback((ref: ReactCodeMirrorRef | null) => {
         onEditorRef(fileId, ref);
     }, [fileId, onEditorRef]);
@@ -118,6 +131,9 @@ const ReferencedFileSourceListItemContainerComponent = ({
             repoWebUrl={data.repoExternalWebUrl}
             fileName={data.path}
             references={references}
+            pinnedSha={fileSource.commitSha}
+            freshnessStatus={freshness?.status}
+            currentSha={freshness?.currentSha}
             ref={handleRef}
             onSelectedReferenceChanged={onSelectedReferenceChanged}
             onHoveredReferenceChanged={onHoveredReferenceChanged}
