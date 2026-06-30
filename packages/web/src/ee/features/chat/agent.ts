@@ -36,8 +36,8 @@ const dedent = _dedent.withOptions({ alignValues: true });
 
 const logger = createLogger('chat-agent');
 
-// Resolved attachment bytes for a single user turn, keyed by attachment id.
-// Only blobs the model can natively accept are loaded; the content builder
+// Resolved attachment bytes for the whole chat, keyed by attachment id. Only
+// blobs the model can natively accept are loaded; the content builder
 // recomputes per-attachment status from the message to leave degrade markers.
 type ResolvedTurnMedia = Map<string, { bytes: Buffer; mediaType: string }>;
 
@@ -90,36 +90,41 @@ const getMediaBlobs = (message: SBChatMessage): BlobAttachment[] =>
         .filter((attachment): attachment is BlobAttachment =>
             attachment.kind === 'blob' && mediaTypeToModality(attachment.mediaType) !== undefined);
 
-// Reads the native-media attachment bytes for one user turn from the
-// StorageBackend. Fail-closed: only blobs whose modality the model accepts are
-// loaded, and only when linked to this chat (mirroring the serving route's
-// chat-derived access), so a text-only model resolves nothing here and the
-// builder leaves a marker instead.
-const resolveLatestTurnMedia = async ({
-    message,
+// Reads native-media attachment bytes for every user turn in the chat from the
+// StorageBackend, keyed by attachment id. Media bytes are re-sent on every turn
+// (so attachments stay in context and the cached prefix stays byte-stable),
+// hence all turns are resolved here, not just the latest. Fail-closed: only
+// blobs whose modality the model accepts are loaded, and only when linked to
+// this chat (mirroring the serving route's chat-derived access), so a text-only
+// model resolves nothing here and the builder leaves a marker instead.
+const resolveTurnMedia = async ({
+    messages,
     acceptedModalities,
     prisma,
     orgId,
     chatId,
 }: {
-    message: SBChatMessage | undefined;
+    messages: SBChatMessage[];
     acceptedModalities: InputModality[];
     prisma: PrismaClient;
     orgId?: number;
     chatId: string;
 }): Promise<ResolvedTurnMedia> => {
     const result: ResolvedTurnMedia = new Map();
-    if (!message || orgId === undefined) {
+    if (orgId === undefined) {
         return result;
     }
 
-    const acceptedBlobs = getMediaBlobs(message)
+    const acceptedBlobs = messages
+        .filter((message) => message.role === 'user')
+        .flatMap((message) => getMediaBlobs(message))
         .filter((blob) => isMediaTypeAccepted(blob.mediaType, acceptedModalities));
     if (acceptedBlobs.length === 0) {
         return result;
     }
 
-    const ids = acceptedBlobs.map((blob) => blob.attachmentId);
+    // Dedupe ids: the same attachment may be re-referenced across turns.
+    const ids = [...new Set(acceptedBlobs.map((blob) => blob.attachmentId))];
     const records = await prisma.attachment.findMany({
         where: { id: { in: ids }, orgId, chats: { some: { chatId } } },
     });
@@ -138,18 +143,16 @@ const resolveLatestTurnMedia = async ({
 };
 
 // Builds the `ModelMessage` for a user turn: the text part (with any
-// inline-text attachments folded in) plus, for the latest turn only, native
-// media content parts. When media is present but omitted (older turn, an
-// unsupported modality, or a failed read), a short marker is appended so the
-// model knows context was dropped.
+// inline-text attachments folded in) plus native media content parts. Media is
+// re-sent on every turn so attachments stay in context. When media is present
+// but omitted (an unsupported modality or a failed read), a short marker is
+// appended so the model knows context was dropped.
 const buildUserModelMessage = ({
     message,
-    isLatestUserTurn,
     acceptedModalities,
     resolvedMedia,
 }: {
     message: SBChatMessage;
-    isLatestUserTurn: boolean;
     acceptedModalities: InputModality[];
     resolvedMedia?: ResolvedTurnMedia;
 }): ModelMessage => {
@@ -171,12 +174,6 @@ const buildUserModelMessage = ({
 
     const mediaBlobs = getMediaBlobs(message);
     if (mediaBlobs.length === 0) {
-        return { role: 'user', content: baseText };
-    }
-
-    // Media bytes are only attached on the turn that introduced them.
-    if (!isLatestUserTurn) {
-        baseText += `\n\n[Note: ${mediaBlobs.length} attachment(s) omitted (attachments are only sent on the turn they were added).]`;
         return { role: 'user', content: baseText };
     }
 
@@ -288,12 +285,13 @@ export const createMessageStream = async ({
     // Server requests always receive persisted messages between client streams, so evaluate them in the ready state.
     const incomingTurnProgress = getTurnProgressState({ messages, status: 'ready' });
 
-    // Media attachment bytes are included only on the turn that introduced
-    // them (decision: do not re-send media bytes on later turns). Resolve the
-    // bytes for the latest user turn up-front, reading from the StorageBackend.
-    const lastUserIndex = messages.map((message) => message.role).lastIndexOf('user');
-    const resolvedLatestTurnMedia = await resolveLatestTurnMedia({
-        message: lastUserIndex >= 0 ? messages[lastUserIndex] : undefined,
+    // Media attachment bytes are re-sent on every turn (decision: keep
+    // attachments in context across turns rather than dropping them after the
+    // turn they were added). Re-sending the same bytes in the same position
+    // each turn also keeps the cached prefix byte-stable. Resolve the bytes for
+    // all user turns up-front, reading from the StorageBackend.
+    const resolvedMedia = await resolveTurnMedia({
+        messages,
         acceptedModalities,
         prisma,
         orgId,
@@ -305,9 +303,8 @@ export const createMessageStream = async ({
             if (message.role === 'user') {
                 return buildUserModelMessage({
                     message,
-                    isLatestUserTurn: index === lastUserIndex,
                     acceptedModalities,
-                    resolvedMedia: index === lastUserIndex ? resolvedLatestTurnMedia : undefined,
+                    resolvedMedia,
                 });
             }
 

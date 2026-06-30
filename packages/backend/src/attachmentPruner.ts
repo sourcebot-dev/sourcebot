@@ -15,8 +15,7 @@ const logger = createLogger('attachment-pruner');
  * lifecycle is handled by the chat-delete sweep in the web app.
  *
  * @note Byte deletion goes through the shared `StorageBackend`, so the web app
- * and this worker share one on-disk layout (and the S3 driver planned in
- * Followup B).
+ * and this worker share one on-disk layout.
  */
 export class AttachmentPruner {
     private interval?: NodeJS.Timeout;
