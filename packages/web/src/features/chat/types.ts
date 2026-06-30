@@ -103,6 +103,28 @@ export type SBChatMessageToolTypes = {
     };
 };
 
+// A user-provided file attachment. The `text` variant carries the file's
+// extracted text inline (used for text/code/structured files); binary
+// attachments (images, PDFs) will later add a `blob` variant that references
+// stored bytes by id instead of inlining them.
+export const textAttachmentSchema = z.object({
+    kind: z.literal('text'),
+    // Stable, message-persisted handle for the attachment. Carried through from
+    // the pending attachment's client id so later features (citing/referencing
+    // attachment content) have a durable handle on every persisted attachment.
+    id: z.string(),
+    filename: z.string(),
+    mediaType: z.string(),
+    sizeBytes: z.number(),
+    text: z.string(),
+});
+export type TextAttachment = z.infer<typeof textAttachmentSchema>;
+
+export const attachmentDataSchema = z.discriminatedUnion('kind', [
+    textAttachmentSchema,
+]);
+export type AttachmentData = z.infer<typeof attachmentDataSchema>;
+
 export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw
     // during retrieval.
@@ -112,6 +134,8 @@ export type SBChatMessageDataParts = {
     "mcp-server": { sanitizedName: string; faviconUrl: string },
     // The `mcp-failed-server` data type surfaces MCP servers that failed to load their tools.
     "mcp-failed-server": { serverName: string },
+    // A user-provided file attachment included with the message.
+    "attachment": AttachmentData,
 }
 
 export type SBChatMessage = UIMessage<

@@ -22,7 +22,7 @@ import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
 import { Source } from "@/features/chat/types";
-import { addLineNumbers, fileReferenceToString, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageText } from "@/features/chat/utils";
+import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
@@ -105,9 +105,16 @@ export const createMessageStream = async ({
     let messageHistory: ModelMessage[] =
         messages.map((message, index): ModelMessage | undefined => {
             if (message.role === 'user') {
+                // Fold inline-text attachments into this turn's content (not the
+                // system prompt) so they stay bound to their turn, re-emitted from
+                // the persisted parts.
+                const text = getUserMessageText(message);
+                const attachmentsBlock = formatAttachmentsForPrompt(
+                    getUserMessageAttachments(message),
+                );
                 return {
                     role: 'user',
-                    content: getUserMessageText(message),
+                    content: attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text,
                 };
             }
 

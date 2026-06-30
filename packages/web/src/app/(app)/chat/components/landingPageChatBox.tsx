@@ -7,6 +7,7 @@ import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useState } from "react";
+import { useRegisterLandingChatBox } from "./chatLandingDropzone";
 import { useLocalStorage } from "usehooks-ts";
 import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { SearchModeSelector } from "../../components/searchModeSelector";
@@ -31,14 +32,16 @@ export const LandingPageChatBox = ({
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>(SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const [disabledMcpServerIds, setDisabledMcpServerIds] = useLocalStorage<string[]>(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const registerChatBox = useRegisterLandingChatBox();
     const isChatBoxDisabled = languageModels.length === 0;
 
     return (
         <div className="w-full max-w-[800px] mt-4">
             <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
-                    onSubmit={(children) => {
-                        createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds);
+                    ref={registerChatBox}
+                    onSubmit={(children, _editor, attachments) => {
+                        createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds, attachments);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
@@ -74,6 +77,6 @@ export const LandingPageChatBox = ({
             {isChatBoxDisabled && (
                 <NotConfiguredErrorBanner className="mt-4" />
             )}
-        </div >
+        </div>
     )
 }
