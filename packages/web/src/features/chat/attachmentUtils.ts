@@ -44,9 +44,10 @@ export type PendingImageAttachment = {
     error?: string;
 };
 
-// An attachment selected in the chat box but not yet submitted. The `id` is a
-// client-only key for list rendering and removal; it is stripped before the
-// attachment becomes part of a message.
+// An attachment selected in the chat box but not yet submitted. For text
+// attachments the `id` is the stable handle carried into the message so the
+// content can later be cited and resolved; for images it is a client-only list
+// key (images are addressed by their uploaded `attachmentId` instead).
 export type PendingAttachment = PendingTextAttachment | PendingImageAttachment;
 
 // Builds the comma-separated `accept` attribute for a native `<input type=file>`
@@ -101,6 +102,7 @@ export const toAttachmentData = (attachment: PendingAttachment): AttachmentData 
     if (attachment.kind === 'text') {
         return {
             kind: 'text',
+            id: attachment.id,
             filename: attachment.filename,
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes,

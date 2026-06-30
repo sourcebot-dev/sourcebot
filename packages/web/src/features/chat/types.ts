@@ -110,6 +110,10 @@ export type SBChatMessageToolTypes = {
 // and never travel in the `messages` JSON.
 export const textAttachmentSchema = z.object({
     kind: z.literal('text'),
+    // Stable, message-persisted handle for the attachment. Carried through from
+    // the pending attachment's client id so later features (citing/referencing
+    // attachment content) have a durable handle on every persisted attachment.
+    id: z.string(),
     filename: z.string(),
     mediaType: z.string(),
     sizeBytes: z.number(),
