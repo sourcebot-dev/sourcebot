@@ -277,3 +277,27 @@ chat lang:TypeScript -file:(test|spec)
 ==>
 
 Program(AndExpr(Term,PrefixExpr(LangExpr),NegateExpr(PrefixExpr(FileExpr))))
+
+# Dash term with non-prefix colon word (e.g. a URL) stays a single Term
+
+-http://example.com
+
+==>
+
+Program(Term)
+
+# Dash term with unknown colon key stays a single Term
+
+-time:12
+
+==>
+
+Program(Term)
+
+# Prefix combined with a negated non-prefix colon word
+
+repo:x -foo:bar
+
+==>
+
+Program(AndExpr(PrefixExpr(RepoExpr),Term))
