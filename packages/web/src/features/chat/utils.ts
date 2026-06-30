@@ -417,6 +417,18 @@ export const getUserMessageAttachments = (message: Pick<SBChatMessage, 'parts'>)
         .map((part) => part.data);
 }
 
+// UTF-8 byte size of a message's inlined text (prompt + text-attachment bodies;
+// image blobs are referenced by id, not inlined). Server-side counterpart to
+// the chat box's `getSubmittedTextBytes` for enforcing the per-turn text budget.
+export const getMessageTextBytes = (message: Pick<SBChatMessage, 'parts'>): number => {
+    const encoder = new TextEncoder();
+    const promptBytes = encoder.encode(getUserMessageText(message)).length;
+    const attachmentBytes = getUserMessageAttachments(message)
+        .filter((attachment) => attachment.kind === 'text')
+        .reduce((sum, attachment) => sum + encoder.encode(attachment.text).length, 0);
+    return promptBytes + attachmentBytes;
+}
+
 // Neutralizes `</attachment>`/`</attachments>` sequences in a body so it can't
 // close its own wrapper early. Unrelated markup (e.g. `</div>`) is left intact.
 const escapeAttachmentBody = (text: string): string => {

@@ -18,6 +18,10 @@ const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
 // refresh attempts to once per interval during a models.dev outage instead of
 // kicking one off on (nearly) every request.
 const NEGATIVE_CACHE_MS = 60 * 1000;
+// Max time a single `awaitWhenEmpty` caller blocks on the first fetch (well
+// under FETCH_TIMEOUT_MS); past it the caller falls back while the fetch
+// continues warming the cache in the background.
+const COLD_START_BLOCK_BUDGET_MS = 2500;
 
 // Sourcebot provider id -> models.dev top-level catalog key. Only providers
 // whose Sourcebot id differs from the models.dev id need an entry; everything
@@ -81,14 +85,15 @@ const fetchCatalog = async (): Promise<ModelsDevCatalog | null> => {
  * catalog is returned immediately (even if stale), or null before the first
  * successful fetch lands, and any refresh settles in the background.
  *
- * Consequences of never awaiting:
- * - For the brief window after a cold start (before the first fetch resolves),
- *   capability resolution falls back to text-only; it self-heals on the next
- *   request once the background fetch populates the cache.
- * - An unreachable catalog (e.g. an airgapped deployment) costs nothing on the
- *   request path instead of repeatedly paying the fetch timeout.
+ * By default the request path NEVER blocks on the network: a cold cache returns
+ * null (text-only fallback) and an unreachable catalog costs nothing. Callers
+ * needing a correct answer on a cold cache may pass `awaitWhenEmpty: true`,
+ * which blocks only on the first-ever fetch and only up to
+ * COLD_START_BLOCK_BUDGET_MS (see below).
  */
-export const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
+export const loadCatalog = async (
+    { awaitWhenEmpty = false }: { awaitWhenEmpty?: boolean } = {},
+): Promise<ModelsDevCatalog | null> => {
     const now = Date.now();
     const isFresh = cachedCatalog !== null && now - catalogFetchedAt <= CATALOG_TTL_MS;
     const isBackingOff = now - lastFailedAt < NEGATIVE_CACHE_MS;
@@ -109,6 +114,19 @@ export const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
             inFlightFetch = null;
             return catalog;
         });
+    }
+
+    // Block on the first-ever fetch only (`!hasAttempted`), bounded by
+    // COLD_START_BLOCK_BUDGET_MS, so a cold cache resolves correctly instead of
+    // silently degrading. After any attempt we never block again (airgapped pays
+    // at most one short wait per process); the background refresh self-heals.
+    const hasAttempted = catalogFetchedAt > 0 || lastFailedAt > 0;
+    if (awaitWhenEmpty && cachedCatalog === null && inFlightFetch && !hasAttempted) {
+        return Promise.race([
+            inFlightFetch,
+            new Promise<ModelsDevCatalog | null>((resolve) =>
+                setTimeout(() => resolve(cachedCatalog), COLD_START_BLOCK_BUDGET_MS)),
+        ]);
     }
 
     // Serve whatever we currently have cached (possibly null on a cold start)

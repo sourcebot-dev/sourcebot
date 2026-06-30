@@ -21,6 +21,7 @@ interface LandingPageProps {
     imageUrl?: string | null;
     repoId: number;
     isAuthenticated: boolean;
+    maxImageBytes: number;
 }
 
 export const LandingPage = ({
@@ -30,6 +31,7 @@ export const LandingPage = ({
     imageUrl,
     repoId,
     isAuthenticated,
+    maxImageBytes,
 }: LandingPageProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
@@ -87,6 +89,7 @@ export const LandingPage = ({
                             isDisabled={isChatBoxDisabled}
                             isAuthenticated={isAuthenticated}
                             isLoginWallEnabled={true}
+                            maxImageBytes={maxImageBytes}
                         />
                         <Separator />
                         <div className="relative">
