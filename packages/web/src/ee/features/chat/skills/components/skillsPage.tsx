@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
     AlertTriangleIcon,
@@ -223,6 +224,13 @@ interface SkillsPageProps {
     initialSharedSkills: SharedAgentSkillCatalogItem[];
     currentUserEmail: string;
     isOwner: boolean;
+    // Deep-link a skill as the initially-selected one (e.g. from the workspace
+    // admin table). Ignored when it doesn't match a skill visible on this page.
+    initialSelectedId?: string;
+    // Whether repository permission syncing is enabled. When off, every member
+    // sees every repo, so sharing a synced skill carries no access caveat and
+    // skips the confirmation dialog.
+    permissionSyncEnabled: boolean;
 }
 
 export function SkillsPage({
@@ -230,6 +238,8 @@ export function SkillsPage({
     initialSharedSkills,
     currentUserEmail,
     isOwner,
+    initialSelectedId,
+    permissionSyncEnabled,
 }: SkillsPageProps) {
     const { toast } = useToast();
     const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
@@ -237,6 +247,13 @@ export function SkillsPage({
     const [searchQuery, setSearchQuery] = useState("");
 
     const [selectedId, setSelectedId] = useState<string | null>(() => {
+        // Honor a deep-linked selection, but only when it matches a skill visible
+        // on this page; otherwise fall back to the first skill.
+        if (initialSelectedId
+            && (initialPersonalSkills.some((skill) => skill.id === initialSelectedId)
+                || initialSharedSkills.some((skill) => skill.id === initialSelectedId))) {
+            return initialSelectedId;
+        }
         const first = sortAgentSkillListItems(initialPersonalSkills)[0] ?? sortSharedAgentSkillCatalogItems(initialSharedSkills)[0];
         return first?.id ?? null;
     });
@@ -258,6 +275,7 @@ export function SkillsPage({
 
     const [pendingDiscard, setPendingDiscard] = useState<{ run: () => void } | null>(null);
     const [confirmMakePersonal, setConfirmMakePersonal] = useState<DetailSkill | null>(null);
+    const [confirmPublishSynced, setConfirmPublishSynced] = useState<DetailSkill | null>(null);
     const [confirmDeletePersonal, setConfirmDeletePersonal] = useState<DetailSkill | null>(null);
     const [confirmDeleteShared, setConfirmDeleteShared] = useState<DetailSkill | null>(null);
 
@@ -557,6 +575,7 @@ export function SkillsPage({
                 result,
                 ...current.filter((item) => item.id !== result.id),
             ]));
+            setConfirmPublishSynced(null);
             setSelectedId(result.id);
             toast({ description: "Skill shared with your workspace." });
         } catch {
@@ -606,7 +625,16 @@ export function SkillsPage({
             return;
         }
         if (skill.scope === "PERSONAL" && shared) {
-            void handlePublish(skill);
+            // Sharing a synced skill widens who can reach its repo-derived content,
+            // so confirm first — but only when permission syncing is on. With
+            // syncing off every member already sees every repo, so there's no
+            // access caveat to warn about and it publishes immediately, like a
+            // plain personal skill.
+            if (skill.source && permissionSyncEnabled) {
+                setConfirmPublishSynced(skill);
+            } else {
+                void handlePublish(skill);
+            }
             return;
         }
         if (skill.scope === "SHARED" && !shared && skill.canManage) {
@@ -840,12 +868,16 @@ export function SkillsPage({
                     ) : (
                         <SkillDetailView
                             skill={selectedSkill}
+                            workspaceAdminHref={
+                                isOwner && selectedSkill.scope === "SHARED"
+                                    ? `/settings/workspaceAskAgent?skillSearch=${encodeURIComponent(selectedSkill.name)}`
+                                    : undefined
+                            }
                             scopePending={scopePendingId === selectedSkill.id}
                             sourceUpdatePending={sourceUpdatePendingId === selectedSkill.id}
                             onSharedToggle={(shared) => handleSharedToggle(selectedSkill, shared)}
                             onEdit={handleStartEdit}
                             onUpdateFromSource={() => void handleUpdateFromSource(selectedSkill)}
-                            onMakePersonal={() => setConfirmMakePersonal(selectedSkill)}
                             onDelete={() => {
                                 if (selectedSkill.scope === "SHARED") {
                                     setConfirmDeleteShared(selectedSkill);
@@ -950,6 +982,51 @@ export function SkillsPage({
             </AlertDialog>
 
             <AlertDialog
+                open={confirmPublishSynced !== null}
+                onOpenChange={(open) => {
+                    if (!open && scopePendingId === null) {
+                        setConfirmPublishSynced(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Share synced skill with your workspace?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            <span className="font-semibold text-foreground">{confirmPublishSynced?.name}</span>{" "}
+                            is synced from{" "}
+                            <span className="font-medium text-foreground">{confirmPublishSynced?.source?.repoName}</span>
+                            . Sharing publishes the{" "}
+                            <span className="font-mono text-foreground">/{confirmPublishSynced?.slug}</span>{" "}
+                            command to your workspace and keeps it synced to the source file.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-muted-foreground">
+                        <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+                        <p>
+                            Organization owners who don&apos;t have access to{" "}
+                            <span className="font-medium text-foreground">{confirmPublishSynced?.source?.repoName}</span>{" "}
+                            will still be able to see and manage this skill from workspace settings. Members without access to the repository won&apos;t see it.
+                        </p>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={scopePendingId !== null}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={scopePendingId !== null}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                if (confirmPublishSynced) {
+                                    void handlePublish(confirmPublishSynced);
+                                }
+                            }}
+                        >
+                            {scopePendingId !== null ? "Sharing..." : "Share skill"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog
                 open={confirmDeletePersonal !== null}
                 onOpenChange={(open) => {
                     if (!open && deletingId === null) {
@@ -1048,10 +1125,12 @@ interface SkillDetailViewProps {
     skill: DetailSkill;
     scopePending: boolean;
     sourceUpdatePending: boolean;
+    // When set, an owner can jump to the workspace admin table pre-filtered to
+    // this shared skill. Undefined for personal skills or non-owners.
+    workspaceAdminHref?: string;
     onSharedToggle: (shared: boolean) => void;
     onEdit: () => void;
     onUpdateFromSource: () => void;
-    onMakePersonal: () => void;
     onDelete: () => void;
 }
 
@@ -1059,10 +1138,10 @@ function SkillDetailView({
     skill,
     scopePending,
     sourceUpdatePending,
+    workspaceAdminHref,
     onSharedToggle,
     onEdit,
     onUpdateFromSource,
-    onMakePersonal,
     onDelete,
 }: SkillDetailViewProps) {
     const isShared = skill.scope === "SHARED";
@@ -1122,10 +1201,12 @@ function SkillDetailView({
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                {isShared && (
-                                    <DropdownMenuItem onClick={onMakePersonal}>
-                                        <BookOpenIcon className="mr-2 h-4 w-4" />
-                                        Make personal
+                                {workspaceAdminHref && (
+                                    <DropdownMenuItem asChild>
+                                        <Link href={workspaceAdminHref}>
+                                            <Building2Icon className="mr-2 h-4 w-4" />
+                                            View in workspace settings
+                                        </Link>
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem

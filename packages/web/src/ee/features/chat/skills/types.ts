@@ -107,7 +107,15 @@ export const sharedAgentSkillCatalogItemSchema = sharedAgentSkillBaseItemSchema.
     isCreatedByUser: z.boolean(),
 });
 
-export const sharedAgentSkillManagementItemSchema = sharedAgentSkillBaseItemSchema;
+export const sharedAgentSkillManagementItemSchema = sharedAgentSkillBaseItemSchema.extend({
+    // The repository file this shared skill mirrors, or null for manually-created
+    // and file-imported skills. Drives the Source column and the Synced/Manual
+    // filter in the workspace management table.
+    source: agentSkillSourceRefSchema.nullable(),
+    // Creator email for the management table's "Added by" column. Null when the
+    // creating user has no email on record.
+    createdByEmail: z.string().nullable(),
+});
 
 export type AgentSkillInput = z.infer<typeof agentSkillInputSchema>;
 export type UpdateAgentSkillInput = z.infer<typeof updateAgentSkillInputSchema>;
@@ -253,8 +261,14 @@ const toSharedAgentSkillBaseItem = (
 });
 
 export const toSharedAgentSkillManagementItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "autoEnrolled" | "createdAt" | "updatedAt">,
-): SharedAgentSkillManagementItem => toSharedAgentSkillBaseItem(skill);
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "autoEnrolled" | "createdAt" | "updatedAt" | "sourceRepoName" | "sourceFilePath" | "sourceRevision"> & {
+        createdBy: { email: string | null } | null;
+    },
+): SharedAgentSkillManagementItem => ({
+    ...toSharedAgentSkillBaseItem(skill),
+    source: toAgentSkillSourceRef(skill),
+    createdByEmail: skill.createdBy?.email ?? null,
+});
 
 export const toSharedAgentSkillCatalogItem = (
     skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt" | "sourceRepoName" | "sourceFilePath" | "sourceRevision"> & {

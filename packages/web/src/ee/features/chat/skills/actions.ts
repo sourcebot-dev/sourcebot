@@ -108,6 +108,10 @@ const sharedManagementSkillSelect = {
     autoEnrolled: true,
     createdAt: true,
     updatedAt: true,
+    sourceRepoName: true,
+    sourceFilePath: true,
+    sourceRevision: true,
+    createdBy: { select: { email: true } },
 } satisfies Prisma.AgentSkillSelect;
 
 type AgentSkillWriteClient = Pick<PrismaClient, "agentSkill" | "agentSkillAdoption">;

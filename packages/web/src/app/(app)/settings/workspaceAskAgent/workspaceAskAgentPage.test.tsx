@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import type { ReactNode } from 'react';
 import type { SharedAgentSkillManagementItem } from '@/ee/features/chat/skills/types';
 
 vi.mock('next/navigation', () => ({
@@ -9,6 +10,15 @@ vi.mock('next/navigation', () => ({
         push: vi.fn(),
     }),
 }));
+
+// The shared-skills manager links skill names via next/link; render a plain anchor.
+vi.mock('next/link', async () => {
+    const { createElement } = await import('react');
+    return {
+        default: ({ href, children }: { href: string; children: ReactNode }) =>
+            createElement('a', { href }, children),
+    };
+});
 
 vi.mock('@/app/api/(client)/client', () => ({
     getMcpConfiguration: vi.fn(),
@@ -81,6 +91,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
@@ -93,7 +105,7 @@ describe('WorkspaceAskAgentPage', () => {
         await screen.findByText('Ask Sourcebot connectors are unavailable');
 
         expect(screen.queryByText('Review')).toBeNull();
-        expect(screen.queryByText('Manage shared skills available to everyone in your workspace.')).toBeNull();
+        expect(screen.queryByText('Available to everyone in your workspace.')).toBeNull();
     });
 
     test('disables shared skill delete while a flag update is pending', async () => {
@@ -105,6 +117,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
@@ -133,6 +147,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
@@ -144,6 +160,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
@@ -185,6 +203,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
@@ -196,6 +216,8 @@ describe('WorkspaceAskAgentPage', () => {
             description: 'Review risky changes.',
             enabled: true,
             autoEnrolled: false,
+            source: null,
+            createdByEmail: 'creator@sourcebot.dev',
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };

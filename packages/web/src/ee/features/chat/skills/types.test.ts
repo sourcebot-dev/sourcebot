@@ -172,6 +172,10 @@ describe("toSharedAgentSkillManagementItem", () => {
             autoEnrolled: false,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdBy: { email: "author@example.com" },
         });
 
         expect(item).toEqual({
@@ -182,6 +186,8 @@ describe("toSharedAgentSkillManagementItem", () => {
             description: "Review risky changes.",
             enabled: true,
             autoEnrolled: false,
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+            createdByEmail: "author@example.com",
             createdAt: "2026-01-01T00:00:00.000Z",
             updatedAt: "2026-01-02T00:00:00.000Z",
         });
@@ -189,6 +195,27 @@ describe("toSharedAgentSkillManagementItem", () => {
         expect(item).not.toHaveProperty("isAdopted");
         expect(item).not.toHaveProperty("isVisibleToUser");
         expect(item).not.toHaveProperty("isCreatedByUser");
+    });
+
+    test("maps a manual skill to a null source and a null creator email", () => {
+        const item = toSharedAgentSkillManagementItem({
+            id: "skill-2",
+            visibility: "SHARED",
+            slug: "deploy",
+            name: "Deploy",
+            description: "",
+            enabled: true,
+            autoEnrolled: true,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            createdBy: null,
+        });
+
+        expect(item.source).toBeNull();
+        expect(item.createdByEmail).toBeNull();
     });
 });
 
