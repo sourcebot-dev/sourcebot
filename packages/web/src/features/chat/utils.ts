@@ -487,8 +487,8 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isTurn
  * identifying fields, so both the full `LanguageModel` config and the
  * client-safe `LanguageModelInfo` can be keyed with it.
  */
-export const getLanguageModelKey = (model: Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>) => {
-    return `${model.provider}-${model.model}-${model.displayName}`;
+export const getLanguageModelKey = (model: Pick<LanguageModelInfo, 'provider' | 'model'>) => {
+    return `${model.provider}-${model.model}`;
 }
 
 /**
