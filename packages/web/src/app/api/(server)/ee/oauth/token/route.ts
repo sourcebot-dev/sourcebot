@@ -1,6 +1,5 @@
 import { verifyAndExchangeCode, verifyAndRotateRefreshToken } from '@/ee/features/oauth/server';
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
-import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { hasEntitlement } from '@/lib/entitlements';
@@ -77,8 +76,8 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
             access_token: result.token,
             refresh_token: result.refreshToken,
             token_type: result.dpopJkt ? DPOP_TOKEN_TYPE : 'Bearer',
-            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
-            scope: '',
+            expires_in: result.expiresIn,
+            scope: result.scope,
         });
     }
 
@@ -110,8 +109,8 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
             access_token: result.token,
             refresh_token: result.refreshToken,
             token_type: result.dpopJkt ? DPOP_TOKEN_TYPE : 'Bearer',
-            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
-            scope: '',
+            expires_in: result.expiresIn,
+            scope: result.scope,
         });
     }
 

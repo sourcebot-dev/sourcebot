@@ -19,6 +19,7 @@ export async function generateAndStoreAuthCode({
     userId,
     redirectUri,
     codeChallenge,
+    scope,
     resource,
     dpopJkt,
 }: {
@@ -26,6 +27,7 @@ export async function generateAndStoreAuthCode({
     userId: string;
     redirectUri: string;
     codeChallenge: string;
+    scope: string;
     resource: string | null;
     dpopJkt: string | null;
 }): Promise<string> {
@@ -39,6 +41,7 @@ export async function generateAndStoreAuthCode({
             userId,
             redirectUri,
             codeChallenge,
+            scope,
             resource,
             dpopJkt,
             expiresAt: new Date(Date.now() + env.OAUTH_AUTHORIZATION_CODE_TTL_SECONDS * 1000),
@@ -64,7 +67,7 @@ export async function verifyAndExchangeCode({
     codeVerifier: string;
     resource: string | null;
     dpopJkt: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number; dpopJkt: string | null } | { error: string; errorDescription: string }> {
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string; dpopJkt: string | null } | { error: string; errorDescription: string }> {
     const codeHash = hashSecret(rawCode);
 
     const authCode = await __unsafePrisma.oAuthAuthorizationCode.findUnique({
@@ -120,6 +123,7 @@ export async function verifyAndExchangeCode({
 
     const { token, hash } = generateOAuthToken();
     const { token: refreshToken, hash: refreshHash } = generateOAuthRefreshToken();
+    const scope = authCode.scope;
     const tokenDpopJkt = authCode.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([
@@ -128,6 +132,7 @@ export async function verifyAndExchangeCode({
                 hash,
                 clientId,
                 userId: authCode.userId,
+                scope,
                 resource: authCode.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
@@ -138,6 +143,7 @@ export async function verifyAndExchangeCode({
                 hash: refreshHash,
                 clientId,
                 userId: authCode.userId,
+                scope,
                 resource: authCode.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
@@ -145,7 +151,7 @@ export async function verifyAndExchangeCode({
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, dpopJkt: tokenDpopJkt };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope, dpopJkt: tokenDpopJkt };
 }
 
 // Verifies a refresh token, rotates it, and issues a new access token + refresh token.
@@ -161,7 +167,7 @@ export async function verifyAndRotateRefreshToken({
     clientId: string;
     resource: string | null;
     dpopJkt: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number; dpopJkt: string | null } | { error: string; errorDescription: string }> {
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string; dpopJkt: string | null } | { error: string; errorDescription: string }> {
     if (!rawRefreshToken.startsWith(OAUTH_REFRESH_TOKEN_PREFIX)) {
         return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid.' };
     }
@@ -193,6 +199,7 @@ export async function verifyAndRotateRefreshToken({
 
     const { token, hash: newTokenHash } = generateOAuthToken();
     const { token: refreshToken, hash: newRefreshHash } = generateOAuthRefreshToken();
+    const scope = existing.scope;
     const tokenDpopJkt = existing.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([
@@ -202,6 +209,7 @@ export async function verifyAndRotateRefreshToken({
                 hash: newTokenHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
@@ -212,6 +220,7 @@ export async function verifyAndRotateRefreshToken({
                 hash: newRefreshHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
                 dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
@@ -219,7 +228,7 @@ export async function verifyAndRotateRefreshToken({
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, dpopJkt: tokenDpopJkt };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope, dpopJkt: tokenDpopJkt };
 }
 
 // Revokes an access token or refresh token by hashing it and deleting the DB record.
