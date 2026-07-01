@@ -1043,6 +1043,10 @@ describe("listSharedAgentSkillManagement", () => {
             autoEnrolled: false,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdBy: { email: "author@example.com" },
         }]);
 
         const result = await listSharedAgentSkillManagement();
@@ -1076,6 +1080,8 @@ describe("listSharedAgentSkillManagement", () => {
             description: "Review risky changes.",
             enabled: true,
             autoEnrolled: false,
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+            createdByEmail: "author@example.com",
             createdAt: "2026-01-01T00:00:00.000Z",
             updatedAt: "2026-01-02T00:00:00.000Z",
         }]);
