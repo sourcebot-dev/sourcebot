@@ -59,6 +59,13 @@ const nextConfig = {
             {
                 source: "/api/mcp",
                 destination: "/api/ee/mcp",
+            },
+            // The SCIM 2.0 server lives under /api/ee/scim/v2 (EE-licensed route
+            // tree) but is exposed at the clean /scim/v2 path that IdPs (Okta,
+            // Entra) are configured to send provisioning requests to.
+            {
+                source: "/scim/v2/:path*",
+                destination: "/api/ee/scim/v2/:path*",
             }
         ];
     },

@@ -1,6 +1,6 @@
 import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
-import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
 import { insufficientOAuthScope, notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
@@ -9,6 +9,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { activatePendingMembership } from "@/features/membership/membership.service";
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
@@ -91,7 +92,10 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
         },
     }) : null;
 
-    const role = membership?.role;
+    // A suspended membership is treated as if the user is not a member: they get
+    // no role and are denied by `withAuth`. This is also the only gate for
+    // API-key auth, which bypasses the JWT `sessionVersion` logout check.
+    const role = (membership && membership.suspendedAt == null) ? membership.role : undefined;
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
@@ -119,6 +123,23 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
         updateUserLastActiveAt(user);
     }
 
+    // If the user is currently in a "pending"
+    // state, then we need to activate them.
+    if (
+        membership &&
+        membership.suspendedAt === null &&
+        membership.lastActiveAt === null
+    ) {
+        const result = await activatePendingMembership(membership);
+        if (isServiceError(result)) {
+            return result;
+        }
+    }
+
+    if (membership) {
+        updateMembershipLastActiveAt(membership);
+    }
+
     if (user && role) {
         return { user, org, role, prisma };
     }
@@ -141,6 +162,32 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
             data: { lastActiveAt: new Date(now) },
         })
         .catch(() => { /* updaing the lastActiveAt is best effort. */ });
+};
+
+const updateMembershipLastActiveAt = (membership: UserToOrg) => {
+    if (membership.suspendedAt != null) {
+        return;
+    }
+
+    const now = Date.now();
+    if (
+        membership.lastActiveAt &&
+        (now - membership.lastActiveAt.getTime()) < LAST_ACTIVE_AT_THRESHOLD_MS
+    ) {
+        return;
+    }
+
+    // Fired without a await to avoid blocking; this is only a freshness refresh
+    // for already-active memberships, not seat admission.
+    void __unsafePrisma.userToOrg
+        .updateMany({
+            where: {
+                orgId: membership.orgId,
+                userId: membership.userId,
+            },
+            data: { lastActiveAt: new Date(now) },
+        })
+        .catch(() => { /* updating the lastActiveAt is best effort. */ });
 };
 
 type AuthSource = 'session' | 'oauth' | 'api_key';
