@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Passed Zoekt index parameters via argv to preserve revision names with punctuation. [#1376](https://github.com/sourcebot-dev/sourcebot/pull/1376)
 - [EE] Validated OAuth bearer token scopes before allowing access to the Sourcebot MCP resource server. [#1396](https://github.com/sourcebot-dev/sourcebot/pull/1396)
 - Added HTTP security headers to all web app responses. [#1407](https://github.com/sourcebot-dev/sourcebot/pull/1407)
-- Dropped `displayName` from `getLanguageModelKey` so the MCP `ask_codebase` tool matches models by `provider` + `model` only, fixing `400 Language model not configured` when an explicit model is selected. [#1137](https://github.com/sourcebot-dev/sourcebot/issues/1137)
+- Dropped `displayName` from `getLanguageModelKey` so the MCP `ask_codebase` tool matches models by `provider` + `model` only, fixing `400 Language model not configured` when an explicit model is selected. [#1408](https://github.com/sourcebot-dev/sourcebot/pull/1408)
 
 ## [5.0.4] - 2026-06-18
 
