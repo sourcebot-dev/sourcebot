@@ -172,6 +172,8 @@ const options = {
         // Zoekt
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
 
+        WORKER_API_URL: z.string().url().default("http://localhost:3060"),
+
         // Auth
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
