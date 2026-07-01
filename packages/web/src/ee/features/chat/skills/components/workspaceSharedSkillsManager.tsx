@@ -243,11 +243,7 @@ export function WorkspaceSharedSkillsManager({
                                                     size="icon"
                                                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                                     disabled={isDeleting || isFlagPending}
-                                                    onClick={() => {
-                                                        if (flagPendingSkills[skill.id] === undefined) {
-                                                            setSkillToDelete(skill);
-                                                        }
-                                                    }}
+                                                    onClick={() => setSkillToDelete(skill)}
                                                     aria-label={`Delete ${skill.name}`}
                                                 >
                                                     {isDeleting ? (

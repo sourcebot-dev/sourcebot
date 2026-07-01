@@ -7,7 +7,6 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -84,30 +83,6 @@ export function WorkspaceSkillsEmptyState({
                 </p>
             </CardContent>
         </Card>
-    );
-}
-
-export function OrgSkillFlagToggle({
-    label,
-    checked,
-    disabled,
-    onCheckedChange,
-}: {
-    label: string;
-    checked: boolean;
-    disabled: boolean;
-    onCheckedChange: (checked: boolean) => void;
-}) {
-    return (
-        <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span>{label}</span>
-            <Switch
-                checked={checked}
-                disabled={disabled}
-                onCheckedChange={onCheckedChange}
-                className="scale-75"
-            />
-        </label>
     );
 }
 
