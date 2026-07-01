@@ -17,7 +17,6 @@ export const MOCK_ORG: Org = {
     updatedAt: new Date(),
     isOnboarded: true,
     imageUrl: null,
-    metadata: null,
     memberApprovalRequired: false,
     isCredentialsLoginEnabled: true,
     isEmailCodeLoginEnabled: false,

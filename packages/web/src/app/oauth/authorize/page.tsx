@@ -4,6 +4,7 @@ import { ConsentScreen } from './components/consentScreen';
 import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
+import { resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
 import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,7 @@ interface AuthorizePageProps {
         code_challenge_method?: string;
         response_type?: string;
         state?: string;
+        scope?: string;
         resource?: string | string[];
         dpop_jkt?: string | string[];
     }>;
@@ -27,7 +29,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     }
 
     const params = await searchParams;
-    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, resource: _resource, dpop_jkt: _dpopJkt } = params;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, scope, resource: _resource, dpop_jkt: _dpopJkt } = params;
 
     // RFC 8707 allows multiple resource parameters to indicate a token intended for multiple resources.
     // Sourcebot only supports a single resource (the MCP endpoint), so we take the first value.
@@ -48,6 +50,11 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
 
     if (code_challenge_method && code_challenge_method !== 'S256') {
         return <ErrorPage message={`Unsupported code_challenge_method: ${code_challenge_method}. Only "S256" is supported.`} />;
+    }
+
+    const grantedScopes = resolveGrantedOAuthScopes(scope);
+    if ('error' in grantedScopes) {
+        return <ErrorPage message={grantedScopes.errorDescription} />;
     }
 
     if (dpopJkt && !isValidDpopJkt(dpopJkt)) {
@@ -80,6 +87,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
                 clientLogoUri={client.logoUri}
                 redirectUri={redirect_uri!}
                 codeChallenge={code_challenge!}
+                requestedScope={scope}
                 resource={resource ?? null}
                 dpopJkt={dpopJkt ?? null}
                 state={state}

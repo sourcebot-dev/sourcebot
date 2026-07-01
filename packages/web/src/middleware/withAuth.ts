@@ -3,12 +3,13 @@ import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_P
 import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
-import { notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
+import { insufficientOAuthScope, notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
 import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
 
@@ -30,9 +31,12 @@ type OptionalAuthContext =
         prisma: PrismaClient;
     };
 
+type AuthOptions = {
+    requiredOAuthScopes?: readonly string[];
+};
 
-export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, options: AuthOptions = {}) => {
+    const authContext = await getAuthContext(options);
 
     if (isServiceError(authContext)) {
         return authContext;
@@ -47,8 +51,8 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
     return fn({ user, org, role, prisma });
 };
 
-export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, options: AuthOptions = {}) => {
+    const authContext = await getAuthContext(options);
     if (isServiceError(authContext)) {
         return authContext;
     }
@@ -63,7 +67,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
     return fn(authContext);
 };
 
-export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
+export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {
     const authResult = await getAuthenticatedUser();
 
     const org = await __unsafePrisma.org.findUnique({
@@ -101,6 +105,14 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         } satisfies ServiceError;
     }
 
+    if (
+        authResult?.source === 'oauth' &&
+        options.requiredOAuthScopes?.length &&
+        !hasRequiredOAuthScopes(authResult.oauthScopes ?? [], options.requiredOAuthScopes)
+    ) {
+        return insufficientOAuthScope(options.requiredOAuthScopes);
+    }
+
     const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
 
     if (user) {
@@ -133,7 +145,7 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
 
 type AuthSource = 'session' | 'oauth' | 'api_key';
 
-export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
+export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource, oauthScopes?: string[] } | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -198,7 +210,11 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return { user: oauthToken.user, source: 'oauth' };
+                return {
+                    user: oauthToken.user,
+                    source: 'oauth',
+                    oauthScopes: parseOAuthScopeString(oauthToken.scope)
+                };
             }
         }
 

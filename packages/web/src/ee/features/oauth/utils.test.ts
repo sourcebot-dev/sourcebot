@@ -1,5 +1,46 @@
 import { expect, test, describe } from 'vitest';
-import { UNPERMITTED_SCHEMES, isPermittedRedirectUrl } from './constants';
+import {
+    UNPERMITTED_SCHEMES,
+} from './constants';
+import {
+    hasRequiredOAuthScopes,
+    isPermittedRedirectUrl,
+    parseOAuthScopeString,
+    resolveGrantedOAuthScopes,
+} from './utils';
+
+describe('OAuth scopes', () => {
+    test('parses and deduplicates space-delimited scope strings', () => {
+        expect(parseOAuthScopeString(' read  extra read ')).toEqual([
+            'read',
+            'extra',
+        ]);
+    });
+
+    test('defaults authorization requests to no scopes', () => {
+        expect(resolveGrantedOAuthScopes(undefined)).toEqual({
+            scopes: [],
+        });
+    });
+
+    test('accepts an empty requested scope string', () => {
+        expect(resolveGrantedOAuthScopes('')).toEqual({
+            scopes: [],
+        });
+    });
+
+    test('rejects unsupported scopes', () => {
+        expect(resolveGrantedOAuthScopes('repo')).toMatchObject({
+            error: 'invalid_scope',
+            errorDescription: 'Unsupported OAuth scope: repo.',
+        });
+    });
+
+    test('checks required scopes against token scopes', () => {
+        expect(hasRequiredOAuthScopes(['read', 'other'], ['read'])).toBe(true);
+        expect(hasRequiredOAuthScopes(['other'], ['read'])).toBe(false);
+    });
+});
 
 describe('UNPERMITTED_SCHEMES', () => {
     // Dangerous schemes that must be blocked
