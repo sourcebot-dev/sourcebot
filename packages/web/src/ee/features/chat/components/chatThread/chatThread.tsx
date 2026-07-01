@@ -76,7 +76,7 @@ export const ChatThread = ({
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const hasSubmittedInputMessage = useRef(false);
     const chatBoxRef = useRef<ChatBoxHandle>(null);
-    const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: false });
+    const { scrollRef, contentRef, scrollToBottom, isAtBottom, stopScroll } = useStickToBottom({ initial: false });
     const { toast } = useToast();
     const router = useRouter();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
@@ -435,6 +435,7 @@ export const ChatThread = ({
                                                     isNetworkActive={isPairNetworkActive}
                                                     isAwaitingToolApproval={isPairAwaitingToolApproval}
                                                     sources={sources}
+                                                    onStickToBottomRelease={stopScroll}
                                                 />
                                                 {index !== messagePairs.length - 1 && (
                                                     <Separator className="my-12" />

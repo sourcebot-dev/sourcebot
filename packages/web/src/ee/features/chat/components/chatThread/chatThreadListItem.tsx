@@ -29,6 +29,9 @@ interface ChatThreadListItemProps {
     sources: Source[];
     chatId: string;
     index: number;
+    // Releases the chat's stick-to-bottom lock. Called when a citation is
+    // selected so the citation-reveal scroll doesn't fight the auto-scroll.
+    onStickToBottomRelease?: () => void;
 }
 
 const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
@@ -40,6 +43,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     sources,
     chatId,
     index,
+    onStickToBottomRelease,
 }, ref) => {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
@@ -55,8 +59,16 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const hoveredReference = useMemo(() => (hovered?.kind === 'reference' ? hovered.reference : undefined), [hovered]);
 
     const setSelectedReference = useCallback((reference?: Reference) => {
+        // Selecting a citation scrolls it into view (see the effect below). If the
+        // chat is stuck to the bottom, that scroll fights the stick-to-bottom
+        // auto-scroll and the view jitters. Release the lock on selection so the
+        // reveal scroll can settle. This mirrors the state entered when the user
+        // scrolls up manually.
+        if (reference) {
+            onStickToBottomRelease?.();
+        }
         setSelected(reference ? { kind: 'reference', reference } : undefined);
-    }, []);
+    }, [onStickToBottomRelease]);
     const setHoveredReference = useCallback((reference?: Reference) => {
         setHovered(reference ? { kind: 'reference', reference } : undefined);
     }, []);
