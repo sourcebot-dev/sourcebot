@@ -62,6 +62,46 @@ const nextConfig = {
             }
         ];
     },
+    // Apply HTTP security headers to all responses to align with security
+    // hardening best practices (defends against clickjacking, MIME-sniffing,
+    // TLS downgrade, and referrer leakage). We intentionally avoid a strict
+    // Content-Security-Policy `script-src` here since Next.js, PostHog, and
+    // Sentry rely on inline scripts; instead CSP is scoped to `frame-ancestors`
+    // to prevent framing, mirroring the X-Frame-Options directive below.
+    async headers() {
+        return [
+            {
+                source: "/:path*",
+                headers: [
+                    {
+                        key: "Strict-Transport-Security",
+                        value: "max-age=63072000; includeSubDomains",
+                    },
+                    {
+                        key: "X-Content-Type-Options",
+                        value: "nosniff",
+                    },
+                    {
+                        key: "X-Frame-Options",
+                        value: "SAMEORIGIN",
+                    },
+                    {
+                        key: "Referrer-Policy",
+                        value: "strict-origin-when-cross-origin",
+                    },
+                    {
+                        key: "Permissions-Policy",
+                        value: "camera=(), microphone=(), geolocation=()",
+                    },
+                    {
+                        key: "Content-Security-Policy",
+                        value: "frame-ancestors 'self'",
+                    },
+                ],
+            },
+        ];
+    },
+
     // This is required to support PostHog trailing slash API requests
     skipTrailingSlashRedirect: true,
 
