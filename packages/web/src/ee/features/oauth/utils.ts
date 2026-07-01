@@ -1,5 +1,4 @@
 import {
-    DEFAULT_SOURCEBOT_OAUTH_SCOPES,
     SOURCEBOT_OAUTH_SCOPES,
 } from './constants';
 
@@ -45,9 +44,7 @@ export function resolveGrantedOAuthScopes(requestedScope: string | null | undefi
     }
 
     return {
-        scopes: requestedScopes.length > 0
-            ? requestedScopes
-            : [...DEFAULT_SOURCEBOT_OAUTH_SCOPES],
+        scopes: requestedScopes,
     };
 }
 

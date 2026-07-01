@@ -1,6 +1,5 @@
 import { expect, test, describe } from 'vitest';
 import {
-    SOURCEBOT_MCP_OAUTH_SCOPE,
     UNPERMITTED_SCHEMES,
 } from './constants';
 import {
@@ -12,21 +11,21 @@ import {
 
 describe('OAuth scopes', () => {
     test('parses and deduplicates space-delimited scope strings', () => {
-        expect(parseOAuthScopeString(` ${SOURCEBOT_MCP_OAUTH_SCOPE}  extra ${SOURCEBOT_MCP_OAUTH_SCOPE} `)).toEqual([
-            SOURCEBOT_MCP_OAUTH_SCOPE,
+        expect(parseOAuthScopeString(' read  extra read ')).toEqual([
+            'read',
             'extra',
         ]);
     });
 
-    test('defaults authorization requests to the Sourcebot MCP scope', () => {
+    test('defaults authorization requests to no scopes', () => {
         expect(resolveGrantedOAuthScopes(undefined)).toEqual({
-            scopes: [SOURCEBOT_MCP_OAUTH_SCOPE],
+            scopes: [],
         });
     });
 
-    test('accepts the supported Sourcebot MCP scope', () => {
-        expect(resolveGrantedOAuthScopes(SOURCEBOT_MCP_OAUTH_SCOPE)).toEqual({
-            scopes: [SOURCEBOT_MCP_OAUTH_SCOPE],
+    test('accepts an empty requested scope string', () => {
+        expect(resolveGrantedOAuthScopes('')).toEqual({
+            scopes: [],
         });
     });
 
@@ -38,8 +37,8 @@ describe('OAuth scopes', () => {
     });
 
     test('checks required scopes against token scopes', () => {
-        expect(hasRequiredOAuthScopes([SOURCEBOT_MCP_OAUTH_SCOPE, 'other'], [SOURCEBOT_MCP_OAUTH_SCOPE])).toBe(true);
-        expect(hasRequiredOAuthScopes(['other'], [SOURCEBOT_MCP_OAUTH_SCOPE])).toBe(false);
+        expect(hasRequiredOAuthScopes(['read', 'other'], ['read'])).toBe(true);
+        expect(hasRequiredOAuthScopes(['other'], ['read'])).toBe(false);
     });
 });
 

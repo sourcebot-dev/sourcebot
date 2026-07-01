@@ -12,7 +12,7 @@ import { sew } from "@/middleware/sew";
 import { apiHandler } from '@/lib/apiHandler';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
-import { SOURCEBOT_MCP_OAUTH_SCOPE } from '@/ee/features/oauth/constants';
+import { SOURCEBOT_OAUTH_SCOPES } from '@/ee/features/oauth/constants';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
@@ -36,8 +36,11 @@ function mcpOAuthChallenge(scheme: 'Bearer' | 'DPoP', error: ServiceError): stri
     const params = [
         'realm="Sourcebot"',
         `resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`,
-        `scope="${SOURCEBOT_MCP_OAUTH_SCOPE}"`,
     ];
+    const scope = SOURCEBOT_OAUTH_SCOPES.join(' ');
+    if (scope) {
+        params.push(`scope="${scope}"`);
+    }
 
     if (error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) {
         params.push('error="insufficient_scope"');
@@ -112,7 +115,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
-        }, { requiredOAuthScopes: ['mcp'] })
+        })
     );
 
     if (isServiceError(response)) {
@@ -156,7 +159,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
             }
 
             return session.transport.handleRequest(request);
-        }, { requiredOAuthScopes: ['mcp'] })
+        })
     );
 
     if (isServiceError(result)) {

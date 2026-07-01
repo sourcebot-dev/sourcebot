@@ -1,7 +1,6 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { MOCK_REFRESH_TOKEN, MOCK_USER_WITH_ACCOUNTS, prisma } from '@/__mocks__/prisma';
 import { generateAndStoreAuthCode, verifyAndExchangeCode, verifyAndRotateRefreshToken, revokeToken } from './server';
-import { SOURCEBOT_MCP_OAUTH_SCOPE } from './constants';
 
 vi.mock('@/prisma', async () => {
     const actual = await vi.importActual<typeof import('@/__mocks__/prisma')>('@/__mocks__/prisma');
@@ -24,6 +23,8 @@ vi.mock('@sourcebot/shared', () => ({
 }));
 
 const VALID_CODE_HASH = 'validcode';
+const EMPTY_OAUTH_SCOPE = '';
+const TEST_OAUTH_SCOPE = 'read other';
 const VALID_AUTH_CODE = {
     codeHash: VALID_CODE_HASH,
     clientId: 'test-client-id',
@@ -31,7 +32,7 @@ const VALID_AUTH_CODE = {
     redirectUri: 'http://localhost:9999/callback',
     // SHA-256('myverifier') base64url
     codeChallenge: 'Eb223qLjTQNFkRjCVsrDbsBk5ycPKwHdbHNRX99tTeQ',
-    scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+    scope: EMPTY_OAUTH_SCOPE,
     resource: null,
     dpopJkt: null,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -58,7 +59,7 @@ describe('generateAndStoreAuthCode', () => {
             userId: MOCK_USER_WITH_ACCOUNTS.id,
             redirectUri: 'http://localhost:9999/callback',
             codeChallenge: 'challenge',
-            scope: 'mcp other',
+            scope: TEST_OAUTH_SCOPE,
             resource: 'https://sourcebot.test/api/mcp',
             dpopJkt: 'dpop-thumbprint',
         });
@@ -70,7 +71,7 @@ describe('generateAndStoreAuthCode', () => {
                 userId: MOCK_USER_WITH_ACCOUNTS.id,
                 redirectUri: 'http://localhost:9999/callback',
                 codeChallenge: 'challenge',
-                scope: 'mcp other',
+                scope: TEST_OAUTH_SCOPE,
                 resource: 'https://sourcebot.test/api/mcp',
                 dpopJkt: 'dpop-thumbprint',
             }),
@@ -102,20 +103,20 @@ describe('verifyAndExchangeCode', () => {
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
-            scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+            scope: EMPTY_OAUTH_SCOPE,
         });
         expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
         expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
     });
 
     test('uses the scope bound to the authorization code when issuing tokens', async () => {
         prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue({
             ...VALID_AUTH_CODE,
-            scope: 'mcp other',
+            scope: TEST_OAUTH_SCOPE,
         });
         prisma.oAuthAuthorizationCode.delete.mockResolvedValue(VALID_AUTH_CODE);
         prisma.oAuthToken.create.mockResolvedValue({} as never);
@@ -130,12 +131,12 @@ describe('verifyAndExchangeCode', () => {
             dpopJkt: null,
         });
 
-        expect(result).toMatchObject({ scope: 'mcp other' });
+        expect(result).toMatchObject({ scope: TEST_OAUTH_SCOPE });
         expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: 'mcp other' }),
+            data: expect.objectContaining({ scope: TEST_OAUTH_SCOPE }),
         });
         expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: 'mcp other' }),
+            data: expect.objectContaining({ scope: TEST_OAUTH_SCOPE }),
         });
     });
 
@@ -337,20 +338,20 @@ describe('verifyAndRotateRefreshToken', () => {
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
-            scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+            scope: EMPTY_OAUTH_SCOPE,
         });
         expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
         expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
     });
 
-    test('defaults legacy empty-scope refresh tokens to the MCP scope during rotation', async () => {
+    test('preserves empty-scope refresh tokens during rotation', async () => {
         prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
             ...MOCK_REFRESH_TOKEN,
-            scope: '',
+            scope: EMPTY_OAUTH_SCOPE,
         });
         prisma.oAuthRefreshToken.delete.mockResolvedValue(MOCK_REFRESH_TOKEN);
         prisma.oAuthToken.create.mockResolvedValue({} as never);
@@ -363,12 +364,12 @@ describe('verifyAndRotateRefreshToken', () => {
             dpopJkt: null,
         });
 
-        expect(result).toMatchObject({ scope: SOURCEBOT_MCP_OAUTH_SCOPE });
+        expect(result).toMatchObject({ scope: EMPTY_OAUTH_SCOPE });
         expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
         expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
-            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
     });
 

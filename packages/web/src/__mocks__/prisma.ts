@@ -52,7 +52,7 @@ export const MOCK_OAUTH_TOKEN: OAuthToken & { user: User & { accounts: Account[]
     hash: 'oauthtoken',
     clientId: 'test-client-id',
     userId: MOCK_USER_WITH_ACCOUNTS.id,
-    scope: 'mcp',
+    scope: '',
     resource: null,
     dpopJkt: null,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60), // 1 hour from now
@@ -65,7 +65,7 @@ export const MOCK_REFRESH_TOKEN: OAuthRefreshToken = {
     hash: 'refreshtoken',
     clientId: 'test-client-id',
     userId: MOCK_USER_WITH_ACCOUNTS.id,
-    scope: 'mcp',
+    scope: '',
     resource: null,
     dpopJkt: null,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 90 days from now

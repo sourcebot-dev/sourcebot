@@ -8,8 +8,9 @@ import { OrgRole } from '@sourcebot/db';
 import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { userScopedPrismaClientExtension } from '@/prisma';
-import { SOURCEBOT_MCP_OAUTH_SCOPE } from '@/ee/features/oauth/constants';
 import { runWithRequestContext } from '@/lib/requestContext';
+
+const TEST_OAUTH_SCOPE = 'read';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -242,11 +243,11 @@ describe('getAuthenticatedUser', () => {
         mocks.hasEntitlement.mockReturnValue(true);
         prisma.oAuthToken.findUnique.mockResolvedValue({
             ...MOCK_OAUTH_TOKEN,
-            scope: `${SOURCEBOT_MCP_OAUTH_SCOPE} other ${SOURCEBOT_MCP_OAUTH_SCOPE}`,
+            scope: `${TEST_OAUTH_SCOPE} other ${TEST_OAUTH_SCOPE}`,
         });
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
         const result = await getAuthenticatedUser();
-        expect(result?.oauthScopes).toEqual([SOURCEBOT_MCP_OAUTH_SCOPE, 'other']);
+        expect(result?.oauthScopes).toEqual([TEST_OAUTH_SCOPE, 'other']);
     });
 
     test('should update lastUsedAt when an OAuth Bearer token is used', async () => {
@@ -550,7 +551,7 @@ describe('getAuthContext', () => {
             const oauthToken = {
                 ...MOCK_OAUTH_TOKEN,
                 user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
-                scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+                scope: TEST_OAUTH_SCOPE,
             };
             prisma.oAuthToken.findUnique.mockResolvedValue(oauthToken);
             prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
@@ -562,7 +563,7 @@ describe('getAuthContext', () => {
             });
             setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
 
-            const authContext = await getAuthContext({ requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] });
+            const authContext = await getAuthContext({ requiredOAuthScopes: [TEST_OAUTH_SCOPE] });
 
             expect(authContext).toMatchObject({
                 user: { id: userId },
@@ -589,12 +590,12 @@ describe('getAuthContext', () => {
             });
             setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
 
-            const authContext = await getAuthContext({ requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] });
+            const authContext = await getAuthContext({ requiredOAuthScopes: [TEST_OAUTH_SCOPE] });
 
             expect(authContext).toStrictEqual({
                 statusCode: StatusCodes.FORBIDDEN,
                 errorCode: ErrorCode.OAUTH_INSUFFICIENT_SCOPE,
-                message: `OAuth access token is missing required scope: ${SOURCEBOT_MCP_OAUTH_SCOPE}`,
+                message: `OAuth access token is missing required scope: ${TEST_OAUTH_SCOPE}`,
             });
         });
 
@@ -611,7 +612,7 @@ describe('getAuthContext', () => {
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
             setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
-            const authContext = await getAuthContext({ requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] });
+            const authContext = await getAuthContext({ requiredOAuthScopes: [TEST_OAUTH_SCOPE] });
 
             expect(authContext).toMatchObject({
                 user: { id: userId },

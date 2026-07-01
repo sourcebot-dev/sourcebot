@@ -12,7 +12,6 @@ import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
-import { SourcebotOAuthScope } from "@/ee/features/oauth/constants";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -33,7 +32,7 @@ type OptionalAuthContext =
     };
 
 type AuthOptions = {
-    requiredOAuthScopes?: readonly SourcebotOAuthScope[];
+    requiredOAuthScopes?: readonly string[];
 };
 
 export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, options: AuthOptions = {}) => {
@@ -211,7 +210,11 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return { user: oauthToken.user, source: 'oauth', oauthScopes: parseOAuthScopeString(oauthToken.scope) };
+                return {
+                    user: oauthToken.user,
+                    source: 'oauth',
+                    oauthScopes: parseOAuthScopeString(oauthToken.scope)
+                };
             }
         }
 
