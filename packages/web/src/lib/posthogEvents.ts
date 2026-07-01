@@ -205,6 +205,18 @@ export type PosthogEventMap = {
          */
         selectedRepos?: string[],
     },
+    chat_attachment_uploaded: {
+        source: string,
+        mediaType: string,
+        sizeBytes: number,
+    },
+    chat_attachment_degraded: {
+        chatId: string,
+        source: string,
+        droppedImageCount: number,
+        modelProvider: string,
+        model: string,
+    },
     ask_mcp_turn_completed: {
         chatId: string,
         source?: SourcebotWebClientSource,

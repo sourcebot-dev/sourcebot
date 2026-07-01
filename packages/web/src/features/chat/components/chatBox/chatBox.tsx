@@ -3,13 +3,16 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
+import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
+import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
+import { AttachmentButton } from "./attachmentButton";
+import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
 import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
-import { Fragment, KeyboardEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, Fragment, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
@@ -23,13 +26,26 @@ import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
-import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
 
+export interface ChatBoxHandle {
+    addFiles: (files: File[]) => void;
+}
+
+// Only inline-text attachments survive the login/upgrade redirect: image blobs
+// require an authenticated, entitled upload, so a redirected sender can't have
+// one, and a stashed blob ref would only fail to commit on re-submit.
+const getRedirectSafeAttachments = (attachments: PendingAttachment[]): AttachmentData[] => {
+    return attachments
+        .map(toAttachmentData)
+        .filter((attachment): attachment is AttachmentData => attachment?.kind === 'text');
+}
+
 interface ChatBoxProps {
-    onSubmit: (children: Descendant[], editor: CustomEditor) => void;
+    onSubmit: (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => void;
     onStop?: () => void;
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
@@ -41,6 +57,10 @@ interface ChatBoxProps {
     searchContexts: SearchContextQuery[];
     isLoginWallEnabled: boolean;
     isAuthenticated: boolean;
+    // Authoritative per-image byte cap from the server
+    // (SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES), threaded down for early
+    // client-side rejection. Defaults to the constant when not provided.
+    maxImageBytes?: number;
 }
 
 const ChatBoxComponent = ({
@@ -56,7 +76,8 @@ const ChatBoxComponent = ({
     isAuthenticated,
     selectedSearchScopes,
     searchContexts,
-}: ChatBoxProps) => {
+    maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
+}: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
     const editor = useSlate();
@@ -82,10 +103,162 @@ const ChatBoxComponent = ({
     });
     const { selectedLanguageModel } = useSelectedLanguageModel();
     const { toast } = useToast();
+    const isMac = useIsMac();
     const isAskEnabled = useHasEntitlement('ask');
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
     const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState<boolean>(false);
+    const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+    const [submittedAttachments, setSubmittedAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
+
+    // Whether the selected model can accept image input (from #1372). Image
+    // attachments are gated on this; text attachments are always allowed.
+    const supportsImages = useMemo(
+        () => selectedLanguageModel?.inputModalities?.includes('image') ?? false,
+        [selectedLanguageModel],
+    );
+
+    // Uploads an image attachment's bytes and reflects the outcome back into the
+    // tray (status + server attachment id).
+    const uploadAndTrackImage = useCallback(async (item: PendingImageAttachment) => {
+        try {
+            const result = await uploadImageAttachment(item.file);
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? {
+                        ...attachment,
+                        status: 'uploaded',
+                        attachmentId: result.attachmentId,
+                        mediaType: result.mediaType,
+                        sizeBytes: result.sizeBytes,
+                    }
+                    : attachment));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'upload failed.';
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? { ...attachment, status: 'error', error: message }
+                    : attachment));
+            toast({
+                description: `⚠️ ${item.filename}: ${message}`,
+                variant: "destructive",
+            });
+        }
+    }, [toast]);
+
+    // Set when the user triggers a paste with the OS raw-paste chord
+    // (⌘⇧V / Ctrl+Shift+V). The subsequent `paste` event reads (and clears)
+    // this so the large-paste auto-conversion is skipped for that one paste.
+    const rawPasteRequestedRef = useRef<boolean>(false);
+
+    // Warning shown when prompt text + `nextAttachments` would exceed the per-turn
+    // budget, so an over-budget add surfaces immediately instead of just disabling submit.
+    const getOverBudgetWarning = useCallback((nextAttachments: PendingAttachment[]): string | null => {
+        const totalBytes = getSubmittedTextBytes(slateContentToString(editor.children), nextAttachments);
+        if (totalBytes <= ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+            return null;
+        }
+        return `Attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit. Remove a file or shorten your message to send.`;
+    }, [editor]);
+
+    const onAddPastedText = useCallback((text: string) => {
+        const attachment = createPastedTextAttachment(text, attachments);
+        setAttachments((prev) => [...prev, attachment]);
+
+        const overBudgetWarning = getOverBudgetWarning([...attachments, attachment]);
+        if (overBudgetWarning) {
+            toast({
+                description: `⚠️ ${overBudgetWarning}`,
+                variant: "destructive",
+            });
+        } else {
+            toast({
+                title: "Large paste added as an attachment",
+                duration: 5 * 1000,
+                className: "w-fit ml-auto",
+                description: `Use ${isMac ? "⌘+⇧+V" : "Ctrl+Shift+V"} to paste inline instead`,
+            });
+        }
+
+        ReactEditor.focus(editor);
+    }, [attachments, editor, toast, isMac, getOverBudgetWarning]);
+
+    const onAddFiles = useCallback(async (files: File[]) => {
+        if (files.length === 0) {
+            return;
+        }
+
+        const { attachments: added, errors } = await readFilesAsAttachments(
+            files,
+            {
+                allowImages: supportsImages,
+                existingImageCount: attachments.filter((attachment) => attachment.kind === 'image').length,
+                maxImageBytes,
+            },
+        );
+        if (added.length > 0) {
+            setAttachments((prev) => [...prev, ...added]);
+        }
+
+        const overBudgetWarning = added.length > 0 ? getOverBudgetWarning([...attachments, ...added]) : null;
+        const messages = [...errors, ...(overBudgetWarning ? [overBudgetWarning] : [])];
+        if (messages.length > 0) {
+            toast({
+                description: `⚠️ ${messages.join(' ')}`,
+                variant: "destructive",
+            });
+        }
+
+        // Upload image attachments immediately (upload-on-select); their refs
+        // are included at submit once the upload completes.
+        for (const item of added) {
+            if (item.kind === 'image') {
+                void uploadAndTrackImage(item);
+            }
+        }
+
+        // Return focus to the prompt input so the user can keep typing.
+        ReactEditor.focus(editor);
+    }, [attachments, toast, editor, supportsImages, uploadAndTrackImage, getOverBudgetWarning, maxImageBytes]);
+
+    const removeAttachment = useCallback((id: string) => {
+        setAttachments((prev) => {
+            const target = prev.find((attachment) => attachment.id === id);
+            if (target?.kind === 'image') {
+                URL.revokeObjectURL(target.previewUrl);
+            }
+            return prev.filter((attachment) => attachment.id !== id);
+        });
+    }, []);
+
+    // Track the set of live image preview object URLs (pending or
+    // just-submitted) so they can be revoked when the chat box unmounts,
+    // preventing leaks across SPA navigations.
+    const liveObjectUrlsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const urls = new Set<string>();
+        for (const attachment of [...attachments, ...submittedAttachments]) {
+            if (attachment.kind === 'image') {
+                urls.add(attachment.previewUrl);
+            }
+        }
+        liveObjectUrlsRef.current = urls;
+    }, [attachments, submittedAttachments]);
+    useEffect(() => {
+        return () => {
+            for (const url of liveObjectUrlsRef.current) {
+                URL.revokeObjectURL(url);
+            }
+        };
+    }, []);
+
+    // Allow an ancestor pane-level drop zone to forward dropped files into this
+    // chat box (which owns attachment state). See `ChatPaneDropzone`.
+    useImperativeHandle(ref, () => ({
+        addFiles: (files: File[]) => {
+            void onAddFiles(files);
+        },
+    }), [onAddFiles]);
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {
@@ -118,15 +291,46 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected" | "uploading" | "upload-error"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
     } => {
-        if (slateContentToString(editor.children).trim().length === 0) {
+        const text = slateContentToString(editor.children);
+        if (text.trim().length === 0 && attachments.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "empty",
+            }
+        }
+
+        // Single per-turn bound on the submitted inline text (prompt + text
+        // attachments). Image bytes are uploaded as blobs and excluded here.
+        if (getSubmittedTextBytes(text, attachments) > ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "too-large",
+            }
+        }
+
+        // Block submission until in-flight image uploads finish so their refs
+        // are available when the message is built.
+        if (attachments.some((attachment) => attachment.kind === 'image' && attachment.status === 'uploading')) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "uploading",
+            }
+        }
+
+        // A failed or ref-less image is dropped from `attachmentData` at submit,
+        // so block (rather than silently sending without it) until it's removed.
+        if (attachments.some((attachment) =>
+            attachment.kind === 'image' &&
+            (attachment.status === 'error' || !attachment.attachmentId)
+        )) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "upload-error",
             }
         }
 
@@ -157,7 +361,7 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel])
+    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments])
 
     const {
         requiresLogin,
@@ -178,6 +382,25 @@ const ChatBoxComponent = ({
                     description: "⚠️ You must select a language model",
                     variant: "destructive",
                 });
+            } else if (isSubmitDisabledReason === "too-large") {
+                toast({
+                    description: `⚠️ Message and attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit. Remove a file or shorten the text.`,
+                    variant: "destructive",
+                });
+            }
+
+            if (isSubmitDisabledReason === "uploading") {
+                toast({
+                    description: "⚠️ Please wait for image uploads to finish",
+                    variant: "destructive",
+                });
+            }
+
+            if (isSubmitDisabledReason === "upload-error") {
+                toast({
+                    description: "⚠️ Remove failed image uploads before sending",
+                    variant: "destructive",
+                });
             }
 
             return;
@@ -186,7 +409,7 @@ const ChatBoxComponent = ({
         if (requiresLogin) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             captureEvent('wa_askgh_login_wall_prompted', {});
             setIsLoginDialogOpen(true);
@@ -196,13 +419,32 @@ const ChatBoxComponent = ({
         if (requiresUpgrade) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             setIsUpsellDialogOpen(true);
             return;
         }
 
-        _onSubmit(editor.children, editor);
+        const attachmentData = attachments
+            .map(toAttachmentData)
+            .filter((attachment): attachment is AttachmentData => attachment !== undefined);
+
+        // The persisted message renders images from the serving route (the
+        // uploader can read their own bytes pre-commit). The preview object URLs
+        // are kept alive for the `submittedAttachments` redirect tray and revoked
+        // on unmount (see the cleanup effect above).
+        _onSubmit(editor.children, editor, attachmentData);
+        // Replace the prior submitted batch, revoking its preview URLs so they
+        // don't accumulate across repeated sends in a long-lived chat box.
+        setSubmittedAttachments((prev) => {
+            for (const attachment of prev) {
+                if (attachment.kind === 'image') {
+                    URL.revokeObjectURL(attachment.previewUrl);
+                }
+            }
+            return attachments;
+        });
+        setAttachments([]);
     }, [
         isSubmitDisabled,
         requiresLogin,
@@ -212,7 +454,8 @@ const ChatBoxComponent = ({
         isSubmitDisabledReason,
         toast,
         pathname,
-        captureEvent
+        captureEvent,
+        attachments
     ]);
 
     useEffect(() => {
@@ -229,13 +472,17 @@ const ChatBoxComponent = ({
         }
 
         try {
-            const { pathname: storedPathname, children } = JSON.parse(stored) as { pathname: string; children: Descendant[] };
+            const { pathname: storedPathname, children, attachments: storedAttachments = [] } = JSON.parse(stored) as {
+                pathname: string;
+                children: Descendant[];
+                attachments?: AttachmentData[];
+            };
             if (storedPathname !== pathname) {
                 return;
             }
 
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
-            _onSubmit(children, editor);
+            _onSubmit(children, editor, storedAttachments);
         } catch (error) {
             console.error('Failed to restore pending chat submission:', error);
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
@@ -274,6 +521,16 @@ const ChatBoxComponent = ({
     }, [editor, range]);
 
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+        // Detect the OS raw-paste chord so the upcoming `paste` event can skip
+        // the large-paste auto-conversion and insert inline instead.
+        if (
+            (event.key === 'v' || event.key === 'V') &&
+            event.shiftKey &&
+            (isMac ? event.metaKey : event.ctrlKey)
+        ) {
+            rawPasteRequestedRef.current = true;
+        }
+
         if (suggestionMode === "none") {
             switch (event.key) {
                 case 'Enter': {
@@ -320,7 +577,7 @@ const ChatBoxComponent = ({
                 }
             }
         }
-    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion]);
+    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion, isMac]);
 
     useEffect(() => {
         if (!range || !suggestionsBoxRef.current) {
@@ -364,6 +621,18 @@ const ChatBoxComponent = ({
             <div
                 className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
             >
+                {(isRedirecting ? submittedAttachments : attachments).length > 0 && (
+                    <AttachmentTray
+                        attachments={isRedirecting ? submittedAttachments : attachments}
+                        onRemove={isRedirecting ? undefined : removeAttachment}
+                        className="mb-1.5"
+                    />
+                )}
+                {attachments.some((attachment) => attachment.kind === 'image') && !supportsImages && (
+                    <p className="mb-1.5 text-xs text-amber-600 dark:text-amber-500">
+                        Images won&apos;t be sent: the selected model doesn&apos;t support image input.
+                    </p>
+                )}
                 <Editable
                     className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
@@ -371,8 +640,39 @@ const ChatBoxComponent = ({
                     renderLeaf={renderLeaf}
                     onKeyDown={onKeyDown}
                     readOnly={isDisabled}
+                    onPaste={(event) => {
+                        const clipboardData = event.clipboardData;
+                        const files = clipboardData?.files ? Array.from(clipboardData.files) : [];
+                        if (files.length > 0) {
+                            event.preventDefault();
+                            void onAddFiles(files);
+                            return;
+                        }
+
+                        // A raw-paste chord (⌘⇧V / Ctrl+Shift+V) bypasses
+                        // auto-conversion for this one paste. Consume the flag
+                        // regardless so it never leaks into the next paste.
+                        const rawPasteRequested = rawPasteRequestedRef.current;
+                        rawPasteRequestedRef.current = false;
+                        if (rawPasteRequested) {
+                            return;
+                        }
+
+                        const text = clipboardData?.getData('text/plain') ?? '';
+                        if (!shouldAutoConvertPaste(text)) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        onAddPastedText(text);
+                    }}
                 />
-                <div className="ml-auto z-10">
+                <div className="flex flex-row items-center justify-end gap-1 z-10">
+                    <AttachmentButton
+                        onAddFiles={onAddFiles}
+                        acceptImages={supportsImages}
+                        disabled={isDisabled || isRedirecting || isTurnInProgress}
+                    />
                     {isRedirecting ? (
                         <Button
                             variant="default"
@@ -455,7 +755,7 @@ const ChatBoxComponent = ({
     )
 }
 
-export const ChatBox = memo(ChatBoxComponent, isEqual);
+export const ChatBox = memo(forwardRef(ChatBoxComponent), isEqual);
 
 const DefaultElement = (props: RenderElementProps) => {
     return <p {...props.attributes}>{props.children}</p>

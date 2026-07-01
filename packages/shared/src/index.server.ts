@@ -77,6 +77,13 @@ export {
     createRedisClient,
 } from "./redis.js";
 export {
+    getStorageBackend,
+    LocalFsStorageBackend,
+} from "./storage.js";
+export type {
+    StorageBackend,
+} from "./storage.js";
+export {
     SOURCEBOT_VERSION,
 } from "./version.js";
 export {
