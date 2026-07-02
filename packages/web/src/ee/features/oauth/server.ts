@@ -19,13 +19,17 @@ export async function generateAndStoreAuthCode({
     userId,
     redirectUri,
     codeChallenge,
+    scope,
     resource,
+    dpopJkt,
 }: {
     clientId: string;
     userId: string;
     redirectUri: string;
     codeChallenge: string;
+    scope: string;
     resource: string | null;
+    dpopJkt: string | null;
 }): Promise<string> {
     const rawCode = crypto.randomBytes(32).toString('hex');
     const codeHash = hashSecret(rawCode);
@@ -37,7 +41,9 @@ export async function generateAndStoreAuthCode({
             userId,
             redirectUri,
             codeChallenge,
+            scope,
             resource,
+            dpopJkt,
             expiresAt: new Date(Date.now() + env.OAUTH_AUTHORIZATION_CODE_TTL_SECONDS * 1000),
         },
     });
@@ -53,13 +59,15 @@ export async function verifyAndExchangeCode({
     redirectUri,
     codeVerifier,
     resource,
+    dpopJkt,
 }: {
     rawCode: string;
     clientId: string;
     redirectUri: string;
     codeVerifier: string;
     resource: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
+    dpopJkt: string | null;
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string; dpopJkt: string | null } | { error: string; errorDescription: string }> {
     const codeHash = hashSecret(rawCode);
 
     const authCode = await __unsafePrisma.oAuthAuthorizationCode.findUnique({
@@ -98,6 +106,10 @@ export async function verifyAndExchangeCode({
         return { error: 'invalid_target', errorDescription: 'resource parameter does not match the value bound to the authorization code.' };
     }
 
+    if (authCode.dpopJkt !== null && authCode.dpopJkt !== dpopJkt) {
+        return { error: 'invalid_dpop_proof', errorDescription: 'DPoP proof key does not match the value bound to the authorization code.' };
+    }
+
     // Single-use: delete the auth code before issuing token.
     // Handle concurrent consume attempts gracefully.
     try {
@@ -111,6 +123,8 @@ export async function verifyAndExchangeCode({
 
     const { token, hash } = generateOAuthToken();
     const { token: refreshToken, hash: refreshHash } = generateOAuthRefreshToken();
+    const scope = authCode.scope;
+    const tokenDpopJkt = authCode.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([
         __unsafePrisma.oAuthToken.create({
@@ -118,7 +132,9 @@ export async function verifyAndExchangeCode({
                 hash,
                 clientId,
                 userId: authCode.userId,
+                scope,
                 resource: authCode.resource,
+                dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
         }),
@@ -127,13 +143,15 @@ export async function verifyAndExchangeCode({
                 hash: refreshHash,
                 clientId,
                 userId: authCode.userId,
+                scope,
                 resource: authCode.resource,
+                dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope, dpopJkt: tokenDpopJkt };
 }
 
 // Verifies a refresh token, rotates it, and issues a new access token + refresh token.
@@ -143,11 +161,13 @@ export async function verifyAndRotateRefreshToken({
     rawRefreshToken,
     clientId,
     resource,
+    dpopJkt,
 }: {
     rawRefreshToken: string;
     clientId: string;
     resource: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
+    dpopJkt: string | null;
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string; dpopJkt: string | null } | { error: string; errorDescription: string }> {
     if (!rawRefreshToken.startsWith(OAUTH_REFRESH_TOKEN_PREFIX)) {
         return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid.' };
     }
@@ -173,8 +193,14 @@ export async function verifyAndRotateRefreshToken({
         return { error: 'invalid_target', errorDescription: 'resource parameter does not match the refresh token.' };
     }
 
+    if (existing.dpopJkt !== null && existing.dpopJkt !== dpopJkt) {
+        return { error: 'invalid_dpop_proof', errorDescription: 'DPoP proof key does not match the refresh token binding.' };
+    }
+
     const { token, hash: newTokenHash } = generateOAuthToken();
     const { token: refreshToken, hash: newRefreshHash } = generateOAuthRefreshToken();
+    const scope = existing.scope;
+    const tokenDpopJkt = existing.dpopJkt ?? dpopJkt;
 
     await __unsafePrisma.$transaction([
         __unsafePrisma.oAuthRefreshToken.delete({ where: { hash } }),
@@ -183,7 +209,9 @@ export async function verifyAndRotateRefreshToken({
                 hash: newTokenHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
+                dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
         }),
@@ -192,13 +220,15 @@ export async function verifyAndRotateRefreshToken({
                 hash: newRefreshHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
+                dpopJkt: tokenDpopJkt,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope, dpopJkt: tokenDpopJkt };
 }
 
 // Revokes an access token or refresh token by hashing it and deleting the DB record.

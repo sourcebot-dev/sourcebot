@@ -76,6 +76,14 @@ jobs:
           fetch-depth: 0
           token: ${{ inputs.use_app_token && steps.generate_token.outputs.token || github.token }}
 
+      # Release backstop: fail the build if migrations drift from schema.prisma.
+      # Runs once (amd64 only) since the check is platform-independent. base-ref
+      # is omitted, so the drift check always runs and the (PR-only) ordering
+      # check is skipped.
+      - name: Check Prisma migrations
+        if: matrix.platform == 'linux/amd64'
+        uses: ./.github/actions/check-prisma-migrations
+
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata

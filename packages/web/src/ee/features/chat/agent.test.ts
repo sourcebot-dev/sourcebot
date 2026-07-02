@@ -31,6 +31,13 @@ vi.mock('@sourcebot/shared', () => ({
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: 'false',
     },
     getDBConnectionString: () => 'postgresql://sourcebot:sourcebot@db.example.com:5432/sourcebot',
+    getStorageBackend: () => ({
+        get: vi.fn(),
+        put: vi.fn(),
+        stat: vi.fn(),
+        createReadStream: vi.fn(),
+        delete: vi.fn(),
+    }),
 }));
 
 vi.mock('server-only', () => ({}));

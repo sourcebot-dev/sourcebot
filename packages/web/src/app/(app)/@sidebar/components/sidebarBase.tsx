@@ -40,13 +40,17 @@ import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import posthog from "posthog-js";
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
 import { UpgradeButton } from "./upgradeButton";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Retains the sidebar's scroll position across route-driven remounts of the
+// `@sidebar` slot. Module-level so it survives remounts but resets on reload.
+let lastScrollTop = 0;
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -61,12 +65,27 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
     const contentRef = useRef<HTMLDivElement>(null);
     const isMobile = useIsMobile();
 
+    // The sidebar lives in the `@sidebar` parallel route slot, whose catch-all
+    // segment remounts on navigation between chats. Persist the scroll position
+    // across those remounts so it isn't reset to the top each time.
+    useLayoutEffect(() => {
+        const el = contentRef.current;
+        if (!el) {
+            return;
+        }
+        el.scrollTop = lastScrollTop;
+        setIsScrolled(el.scrollTop > 0);
+    }, []);
+
     useEffect(() => {
         const el = contentRef.current;
         if (!el) {
             return;
         }
-        const handleScroll = () => setIsScrolled(el.scrollTop > 0);
+        const handleScroll = () => {
+            lastScrollTop = el.scrollTop;
+            setIsScrolled(el.scrollTop > 0);
+        };
         el.addEventListener("scroll", handleScroll);
         return () => el.removeEventListener("scroll", handleScroll);
     }, []);
