@@ -114,6 +114,77 @@ function getOAuthScopeHash(oauthScopes: string[]): string {
         .slice(0, 16);
 }
 
+/**
+ * Provider APIs such as OpenAI Responses reject dots and other punctuation in
+ * tool names. MCP tool names are server-controlled, so normalize the fully
+ * qualified name before exposing it to the model.
+ */
+export function sanitizeMcpToolNameForModel(name: string): string {
+    let sanitized = '';
+
+    for (const character of name) {
+        if (
+            (character >= 'a' && character <= 'z') ||
+            (character >= 'A' && character <= 'Z') ||
+            (character >= '0' && character <= '9') ||
+            character === '_'
+        ) {
+            sanitized += character;
+        } else {
+            sanitized += '_';
+        }
+    }
+
+    return sanitized || '_';
+}
+
+function getMcpToolNameCollisionSuffix(qualifiedName: string): string {
+    return createHash('sha256')
+        .update(qualifiedName)
+        .digest('hex')
+        .slice(0, 8);
+}
+
+function buildModelToolNameMap(prefix: string, toolNames: string[]): Map<string, string> {
+    const entries = toolNames.map((toolName) => {
+        const qualifiedName = `${prefix}__${toolName}`;
+        return {
+            toolName,
+            qualifiedName,
+            sanitizedName: sanitizeMcpToolNameForModel(qualifiedName),
+        };
+    });
+
+    const sanitizedNameCounts = new Map<string, number>();
+    for (const entry of entries) {
+        sanitizedNameCounts.set(
+            entry.sanitizedName,
+            (sanitizedNameCounts.get(entry.sanitizedName) ?? 0) + 1,
+        );
+    }
+
+    const modelToolNames = new Map<string, string>();
+    const usedModelToolNames = new Set<string>();
+    for (const entry of [...entries].sort((a, b) => a.qualifiedName.localeCompare(b.qualifiedName))) {
+        let modelToolName = entry.sanitizedName;
+
+        if ((sanitizedNameCounts.get(entry.sanitizedName) ?? 0) > 1) {
+            modelToolName = `${entry.sanitizedName}_${getMcpToolNameCollisionSuffix(entry.qualifiedName)}`;
+        }
+
+        let collisionIndex = 0;
+        while (usedModelToolNames.has(modelToolName)) {
+            collisionIndex += 1;
+            modelToolName = `${entry.sanitizedName}_${getMcpToolNameCollisionSuffix(`${entry.qualifiedName}\0${collisionIndex}`)}`;
+        }
+
+        usedModelToolNames.add(modelToolName);
+        modelToolNames.set(entry.toolName, modelToolName);
+    }
+
+    return modelToolNames;
+}
+
 function getMcpListToolsCacheKey(client: McpToolSet): string {
     return [
         'mcp:list-tools:v1',
@@ -201,6 +272,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             const toolDefinitions = await getListToolsResult(mcpClient, client, connectionTimeoutMs);
             const tools = mcpClient.toolsFromDefinitions(toolDefinitions);
             const prefix = `mcp_${sanitizedName}`;
+            const modelToolNames = buildModelToolNameMap(prefix, Object.keys(tools));
             await createMissingMcpServerToolRows({
                 serverId,
                 tools: toolDefinitions.tools.map((tool) => {
@@ -259,7 +331,8 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 });
 
                 const originalExecute = tool.execute;
-                const qualifiedName = `${prefix}__${toolName}`;
+                const rawQualifiedName = `${prefix}__${toolName}`;
+                const qualifiedName = modelToolNames.get(toolName) ?? sanitizeMcpToolNameForModel(rawQualifiedName);
                 const timeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
 
                 const executeWithTimeout = (async (input: unknown, options: ToolExecutionOptions) => {

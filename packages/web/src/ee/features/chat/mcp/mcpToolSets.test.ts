@@ -101,7 +101,7 @@ function createMockClient(overrides: Partial<McpToolSet> & { serverName: string 
 // --- Tests ---
 
 // Import after mocks are set up
-const { getMcpTools } = await import('./mcpToolSets');
+const { getMcpTools, sanitizeMcpToolNameForModel } = await import('./mcpToolSets');
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -112,6 +112,17 @@ beforeEach(() => {
     mockCaptureEvent.mockResolvedValue(undefined);
     mockRedisGet.mockResolvedValue(null);
     mockRedisSet.mockResolvedValue('OK');
+});
+
+describe('sanitizeMcpToolNameForModel', () => {
+    test('replaces provider-invalid characters with underscores', () => {
+        expect(sanitizeMcpToolNameForModel('mcp_backstage__catalog.query-catalog-entities'))
+            .toBe('mcp_backstage__catalog_query_catalog_entities');
+    });
+
+    test('returns an underscore for an empty name', () => {
+        expect(sanitizeMcpToolNameForModel('')).toBe('_');
+    });
 });
 
 describe('getMcpTools', () => {
@@ -127,6 +138,58 @@ describe('getMcpTools', () => {
 
         expect(Object.keys(result.tools)).toEqual(['mcp_linear__list_issues']);
         expect(result.failedServers).toEqual([]);
+    });
+
+    test('sanitizes model-facing keys for MCP tools with punctuation', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'catalog.query-catalog-entities', description: 'Query catalog entities' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-backstage', serverName: 'Backstage' }),
+        ]);
+
+        expect(Object.keys(result.tools)).toEqual([
+            'mcp_backstage__catalog_query_catalog_entities',
+        ]);
+
+        const tool = result.tools['mcp_backstage__catalog_query_catalog_entities'];
+        await expect(
+            tool.execute({ filter: 'kind=component' }, { messages: [], toolCallId: 'test' })
+        ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
+
+        expect(mockServerToolUpsert).toHaveBeenCalledWith(expect.objectContaining({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-backstage',
+                    toolName: 'catalog.query-catalog-entities',
+                },
+            },
+        }));
+        expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
+            serverId: 'server-backstage',
+            toolName: 'catalog.query-catalog-entities',
+            success: true,
+        }));
+    });
+
+    test('adds stable suffixes when sanitized tool names collide', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'catalog.query', description: 'Query catalog' },
+            { name: 'catalog_query', description: 'Query catalog with underscore' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Backstage' }),
+        ]);
+
+        const toolNames = Object.keys(result.tools);
+        expect(toolNames).toHaveLength(2);
+        expect(new Set(toolNames).size).toBe(2);
+        expect(toolNames).not.toContain('mcp_backstage__catalog_query');
+        expect(toolNames.every((toolName) => /^mcp_backstage__catalog_query_[0-9a-f]{8}$/.test(toolName))).toBe(true);
     });
 
     test('multiple servers produce tools with distinct prefixes', async () => {
