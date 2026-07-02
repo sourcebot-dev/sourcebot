@@ -42,7 +42,8 @@ const ALL_ENTITLEMENTS = [
     "org-management",
     "oauth",
     "ask",
-    "mcp"
+    "mcp",
+    "scim"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 

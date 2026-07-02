@@ -15,6 +15,7 @@ import { captureEvent } from "@/lib/posthog";
 import { UpsellSource } from "@/lib/posthogEvents";
 import { client } from "./client";
 import { z } from "zod";
+import { activeMembershipWhere } from "@/features/membership/utils";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -130,6 +131,7 @@ export const createCheckoutSession = async ({
             const memberCount = await prisma.userToOrg.count({
                 where: {
                     orgId: org.id,
+                    ...activeMembershipWhere(),
                 },
             });
             const quantity = Math.max(memberCount, 1);
