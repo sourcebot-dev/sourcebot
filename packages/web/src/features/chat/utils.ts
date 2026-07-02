@@ -4,6 +4,7 @@ import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
+    AttachmentData,
     CustomEditor,
     CustomText,
     FileReference,
@@ -187,7 +188,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = []): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = [], attachments: AttachmentData[] = []): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -217,6 +218,10 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
                 type: 'data-source',
                 data,
             })) as UIMessagePart<{ source: Source }, SBChatMessageToolTypes>[],
+            ...attachments.map((data) => ({
+                type: 'data-attachment',
+                data,
+            })) as UIMessagePart<{ attachment: AttachmentData }, SBChatMessageToolTypes>[],
         ],
         metadata: {
             selectedSearchScopes,
@@ -403,6 +408,54 @@ export const repairReferences = (text: string): string => {
 // `parts` so it works for both persisted and freshly created messages.
 export const getUserMessageText = (message: Pick<SBChatMessage, 'parts'>): string => {
     return message.parts.find((part) => part.type === 'text')?.text ?? '';
+}
+
+// Extracts the inline-text attachments a user included with a message.
+export const getUserMessageAttachments = (message: Pick<SBChatMessage, 'parts'>): AttachmentData[] => {
+    return message.parts
+        .filter((part) => part.type === 'data-attachment')
+        .map((part) => part.data);
+}
+
+// UTF-8 byte size of a message's inlined text (prompt + text-attachment bodies;
+// image blobs are referenced by id, not inlined). Server-side counterpart to
+// the chat box's `getSubmittedTextBytes` for enforcing the per-turn text budget.
+export const getMessageTextBytes = (message: Pick<SBChatMessage, 'parts'>): number => {
+    const encoder = new TextEncoder();
+    const promptBytes = encoder.encode(getUserMessageText(message)).length;
+    const attachmentBytes = getUserMessageAttachments(message)
+        .filter((attachment) => attachment.kind === 'text')
+        .reduce((sum, attachment) => sum + encoder.encode(attachment.text).length, 0);
+    return promptBytes + attachmentBytes;
+}
+
+// Neutralizes `</attachment>`/`</attachments>` sequences in a body so it can't
+// close its own wrapper early. Unrelated markup (e.g. `</div>`) is left intact.
+const escapeAttachmentBody = (text: string): string => {
+    return text.replace(/<(\/attachments?>)/gi, '&lt;$1');
+}
+
+// Formats a user message's text attachments into a delimited block to inline
+// into the turn's content. Returns '' when there are none. Size is bounded at
+// submit, so nothing is truncated here.
+export const formatAttachmentsForPrompt = (attachments: AttachmentData[]): string => {
+    const textAttachments = attachments.filter((attachment) => attachment.kind === 'text');
+    if (textAttachments.length === 0) {
+        return '';
+    }
+
+    const blocks = textAttachments.map((attachment) => {
+        const text = escapeAttachmentBody(attachment.text);
+        // Keep the filename on a single line and escape quotes so the body
+        // can't break out of the tag (the client also sanitizes via
+        // sanitizeFilename).
+        const filename = attachment.filename
+            .replace(/\s+/g, ' ')
+            .replace(/"/g, '&quot;');
+        return `<attachment filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
+    });
+
+    return `<attachments>\n${blocks.join('\n')}\n</attachments>`;
 }
 
 // Attempts to find the part of the assistant's message

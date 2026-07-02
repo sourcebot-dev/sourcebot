@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
 import { getConnectionStats } from "@/actions";
-import { getOrgAccountRequests } from "@/features/userManagement/actions";
+import { getOrgAccountRequests } from "@/features/membership/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
 import { env } from "@sourcebot/shared";
@@ -33,13 +33,7 @@ export default async function SettingsLayout(
     }
 
     return (
-        <div>
-            <main className="flex justify-center p-4">
-                <div className="w-full max-w-3xl rounded-lg p-6">
-                    <div className="w-full rounded-lg">{children}</div>
-                </div>
-            </main>
-        </div>
+        <>{children}</>
     )
 }
 

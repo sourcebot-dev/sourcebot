@@ -179,6 +179,7 @@ export default async function Page(props: PageProps) {
                 isOwner={isOwner}
                 isAuthenticated={!!session}
                 isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
+                maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
                 chatName={name ?? undefined}
             />
         </div>

@@ -13,6 +13,7 @@ import { client } from "./client";
 import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
+import { activeMembershipWhere } from "@/features/membership/utils";
 
 const logger = createLogger('service-ping');
 
@@ -32,38 +33,42 @@ export const syncWithLighthouse = async (orgId: number) => {
     const mauCutoff = new Date(now - 30 * DAY_MS);
 
     const [
-        userCount,
-        repoCount,
+        activeUserCount,
         dauCount,
         wauCount,
         mauCount,
+        repoCount,
     ] = await Promise.all([
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                ...activeMembershipWhere(),
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: dauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: wauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: mauCutoff },
             },
         }),
         __unsafePrisma.repo.count({
             where: {
                 orgId,
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: dauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: wauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: mauCutoff },
             },
         }),
     ]);
@@ -78,7 +83,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
         hostname: env.AUTH_URL,
-        userCount,
+        userCount: activeUserCount,
         repoCount,
         dauCount,
         wauCount,
