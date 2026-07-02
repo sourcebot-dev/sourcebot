@@ -5,9 +5,10 @@ import { unexpectedError } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
+import { env } from "@sourcebot/shared";
 import z from "zod";
 
-const WORKER_API_URL = 'http://localhost:3060';
+const WORKER_API_URL = env.WORKER_API_URL;
 
 export const syncConnection = async (connectionId: number) => sew(() =>
     withAuth(({ role }) =>

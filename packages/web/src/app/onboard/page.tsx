@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { env } from "@sourcebot/shared";
 import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
 import { GcpIapAuth } from "@/app/(app)/components/gcpIapAuth";
+import { activeOrPendingMembershipWhere } from "@/features/membership/utils";
 
 interface OnboardingProps {
     searchParams?: Promise<{ step?: string }>;
@@ -50,7 +51,8 @@ export default async function Onboarding(props: OnboardingProps) {
                     orgId_userId: {
                         orgId: org.id,
                         userId: session.user.id
-                    }
+                    },
+                    ...activeOrPendingMembershipWhere(),
                 }
             });
 

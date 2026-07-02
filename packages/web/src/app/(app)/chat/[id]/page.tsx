@@ -14,6 +14,7 @@ import { __unsafePrisma } from '@/prisma';
 import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
+import { getUserMessageText } from '@/features/chat/utils';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { ChatEntitlementMessage } from '@/features/chat/components/chatEntitlementMessage';
@@ -54,11 +55,11 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
 
     let description = 'A chat on Sourcebot';
     if (firstUserMessage) {
-        const textPart = firstUserMessage.parts.find(p => p.type === 'text');
-        if (textPart && textPart.type === 'text') {
-            description = textPart.text.length > 160
-                ? textPart.text.substring(0, 160).trim() + '...'
-                : textPart.text;
+        const text = getUserMessageText(firstUserMessage);
+        if (text) {
+            description = text.length > 160
+                ? text.substring(0, 160).trim() + '...'
+                : text;
         }
     }
 
@@ -178,6 +179,7 @@ export default async function Page(props: PageProps) {
                 isOwner={isOwner}
                 isAuthenticated={!!session}
                 isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
+                maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
                 chatName={name ?? undefined}
             />
         </div>

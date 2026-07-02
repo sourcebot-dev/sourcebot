@@ -59,6 +59,7 @@ export const sbChatMessageMetadataSchema = z.object({
     totalCacheReadTokens: z.number().optional(),
     totalCacheWriteTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
+    contextWindow: z.number().optional(),
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),
         timestamp: z.string(), // ISO date string
@@ -102,6 +103,39 @@ export type SBChatMessageToolTypes = {
     };
 };
 
+// A user-provided file attachment. The `text` variant carries the file's
+// extracted text inline (used for text/code/structured files). The `blob`
+// variant references stored bytes by id (used for binary attachments like
+// images that cannot be inlined as text); the bytes live in the StorageBackend
+// and never travel in the `messages` JSON.
+export const textAttachmentSchema = z.object({
+    kind: z.literal('text'),
+    // Stable, message-persisted handle for the attachment. Carried through from
+    // the pending attachment's client id so later features (citing/referencing
+    // attachment content) have a durable handle on every persisted attachment.
+    id: z.string(),
+    filename: z.string(),
+    mediaType: z.string(),
+    sizeBytes: z.number(),
+    text: z.string(),
+});
+export type TextAttachment = z.infer<typeof textAttachmentSchema>;
+
+export const blobAttachmentSchema = z.object({
+    kind: z.literal('blob'),
+    attachmentId: z.string(),
+    filename: z.string(),
+    mediaType: z.string(),
+    sizeBytes: z.number(),
+});
+export type BlobAttachment = z.infer<typeof blobAttachmentSchema>;
+
+export const attachmentDataSchema = z.discriminatedUnion('kind', [
+    textAttachmentSchema,
+    blobAttachmentSchema,
+]);
+export type AttachmentData = z.infer<typeof attachmentDataSchema>;
+
 export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw
     // during retrieval.
@@ -111,6 +145,8 @@ export type SBChatMessageDataParts = {
     "mcp-server": { sanitizedName: string; faviconUrl: string },
     // The `mcp-failed-server` data type surfaces MCP servers that failed to load their tools.
     "mcp-failed-server": { serverName: string },
+    // A user-provided file attachment included with the message.
+    "attachment": AttachmentData,
 }
 
 export type SBChatMessage = UIMessage<
@@ -208,10 +244,18 @@ type _AssertAllProviders = LanguageModelProvider extends typeof languageModelPro
 const _assertAllProviders: _AssertAllProviders = true;
 void _assertAllProviders;
 
+export const inputModalities = ['text', 'image', 'audio', 'video'] as const;
+export type InputModality = typeof inputModalities[number];
+
+export const documentTypes = ['pdf'] as const;
+export type DocumentType = typeof documentTypes[number];
+
 export const languageModelInfoSchema = z.object({
     provider: z.enum(languageModelProviders).describe("The model provider (e.g., 'anthropic', 'openai')"),
     model: z.string().describe("The model ID"),
     displayName: z.string().optional().describe("Optional display name for the model"),
+    inputModalities: z.array(z.enum(inputModalities)).default(['text']).describe("The input modalities the model can accept (images, audio, video, text). Single-medium attachments are gated by these. Defaults to text-only."),
+    supportedDocumentTypes: z.array(z.enum(documentTypes)).default([]).describe("Rich compound document formats (e.g. PDF) the model can ingest natively, distinct from single-medium attachments gated by inputModalities. Defaults to none."),
 });
 
 /**
@@ -221,6 +265,8 @@ export type LanguageModelInfo = {
     provider: LanguageModelProvider,
     model: LanguageModel['model'],
     displayName?: LanguageModel['displayName'],
+    inputModalities: InputModality[],
+    supportedDocumentTypes: DocumentType[],
 }
 
 // Additional request body data that we send along to the chat API.

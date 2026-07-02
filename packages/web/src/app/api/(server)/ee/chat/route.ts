@@ -1,10 +1,15 @@
 import { sew } from "@/middleware/sew";
 import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/ee/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/ee/features/chat/agent";
+import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
-import { getLanguageModelKey } from "@/features/chat/utils";
-import { checkAskEntitlement, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
+import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
+import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
+import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
+import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
+import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -72,6 +77,32 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
+            const latestMessage = messages[messages.length - 1];
+
+            // `z.array(z.any())` permits an empty array; reject it before
+            // anything downstream dereferences the latest message.
+            if (!latestMessage) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'At least one message is required.',
+                } satisfies ServiceError;
+            }
+
+            // Authoritatively enforce the per-turn inline-text budget (the client
+            // gate can't be trusted), keeping oversized text out of the prompt and
+            // the persisted messages. Only the user turn carries submitted text.
+            if (
+                latestMessage.role === 'user' &&
+                getMessageTextBytes(latestMessage) > ATTACHMENT_MAX_TURN_TEXT_BYTES
+            ) {
+                return {
+                    statusCode: StatusCodes.REQUEST_TOO_LONG,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Message and attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit.`,
+                } satisfies ServiceError;
+            }
+
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
@@ -86,7 +117,58 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
+            // Verify and commit any binary attachments referenced by the latest
+            // message (links them to this chat, flips PENDING -> COMMITTED).
+            // Rejects forged/unauthorized attachment ids before the agent runs.
+            // Done after model validation so a rejected model can't leave
+            // attachments committed without a persisted message.
+            const attachmentError = await commitMessageAttachments({
+                prisma,
+                chatId: id,
+                orgId: org.id,
+                userId: user?.id,
+                message: latestMessage,
+            });
+            if (attachmentError) {
+                return attachmentError;
+            }
+
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+
+            // Authoritative, server-side resolution of the model's input
+            // modalities. The agent's multimodal content builder and degrade
+            // logic rely on this value, never the client.
+            const acceptedModalities = (await resolveModelCapabilities(languageModelConfig)).inputModalities;
+
+            // If the latest message carries native-media attachments the selected
+            // model cannot accept, the agent will degrade (omit the bytes). Record it.
+            const droppedAttachmentCount = getUserMessageAttachments(latestMessage).filter(
+                (attachment) =>
+                    attachment.kind === 'blob' &&
+                    mediaTypeToModality(attachment.mediaType) !== undefined &&
+                    !isMediaTypeAccepted(attachment.mediaType, acceptedModalities),
+            ).length;
+            if (droppedAttachmentCount > 0) {
+                await captureEvent('chat_attachment_degraded', {
+                    chatId: id,
+                    source: req.headers.get('X-Sourcebot-Client-Source') ?? 'unknown',
+                    droppedImageCount: droppedAttachmentCount,
+                    modelProvider: languageModelConfig.provider,
+                    model: languageModelConfig.model,
+                });
+            }
+
+            // Total context window for the selected model, used as the
+            // denominator for the UI's context-usage gauge. Undefined when
+            // unknown (e.g. self-hosted models).
+            const contextWindow = await resolveContextWindow(languageModelConfig);
+
+            // No-op for non-Anthropic providers / when caching is disabled, so
+            // it never perturbs other providers' requests.
+            const promptCacheStrategy = getPromptCacheStrategy(
+                languageModelConfig.provider,
+                env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',
+            );
 
             const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') return [scope.value];
@@ -131,10 +213,13 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                contextWindow,
+                promptCacheStrategy,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
                 userId: user?.id,
                 orgId: org.id,
+                acceptedModalities,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                     const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({

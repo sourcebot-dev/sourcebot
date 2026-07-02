@@ -10,6 +10,7 @@ export type UpsellSource =
     'license_settings' |
     'mcp_settings' |
     'sso_settings' |
+    'scim_settings' |
     'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';
@@ -204,6 +205,18 @@ export type PosthogEventMap = {
          */
         selectedRepos?: string[],
     },
+    chat_attachment_uploaded: {
+        source: string,
+        mediaType: string,
+        sizeBytes: number,
+    },
+    chat_attachment_degraded: {
+        chatId: string,
+        source: string,
+        droppedImageCount: number,
+        modelProvider: string,
+        model: string,
+    },
     ask_mcp_turn_completed: {
         chatId: string,
         source?: SourcebotWebClientSource,
@@ -334,6 +347,35 @@ export type PosthogEventMap = {
     wa_chat_toc_toggled: {
         chatId: string,
         isExpanded: boolean,
+    },
+    wa_chat_diagram_rendered: {
+        chatId: string,
+        diagramId: string,
+        outcome: 'success' | 'error',
+        /** Mermaid diagram type (e.g. 'flowchart', 'sequenceDiagram'), if detectable. */
+        diagramType?: string,
+    },
+    wa_chat_diagram_fullscreen_opened: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_copied: {
+        chatId: string,
+        diagramId: string,
+        format: 'link' | 'source' | 'image',
+    },
+    wa_chat_diagram_exported: {
+        chatId: string,
+        diagramId: string,
+        format: 'svg' | 'png',
+    },
+    wa_chat_diagram_panned: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_reference_clicked: {
+        chatId: string,
+        diagramId: string,
     },
     wa_user_created: {
         userId: string,

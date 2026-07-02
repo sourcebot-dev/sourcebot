@@ -8,7 +8,8 @@ import { notFound } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { SBChatMessage } from "./types";
-import { checkAskEntitlement, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
+import { activeMembershipWhere } from "../membership/utils";
+import { checkAskEntitlement, deleteOrphanedAttachments, isChatSharedWithUser, isOwnerOfChat, resolveChatAccess } from "./utils.server";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
@@ -75,11 +76,10 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        const isOwner = await isOwnerOfChat(chat, user);
-        const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId, userId: user?.id });
+        const { isOwner, isSharedWithUser, canView } = await resolveChatAccess({ prisma, chat, user });
 
         // Private chats can only be viewed by the owner or users it's been shared with
-        if (chat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
+        if (!canView) {
             return notFound();
         }
 
@@ -194,11 +194,23 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
+        // Capture the linked attachment ids before the delete cascades the
+        // link rows, so we can sweep any blobs left with zero links afterwards.
+        const linkedAttachments = await prisma.chatAttachment.findMany({
+            where: { chatId },
+            select: { attachmentId: true },
+        });
+
         await prisma.chat.delete({
             where: {
                 id: chatId,
                 orgId: org.id,
             },
+        });
+
+        await deleteOrphanedAttachments({
+            prisma,
+            attachmentIds: linkedAttachments.map((link) => link.attachmentId),
         });
 
         await createAudit({
@@ -281,6 +293,14 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
         const isGuestUser = user === undefined;
         const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
 
+        // Snapshot the source chat's links before creating the duplicate; a
+        // concurrent delete could otherwise cascade them away first, leaving the
+        // copied messages pointing at blobs the new chat is never linked to.
+        const originalLinks = await prisma.chatAttachment.findMany({
+            where: { chatId: originalChat.id },
+            select: { attachmentId: true },
+        });
+
         const newChat = await prisma.chat.create({
             data: {
                 orgId: org.id,
@@ -291,6 +311,19 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
+
+        // Copy the attachment links (metadata-only; no byte copy). The
+        // duplicated messages reference the same blobs, and access stays
+        // chat-derived through the new chat's links.
+        if (originalLinks.length > 0) {
+            await prisma.chatAttachment.createMany({
+                data: originalLinks.map((link) => ({
+                    chatId: newChat.id,
+                    attachmentId: link.attachmentId,
+                })),
+                skipDuplicates: true,
+            });
+        }
 
         return {
             id: newChat.id,
@@ -372,6 +405,7 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
         const memberships = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
+                ...activeMembershipWhere(),
                 userId: {
                     in: userIds,
                 },

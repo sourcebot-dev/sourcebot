@@ -4,35 +4,76 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { FileReference, FileSource, Reference } from "@/features/chat/types";
+import { FileReference, FileSource } from "@/features/chat/types";
 import { tryResolveFileReference } from '@/features/chat/utils';
 import { ReferencedFileSourceListItemContainer } from "./referencedFileSourceListItemContainer";
+import { DiagramPanelListItem } from "./diagramPanelListItem";
+import { PanelItem } from "@/ee/features/chat/useExtractPanelItems";
+import { PanelSelection, usePanelContext } from "@/ee/features/chat/panelContext";
 import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
     sources: FileSource[];
     index: number;
-    hoveredReference?: Reference;
-    onHoveredReferenceChanged: (reference?: Reference) => void;
-    selectedReference?: Reference;
-    onSelectedReferenceChanged: (reference?: Reference) => void;
     style: React.CSSProperties;
+    orderedItems?: PanelItem[];
+    selected?: PanelSelection;
+    hovered?: PanelSelection;
 }
 
 const ReferencedSourcesListViewComponent = ({
     references,
     sources,
     index,
-    hoveredReference,
-    selectedReference,
     style,
-    onHoveredReferenceChanged,
-    onSelectedReferenceChanged,
+    orderedItems = [],
+    selected,
+    hovered,
 }: ReferencedSourcesListViewProps) => {
+    const panel = usePanelContext();
+    const noop = useCallback(() => {}, []);
+    // Reference selection/hover is driven through the unified panel context; the
+    // file source items still call these the same way (e.g. from the CodeMirror
+    // reference-highlight extension).
+    const onSelectedReferenceChanged = panel?.setSelectedReference ?? noop;
+    const onHoveredReferenceChanged = panel?.setHoveredReference ?? noop;
+
+    const selectedReference = selected?.kind === 'reference' ? selected.reference : undefined;
+    const hoveredReference = hovered?.kind === 'reference' ? hovered.reference : undefined;
+    const selectedDiagramId = selected?.kind === 'diagram' ? selected.diagramId : undefined;
+    const hoveredDiagramId = hovered?.kind === 'diagram' ? hovered.diagramId : undefined;
+
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
+    // Diagrams render expanded by default (the panel is the canonical view);
+    // track the ids the user has explicitly collapsed, mirroring collapsedFileIds.
+    const [collapsedDiagramIds, setCollapsedDiagramIds] = useState<string[]>([]);
+    // Transient highlight applied when a diagram is revealed from the answer.
+    const [highlightedDiagramId, setHighlightedDiagramId] = useState<string | undefined>(undefined);
+
+    // When a diagram is revealed from the answer, ensure it is expanded, scroll
+    // it into view, and briefly highlight it.
+    useEffect(() => {
+        if (!selectedDiagramId) {
+            return;
+        }
+        setCollapsedDiagramIds((prev) => prev.filter((id) => id !== selectedDiagramId));
+        const element = document.getElementById(`diagram-panel-${selectedDiagramId}`);
+        if (element) {
+            scrollIntoView(element, { scrollMode: 'if-needed', block: 'center', behavior: 'instant' });
+        }
+        setHighlightedDiagramId(selectedDiagramId);
+        const timeout = window.setTimeout(() => setHighlightedDiagramId(undefined), 2000);
+        return () => window.clearTimeout(timeout);
+    }, [selectedDiagramId]);
+
+    const onToggleDiagram = useCallback((diagramId: string) => {
+        setCollapsedDiagramIds((prev) => (
+            prev.includes(diagramId) ? prev.filter((id) => id !== diagramId) : [...prev, diagramId]
+        ));
+    }, []);
 
     const getFileId = useCallback((fileSource: FileSource) => {
         // @note: we include the index to ensure that the file id is unique
@@ -174,10 +215,10 @@ const ReferencedSourcesListViewComponent = ({
         }
     }, []);
 
-    if (sources.length === 0) {
+    if (orderedItems.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
-                No file references found
+                No references found
             </div>
         );
     }
@@ -187,8 +228,24 @@ const ReferencedSourcesListViewComponent = ({
             ref={scrollAreaRef}
             style={style}
         >
-            <div className="space-y-4 pr-2">
-                {sources.map((fileSource) => {
+            <div className="space-y-4 px-2 py-1">
+                {orderedItems.map((item) => {
+                    if (item.kind === 'diagram') {
+                        return (
+                            <DiagramPanelListItem
+                                key={`diagram-${item.diagram.id}`}
+                                diagram={item.diagram}
+                                index={item.diagramIndex}
+                                isExpanded={!collapsedDiagramIds.includes(item.diagram.id)}
+                                isHighlighted={highlightedDiagramId === item.diagram.id}
+                                isHovered={hoveredDiagramId === item.diagram.id}
+                                onToggle={() => onToggleDiagram(item.diagram.id)}
+                                onJumpToInline={() => panel?.jumpToInlineDiagram(item.diagram.id)}
+                            />
+                        );
+                    }
+
+                    const fileSource = item.source;
                     const fileId = getFileId(fileSource);
                     const referencesInFile = referencesGroupedByFile.get(fileId) || [];
                     const hoveredReferenceInFile = referencesInFile.some(r => r.id === hoveredReference?.id) ? hoveredReference : undefined;
