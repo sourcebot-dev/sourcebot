@@ -22,6 +22,7 @@ import {
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
 const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 60 * 60;
+const MODEL_TOOL_NAME_MAX_LENGTH = 64;
 type ListToolsResult = Awaited<ReturnType<MCPClient['listTools']>>;
 
 class McpToolTimeoutError extends Error {
@@ -72,6 +73,7 @@ export interface McpToolsResult {
     tools: Record<string, Awaited<ReturnType<MCPClient['tools']>>[string]>;
     failedServers: string[];
     serverFaviconUrls: Record<string, string>;
+    toolDisplayNames: Record<string, string>;
     cleanup: () => Promise<void>;
 }
 
@@ -115,74 +117,13 @@ function getOAuthScopeHash(oauthScopes: string[]): string {
 }
 
 /**
- * Provider APIs such as OpenAI Responses reject dots and other punctuation in
- * tool names. MCP tool names are server-controlled, so normalize the fully
- * qualified name before exposing it to the model.
+ * Provider APIs such as OpenAI Responses enforce tight charset and length
+ * limits for tool names. MCP tool names are server-controlled, so normalize the
+ * fully qualified name before exposing it to the model.
  */
 export function sanitizeMcpToolNameForModel(name: string): string {
-    let sanitized = '';
-
-    for (const character of name) {
-        if (
-            (character >= 'a' && character <= 'z') ||
-            (character >= 'A' && character <= 'Z') ||
-            (character >= '0' && character <= '9') ||
-            character === '_'
-        ) {
-            sanitized += character;
-        } else {
-            sanitized += '_';
-        }
-    }
-
-    return sanitized || '_';
-}
-
-function getMcpToolNameCollisionSuffix(qualifiedName: string): string {
-    return createHash('sha256')
-        .update(qualifiedName)
-        .digest('hex')
-        .slice(0, 8);
-}
-
-function buildModelToolNameMap(prefix: string, toolNames: string[]): Map<string, string> {
-    const entries = toolNames.map((toolName) => {
-        const qualifiedName = `${prefix}__${toolName}`;
-        return {
-            toolName,
-            qualifiedName,
-            sanitizedName: sanitizeMcpToolNameForModel(qualifiedName),
-        };
-    });
-
-    const sanitizedNameCounts = new Map<string, number>();
-    for (const entry of entries) {
-        sanitizedNameCounts.set(
-            entry.sanitizedName,
-            (sanitizedNameCounts.get(entry.sanitizedName) ?? 0) + 1,
-        );
-    }
-
-    const modelToolNames = new Map<string, string>();
-    const usedModelToolNames = new Set<string>();
-    for (const entry of [...entries].sort((a, b) => a.qualifiedName.localeCompare(b.qualifiedName))) {
-        let modelToolName = entry.sanitizedName;
-
-        if ((sanitizedNameCounts.get(entry.sanitizedName) ?? 0) > 1) {
-            modelToolName = `${entry.sanitizedName}_${getMcpToolNameCollisionSuffix(entry.qualifiedName)}`;
-        }
-
-        let collisionIndex = 0;
-        while (usedModelToolNames.has(modelToolName)) {
-            collisionIndex += 1;
-            modelToolName = `${entry.sanitizedName}_${getMcpToolNameCollisionSuffix(`${entry.qualifiedName}\0${collisionIndex}`)}`;
-        }
-
-        usedModelToolNames.add(modelToolName);
-        modelToolNames.set(entry.toolName, modelToolName);
-    }
-
-    return modelToolNames;
+    const sanitized = name.replace(/[^A-Za-z0-9_-]/g, '_') || '_';
+    return sanitized.slice(0, MODEL_TOOL_NAME_MAX_LENGTH);
 }
 
 function getMcpListToolsCacheKey(client: McpToolSet): string {
@@ -254,6 +195,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
     const allTools: McpToolsResult['tools'] = {};
     const failedServers: string[] = [];
     const serverFaviconUrls: Record<string, string> = {};
+    const toolDisplayNames: Record<string, string> = {};
     const mcpClients: MCPClient[] = [];
 
     const connectionTimeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
@@ -272,7 +214,6 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             const toolDefinitions = await getListToolsResult(mcpClient, client, connectionTimeoutMs);
             const tools = mcpClient.toolsFromDefinitions(toolDefinitions);
             const prefix = `mcp_${sanitizedName}`;
-            const modelToolNames = buildModelToolNameMap(prefix, Object.keys(tools));
             await createMissingMcpServerToolRows({
                 serverId,
                 tools: toolDefinitions.tools.map((tool) => {
@@ -332,8 +273,9 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
 
                 const originalExecute = tool.execute;
                 const rawQualifiedName = `${prefix}__${toolName}`;
-                const qualifiedName = modelToolNames.get(toolName) ?? sanitizeMcpToolNameForModel(rawQualifiedName);
+                const qualifiedName = sanitizeMcpToolNameForModel(rawQualifiedName);
                 const timeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
+                toolDisplayNames[qualifiedName] = toolName;
 
                 const executeWithTimeout = (async (input: unknown, options: ToolExecutionOptions) => {
                     const startTime = Date.now();
@@ -428,5 +370,5 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
         );
     };
 
-    return { tools: allTools, failedServers, serverFaviconUrls, cleanup };
+    return { tools: allTools, failedServers, serverFaviconUrls, toolDisplayNames, cleanup };
 }

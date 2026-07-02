@@ -117,11 +117,20 @@ beforeEach(() => {
 describe('sanitizeMcpToolNameForModel', () => {
     test('replaces provider-invalid characters with underscores', () => {
         expect(sanitizeMcpToolNameForModel('mcp_backstage__catalog.query-catalog-entities'))
-            .toBe('mcp_backstage__catalog_query_catalog_entities');
+            .toBe('mcp_backstage__catalog_query-catalog-entities');
     });
 
     test('returns an underscore for an empty name', () => {
         expect(sanitizeMcpToolNameForModel('')).toBe('_');
+    });
+
+    test('caps long names at the provider limit', () => {
+        const sanitized = sanitizeMcpToolNameForModel(
+            'mcp_atlassian_confluence__get_space_details_by_key_or_id_with_extra_context'
+        );
+
+        expect(sanitized).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
+        expect(sanitized.length).toBeLessThanOrEqual(64);
     });
 });
 
@@ -151,10 +160,13 @@ describe('getMcpTools', () => {
         ]);
 
         expect(Object.keys(result.tools)).toEqual([
-            'mcp_backstage__catalog_query_catalog_entities',
+            'mcp_backstage__catalog_query-catalog-entities',
         ]);
+        expect(result.toolDisplayNames).toEqual({
+            'mcp_backstage__catalog_query-catalog-entities': 'catalog.query-catalog-entities',
+        });
 
-        const tool = result.tools['mcp_backstage__catalog_query_catalog_entities'];
+        const tool = result.tools['mcp_backstage__catalog_query-catalog-entities'];
         await expect(
             tool.execute({ filter: 'kind=component' }, { messages: [], toolCallId: 'test' })
         ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
@@ -174,10 +186,41 @@ describe('getMcpTools', () => {
         }));
     });
 
-    test('adds stable suffixes when sanitized tool names collide', async () => {
+    test('caps long model-facing keys while preserving the raw MCP tool name', async () => {
+        const rawToolName = 'get_space_details_by_key_or_id_with_extra_context_for_backstage_catalog_entities';
         const mockClient = createMockMcpClient([
-            { name: 'catalog.query', description: 'Query catalog' },
-            { name: 'catalog_query', description: 'Query catalog with underscore' },
+            { name: rawToolName, description: 'Get space details' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-backstage', serverName: 'Backstage' }),
+        ]);
+
+        const [modelToolName] = Object.keys(result.tools);
+        expect(modelToolName).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
+        expect(modelToolName.length).toBeLessThanOrEqual(64);
+        expect(result.toolDisplayNames[modelToolName]).toBe(rawToolName);
+
+        const tool = result.tools[modelToolName];
+        await expect(
+            tool.execute({}, { messages: [], toolCallId: 'test' })
+        ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
+
+        expect(mockServerToolUpsert).toHaveBeenCalledWith(expect.objectContaining({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-backstage',
+                    toolName: rawToolName,
+                },
+            },
+        }));
+    });
+
+    test('keeps valid hyphenated tool names distinct from underscored names', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'foo-bar', description: 'Hyphenated tool' },
+            { name: 'foo_bar', description: 'Underscored tool' },
         ]);
         mockCreateMCPClient.mockResolvedValue(mockClient);
 
@@ -185,11 +228,10 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'Backstage' }),
         ]);
 
-        const toolNames = Object.keys(result.tools);
-        expect(toolNames).toHaveLength(2);
-        expect(new Set(toolNames).size).toBe(2);
-        expect(toolNames).not.toContain('mcp_backstage__catalog_query');
-        expect(toolNames.every((toolName) => /^mcp_backstage__catalog_query_[0-9a-f]{8}$/.test(toolName))).toBe(true);
+        expect(Object.keys(result.tools)).toEqual([
+            'mcp_backstage__foo-bar',
+            'mcp_backstage__foo_bar',
+        ]);
     });
 
     test('multiple servers produce tools with distinct prefixes', async () => {
@@ -445,6 +487,7 @@ describe('getMcpTools', () => {
         expect(result.tools).toEqual({});
         expect(result.failedServers).toEqual([]);
         expect(result.serverFaviconUrls).toEqual({});
+        expect(result.toolDisplayNames).toEqual({});
         expect(typeof result.cleanup).toBe('function');
     });
 

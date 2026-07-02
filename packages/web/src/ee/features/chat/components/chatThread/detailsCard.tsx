@@ -546,6 +546,7 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
         case 'data-source':
         case 'data-command':
         case 'data-mcp-server':
+        case 'data-mcp-tool':
         case 'data-mcp-failed-server':
         case 'data-attachment':
         case 'file':

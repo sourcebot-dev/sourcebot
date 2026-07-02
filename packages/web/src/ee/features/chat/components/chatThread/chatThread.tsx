@@ -28,7 +28,7 @@ import { duplicateChat } from '@/features/chat/actions';
 import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
-import { McpServerIconContext, McpServerIconMap } from '../../mcpServerIconContext';
+import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpServerIconContext';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
@@ -107,6 +107,18 @@ export const ChatThread = ({
         return map;
     });
 
+    const [mcpToolNameMap, setMcpToolNameMap] = useState<McpToolNameMap>(() => {
+        const map: McpToolNameMap = {};
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-tool')
+                .forEach((part) => {
+                    map[part.data.modelToolName] = part.data.rawToolName;
+                });
+        });
+        return map;
+    });
+
     const [failedMcpServers, setFailedMcpServers] = useState<string[]>(() => {
         const names: string[] = [];
         initialMessages?.forEach((message) => {
@@ -174,6 +186,12 @@ export const ChatThread = ({
                 setMcpServerIconMap((prev) => ({
                     ...prev,
                     [dataPart.data.sanitizedName]: dataPart.data.faviconUrl,
+                }));
+            }
+            if (dataPart.type === 'data-mcp-tool') {
+                setMcpToolNameMap((prev) => ({
+                    ...prev,
+                    [dataPart.data.modelToolName]: dataPart.data.rawToolName,
                 }));
             }
             if (dataPart.type === 'data-mcp-failed-server') {
@@ -378,6 +396,7 @@ export const ChatThread = ({
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
+        <McpToolNameContext.Provider value={mcpToolNameMap}>
         <ChatPaneDropzone
             className="flex flex-col flex-1 min-h-0 w-full"
             onFilesDropped={(files) => chatBoxRef.current?.addFiles(files)}
@@ -526,6 +545,7 @@ export const ChatThread = ({
                 )}
             </div>
         </ChatPaneDropzone>
+        </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
         </ToolApprovalProvider>
     );
