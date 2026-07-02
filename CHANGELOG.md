@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Validated OAuth bearer token scopes before allowing access to the Sourcebot MCP resource server. [#1396](https://github.com/sourcebot-dev/sourcebot/pull/1396)
 - Added HTTP security headers to all web app responses. [#1407](https://github.com/sourcebot-dev/sourcebot/pull/1407)
 - Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
+- Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
 
 ## [5.0.4] - 2026-06-18
 
