@@ -30,15 +30,19 @@ interface BasicSettingsCardProps {
     description?: string;
     children: ReactNode;
     footer?: ReactNode;
+    badge?: ReactNode;
     className?: string;
 }
 
-export function BasicSettingsCard({ name, description, children, footer, className }: BasicSettingsCardProps) {
+export function BasicSettingsCard({ name, description, children, footer, badge, className }: BasicSettingsCardProps) {
     return (
         <SettingsCard className={className}>
             <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{name}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{name}</p>
+                        {badge}
+                    </div>
                     {description && (
                         <p className="text-sm text-muted-foreground mt-1">{description}</p>
                     )}

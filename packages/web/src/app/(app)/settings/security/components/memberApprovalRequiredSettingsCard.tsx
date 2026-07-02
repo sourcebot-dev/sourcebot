@@ -6,13 +6,16 @@ import { setMemberApprovalRequired } from "@/app/(app)/settings/security/actions
 import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 import { BasicSettingsCard } from "@/app/(app)/settings/components/settingsCard"
+import { ManagedByScimBadge } from "@/features/membership/components/managedByScimBadge"
 
 interface MemberApprovalRequiredSettingsCardProps {
     memberApprovalRequired: boolean
+    scimManaged?: boolean
 }
 
 export const MemberApprovalRequiredSettingsCard = ({
     memberApprovalRequired,
+    scimManaged = false,
 }: MemberApprovalRequiredSettingsCardProps) => {
     const [enabled, setEnabled] = useState(memberApprovalRequired)
     const [isLoading, setIsLoading] = useState(false)
@@ -49,11 +52,12 @@ export const MemberApprovalRequiredSettingsCard = ({
         <BasicSettingsCard
             name="Require approval for new members"
             description="When enabled, new users will need approval from an organization owner before they can access your deployment."
+            badge={scimManaged ? <ManagedByScimBadge tooltip="Members are provisioned through your identity provider, so this setting has no effect while SCIM is enabled." /> : undefined}
         >
             <Switch
                 checked={enabled}
                 onCheckedChange={handleToggle}
-                disabled={isLoading}
+                disabled={isLoading || scimManaged}
             />
         </BasicSettingsCard>
     )

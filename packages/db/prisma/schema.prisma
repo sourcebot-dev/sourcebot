@@ -24,6 +24,20 @@ enum ChatVisibility {
   PUBLIC
 }
 
+/// Lifecycle status of an uploaded attachment blob.
+/// PENDING: uploaded but not yet linked to a chat (orphan until a message
+/// referencing it is sent). COMMITTED: linked to at least one chat.
+/// DELETING: condemned tombstone. The row is kept (as the only durable handle
+/// to the bytes) until the stored bytes are confirmed deleted, at which point
+/// the row is removed. A failed byte delete leaves the row DELETING for the
+/// attachment pruner's reclaim sweep to retry, so a transient storage error
+/// can never orphan bytes.
+enum AttachmentStatus {
+  PENDING
+  COMMITTED
+  DELETING
+}
+
 /// @note: The @map annotation is required to maintain backwards compatibility
 /// with the existing database.
 /// @note: In the generated client, these mapped values will be in pascalCase.
@@ -272,8 +286,12 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  scimTokens  ScimToken[]
+  attachments Attachment[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
+
+  isScimEnabled Boolean    @default(false)
 
   /// @deprecated This property can be controlled by the environment
   /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
@@ -397,7 +415,23 @@ model UserToOrg {
 
   role OrgRole @default(MEMBER)
 
+  /// When set, the membership is suspended and the user is treated as a
+  /// non-member for auth purposes (see `getAuthContext`).
+  suspendedAt DateTime?
+
+  /// The IdP-supplied `externalId` for this membership when provisioned via
+  /// SCIM. Null for members that joined through invites or self-serve sign-up.
+  scimExternalId String?
+
+  /// Last time the user performed an authenticated action *in this org*. Unlike
+  /// `User.lastActiveAt` (which is global to the instance), this is scoped to
+  /// the membership, so it distinguishes a member who has been active in this
+  /// org from one who was provisioned but never signed in here. Null means the
+  /// member has never been active in this org.
+  lastActiveAt DateTime?
+
   @@id([orgId, userId])
+  @@unique([orgId, scimExternalId])
 }
 
 model ApiKey {
@@ -412,6 +446,23 @@ model ApiKey {
 
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
+}
+
+/// Org-scoped bearer token presented by an IdP (Okta, Entra) to authenticate
+/// against the SCIM provisioning endpoints. Unlike `ApiKey`, a SCIM token is
+/// not tied to a user — it acts on behalf of the SCIM integration for the
+/// whole org. Only the HMAC hash of the secret is stored.
+model ScimToken {
+  name String
+  hash String @id @unique
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([orgId])
 }
 
 model Audit {
@@ -456,6 +507,7 @@ model User {
   chats Chat[]
   sharedChats ChatAccess[]
   repoVisits RepoVisit[]
+  uploadedAttachments Attachment[]
 
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
@@ -608,6 +660,69 @@ model Chat {
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 
   sharedWith ChatAccess[]
+
+  attachments ChatAttachment[]
+}
+
+/// A user-uploaded binary attachment blob (e.g. an image). The bytes live in
+/// the configured StorageBackend (keyed by `storageKey`), never in the DB.
+/// Attachments are NOT chat-bound: they are uploaded before any chat
+/// association exists, and linked to chats via `ChatAttachment`. Permissions
+/// are derived entirely from the linked chat(s); there are no independent ACLs.
+model Attachment {
+  id String @id @default(cuid())
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  /// Opaque key the StorageBackend uses to locate the bytes.
+  storageKey String
+
+  /// Original (sanitized) filename supplied by the uploader.
+  filename String
+
+  /// Final media type of the stored bytes (validated by decoding at upload).
+  mediaType String
+
+  /// Size of the stored bytes.
+  sizeBytes Int
+
+  /// Hex SHA-256 of the stored bytes (integrity / debugging; not used for dedup).
+  checksum String
+
+  /// The user who uploaded this blob. Uploads require authentication, so this
+  /// is set at creation (anonymous users cannot upload binary attachments). It
+  /// is nulled if the uploader is later deleted, so committed attachments
+  /// survive on the chats they're linked to.
+  uploadedBy   User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedById String?
+
+  status AttachmentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  chats ChatAttachment[]
+
+  @@index([status, createdAt])
+}
+
+/// Join table linking an `Attachment` blob to a `Chat`. This is the linker
+/// that makes chat duplication metadata-only (no byte copy) and keeps
+/// attachment access purely chat-derived. Deleting a chat cascades these rows;
+/// a separate sweep deletes `Attachment`s left with zero links (and their bytes).
+model ChatAttachment {
+  id String @id @default(cuid())
+
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  attachmentId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([chatId, attachmentId])
+  @@index([attachmentId])
 }
 
 /// Represents a user's access to a chat that has been shared with them.
@@ -653,7 +768,9 @@ model OAuthAuthorizationCode {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   redirectUri   String
   codeChallenge String // BASE64URL(SHA-256(codeVerifier))
+  scope         String      @default("")
   resource      String? // RFC 8707: canonical URI of the target resource server
+  dpopJkt       String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt     DateTime
   createdAt     DateTime    @default(now())
 }
@@ -667,6 +784,7 @@ model OAuthRefreshToken {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   scope     String      @default("")
   resource  String? // RFC 8707
+  dpopJkt   String? // RFC 9449
   expiresAt DateTime
   createdAt DateTime    @default(now())
 
@@ -682,6 +800,7 @@ model OAuthToken {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   scope      String      @default("")
   resource   String? // RFC 8707: canonical URI of the target resource server
+  dpopJkt    String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt  DateTime
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
