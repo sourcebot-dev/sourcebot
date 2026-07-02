@@ -10,17 +10,20 @@ import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, OPTIONAL_PROVID
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
-import { PendingApprovalCard } from "./components/pendingApproval";
-import { SubmitJoinRequest } from "./components/submitJoinRequest";
+import { PendingApprovalCard } from "../../features/membership/components/pendingApprovalCard";
+import { SubmitJoinRequestCard } from "../../features/membership/components/submitJoinRequestCard";
+import { NotProvisionedCard } from "@/features/membership/components/notProvisionedCard";
+import { isScimEnabled } from "@/features/scim/utils";
 import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION, isMemberApprovalRequired } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
+import { JoinOrganizationCard } from "@/features/membership/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { BannerSlot } from "./components/banners/bannerSlot";
 import { BannerHeightObserver } from "./components/banners/bannerHeightObserver";
+import { activeOrPendingMembershipWhere } from "@/features/membership/utils";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
 import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -63,8 +66,9 @@ export default async function Layout(props: LayoutProps) {
             where: {
                 orgId_userId: {
                     orgId: org.id,
-                    userId: session.user.id
-                }
+                    userId: session.user.id,
+                },
+                ...activeOrPendingMembershipWhere(),
             },
             include: {
                 user: true
@@ -76,26 +80,25 @@ export default async function Layout(props: LayoutProps) {
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            if (!isMemberApprovalRequired(org)) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center p-6">
-                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                        <JoinOrganizationCard />
-                    </div>
-                )
-            } else {
-                const hasPendingApproval = await __unsafePrisma.accountRequest.findFirst({
-                    where: {
-                        orgId: org.id,
-                        requestedById: session.user.id
-                    }
-                });
+            if (await isScimEnabled(org)) {
+                return <NotProvisionedCard />;
+            }
 
-                if (hasPendingApproval) {
-                    return <PendingApprovalCard />
-                } else {
-                    return <SubmitJoinRequest />
+            if (!isMemberApprovalRequired(org)) {
+                return <JoinOrganizationCard />;
+            }
+
+            const hasPendingApproval = await __unsafePrisma.accountRequest.findFirst({
+                where: {
+                    orgId: org.id,
+                    requestedById: session.user.id
                 }
+            });
+
+            if (hasPendingApproval) {
+                return <PendingApprovalCard />
+            } else {
+                return <SubmitJoinRequestCard />
             }
         }
 

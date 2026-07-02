@@ -59,6 +59,8 @@ export const lookupModelCapabilities = (
 export const resolveModelCapabilities = async (
     config: Pick<LanguageModel, 'provider' | 'model'>,
 ): Promise<ModelCapabilities> => {
-    const catalog = await loadCatalog();
+    // Block on the first (cold) fetch so capabilities resolve correctly instead
+    // of degrading to text-only right after start. Bounded/one-time (see loadCatalog).
+    const catalog = await loadCatalog({ awaitWhenEmpty: true });
     return lookupModelCapabilities(catalog, config);
 };
