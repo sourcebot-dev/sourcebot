@@ -17,6 +17,7 @@ interface ChatThreadPanelProps {
     isOwner: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
+    maxImageBytes: number;
     chatName?: string;
 }
 
@@ -36,6 +37,7 @@ export const ChatThreadPanel = ({
     isOwner,
     isAuthenticated,
     isLoginWallEnabled,
+    maxImageBytes,
     chatName,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
@@ -90,6 +92,7 @@ export const ChatThreadPanel = ({
                 isOwner={isOwner}
                 isAuthenticated={isAuthenticated}
                 isLoginWallEnabled={isLoginWallEnabled}
+                maxImageBytes={maxImageBytes}
                 chatName={chatName}
             />
         </div>

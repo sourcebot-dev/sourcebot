@@ -1,12 +1,14 @@
 import 'server-only';
 
 import { getAnonymousId } from '@/lib/anonymousId';
-import { Chat, Prisma, PrismaClient, User } from '@sourcebot/db';
+import { AttachmentStatus, Chat, ChatVisibility, Prisma, PrismaClient, User } from '@sourcebot/db';
 import { LanguageModel } from '@sourcebot/schemas/v3/languageModel.type';
-import { createLogger, env, loadConfig } from '@sourcebot/shared';
+import { createLogger, env, getStorageBackend, loadConfig } from '@sourcebot/shared';
 import fs from 'fs';
 import path from 'path';
-import { LanguageModelInfo, SBChatMessage } from './types';
+import { BlobAttachment, LanguageModelInfo, SBChatMessage } from './types';
+import { getUserMessageAttachments } from './utils';
+import { ATTACHMENT_MAX_IMAGE_COUNT } from './constants';
 import { resolveModelCapabilities } from './modelCapabilities.server';
 import { loadCatalog } from './modelsDevCatalog.server';
 import { hasEntitlement } from '@/lib/entitlements';
@@ -15,6 +17,11 @@ import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 
 const logger = createLogger('chat-utils');
+
+// Thrown inside the attachment-commit transaction when the atomic claim matches
+// fewer rows than expected (a concurrent send claimed one first), so the whole
+// transaction rolls back and we can surface a typed 400.
+class AttachmentClaimConflictError extends Error {}
 
 /**
  * Returns a FORBIDDEN ServiceError when the deployment lacks the `ask`
@@ -79,6 +86,207 @@ export const isChatSharedWithUser = async ({
     });
 
     return share !== null;
+};
+
+/**
+ * Resolves a (possibly anonymous) user's access to a chat. This is the single
+ * source of truth for the "can view this chat" rule, shared by `getChatInfo`
+ * and the attachment serving route so the two cannot drift: a PUBLIC chat is
+ * viewable by anyone in the org; a PRIVATE chat only by its owner or users it
+ * has been explicitly shared with.
+ */
+export const resolveChatAccess = async ({
+    prisma, chat, user,
+}: {
+    prisma: PrismaClient;
+    chat: Chat;
+    user: User | undefined;
+}): Promise<{ isOwner: boolean; isSharedWithUser: boolean; canView: boolean }> => {
+    const isOwner = await isOwnerOfChat(chat, user);
+    const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId: chat.id, userId: user?.id });
+    const canView = chat.visibility !== ChatVisibility.PRIVATE || isOwner || isSharedWithUser;
+    return { isOwner, isSharedWithUser, canView };
+};
+
+/**
+ * Verifies and commits the binary (blob) attachments referenced by the latest
+ * user message, then links them to the chat. Each referenced `attachmentId`
+ * must exist in this org, have been uploaded by this user, and still be
+ * `PENDING` (never trust client ids). Already-linked ids are treated as a
+ * no-op so re-sends / approval continuations are idempotent. On success the
+ * blobs are linked via `ChatAttachment` and flipped to `COMMITTED`.
+ *
+ * Returns a `ServiceError` to reject the request, or `null` when there is
+ * nothing to commit / the commit succeeded.
+ */
+export const commitMessageAttachments = async ({
+    prisma, chatId, orgId, userId, message,
+}: {
+    prisma: PrismaClient;
+    chatId: string;
+    orgId: number;
+    userId: string | undefined;
+    message: Pick<SBChatMessage, 'parts'> | undefined;
+}): Promise<ServiceError | null> => {
+    if (!message) {
+        return null;
+    }
+
+    const blobRefs = getUserMessageAttachments(message)
+        .filter((attachment): attachment is BlobAttachment => attachment.kind === 'blob');
+
+    if (blobRefs.length === 0) {
+        return null;
+    }
+
+    // Authoritative per-message image cap (the client mirror can't be trusted).
+    if (blobRefs.length > ATTACHMENT_MAX_IMAGE_COUNT) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `You can attach at most ${ATTACHMENT_MAX_IMAGE_COUNT} images per message.`,
+        } satisfies ServiceError;
+    }
+
+    // Anonymous users cannot upload binary attachments, so a blob ref from an
+    // unauthenticated request can only be a forged/replayed id.
+    if (!userId) {
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: 'Anonymous users cannot attach files.',
+        } satisfies ServiceError;
+    }
+
+    const ids = [...new Set(blobRefs.map((ref) => ref.attachmentId))];
+
+    const [attachments, existingLinks] = await Promise.all([
+        prisma.attachment.findMany({ where: { id: { in: ids }, orgId } }),
+        prisma.chatAttachment.findMany({ where: { chatId, attachmentId: { in: ids } } }),
+    ]);
+
+    const attachmentById = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+    const alreadyLinkedIds = new Set(existingLinks.map((link) => link.attachmentId));
+
+    const idsToCommit: string[] = [];
+    for (const id of ids) {
+        // Already linked to this chat (idempotent re-send): nothing to do.
+        if (alreadyLinkedIds.has(id)) {
+            continue;
+        }
+
+        const attachment = attachmentById.get(id);
+        if (
+            !attachment ||
+            attachment.uploadedById !== userId ||
+            attachment.status !== AttachmentStatus.PENDING
+        ) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: 'Invalid or unauthorized attachment reference.',
+            } satisfies ServiceError;
+        }
+        idsToCommit.push(id);
+    }
+
+    if (idsToCommit.length > 0) {
+        try {
+            await prisma.$transaction(async (tx) => {
+                // Atomically claim the uploads: only rows still PENDING and owned
+                // by this user/org flip to COMMITTED. The pre-checks above can go
+                // stale, so if fewer rows match than we intend to commit, another
+                // send already claimed one — abort the whole commit.
+                const claimed = await tx.attachment.updateMany({
+                    where: {
+                        id: { in: idsToCommit },
+                        orgId,
+                        uploadedById: userId,
+                        status: AttachmentStatus.PENDING,
+                    },
+                    data: { status: AttachmentStatus.COMMITTED },
+                });
+                if (claimed.count !== idsToCommit.length) {
+                    throw new AttachmentClaimConflictError();
+                }
+                await tx.chatAttachment.createMany({
+                    data: idsToCommit.map((attachmentId) => ({ chatId, attachmentId })),
+                    skipDuplicates: true,
+                });
+            });
+        } catch (error) {
+            if (error instanceof AttachmentClaimConflictError) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'Invalid or unauthorized attachment reference.',
+                } satisfies ServiceError;
+            }
+            throw error;
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Reclaims any of the given attachments that no longer have a `ChatAttachment`
+ * link, along with their stored bytes. Bytes are never removed by DB cascade,
+ * so this is the refcount-aware byte sweep invoked after a chat (and its links)
+ * is deleted.
+ *
+ * Uses the tombstone protocol so a transient storage error can never orphan
+ * bytes: an orphan is first atomically flipped to `DELETING` (the claim doubles
+ * as the concurrency guard — a row re-linked by a parallel duplicate-chat keeps
+ * a link and is skipped), then its bytes are deleted inline for low latency, and
+ * only then is the row removed. Any row whose byte delete fails is left
+ * `DELETING` for the backend pruner's reclaim sweep to retry.
+ */
+export const deleteOrphanedAttachments = async ({
+    prisma, attachmentIds,
+}: {
+    prisma: PrismaClient;
+    attachmentIds: string[];
+}): Promise<void> => {
+    if (attachmentIds.length === 0) {
+        return;
+    }
+
+    // Atomically claim the orphans (committed blobs left with zero links) by
+    // flipping them to DELETING. A row re-linked concurrently still has a link,
+    // so `chats: { none: {} }` excludes it and it survives untouched.
+    const claimed = await prisma.attachment.updateMany({
+        where: {
+            id: { in: attachmentIds },
+            status: AttachmentStatus.COMMITTED,
+            chats: { none: {} },
+        },
+        data: { status: AttachmentStatus.DELETING },
+    });
+
+    if (claimed.count === 0) {
+        return;
+    }
+
+    const tombstoned = await prisma.attachment.findMany({
+        where: { id: { in: attachmentIds }, status: AttachmentStatus.DELETING },
+        select: { id: true, storageKey: true },
+    });
+
+    // Best-effort inline byte delete for low latency. Rows whose bytes are
+    // confirmed gone are removed now; the rest stay DELETING for the pruner.
+    const storage = getStorageBackend();
+    const settled = await Promise.allSettled(
+        tombstoned.map((attachment) => storage.delete(attachment.storageKey)));
+    const reclaimedIds = tombstoned
+        .filter((_, index) => settled[index].status === 'fulfilled')
+        .map((attachment) => attachment.id);
+
+    if (reclaimedIds.length > 0) {
+        await prisma.attachment.deleteMany({
+            where: { id: { in: reclaimedIds }, status: AttachmentStatus.DELETING },
+        });
+    }
 };
 
 export const updateChatMessages = async ({

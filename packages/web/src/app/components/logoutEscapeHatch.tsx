@@ -1,5 +1,7 @@
+"use client";
+
 import { LogOutIcon } from "lucide-react";
-import { signOut } from "@/auth";
+import { signOut } from "next-auth/react";
 import posthog from "posthog-js";
 
 interface LogoutEscapeHatchProps {
@@ -11,24 +13,20 @@ export const LogoutEscapeHatch = ({
 }: LogoutEscapeHatchProps) => {
     return (
         <div className={className}>
-            <form
-                action={async () => {
-                    "use server";
-                    await signOut({
+            <button
+                type="button"
+                onClick={() => {
+                    signOut({
                         redirectTo: "/login",
                     }).then(() => {
                         posthog.reset();
                     });
                 }}
+                className="flex flex-row items-center gap-2 text-sm text-muted-foreground cursor-pointer"
             >
-                <button
-                    type="submit"
-                    className="flex flex-row items-center gap-2 text-sm text-muted-foreground cursor-pointer"
-                >
-                    <LogOutIcon className="w-4 h-4" />
-                    Log out
-                </button>
-            </form>
+                <LogOutIcon className="w-4 h-4" />
+                Log out
+            </button>
         </div>
     );
 }

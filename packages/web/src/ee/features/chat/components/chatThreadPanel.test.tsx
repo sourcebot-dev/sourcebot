@@ -79,6 +79,8 @@ describe('ChatThreadPanel', () => {
                 messages={[]}
                 isOwner={true}
                 isAuthenticated={true}
+                isLoginWallEnabled={false}
+                maxImageBytes={10 * 1024 * 1024}
             />
         );
 
