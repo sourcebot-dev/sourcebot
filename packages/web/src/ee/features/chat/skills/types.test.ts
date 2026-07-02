@@ -1,0 +1,277 @@
+import { describe, expect, test } from "vitest";
+import {
+    agentSkillInputSchema,
+    normalizeAgentSkillSlug,
+    parseAgentSkillMarkdown,
+    sortAgentSkillListItems,
+    toSharedAgentSkillCatalogItem,
+    toSharedAgentSkillManagementItem,
+    type AgentSkillListItem,
+} from "./types";
+
+describe("normalizeAgentSkillSlug", () => {
+    test("turns display text into a slash-command slug", () => {
+        expect(normalizeAgentSkillSlug("Review PR for Risky Changes")).toBe("review-pr-for-risky-changes");
+    });
+
+    test("removes unsupported leading and trailing characters", () => {
+        expect(normalizeAgentSkillSlug("  /Release Notes!!!  ")).toBe("release-notes");
+    });
+});
+
+describe("agentSkillInputSchema", () => {
+    test("normalizes slug before validation", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "PR review",
+            slug: "PR Review",
+            description: "Review a pull request.",
+            instructions: "Find correctness issues.",
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.slug).toBe("pr-review");
+        }
+    });
+
+    test("rejects empty normalized slug", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "PR review",
+            slug: "!!!",
+            description: "Review a pull request.",
+            instructions: "Find correctness issues.",
+        });
+
+        expect(result.success).toBe(false);
+    });
+
+    test("allows an empty description", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "PR review",
+            slug: "pr-review",
+            description: "",
+            instructions: "Find correctness issues.",
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.description).toBe("");
+        }
+    });
+});
+
+describe("sortAgentSkillListItems", () => {
+    const skill = (overrides: Partial<AgentSkillListItem>): AgentSkillListItem => ({
+        id: "skill",
+        scope: "PERSONAL" as AgentSkillListItem["scope"],
+        slug: "skill",
+        name: "Skill",
+        description: "Description.",
+        instructions: "Instructions.",
+        enabled: true,
+        source: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        ...overrides,
+    });
+
+    test("sorts by updated date descending, then name ascending", () => {
+        const skills = [
+            skill({ id: "older", name: "Older", updatedAt: "2026-01-01T00:00:00.000Z" }),
+            skill({ id: "z-newer", name: "Z newer", updatedAt: "2026-01-02T00:00:00.000Z" }),
+            skill({ id: "a-newer", name: "A newer", updatedAt: "2026-01-02T00:00:00.000Z" }),
+        ];
+
+        expect(sortAgentSkillListItems(skills).map((item) => item.id)).toEqual([
+            "a-newer",
+            "z-newer",
+            "older",
+        ]);
+        expect(skills.map((item) => item.id)).toEqual(["older", "z-newer", "a-newer"]);
+    });
+});
+
+describe("toSharedAgentSkillCatalogItem", () => {
+    test("includes instructions, creator email, and repo provenance for the detail view", () => {
+        const item = toSharedAgentSkillCatalogItem({
+            id: "skill-1",
+            visibility: "SHARED",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            instructions: "Review the diff carefully.",
+            enabled: true,
+            autoEnrolled: true,
+            createdById: "user-1",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            adoptions: [{ id: "adoption-1", removedAt: null }],
+            createdBy: { email: "author@example.com" },
+        }, "user-1");
+
+        expect(item).toEqual({
+            id: "skill-1",
+            scope: "SHARED",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            instructions: "Review the diff carefully.",
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+            createdByEmail: "author@example.com",
+            enabled: true,
+            autoEnrolled: true,
+            isAdopted: true,
+            isRemoved: false,
+            isVisibleToUser: true,
+            isCreatedByUser: true,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+        });
+        expect(item).not.toHaveProperty("author");
+        expect(item).not.toHaveProperty("createdById");
+    });
+
+    test("falls back to a null email and null source when neither is present", () => {
+        const item = toSharedAgentSkillCatalogItem({
+            id: "skill-2",
+            visibility: "SHARED",
+            slug: "deploy",
+            name: "Deploy",
+            description: "",
+            instructions: "Ship it.",
+            enabled: true,
+            autoEnrolled: false,
+            createdById: "user-2",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            adoptions: [],
+            createdBy: null,
+        }, "user-1");
+
+        expect(item.createdByEmail).toBeNull();
+        expect(item.isCreatedByUser).toBe(false);
+        expect(item.source).toBeNull();
+    });
+});
+
+describe("toSharedAgentSkillManagementItem", () => {
+    test("contains global management fields without requester adoption state", () => {
+        const item = toSharedAgentSkillManagementItem({
+            id: "skill-1",
+            visibility: "SHARED",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            enabled: true,
+            autoEnrolled: false,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdBy: { email: "author@example.com" },
+        });
+
+        expect(item).toEqual({
+            id: "skill-1",
+            scope: "SHARED",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            enabled: true,
+            autoEnrolled: false,
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+            createdByEmail: "author@example.com",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+        });
+        expect(item).not.toHaveProperty("instructions");
+        expect(item).not.toHaveProperty("isAdopted");
+        expect(item).not.toHaveProperty("isVisibleToUser");
+        expect(item).not.toHaveProperty("isCreatedByUser");
+    });
+
+    test("maps a manual skill to a null source and a null creator email", () => {
+        const item = toSharedAgentSkillManagementItem({
+            id: "skill-2",
+            visibility: "SHARED",
+            slug: "deploy",
+            name: "Deploy",
+            description: "",
+            enabled: true,
+            autoEnrolled: true,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            createdBy: null,
+        });
+
+        expect(item.source).toBeNull();
+        expect(item.createdByEmail).toBeNull();
+    });
+});
+
+describe("parseAgentSkillMarkdown", () => {
+    test("prefers an explicit slug from front matter over the name", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: PR Review
+slug: review-pr
+description: Review a pull request for risky changes.
+---
+# Workflow
+
+Look for bugs first.
+`, "ignored.md");
+
+        expect(result).toEqual({
+            name: "PR Review",
+            slug: "review-pr",
+            description: "Review a pull request for risky changes.",
+            instructions: "# Workflow\n\nLook for bugs first.",
+            hasFrontmatter: true,
+        });
+    });
+
+    test("prefers an explicit command over the title-derived slug", () => {
+        const result = parseAgentSkillMarkdown(`---
+title: Release notes
+command: /release
+description: Draft user-facing release notes.
+---
+Summarize merged changes.
+`);
+
+        expect(result.name).toBe("Release notes");
+        expect(result.slug).toBe("release");
+        expect(result.description).toBe("Draft user-facing release notes.");
+        expect(result.instructions).toBe("Summarize merged changes.");
+    });
+
+    test("derives the slug from the name when no explicit slug is given", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: Release notes
+description: Draft user-facing release notes.
+---
+Summarize merged changes.
+`);
+
+        expect(result.slug).toBe("release-notes");
+    });
+
+    test("falls back to the filename when no front matter exists", () => {
+        const result = parseAgentSkillMarkdown("Use short answers.", "short-answers.md");
+
+        expect(result.name).toBe("Short Answers");
+        expect(result.slug).toBe("short-answers");
+        expect(result.instructions).toBe("Use short answers.");
+        expect(result.hasFrontmatter).toBe(false);
+    });
+});

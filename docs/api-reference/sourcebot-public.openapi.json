@@ -576,6 +576,9 @@
           },
           "externalWebUrl": {
             "type": "string"
+          },
+          "blobSha": {
+            "type": "string"
           }
         },
         "required": [

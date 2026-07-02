@@ -241,6 +241,22 @@ export type PosthogEventMap = {
         durationMs: number,
         failureReason?: string,
     },
+    // Fired when an agent skill is invoked, either automatically by the model
+    // (activationMethod: 'auto', via the load_skill tool) or manually by the
+    // user (activationMethod: 'manual', via a slash command). Multi-source, so
+    // no wa_ prefix; source identifies the origin.
+    ask_skill_invoked: {
+        chatId?: string,
+        traceId?: string,
+        source: AskMcpAnalyticsSource,
+        activationMethod: 'auto' | 'manual',
+        skillId: string,
+        slug?: string,
+        name?: string,
+        sourceLabel?: string,
+        success: boolean,
+        durationMs?: number,
+    },
     ask_mcp_connector_added: {
         source: SourcebotWebClientSource,
         entryPoint: 'workspace_settings',

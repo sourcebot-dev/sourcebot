@@ -36,6 +36,8 @@ import { AlertTriangleIcon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
+import { WorkspaceSharedSkillsManager } from "@/ee/features/chat/skills/components/workspaceSharedSkillsManager";
+import type { SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 function clearCallbackParams() {
@@ -55,6 +57,9 @@ interface WorkspaceAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     oauthRedirectUrl: string;
+    initialOrgSkills: SharedAgentSkillManagementItem[];
+    // Pre-fills the shared-skills search box (deep link from the account page).
+    initialSkillSearch?: string;
 }
 
 type WorkspaceConnectorStatus = {
@@ -341,7 +346,7 @@ function WorkspaceConnectorCard({
     );
 }
 
-export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl }: WorkspaceAskAgentPageProps) {
+export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl, initialOrgSkills, initialSkillSearch }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -416,6 +421,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const servers = data?.servers ?? [];
     const canCreateConnectors = data?.isAskAgentAvailable === true;
     const isAskAgentUnavailable = data?.isAskAgentAvailable === false;
+    const canManageWorkspaceSkills = data?.isAskAgentAvailable === true;
     const connectedServerCount = useMemo(
         () => serversWithStatus?.filter((server) => server.isConnected).length ?? 0,
         [serversWithStatus],
@@ -755,6 +761,13 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         </p>
                     </div>
                 </div>
+            )}
+
+            {canManageWorkspaceSkills && (
+                <>
+                    <WorkspaceSharedSkillsManager initialOrgSkills={initialOrgSkills} initialSearch={initialSkillSearch} />
+                    <Separator />
+                </>
             )}
 
             {/* Connectors section */}

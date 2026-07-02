@@ -12,11 +12,13 @@ import { useLocalStorage } from "usehooks-ts";
 import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { SearchModeSelector } from "../../components/searchModeSelector";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
+import type { AskCommandDefinition } from "@/features/chat/commands/types";
 
 interface LandingPageChatBox {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
+    askCommands: AskCommandDefinition[];
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
     maxImageBytes: number;
@@ -26,6 +28,7 @@ export const LandingPageChatBox = ({
     languageModels,
     repos,
     searchContexts,
+    askCommands,
     isAuthenticated,
     isLoginWallEnabled,
     maxImageBytes,
@@ -49,6 +52,7 @@ export const LandingPageChatBox = ({
                     isRedirecting={isLoading}
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
+                    askCommands={askCommands}
                     isDisabled={isChatBoxDisabled}
                     isAuthenticated={isAuthenticated}
                     isLoginWallEnabled={isLoginWallEnabled}

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
-import { forwardRef, Fragment, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, Fragment, KeyboardEvent, memo, Ref, type ReactNode, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
@@ -30,6 +30,9 @@ import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHA
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
+import type { AskCommandDefinition, CommandMentionData } from "@/features/chat/commands/types";
+import { shouldUsePlainComposerEnterBehavior } from "./keyboard";
+import { SourceLabelBadge } from "./sourceLabelBadge";
 
 export interface ChatBoxHandle {
     addFiles: (files: File[]) => void;
@@ -55,6 +58,7 @@ interface ChatBoxProps {
     isDisabled?: boolean;
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
+    askCommands: AskCommandDefinition[];
     isLoginWallEnabled: boolean;
     isAuthenticated: boolean;
     // Authoritative per-image byte cap from the server
@@ -77,6 +81,7 @@ const ChatBoxComponent = ({
     selectedSearchScopes,
     searchContexts,
     maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
+    askCommands,
 }: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -100,6 +105,7 @@ const ChatBoxComponent = ({
 
             return [];
         }).flat(),
+        askCommands,
     });
     const { selectedLanguageModel } = useSelectedLanguageModel();
     const { toast } = useToast();
@@ -260,13 +266,17 @@ const ChatBoxComponent = ({
         },
     }), [onAddFiles]);
 
-    // Reset the index when the suggestion mode changes.
+    // Reset the index when the active suggestion set changes.
     useEffect(() => {
         setIndex(0);
-    }, [suggestionMode]);
+    }, [suggestionMode, suggestionQuery]);
 
     // Hotkey to focus the chat box.
     useHotkeys("/", (e) => {
+        if (ReactEditor.isFocused(editor)) {
+            return;
+        }
+
         e.preventDefault();
         ReactEditor.focus(editor);
     });
@@ -508,14 +518,20 @@ const ChatBoxComponent = ({
                     revision: suggestion.revision,
                 }, range);
                 break;
-            case 'refine': {
-                switch (suggestion.targetSuggestionMode) {
-                    case 'file':
-                        insertText(editor, 'file:');
-                        break;
-                }
+            case 'command':
+                insertMention(editor, {
+                    type: 'command',
+                    commandId: suggestion.id,
+                    sourceId: suggestion.sourceId,
+                    slug: suggestion.slug,
+                    name: suggestion.name,
+                    sourceLabel: suggestion.sourceLabel,
+                }, range);
+                insertText(editor, ' ');
                 break;
-            }
+            case 'refine':
+                insertText(editor, 'file:');
+                break;
         }
         ReactEditor.focus(editor);
     }, [editor, range]);
@@ -531,7 +547,7 @@ const ChatBoxComponent = ({
             rawPasteRequestedRef.current = true;
         }
 
-        if (suggestionMode === "none") {
+        if (shouldUsePlainComposerEnterBehavior(suggestionMode, suggestions.length)) {
             switch (event.key) {
                 case 'Enter': {
                     if (event.shiftKey) {
@@ -568,6 +584,9 @@ const ChatBoxComponent = ({
                 case 'Enter': {
                     event.preventDefault();
                     const suggestion = suggestions[index];
+                    if (!suggestion) {
+                        break;
+                    }
                     onInsertSuggestion(suggestion);
                     break;
                 }
@@ -782,42 +801,117 @@ const MentionComponent = ({
 
     if (data.type === 'file') {
         return (
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <span
-                        {...attributes}
-                        contentEditable={false}
-                        className={cn(
-                            "px-1.5 py-0.5 mr-1.5 mb-1 align-baseline inline-block rounded bg-muted text-xs font-mono",
-                            {
-                                "ring-2 ring-blue-300": selected && focused
-                            }
-                        )}
-                    >
-                        <span contentEditable={false} className="flex flex-row items-center select-none">
-                            {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
-                            {isMac ? (
-                                <Fragment>
-                                    {children}
-                                    <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
-                                    {data.name}
-                                </Fragment>
-                            ) : (
-                                <Fragment>
-                                    <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
-                                    {data.name}
-                                    {children}
-                                </Fragment>
-                            )}
-                        </span>
-                    </span>
-                </TooltipTrigger>
-                <TooltipContent>
+            <MentionChip
+                attributes={attributes}
+                content={
+                    <Fragment>
+                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
+                        {data.name}
+                    </Fragment>
+                }
+                focused={focused}
+                isMac={isMac}
+                selected={selected}
+                tooltipContent={
                     <span className="text-xs font-mono">
                         <span className="font-medium">{data.repo.split('/').pop()}</span>/{data.path}
                     </span>
-                </TooltipContent>
-            </Tooltip>
+                }
+            >
+                {children}
+            </MentionChip>
         )
     }
+
+    if (data.type === 'command') {
+        return (
+            <MentionChip
+                attributes={attributes}
+                content={
+                    <span className="inline-flex items-center gap-1">
+                        <span>{`/${data.slug}`}</span>
+                        {data.sourceLabel && (
+                            <SourceLabelBadge>{data.sourceLabel}</SourceLabelBadge>
+                        )}
+                    </span>
+                }
+                focused={focused}
+                isMac={isMac}
+                selected={selected}
+                tooltipContent={<CommandMentionTooltip data={data} />}
+            >
+                {children}
+            </MentionChip>
+        )
+    }
+
+    return null;
+}
+
+const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
+    return (
+        <span className="flex flex-col gap-1 text-xs">
+            <span className="flex items-center gap-1.5">
+                <span>{data.name}</span>
+                {data.sourceLabel && (
+                    <SourceLabelBadge>{data.sourceLabel}</SourceLabelBadge>
+                )}
+            </span>
+        </span>
+    );
+};
+
+interface MentionChipProps {
+    attributes: RenderElementPropsFor<MentionElement>["attributes"];
+    children: ReactNode;
+    content: ReactNode;
+    focused: boolean;
+    isMac: boolean;
+    selected: boolean;
+    tooltipContent: ReactNode;
+}
+
+const MentionChip = ({
+    attributes,
+    children,
+    content,
+    focused,
+    isMac,
+    selected,
+    tooltipContent,
+}: MentionChipProps) => {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span
+                    {...attributes}
+                    contentEditable={false}
+                    className={cn(
+                        "px-1.5 py-0.5 mr-1.5 mb-1 align-baseline inline-block rounded bg-muted text-xs font-mono",
+                        {
+                            "ring-2 ring-blue-300": selected && focused
+                        }
+                    )}
+                >
+                    <span contentEditable={false} className="flex flex-row items-center select-none">
+                        {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
+                        {isMac ? (
+                            <Fragment>
+                                {children}
+                                {content}
+                            </Fragment>
+                        ) : (
+                            <Fragment>
+                                {content}
+                                {children}
+                            </Fragment>
+                        )}
+                    </span>
+                </span>
+            </TooltipTrigger>
+            <TooltipContent>
+                {tooltipContent}
+            </TooltipContent>
+        </Tooltip>
+    )
 }

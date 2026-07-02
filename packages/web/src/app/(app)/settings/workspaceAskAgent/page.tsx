@@ -4,12 +4,17 @@ import { OrgRole } from "@sourcebot/db";
 import { getMcpOAuthCallbackUrl } from "@/ee/features/chat/mcp/utils.server";
 import { WorkspaceAskAgentPage } from "./workspaceAskAgentPage";
 import { WorkspaceAskAgentEntitlementMessage } from "./workspaceAskAgentEntitlementMessage";
+import { listSharedAgentSkillManagement } from "@/ee/features/chat/skills/actions";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
 
 interface PageProps extends Record<string, unknown> {
     searchParams: Promise<{
         status?: string;
         server?: string;
         message?: string;
+        // Pre-fills the shared-skills search box (deep link from the account page).
+        skillSearch?: string;
     }>;
 }
 
@@ -20,7 +25,8 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
     // render it for teardown (the page itself disables "add" and only allows
     // removal in that state). We only show the upsell when there is nothing to
     // clean up.
-    if (!(await hasEntitlement("ask"))) {
+    const hasAskEntitlement = await hasEntitlement("ask");
+    if (!hasAskEntitlement) {
         const serverCount = await prisma.mcpServer.count({
             where: { orgId: org.id },
         });
@@ -30,7 +36,11 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
         }
     }
 
-    const { status, server, message } = await searchParams;
+    const { status, server, message, skillSearch } = await searchParams;
+    const orgSkills = hasAskEntitlement ? await listSharedAgentSkillManagement() : [];
+    if (isServiceError(orgSkills)) {
+        throw new ServiceErrorException(orgSkills);
+    }
 
     return (
         <WorkspaceAskAgentPage
@@ -38,6 +48,8 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
             callbackServer={server}
             callbackMessage={message}
             oauthRedirectUrl={getMcpOAuthCallbackUrl()}
+            initialOrgSkills={orgSkills}
+            initialSkillSearch={skillSearch}
         />
     );
 }, { minRole: OrgRole.OWNER, redirectTo: '/settings' });
