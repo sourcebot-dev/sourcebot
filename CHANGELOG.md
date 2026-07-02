@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
+- [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
 
 ## [5.0.4] - 2026-06-18
 
