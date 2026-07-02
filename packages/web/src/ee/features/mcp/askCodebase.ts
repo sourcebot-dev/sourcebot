@@ -4,7 +4,7 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
@@ -20,6 +20,7 @@ import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 
 const logger = createLogger('ask-codebase-api');
+type ConfiguredLanguageModel = Awaited<ReturnType<typeof getConfiguredLanguageModels>>[number];
 
 export type AskCodebaseParams = {
     query: string;
@@ -34,6 +35,64 @@ export type AskCodebaseResult = {
     chatId: string;
     chatUrl: string;
     languageModel: LanguageModelInfo;
+};
+
+const formatLanguageModelName = (model: Pick<LanguageModelInfo, 'provider' | 'model'>) =>
+    `${model.provider}/${model.model}`;
+
+const formatConfiguredLanguageModelLabel = (model: Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>) =>
+    model.displayName ? `'${model.displayName}'` : formatLanguageModelName(model);
+
+export const selectConfiguredLanguageModel = (
+    configuredModels: ConfiguredLanguageModel[],
+    requestedLanguageModel: Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>
+): {
+    languageModelConfig?: ConfiguredLanguageModel;
+    error?: ServiceError;
+} => {
+    const candidateModels = configuredModels.filter(
+        (model) => model.provider === requestedLanguageModel.provider && model.model === requestedLanguageModel.model
+    );
+    if (candidateModels.length === 0) {
+        return {
+            error: {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Language model '${formatLanguageModelName(requestedLanguageModel)}' is not configured.`,
+            } satisfies ServiceError,
+        };
+    }
+
+    if (requestedLanguageModel.displayName) {
+        const matchingModel = candidateModels.find(
+            (model) => model.displayName === requestedLanguageModel.displayName
+        );
+        if (!matchingModel) {
+            const availableDisplayNames = candidateModels.map(formatConfiguredLanguageModelLabel).join(', ');
+            return {
+                error: {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Language model '${formatLanguageModelName(requestedLanguageModel)}' is configured, but not with displayName '${requestedLanguageModel.displayName}'. Available matches: ${availableDisplayNames}.`,
+                } satisfies ServiceError,
+            };
+        }
+
+        return { languageModelConfig: matchingModel };
+    }
+
+    if (candidateModels.length > 1) {
+        const availableDisplayNames = candidateModels.map(formatConfiguredLanguageModelLabel).join(', ');
+        return {
+            error: {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Language model '${formatLanguageModelName(requestedLanguageModel)}' matches multiple configured models. Pass displayName to disambiguate. Available matches: ${availableDisplayNames}.`,
+            } satisfies ServiceError,
+        };
+    }
+
+    return { languageModelConfig: candidateModels[0] };
 };
 
 const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, UITools>>(
@@ -71,17 +130,21 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             let languageModelConfig = configuredModels[0];
             if (requestedLanguageModel) {
-                const matchingModel = configuredModels.find(
-                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel)
+                const { languageModelConfig: selectedLanguageModel, error } = selectConfiguredLanguageModel(
+                    configuredModels,
+                    requestedLanguageModel
                 );
-                if (!matchingModel) {
+                if (error) {
+                    return error;
+                }
+                if (!selectedLanguageModel) {
                     return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`,
+                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        errorCode: ErrorCode.UNEXPECTED_ERROR,
+                        message: "Failed to resolve the requested language model.",
                     } satisfies ServiceError;
                 }
-                languageModelConfig = matchingModel;
+                languageModelConfig = selectedLanguageModel;
             }
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
