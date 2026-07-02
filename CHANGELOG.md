@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Passed Zoekt index parameters via argv to preserve revision names with punctuation. [#1376](https://github.com/sourcebot-dev/sourcebot/pull/1376)
 - [EE] Validated OAuth bearer token scopes before allowing access to the Sourcebot MCP resource server. [#1396](https://github.com/sourcebot-dev/sourcebot/pull/1396)
 - Added HTTP security headers to all web app responses. [#1407](https://github.com/sourcebot-dev/sourcebot/pull/1407)
+- Maintained the sidebar scroll position when navigating between chats instead of resetting to the top. [#1411](https://github.com/sourcebot-dev/sourcebot/pull/1411)
+- Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
+- Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
+- [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
 
 ## [5.0.4] - 2026-06-18
 
