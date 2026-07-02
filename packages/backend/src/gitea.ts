@@ -49,10 +49,9 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => 
         allWarnings = allWarnings.concat(warnings);
     }
     
-    allRepos = allRepos.filter(repo => repo.full_name !== undefined);
     allRepos = allRepos.filter(repo => {
-        if (repo.full_name === undefined) {
-            logger.warn(`Repository with undefined full_name found: repoId=${repo.id}`);
+        if (repo === null || repo === undefined || repo.full_name === undefined) {
+            logger.warn(`Skipping Gitea repository with missing data: repoId=${repo?.id}`);
             return false;
         }
         return true;
@@ -207,6 +206,15 @@ const getRepos = async <T>(repoList: string[], api: Api<T>) => {
             const { durationMs, data: response } = await measure(() =>
                 api.repos.repoGet(owner, repoName),
             );
+
+            if (!response.data) {
+                const warning = `Failed to fetch repository ${repo}: ${response.error?.message ?? 'empty response body'}`;
+                logger.warn(warning);
+                return {
+                    type: 'warning' as const,
+                    warning
+                };
+            }
 
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
             return {
