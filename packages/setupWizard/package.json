@@ -3,6 +3,11 @@
     "version": "0.1.5",
     "description": "CLI wizard for creating a Sourcebot configuration.",
     "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sourcebot-dev/sourcebot.git",
+        "directory": "packages/setupWizard"
+    },
     "bin": "./dist/index.js",
     "scripts": {
         "build": "tsc",
