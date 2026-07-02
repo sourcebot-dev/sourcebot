@@ -2,7 +2,8 @@
 
 import { NextRequest } from "next/server";
 import { App, Octokit } from "octokit";
-import { WebhookEventDefinition} from "@octokit/webhooks/types";
+import type { EmitterWebhookEventName } from "@octokit/webhooks";
+import type { WebhookEventDefinition } from "@octokit/webhooks/types";
 import { Gitlab } from "@gitbeaker/rest";
 import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest, processGitLabMergeRequest } from "@/features/agents/review-agent/app";
@@ -58,13 +59,54 @@ const normalizeGithubApiBaseUrl = (baseUrl?: string) => {
     return baseUrl.replace(/\/+$/, "");
 };
 
-const resolveGithubApiBaseUrl = (headers: Record<string, string>) => {
-    const enterpriseHost = headers["x-github-enterprise-host"];
-    if (enterpriseHost) {
-        return normalizeGithubApiBaseUrl(`https://${enterpriseHost}/api/v3`);
+const getRepositoryApiUrl = (payload: unknown) => {
+    if (
+        typeof payload === "object" &&
+        payload !== null &&
+        "repository" in payload &&
+        typeof payload.repository === "object" &&
+        payload.repository !== null &&
+        "url" in payload.repository &&
+        typeof payload.repository.url === "string"
+    ) {
+        return payload.repository.url;
     }
 
-    return DEFAULT_GITHUB_API_BASE_URL;
+    return undefined;
+};
+
+const resolveGithubApiBaseUrl = (payload: unknown) => {
+    const repositoryApiUrl = getRepositoryApiUrl(payload);
+    if (!repositoryApiUrl) {
+        return undefined;
+    }
+
+    try {
+        const url = new URL(repositoryApiUrl);
+        if (url.protocol !== "https:") {
+            return undefined;
+        }
+
+        const reposPathIndex = url.pathname.indexOf("/repos/");
+        if (reposPathIndex === -1) {
+            return undefined;
+        }
+
+        return normalizeGithubApiBaseUrl(`${url.origin}${url.pathname.slice(0, reposPathIndex)}`);
+    } catch {
+        return undefined;
+    }
+};
+
+const getGithubAppForPayload = (payload: unknown) => {
+    const githubApiBaseUrl = resolveGithubApiBaseUrl(payload);
+    if (!githubApiBaseUrl) {
+        logger.warn('Received GitHub webhook event with missing or invalid repository URL');
+        return undefined;
+    }
+
+    logger.debug('Using GitHub API base URL for event', { githubApiBaseUrl });
+    return getGithubAppForBaseUrl(githubApiBaseUrl);
 };
 
 const getGithubAppForBaseUrl = (baseUrl: string) => {
@@ -132,19 +174,45 @@ if (env.GITLAB_REVIEW_AGENT_TOKEN) {
 
 // eslint-disable-next-line authz/require-auth-wrapper -- authenticated via GitHub App / GitLab webhook secrets, not user session
 export const POST = async (request: NextRequest) => {
-    const body = await request.json();
+    const bodyText = await request.text();
     const headers = Object.fromEntries(Array.from(request.headers.entries(), ([key, value]) => [key.toLowerCase(), value]));
+    let parsedBody: unknown;
+
+    const getParsedBody = () => {
+        parsedBody ??= JSON.parse(bodyText);
+        return parsedBody;
+    };
 
     const githubEvent = headers['x-github-event'];
     if (githubEvent) {
         logger.info('GitHub event received:', githubEvent);
 
-        const githubApiBaseUrl = resolveGithubApiBaseUrl(headers);
-        logger.debug('Using GitHub API base URL for event', { githubApiBaseUrl });
-        const githubApp = getGithubAppForBaseUrl(githubApiBaseUrl);
-
-        if (!githubApp) {
+        // Webhook verification only checks the shared secret against the raw payload
+        // and signature; it does not call GitHub. For API calls below, use the
+        // base URL resolved from the verified payload instead.
+        const githubWebhookApp = getGithubAppForBaseUrl(DEFAULT_GITHUB_API_BASE_URL);
+        if (!githubWebhookApp) {
             logger.warn('Received GitHub webhook event but GitHub app env vars are not set');
+            return Response.json({ status: 'ok' });
+        }
+
+        const signature = headers['x-hub-signature-256'] ?? headers['x-hub-signature'];
+        if (!signature) {
+            logger.warn('GitHub webhook signature is missing');
+            return Response.json({ status: 'ok' });
+        }
+
+        let body: unknown;
+        try {
+            await githubWebhookApp.webhooks.verifyAndReceive({
+                id: headers['x-github-delivery'] ?? '',
+                name: githubEvent as EmitterWebhookEventName,
+                payload: bodyText,
+                signature,
+            });
+            body = getParsedBody();
+        } catch (error) {
+            logger.warn('GitHub webhook signature or payload is invalid', error);
             return Response.json({ status: 'ok' });
         }
 
@@ -156,6 +224,11 @@ export const POST = async (request: NextRequest) => {
 
             if (!body.installation) {
                 logger.error('Received github pull request event but installation is not present');
+                return Response.json({ status: 'ok' });
+            }
+
+            const githubApp = getGithubAppForPayload(body);
+            if (!githubApp) {
                 return Response.json({ status: 'ok' });
             }
 
@@ -178,6 +251,11 @@ export const POST = async (request: NextRequest) => {
 
                 if (!body.installation) {
                     logger.error('Received github issue comment event but installation is not present');
+                    return Response.json({ status: 'ok' });
+                }
+
+                const githubApp = getGithubAppForPayload(body);
+                if (!githubApp) {
                     return Response.json({ status: 'ok' });
                 }
 
@@ -209,6 +287,14 @@ export const POST = async (request: NextRequest) => {
 
         if (!gitlabClient) {
             logger.warn('Received GitLab webhook event but GITLAB_REVIEW_AGENT_TOKEN is not set');
+            return Response.json({ status: 'ok' });
+        }
+
+        let body: unknown;
+        try {
+            body = getParsedBody();
+        } catch (error) {
+            logger.warn('GitLab webhook payload is invalid', error);
             return Response.json({ status: 'ok' });
         }
 

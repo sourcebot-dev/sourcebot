@@ -1,5 +1,4 @@
 import type { IdentityProvider } from "@/auth";
-import { onCreateUser } from "@/lib/authUtils";
 import { __unsafePrisma } from "@/prisma";
 import { hasEntitlement } from "@/lib/entitlements";
 import { createLogger, env, getIdentityProviderConfigs, getTokenFromConfig } from "@sourcebot/shared";
@@ -16,6 +15,7 @@ import Google from "next-auth/providers/google";
 import Keycloak from "next-auth/providers/keycloak";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Okta from "next-auth/providers/okta";
+import { onCreateUser } from "@/features/membership/onCreateUser";
 
 const logger = createLogger('web-sso');
 

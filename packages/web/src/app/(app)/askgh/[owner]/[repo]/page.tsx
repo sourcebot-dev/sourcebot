@@ -10,6 +10,7 @@ import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ChatEntitlementMessage } from "@/features/chat/components/chatEntitlementMessage";
+import { env } from "@sourcebot/shared";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -68,6 +69,7 @@ export default async function GitHubRepoPage(props: PageProps) {
                     imageUrl={repoInfo.imageUrl ?? undefined}
                     repoId={repoInfo.id}
                     isAuthenticated={!!session?.user}
+                    maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
                 />
             </CustomSlateEditor>
         </RepoIndexedGuard>
