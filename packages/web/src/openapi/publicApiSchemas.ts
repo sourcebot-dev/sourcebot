@@ -77,6 +77,7 @@ export const publicEeUserListItemSchema = z.object({
     name: z.string().nullable(),
     email: z.string(),
     role: z.enum(['OWNER', 'MEMBER']),
+    suspendedAt: z.string().datetime().nullable(),
     createdAt: z.string().datetime(),
     lastActivityAt: z.string().datetime().nullable(),
 }).openapi('PublicEeUserListItem');
@@ -110,4 +111,3 @@ export const publicEeAuditRecordSchema = z.object({
 }).openapi('PublicEeAuditRecord');
 
 export const publicEeAuditResponseSchema = z.array(publicEeAuditRecordSchema).openapi('PublicEeAuditResponse');
-

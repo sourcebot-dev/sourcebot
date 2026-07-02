@@ -1,9 +1,9 @@
 import { verifyAndExchangeCode, verifyAndRotateRefreshToken } from '@/ee/features/oauth/server';
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
-import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { hasEntitlement } from '@/lib/entitlements';
+import { DPOP_PROOF_HEADER, DPOP_TOKEN_TYPE, verifyDpopProof } from '@/ee/features/oauth/dpop';
 
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
@@ -30,6 +30,20 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
         );
     }
 
+    const dpopProof = request.headers.get(DPOP_PROOF_HEADER);
+    const dpopProofResult = dpopProof
+        ? await verifyDpopProof({ request, proof: dpopProof })
+        : null;
+
+    if (dpopProofResult && !dpopProofResult.ok) {
+        return Response.json(
+            { error: dpopProofResult.error, error_description: dpopProofResult.errorDescription },
+            { status: 400 }
+        );
+    }
+
+    const dpopJkt = dpopProofResult?.ok ? dpopProofResult.jkt : null;
+
     if (grantType === 'authorization_code') {
         const code = formData.get('code');
         const redirectUri = formData.get('redirect_uri');
@@ -48,6 +62,7 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
             redirectUri: redirectUri.toString(),
             codeVerifier: codeVerifier.toString(),
             resource: resource ? resource.toString() : null,
+            dpopJkt,
         });
 
         if ('error' in result) {
@@ -60,9 +75,9 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
         return Response.json({
             access_token: result.token,
             refresh_token: result.refreshToken,
-            token_type: 'Bearer',
-            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
-            scope: '',
+            token_type: result.dpopJkt ? DPOP_TOKEN_TYPE : 'Bearer',
+            expires_in: result.expiresIn,
+            scope: result.scope,
         });
     }
 
@@ -80,6 +95,7 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
             rawRefreshToken: rawRefreshToken.toString(),
             clientId: clientId.toString(),
             resource: resource ? resource.toString() : null,
+            dpopJkt,
         });
 
         if ('error' in result) {
@@ -92,9 +108,9 @@ export const POST = oauthApiHandler(async (request: NextRequest) => {
         return Response.json({
             access_token: result.token,
             refresh_token: result.refreshToken,
-            token_type: 'Bearer',
-            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
-            scope: '',
+            token_type: result.dpopJkt ? DPOP_TOKEN_TYPE : 'Bearer',
+            expires_in: result.expiresIn,
+            scope: result.scope,
         });
     }
 

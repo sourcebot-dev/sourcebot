@@ -10,6 +10,7 @@ export type UpsellSource =
     'license_settings' |
     'mcp_settings' |
     'sso_settings' |
+    'scim_settings' |
     'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';
@@ -203,6 +204,18 @@ export type PosthogEventMap = {
          * is set to true.
          */
         selectedRepos?: string[],
+    },
+    chat_attachment_uploaded: {
+        source: string,
+        mediaType: string,
+        sizeBytes: number,
+    },
+    chat_attachment_degraded: {
+        chatId: string,
+        source: string,
+        droppedImageCount: number,
+        modelProvider: string,
+        model: string,
     },
     ask_mcp_turn_completed: {
         chatId: string,
