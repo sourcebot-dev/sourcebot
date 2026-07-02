@@ -721,9 +721,11 @@ export const compileGenericGitHostConfig_url = async (
         }
     }
 
+    // Decode URL-encoded characters (e.g., %20 -> space) to ensure consistent repo names
+    const decodedPathname = decodeURIComponent(remoteUrl.pathname);
     // @note: matches the naming here:
     // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-    const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+    const repoName = path.join(remoteUrl.host, decodedPathname.replace(/\.git$/, ''));
 
     const repo: RepoData = {
         external_codeHostType: 'genericGitHost',
