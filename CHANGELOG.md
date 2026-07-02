@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintained the sidebar scroll position when navigating between chats instead of resetting to the top. [#1411](https://github.com/sourcebot-dev/sourcebot/pull/1411)
 - Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
 - Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
+- Prevented a Gitea connection sync from crashing when a single repository fetch returns an empty response body; the repo is now skipped with a warning. [#1416](https://github.com/sourcebot-dev/sourcebot/pull/1416)
 
 ## [5.0.4] - 2026-06-18
 
