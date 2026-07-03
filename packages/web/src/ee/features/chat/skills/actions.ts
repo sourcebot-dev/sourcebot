@@ -12,6 +12,7 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole, Prisma, sharedAgentSkillAuthScope, sharedAgentSkillScope, sharedAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, personalAgentSkillScope, type AgentSkill, type Org, type PrismaClient } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
+import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
     agentSkillInputSchema,
@@ -65,6 +66,12 @@ const skillSourceInvalid = (): ServiceError => ({
     errorCode: ErrorCode.INVALID_REQUEST_BODY,
     message: "The source file is no longer a valid skill.",
 });
+
+const refreshSkillSettingsViews = () => {
+    revalidatePath("/settings/skills");
+    revalidatePath("/settings/workspaceAskAgent");
+    refresh();
+};
 
 const sharedCatalogSkillSelect = (userId: string, orgId: number) => ({
     id: true,
@@ -421,6 +428,7 @@ export const createPersonalAgentSkill = async (
                     },
                 });
 
+                refreshSkillSettingsViews();
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
@@ -484,6 +492,7 @@ export const updatePersonalAgentSkill = async (
                         },
                 });
 
+                refreshSkillSettingsViews();
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
@@ -655,6 +664,7 @@ export const updatePersonalAgentSkillFromSource = async (
             },
         });
 
+        refreshSkillSettingsViews();
         return toAgentSkillListItem(updated);
     }));
 
@@ -720,6 +730,7 @@ export const updateSharedAgentSkillFromSource = async (
             select: sharedCatalogSkillSelect(user.id, org.id),
         });
 
+        refreshSkillSettingsViews();
         return toSharedAgentSkillCatalogItem(updated, user.id);
     }));
 
@@ -743,6 +754,7 @@ export const deletePersonalAgentSkill = async (
             return skillNotFound();
         }
 
+        refreshSkillSettingsViews();
         return { success: true };
     }));
 
@@ -812,6 +824,7 @@ export const publishPersonalAgentSkillToShared = async (
                 return selectedSkill;
             });
 
+            refreshSkillSettingsViews();
             return toSharedAgentSkillCatalogItem(sharedSkill, user.id);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
@@ -908,6 +921,7 @@ export const makeSharedAgentSkillPersonal = async (
                 return createdSkill;
             });
 
+            refreshSkillSettingsViews();
             return toAgentSkillListItem(personalSkill);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
@@ -1016,6 +1030,7 @@ export const createSharedAgentSkill = async (
                     });
                 });
 
+                refreshSkillSettingsViews();
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
@@ -1078,6 +1093,7 @@ export const updateSharedAgentSkill = async (
                         },
                 });
 
+                refreshSkillSettingsViews();
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
@@ -1115,6 +1131,7 @@ export const deleteSharedAgentSkill = async (
             where: { id: existingSkill.id },
         });
 
+        refreshSkillSettingsViews();
         return { success: true };
     }));
 
@@ -1159,6 +1176,7 @@ export const setSharedSkillFlag = async (
                     select: sharedManagementSkillSelect,
                 });
 
+                refreshSkillSettingsViews();
                 return toSharedAgentSkillManagementItem(skill);
             });
         }));
@@ -1213,6 +1231,7 @@ export const adoptSharedSkill = async (
             },
         });
 
+        refreshSkillSettingsViews();
         return { success: true };
     }));
 
@@ -1247,5 +1266,6 @@ export const unadoptSharedSkill = async (
             skill,
         });
 
+        refreshSkillSettingsViews();
         return { success: true };
     }));

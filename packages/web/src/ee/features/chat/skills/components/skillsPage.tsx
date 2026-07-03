@@ -191,15 +191,21 @@ function SkillListRow({ name, slug, isActive, badge, enabled, togglePending, onT
             <button
                 type="button"
                 onClick={onSelect}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-left"
+                className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-3 py-2.5 text-left"
             >
                 <SkillAvatar name={name} size="sm" />
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-foreground">{name}</p>
-                        {badge}
+                <div className="min-w-0 flex-1 space-y-1">
+                    <p className="max-w-full whitespace-normal break-words text-sm font-medium leading-5 text-foreground">
+                        {name}
+                    </p>
+                    <div className="min-w-0">
+                        <p className="min-w-0 break-all font-mono text-xs text-muted-foreground">/{slug}</p>
+                        {badge && (
+                            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+                                {badge}
+                            </div>
+                        )}
                     </div>
-                    <p className="truncate font-mono text-xs text-muted-foreground">/{slug}</p>
                 </div>
             </button>
             {onToggleEnabled && (
@@ -246,6 +252,14 @@ export function SkillsPage({
     const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
     const [sharedSkills, setSharedSkills] = useState(() => sortSharedAgentSkillCatalogItems(initialSharedSkills));
     const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        setPersonalSkills(sortAgentSkillListItems(initialPersonalSkills));
+    }, [initialPersonalSkills]);
+
+    useEffect(() => {
+        setSharedSkills(sortSharedAgentSkillCatalogItems(initialSharedSkills));
+    }, [initialSharedSkills]);
 
     const [selectedId, setSelectedId] = useState<string | null>(() => {
         // Honor a deep-linked selection, but only when it matches a skill visible

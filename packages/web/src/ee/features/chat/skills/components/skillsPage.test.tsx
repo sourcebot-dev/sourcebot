@@ -281,6 +281,29 @@ describe('SkillsPage', () => {
         expect(screen.getByRole('switch', { name: 'Enable Deploy Checklist', checked: true })).toBeTruthy();
     });
 
+    test('keeps list skill names readable when status badges are present', () => {
+        const longBadgedSkill: SharedAgentSkillCatalogItem = {
+            ...sharedSyncedSkill,
+            id: 'long-badged-skill',
+            name: 'Code Contribution Guidelines',
+            slug: 'contributing',
+            autoEnrolled: true,
+            isCreatedByUser: false,
+        };
+
+        renderSkillsPage({ sharedSkills: [longBadgedSkill] });
+
+        const rowButton = screen.getByRole('button', { name: /Code Contribution Guidelines/ });
+        const name = within(rowButton).getByText('Code Contribution Guidelines');
+        const command = within(rowButton).getByText('/contributing');
+        const syncedBadge = within(rowButton).getByText('Synced');
+        expect(name.className).not.toContain('truncate');
+        expect(name.className).toContain('break-words');
+        expect(syncedBadge.parentElement?.className).toContain('mt-1');
+        expect(syncedBadge.parentElement).not.toBe(command.parentElement);
+        expect(within(rowButton).getByText('Auto')).toBeTruthy();
+    });
+
     test('shows a repo-synced skill as read-only and updates it from source', async () => {
         vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
         vi.mocked(skillActions.updatePersonalAgentSkillFromSource).mockResolvedValue({
@@ -383,6 +406,30 @@ describe('SkillsPage', () => {
         });
 
         expect(screen.getByTestId('markdown-preview').textContent).toContain('Say hi.');
+    });
+
+    test('updates the list when refreshed server props include a new shared skill', async () => {
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        const renderPage = (sharedSkills: SharedAgentSkillCatalogItem[]) => (
+            <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                    <SkillsPage
+                        initialPersonalSkills={[]}
+                        initialSharedSkills={sharedSkills}
+                        currentUserEmail="jack@sourcebot.dev"
+                        isOwner={true}
+                        permissionSyncEnabled={true}
+                    />
+                </TooltipProvider>
+            </QueryClientProvider>
+        );
+
+        const { rerender } = render(renderPage([]));
+        expect(screen.getByText('No shared skills yet.')).toBeTruthy();
+
+        rerender(renderPage([sharedSkill]));
+
+        await waitFor(() => expect(screen.getByText('Deploy Checklist')).toBeTruthy());
     });
 
     test('lets an owner jump to workspace settings for a shared skill', async () => {

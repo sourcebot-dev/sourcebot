@@ -28,6 +28,11 @@ vi.mock("@/features/git", () => ({
     resolveFileBlobShaForRepo: vi.fn(),
 }));
 
+vi.mock("next/cache", () => ({
+    refresh: vi.fn(),
+    revalidatePath: vi.fn(),
+}));
+
 const {
     adoptSharedSkill,
     createSharedAgentSkill,
@@ -48,6 +53,7 @@ const {
 } = await import("./actions");
 
 const gitMock = await import("@/features/git");
+const nextCache = await import("next/cache");
 
 function createPrismaMock() {
     const prisma = {
@@ -1137,6 +1143,9 @@ describe("setSharedSkillFlag", () => {
             id: "skill-1",
             autoEnrolled: true,
         });
+        expect(nextCache.revalidatePath).toHaveBeenCalledWith("/settings/skills");
+        expect(nextCache.revalidatePath).toHaveBeenCalledWith("/settings/workspaceAskAgent");
+        expect(nextCache.refresh).toHaveBeenCalled();
         expect(result).not.toHaveProperty("isAdopted");
         expect(result).not.toHaveProperty("isVisibleToUser");
         expect(result).not.toHaveProperty("isCreatedByUser");
@@ -1158,6 +1167,7 @@ describe("setSharedSkillFlag", () => {
         // The owner gate returns before its callback runs, so the skill is never looked up or updated.
         expect(prisma.agentSkill.findFirst).not.toHaveBeenCalled();
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
+        expect(nextCache.refresh).not.toHaveBeenCalled();
     });
 
     test("rejects updates with no flag", async () => {
