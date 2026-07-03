@@ -471,7 +471,7 @@ export class RepoIndexManager {
 
         if (metadata.branches) {
             const branchGlobs = metadata.branches
-            const allBranches = await getBranches(repoPath);
+            const allBranches = await getBranches(repoPath, { sort: metadata.branchSort });
             const matchingBranches =
                 allBranches
                     .filter((branch) => micromatch.isMatch(branch, branchGlobs))
@@ -485,7 +485,7 @@ export class RepoIndexManager {
 
         if (metadata.tags) {
             const tagGlobs = metadata.tags;
-            const allTags = await getTags(repoPath);
+            const allTags = await getTags(repoPath, { sort: metadata.tagSort });
             const matchingTags =
                 allTags
                     .filter((tag) => micromatch.isMatch(tag, tagGlobs))
@@ -500,7 +500,7 @@ export class RepoIndexManager {
         // De-duplicate revisions to ensure we don't have duplicate branches/tags
         revisions = [...new Set(revisions)];
 
-        // zoekt has a limit of 64 branches/tags to index.
+        // zoekt has a limit of 64 total revisions to index, including the default branch.
         if (revisions.length > 64) {
             logger.warn(`Too many revisions (${revisions.length}) for repo ${repo.id}, truncating to 64`);
             captureEvent('backend_revisions_truncated', {

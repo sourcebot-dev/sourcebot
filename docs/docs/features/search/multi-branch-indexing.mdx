@@ -12,7 +12,7 @@ By default, only the default branch of a repository is indexed and can be search
 ## Configuration
 
 <Warning>
-Multi-branch indexing is currently limited to 64 branches and tags. Please see [this issue](https://github.com/sourcebot-dev/sourcebot/issues/461) for more details.
+Multi-branch indexing is currently limited to 64 total revisions per repository, including the default branch. Sourcebot indexes the default branch first, then matching branches, then matching tags. Please see [this issue](https://github.com/sourcebot-dev/sourcebot/issues/461) for more details.
 </Warning>
 
 Multi-branch indexing is configured in the [connection](/docs/connections/indexing-your-code) using the `revisions.branches` and `revisions.tags` arrays. Glob patterns are supported. For example:
@@ -39,6 +39,8 @@ Multi-branch indexing is configured in the [connection](/docs/connections/indexi
                     // Glob patterns
                     "feature/*" // Matches: feature/auth, feature/ui, etc.
                 ],
+                // Optional. Defaults to "committerdate" (newest first).
+                "branchSort": "committerdate",
                 
                 // These tags (if they exist):
                 "tags": [
@@ -48,14 +50,19 @@ Multi-branch indexing is configured in the [connection](/docs/connections/indexi
                     // Glob patterns
                     "v3.*.*", // Matches: v3.0.0, v3.0.1, etc.
                     "rc-*"    // Matches: rc-1, rc-2, etc.
-                ]
+                ],
+                // Optional. Defaults to "creatordate" (newest first).
+                "tagSort": "creatordate"
             }
         }
     }
 }
 ```
 
-For each repo defined in the connection, any branches or tags matching the patterns in `branches` and `tags` array will be indexed.
+For each repo defined in the connection, any branches or tags matching the patterns in the `branches` and `tags` arrays will be considered for indexing.
+When more matching refs exist than can be indexed, Sourcebot keeps the default branch first, then adds matching branches using `branchSort`, then adds matching tags using `tagSort`, and finally truncates the combined list to 64 total revisions. If matching branches fill the revision budget, matching tags may be skipped.
+
+Supported sort values are `committerdate`, `creatordate`, and `refname`. These map to Git `for-each-ref` sort keys. Date-based sorts use newest-first ordering; `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.
 
 ## Search syntax
 
@@ -91,4 +98,3 @@ Additional info:
 | Gitea | ✅ |
 | Gerrit | ✅ |
 | Generic git host | ✅ |
-
