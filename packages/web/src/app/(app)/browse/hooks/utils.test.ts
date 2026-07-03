@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getBrowseParamsFromPathParam } from './utils';
+import { getBrowseParamsFromPathParam, getBrowsePath } from './utils';
 
 describe('getBrowseParamsFromPathParam', () => {
     describe('tree paths', () => {
@@ -211,4 +211,26 @@ describe('getBrowseParamsFromPathParam', () => {
             }).toThrow();
         });
     });
-}); 
+});
+
+describe('getBrowsePath', () => {
+    it('adds source view mode for blob paths', () => {
+        expect(getBrowsePath({
+            repoName: 'github.com/sourcebot-dev/zoekt',
+            revisionName: 'main',
+            path: 'README.md',
+            pathType: 'blob',
+            viewMode: 'source',
+        })).toBe('/browse/github.com/sourcebot-dev/zoekt@main/-/blob/README.md?view=source');
+    });
+
+    it('omits rendered view mode because it is the default', () => {
+        expect(getBrowsePath({
+            repoName: 'github.com/sourcebot-dev/zoekt',
+            revisionName: 'main',
+            path: 'README.md',
+            pathType: 'blob',
+            viewMode: 'rendered',
+        })).toBe('/browse/github.com/sourcebot-dev/zoekt@main/-/blob/README.md');
+    });
+});
