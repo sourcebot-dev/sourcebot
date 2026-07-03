@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ReactNode } from 'react';
 import type { SharedAgentSkillManagementItem } from '@/ee/features/chat/skills/types';
@@ -43,10 +43,10 @@ function makeSkill(
     };
 }
 
-function renderManager(skills: SharedAgentSkillManagementItem[], initialSearch?: string) {
+function renderManager(skills: SharedAgentSkillManagementItem[]) {
     return render(
         <TooltipProvider>
-            <WorkspaceSharedSkillsManager initialOrgSkills={skills} initialSearch={initialSearch} />
+            <WorkspaceSharedSkillsManager initialOrgSkills={skills} />
         </TooltipProvider>,
     );
 }
@@ -66,12 +66,19 @@ const manualSkill = makeSkill({
     createdByEmail: 'sam@sourcebot.dev',
 });
 
+const skillNamesInOrder = () =>
+    screen.getAllByRole('row')
+        .slice(1)
+        .map((row) => within(row).getByRole('link').textContent);
+
 describe('WorkspaceSharedSkillsManager', () => {
     test('marks synced skills, shows the creator, and a total count', () => {
         renderManager([syncedSkill, manualSkill]);
 
-        // Synced skills get a compact marker; the full repo name is no longer shown.
-        expect(screen.getAllByTitle('Synced from a repository')).toHaveLength(1);
+        // Synced skills get a compact badge; the full repo name is no longer shown.
+        const syncedRow = screen.getByRole('link', { name: 'Code Review' }).closest('tr');
+        expect(syncedRow).not.toBeNull();
+        expect(within(syncedRow!).getByText('Synced')).toBeTruthy();
         expect(screen.queryByText('github.com/acme/backend')).toBeNull();
         expect(screen.getByText('jack@sourcebot.dev')).toBeTruthy();
         expect(screen.getByText('sam@sourcebot.dev')).toBeTruthy();
@@ -83,15 +90,6 @@ describe('WorkspaceSharedSkillsManager', () => {
 
         const link = screen.getByRole('link', { name: 'Code Review' });
         expect(link.getAttribute('href')).toBe('/settings/skills?skill=synced');
-    });
-
-    test('pre-fills the search box from initialSearch (deep link from the account page)', () => {
-        renderManager([syncedSkill, manualSkill], 'Code Review');
-
-        expect((screen.getByPlaceholderText('Search skills or commands...') as HTMLInputElement).value).toBe('Code Review');
-        expect(screen.getByText('Code Review')).toBeTruthy();
-        expect(screen.queryByText('Greeter')).toBeNull();
-        expect(screen.getByText('1 of 2 shared skills')).toBeTruthy();
     });
 
     test('searches over name and command', () => {
@@ -109,13 +107,47 @@ describe('WorkspaceSharedSkillsManager', () => {
     test('filters by Synced and Manual', () => {
         renderManager([syncedSkill, manualSkill]);
 
-        fireEvent.click(screen.getByText('Synced'));
+        fireEvent.click(screen.getByRole('radio', { name: 'Synced' }));
         expect(screen.getByText('Code Review')).toBeTruthy();
         expect(screen.queryByText('Greeter')).toBeNull();
 
-        fireEvent.click(screen.getByText('Manual'));
+        fireEvent.click(screen.getByRole('radio', { name: 'Manual' }));
         expect(screen.queryByText('Code Review')).toBeNull();
         expect(screen.getByText('Greeter')).toBeTruthy();
+    });
+
+    test('keeps alphabetical order when auto-enroll updates a skill timestamp', async () => {
+        const alphaSkill = makeSkill({
+            id: 'alpha',
+            slug: 'alpha',
+            name: 'Alpha',
+            updatedAt: '2026-06-01T00:00:00.000Z',
+        });
+        const betaSkill = makeSkill({
+            id: 'beta',
+            slug: 'beta',
+            name: 'Beta',
+            updatedAt: '2026-06-30T00:00:00.000Z',
+        });
+        vi.mocked(skillActions.setSharedSkillFlag).mockResolvedValue({
+            ...alphaSkill,
+            autoEnrolled: true,
+            updatedAt: '2026-07-01T00:00:00.000Z',
+        });
+
+        renderManager([betaSkill, alphaSkill]);
+
+        expect(skillNamesInOrder()).toEqual(['Alpha', 'Beta']);
+
+        const alphaRow = screen.getByRole('link', { name: 'Alpha' }).closest('tr');
+        expect(alphaRow).not.toBeNull();
+        fireEvent.click(within(alphaRow!).getByRole('switch', { name: 'Auto' }));
+
+        await waitFor(() => expect(skillActions.setSharedSkillFlag).toHaveBeenCalledWith({
+            skillId: 'alpha',
+            data: { autoEnrolled: true },
+        }));
+        expect(skillNamesInOrder()).toEqual(['Alpha', 'Beta']);
     });
 
     test('toggles auto-enroll through the row switch', async () => {

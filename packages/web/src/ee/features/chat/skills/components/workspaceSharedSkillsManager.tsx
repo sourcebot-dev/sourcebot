@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FolderGit2Icon, InfoIcon, Loader2, SearchIcon, Trash2Icon } from "lucide-react";
+import { InfoIcon, Loader2, SearchIcon, Trash2Icon } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,10 @@ import {
 import {
     AUTO_ENROLLED_SKILL_TOOLTIP,
     DeleteWorkspaceSkillDialog,
+    SyncedSkillBadge,
     WorkspaceSkillsEmptyState,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
-import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
+import { sortSharedAgentSkillManagementItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn } from "@/lib/utils";
 
@@ -32,16 +33,12 @@ type SkillSourceFilter = "all" | "synced" | "manual";
 
 export function WorkspaceSharedSkillsManager({
     initialOrgSkills,
-    initialSearch = "",
 }: {
     initialOrgSkills: SharedAgentSkillManagementItem[];
-    // Pre-fills the search box (e.g. a deep link from the account skills page that
-    // targets a specific skill by name).
-    initialSearch?: string;
 }) {
     const { toast } = useToast();
-    const [orgSkills, setOrgSkills] = useState(() => sortSharedAgentSkillCatalogItems(initialOrgSkills));
-    const [search, setSearch] = useState(initialSearch);
+    const [orgSkills, setOrgSkills] = useState(() => sortSharedAgentSkillManagementItems(initialOrgSkills));
+    const [search, setSearch] = useState("");
     const [sourceFilter, setSourceFilter] = useState<SkillSourceFilter>("all");
     const [flagPendingSkills, setFlagPendingSkills] = useState<Record<string, OrgSkillFlagKey>>({});
     const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
@@ -205,14 +202,7 @@ export function WorkspaceSharedSkillsManager({
                                                     >
                                                         {skill.name}
                                                     </Link>
-                                                    {skill.source && (
-                                                        <span
-                                                            title="Synced from a repository"
-                                                            className="inline-flex shrink-0 text-muted-foreground"
-                                                        >
-                                                            <FolderGit2Icon className="h-3.5 w-3.5" />
-                                                        </span>
-                                                    )}
+                                                    {skill.source && <SyncedSkillBadge />}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="px-4 py-3">

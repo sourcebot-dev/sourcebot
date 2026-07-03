@@ -385,7 +385,7 @@ describe('SkillsPage', () => {
         expect(screen.getByTestId('markdown-preview').textContent).toContain('Say hi.');
     });
 
-    test('lets an owner jump to workspace settings pre-filtered to a shared skill', async () => {
+    test('lets an owner jump to workspace settings for a shared skill', async () => {
         renderSkillsPage({ sharedSkills: [sharedSkill], isOwner: true });
 
         const actionsButton = screen.getByRole('button', { name: 'Actions for Deploy Checklist' });
@@ -393,7 +393,7 @@ describe('SkillsPage', () => {
         fireEvent.keyDown(actionsButton, { key: 'Enter' });
 
         const link = await screen.findByRole('menuitem', { name: /View in workspace settings/ });
-        expect(link.getAttribute('href')).toBe('/settings/workspaceAskAgent?skillSearch=Deploy%20Checklist');
+        expect(link.getAttribute('href')).toBe('/settings/workspaceAskAgent');
     });
 
     test('hides the workspace-settings link for a shared skill when not an owner', async () => {

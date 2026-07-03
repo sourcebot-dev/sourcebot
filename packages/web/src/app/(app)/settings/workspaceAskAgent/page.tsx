@@ -13,8 +13,6 @@ interface PageProps extends Record<string, unknown> {
         status?: string;
         server?: string;
         message?: string;
-        // Pre-fills the shared-skills search box (deep link from the account page).
-        skillSearch?: string;
     }>;
 }
 
@@ -36,7 +34,7 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
         }
     }
 
-    const { status, server, message, skillSearch } = await searchParams;
+    const { status, server, message } = await searchParams;
     const orgSkills = hasAskEntitlement ? await listSharedAgentSkillManagement() : [];
     if (isServiceError(orgSkills)) {
         throw new ServiceErrorException(orgSkills);
@@ -49,7 +47,6 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
             callbackMessage={message}
             oauthRedirectUrl={getMcpOAuthCallbackUrl()}
             initialOrgSkills={orgSkills}
-            initialSkillSearch={skillSearch}
         />
     );
 }, { minRole: OrgRole.OWNER, redirectTo: '/settings' });

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from "react";
-import { Building2Icon } from "lucide-react";
+import { Building2Icon, CheckCircle2Icon, FolderGit2Icon } from "lucide-react";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 
 export const AUTO_ENROLLED_SKILL_TOOLTIP = "Added to members' Ask commands by default.";
+export const SYNCED_SKILL_TOOLTIP = "Synced from a repository.";
 
 export function SkillCommandBadge({ slug }: { slug: string }) {
     return (
@@ -32,7 +33,7 @@ function SkillStatusBadge({
     const badge = (
         <span
             className={cn(
-                "inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] font-medium",
+                "inline-flex h-5 shrink-0 items-center gap-1 rounded border px-1.5 text-[11px] font-medium leading-none",
                 className ?? "border-border bg-background text-muted-foreground",
             )}
             tabIndex={tooltip ? 0 : undefined}
@@ -59,7 +60,20 @@ export function AutoEnrolledSkillBadge() {
             tooltip={AUTO_ENROLLED_SKILL_TOOLTIP}
             className="border-sky-500/40 bg-sky-500/15 text-sky-700 dark:border-sky-500/50 dark:bg-sky-950/60 dark:text-sky-400"
         >
+            <CheckCircle2Icon className="h-3 w-3" />
             Auto
+        </SkillStatusBadge>
+    );
+}
+
+export function SyncedSkillBadge() {
+    return (
+        <SkillStatusBadge
+            tooltip={SYNCED_SKILL_TOOLTIP}
+            className="border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:border-emerald-500/50 dark:bg-emerald-950/60 dark:text-emerald-400"
+        >
+            <FolderGit2Icon className="h-3 w-3" />
+            Synced
         </SkillStatusBadge>
     );
 }

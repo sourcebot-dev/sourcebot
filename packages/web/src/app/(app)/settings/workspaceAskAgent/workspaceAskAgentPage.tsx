@@ -58,8 +58,6 @@ interface WorkspaceAskAgentPageProps {
     callbackMessage?: string;
     oauthRedirectUrl: string;
     initialOrgSkills: SharedAgentSkillManagementItem[];
-    // Pre-fills the shared-skills search box (deep link from the account page).
-    initialSkillSearch?: string;
 }
 
 type WorkspaceConnectorStatus = {
@@ -349,7 +347,7 @@ function WorkspaceConnectorCard({
     );
 }
 
-export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl, initialOrgSkills, initialSkillSearch }: WorkspaceAskAgentPageProps) {
+export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl, initialOrgSkills }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -768,7 +766,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
             {canManageWorkspaceSkills && (
                 <>
-                    <WorkspaceSharedSkillsManager initialOrgSkills={initialOrgSkills} initialSearch={initialSkillSearch} />
+                    <WorkspaceSharedSkillsManager initialOrgSkills={initialOrgSkills} />
                     <Separator />
                 </>
             )}

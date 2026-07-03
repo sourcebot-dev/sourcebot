@@ -1,7 +1,7 @@
 import { isServiceError } from "@/lib/utils";
 import type { ServiceError } from "@/lib/serviceError";
 import { deleteSharedAgentSkill, setSharedSkillFlag } from "@/ee/features/chat/skills/actions";
-import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
+import { sortSharedAgentSkillManagementItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 
 export type OrgSkillFlagKey = "autoEnrolled";
 
@@ -39,7 +39,7 @@ export async function updateWorkspaceSkillFlag({
         return result;
     }
 
-    updateOrgSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
+    updateOrgSkills((current) => sortSharedAgentSkillManagementItems(current.map((item) =>
         item.id === result.id ? result : item,
     )));
     return null;

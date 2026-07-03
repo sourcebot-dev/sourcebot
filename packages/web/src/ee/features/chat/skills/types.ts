@@ -141,6 +141,12 @@ export const sortSharedAgentSkillCatalogItems = <T extends Pick<SharedAgentSkill
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
 
+export const sortSharedAgentSkillManagementItems = <T extends Pick<SharedAgentSkillBaseItem, "id" | "name" | "slug">>(skills: T[]) =>
+    [...skills].sort((a, b) =>
+        a.name.localeCompare(b.name) ||
+        a.slug.localeCompare(b.slug) ||
+        a.id.localeCompare(b.id));
+
 export interface ParsedAgentSkillMarkdown {
     name?: string;
     slug?: string;

@@ -58,6 +58,7 @@ import {
     AutoEnrolledSkillBadge,
     DeleteWorkspaceSkillDialog,
     SkillCommandBadge,
+    SyncedSkillBadge,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import {
     normalizeAgentSkillSlug,
@@ -870,7 +871,7 @@ export function SkillsPage({
                             skill={selectedSkill}
                             workspaceAdminHref={
                                 isOwner && selectedSkill.scope === "SHARED"
-                                    ? `/settings/workspaceAskAgent?skillSearch=${encodeURIComponent(selectedSkill.name)}`
+                                    ? "/settings/workspaceAskAgent"
                                     : undefined
                             }
                             scopePending={scopePendingId === selectedSkill.id}
@@ -1125,8 +1126,8 @@ interface SkillDetailViewProps {
     skill: DetailSkill;
     scopePending: boolean;
     sourceUpdatePending: boolean;
-    // When set, an owner can jump to the workspace admin table pre-filtered to
-    // this shared skill. Undefined for personal skills or non-owners.
+    // When set, an owner can jump to the workspace admin table for shared skills.
+    // Undefined for personal skills or non-owners.
     workspaceAdminHref?: string;
     onSharedToggle: (shared: boolean) => void;
     onEdit: () => void;
@@ -1332,19 +1333,6 @@ function DetailMetaField({ label, children }: { label: string; children: React.R
             <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
             <p className="truncate text-sm text-foreground">{children}</p>
         </div>
-    );
-}
-
-// Small marker on personal list rows for skills mirrored from a repository file.
-function SyncedSkillBadge() {
-    return (
-        <span
-            className="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-            title="Synced from a repository"
-        >
-            <FolderGit2Icon className="h-3 w-3" />
-            Synced
-        </span>
     );
 }
 
