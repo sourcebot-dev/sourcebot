@@ -21016,6 +21016,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"reo-census@npm:^1.2.8":
+  version: 1.2.8
+  resolution: "reo-census@npm:1.2.8"
+  checksum: 10c0/4756a7231f3d15d08cd7a9f0449581f5b21bd2998e4c039b90828a2fde2f25199373e4f1076ebc70fdbabe211bb63699da8e387f3e7771449c23d2b0733b5bd6
+  languageName: node
+  linkType: hard
+
 "require-directory@npm:^2.1.1":
   version: 2.1.1
   resolution: "require-directory@npm:2.1.1"
@@ -21733,6 +21740,7 @@ __metadata:
     chalk: "npm:^5.6.2"
     inquirer-select-pro: "npm:^1.0.0-alpha.9"
     ora: "npm:^9.4.0"
+    reo-census: "npm:^1.2.8"
     tsx: "npm:^4.21.0"
     typescript: "npm:^5.6.2"
   bin:
