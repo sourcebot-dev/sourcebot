@@ -1,7 +1,7 @@
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { describe, expect, it } from "vitest";
-import { selectConfiguredLanguageModel } from "./askCodebase";
+import { selectConfiguredLanguageModel } from "./selectConfiguredLanguageModel";
 
 type ConfiguredLanguageModel = Parameters<typeof selectConfiguredLanguageModel>[0][number];
 
