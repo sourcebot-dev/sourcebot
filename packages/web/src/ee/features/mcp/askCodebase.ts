@@ -72,21 +72,14 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             let languageModelConfig = configuredModels[0];
             if (requestedLanguageModel) {
-                const { languageModelConfig: selectedLanguageModel, error } = selectConfiguredLanguageModel(
+                const result = selectConfiguredLanguageModel(
                     configuredModels,
                     requestedLanguageModel
                 );
-                if (error) {
-                    return error;
+                if (result.error) {
+                    return result.error;
                 }
-                if (!selectedLanguageModel) {
-                    return {
-                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                        errorCode: ErrorCode.UNEXPECTED_ERROR,
-                        message: "Failed to resolve the requested language model.",
-                    } satisfies ServiceError;
-                }
-                languageModelConfig = selectedLanguageModel;
+                languageModelConfig = result.languageModelConfig;
             }
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);

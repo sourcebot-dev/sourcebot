@@ -12,10 +12,10 @@ const formatConfiguredLanguageModelLabel = (model: Pick<LanguageModelInfo, 'prov
 export const selectConfiguredLanguageModel = <T extends Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>>(
     configuredModels: T[],
     requestedLanguageModel: Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>
-): {
-    languageModelConfig?: T;
-    error?: ServiceError;
-} => {
+): (
+    | { languageModelConfig: T; error?: never }
+    | { languageModelConfig?: never; error: ServiceError }
+) => {
     const candidateModels = configuredModels.filter(
         (model) => model.provider === requestedLanguageModel.provider && model.model === requestedLanguageModel.model
     );
