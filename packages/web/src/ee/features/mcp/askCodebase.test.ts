@@ -44,6 +44,23 @@ describe("selectConfiguredLanguageModel", () => {
         expect(result).toEqual({ languageModelConfig: secondModel });
     });
 
+    it("returns an error when no configured model matches provider and model", () => {
+        const configuredModel = createConfiguredModel();
+
+        const result = selectConfiguredLanguageModel(
+            [configuredModel],
+            { provider: 'openai', model: 'gpt-5' }
+        );
+
+        expect(result).toEqual({
+            error: {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: "Language model 'openai/gpt-5' is not configured.",
+            },
+        });
+    });
+
     it("returns a disambiguation error when multiple configured models match", () => {
         const firstModel = createConfiguredModel({ displayName: 'Claude Opus 4.7 (slow)' });
         const secondModel = createConfiguredModel({ displayName: 'Claude Opus 4.7 (fast)' });
