@@ -1,5 +1,39 @@
 import { z } from "zod";
 
+/**
+ * A best-effort snapshot of the host / container resources the deployment is
+ * running with. Used to quickly diagnose resource issues (e.g. insufficient
+ * RAM) from the service ping. Every field is best-effort; anything we can't
+ * read is reported as `null`.
+ *
+ * @warning : must be kept in sync with the mirrored schema in
+ * `lighthouse: lambda/routes/ping.ts`.
+ */
+export const systemInfoSchema = z.object({
+    platform: z.string(),
+    arch: z.string(),
+
+    // CPU. `cpuCores` is the number of logical cores visible to the host;
+    // `cpuQuota` is the effective cgroup CPU limit in cores (null when unset or
+    // unreadable), which is what a container is actually allowed to use.
+    cpuCores: z.number().int().nonnegative(),
+    cpuQuota: z.number().nonnegative().nullable(),
+    loadAverage1m: z.number().nonnegative().nullable(),
+
+    // Memory, in bytes. `total`/`free` are host-level (os.totalmem / os.freemem);
+    // `limit`/`used` come from the cgroup and reflect the container's actual RAM
+    // allocation and current usage (null when unset or unreadable).
+    totalMemoryBytes: z.number().nonnegative(),
+    freeMemoryBytes: z.number().nonnegative(),
+    memoryLimitBytes: z.number().nonnegative().nullable(),
+    memoryUsedBytes: z.number().nonnegative().nullable(),
+
+    // Disk, in bytes, for the DATA_CACHE_DIR volume (where repos are indexed).
+    diskTotalBytes: z.number().nonnegative().nullable(),
+    diskFreeBytes: z.number().nonnegative().nullable(),
+});
+export type SystemInfo = z.infer<typeof systemInfoSchema>;
+
 export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
@@ -18,6 +52,8 @@ export const servicePingRequestSchema = z.object({
     isTelemetryEnabled: z.boolean(),
     isLanguageModelConfigured: z.boolean(),
     activationCode: z.string().optional(),
+    // optional for back-compat with Lighthouse deployments that predate it.
+    systemInfo: systemInfoSchema.optional(),
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
 

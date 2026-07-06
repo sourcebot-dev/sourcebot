@@ -25,6 +25,23 @@ The data contained within the Service Ping is limited to:
 | `isTelemetryEnabled` | `boolean` | Whether anonymous product telemetry is enabled. |
 | `isLanguageModelConfigured` | `boolean` | Whether at least one language model is configured. |
 | `activationCode` | `string` | Activation code, if your instance has one bound. |
+| `systemInfo` | `object` | Resource facts about the deployment (CPU, memory, disk). See below. |
+
+The `systemInfo` object contains a best-effort snapshot of the resources the deployment is running with. It is used to diagnose resource issues (e.g. insufficient RAM). Any field that cannot be read is reported as `null`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `platform` | `string` | Operating system platform (e.g. `linux`). |
+| `arch` | `string` | CPU architecture (e.g. `x64`, `arm64`). |
+| `cpuCores` | `integer` | Number of logical CPU cores visible to the host. |
+| `cpuQuota` | `number \| null` | Effective cgroup CPU limit in cores, or `null` if unlimited. |
+| `loadAverage1m` | `number \| null` | 1-minute load average. |
+| `totalMemoryBytes` | `integer` | Total host memory, in bytes. |
+| `freeMemoryBytes` | `integer` | Free host memory, in bytes. |
+| `memoryLimitBytes` | `integer \| null` | cgroup memory limit in bytes, or `null` if unlimited. |
+| `memoryUsedBytes` | `integer \| null` | Current cgroup memory usage, in bytes. |
+| `diskTotalBytes` | `integer \| null` | Total disk space for the data volume, in bytes. |
+| `diskFreeBytes` | `integer \| null` | Free disk space for the data volume, in bytes. |
 
 
 You can fetch the schema for the Service Ping by submitting a GET request to `https://deployments.sourcebot.dev/schema`
@@ -59,6 +76,19 @@ body: {
   "deploymentType": "other",
   "isTelemetryEnabled": true,
   "isLanguageModelConfigured": true,
+  "systemInfo": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpuCores": 8,
+    "cpuQuota": 4,
+    "loadAverage1m": 1.24,
+    "totalMemoryBytes": 16777216000,
+    "freeMemoryBytes": 4194304000,
+    "memoryLimitBytes": 8589934592,
+    "memoryUsedBytes": 3221225472,
+    "diskTotalBytes": 107374182400,
+    "diskFreeBytes": 53687091200
+  },
   "activationCode": "sb_act_3a925f51...."
 }
 ```

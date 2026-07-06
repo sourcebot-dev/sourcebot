@@ -14,6 +14,7 @@ import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
 import { activeMembershipWhere } from "@/features/membership/utils";
+import { getSystemInfo } from "./systemInfo";
 
 const logger = createLogger('service-ping');
 
@@ -79,6 +80,12 @@ export const syncWithLighthouse = async (orgId: number) => {
 
     const isLanguageModelConfigured = (await getConfiguredLanguageModels()).length > 0;
 
+    // Best-effort — a failure to collect system info must never prevent the ping.
+    const systemInfo = await getSystemInfo().catch((error) => {
+        logger.warn(`Failed to collect system info for service ping: ${error}`);
+        return undefined;
+    });
+
     const payload: ServicePingRequest = {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
@@ -91,6 +98,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         deploymentType: inferDeploymentType(),
         isTelemetryEnabled: env.SOURCEBOT_TELEMETRY_DISABLED === 'false',
         isLanguageModelConfigured,
+        ...(systemInfo && { systemInfo }),
         ...(activationCode && { activationCode }),
     };
 
