@@ -1,5 +1,30 @@
 import { z } from "zod";
 
+/**
+ * A best-effort snapshot of the host / container resources the deployment is
+ * running with. Used to quickly diagnose resource issues (e.g. insufficient
+ * RAM) from the service ping. Every field is best-effort; anything we can't
+ * read is reported as `null`.
+ */
+export const systemInfoSchema = z.object({
+    platform: z.string(),
+    arch: z.string(),
+
+    // CPU. `cpuQuota` is the effective cgroup CPU limit in cores (null when
+    // unset or unreadable), which is what a container is actually allowed to use.
+    cpuQuota: z.number().nonnegative().nullable(),
+
+    // Memory, in MiB, from the cgroup: the container's actual RAM limit and
+    // current usage (null when unset or unreadable).
+    memoryLimitMiB: z.number().nonnegative().nullable(),
+    memoryUsedMiB: z.number().nonnegative().nullable(),
+
+    // Disk, in MiB, for the DATA_CACHE_DIR volume (where repos are indexed).
+    diskTotalMiB: z.number().nonnegative().nullable(),
+    diskFreeMiB: z.number().nonnegative().nullable(),
+});
+export type SystemInfo = z.infer<typeof systemInfoSchema>;
+
 export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
@@ -18,6 +43,8 @@ export const servicePingRequestSchema = z.object({
     isTelemetryEnabled: z.boolean(),
     isLanguageModelConfigured: z.boolean(),
     activationCode: z.string().optional(),
+    // optional for back-compat with Lighthouse deployments that predate it.
+    systemInfo: systemInfoSchema.optional(),
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
 
