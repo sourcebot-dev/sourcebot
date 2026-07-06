@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added DPoP sender-constrained OAuth tokens for MCP clients. [#1395](https://github.com/sourcebot-dev/sourcebot/pull/1395)
 - [EE] Added text file attachments to Ask Sourcebot, letting users attach text/code/config files to a chat message via the paperclip button, drag-and-drop, or paste, with large pastes auto-converted to attachments. [#1374](https://github.com/sourcebot-dev/sourcebot/pull/1374)
 - [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
+- Added deployment system resource stats (CPU cores + cgroup quota, host + container memory, disk, load average) to the service ping, so resource issues can be diagnosed more quickly. [#1424](https://github.com/sourcebot-dev/sourcebot/pull/1424)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
