@@ -36,12 +36,12 @@ The `systemInfo` object contains a best-effort snapshot of the resources the dep
 | `cpuCores` | `integer` | Number of logical CPU cores visible to the host. |
 | `cpuQuota` | `number \| null` | Effective cgroup CPU limit in cores, or `null` if unlimited. |
 | `loadAverage1m` | `number \| null` | 1-minute load average. |
-| `totalMemoryBytes` | `integer` | Total host memory, in bytes. |
-| `freeMemoryBytes` | `integer` | Free host memory, in bytes. |
-| `memoryLimitBytes` | `integer \| null` | cgroup memory limit in bytes, or `null` if unlimited. |
-| `memoryUsedBytes` | `integer \| null` | Current cgroup memory usage, in bytes. |
-| `diskTotalBytes` | `integer \| null` | Total disk space for the data volume, in bytes. |
-| `diskFreeBytes` | `integer \| null` | Free disk space for the data volume, in bytes. |
+| `totalMemoryMiB` | `number` | Total host memory, in MiB. |
+| `freeMemoryMiB` | `number` | Free host memory, in MiB. |
+| `memoryLimitMiB` | `number \| null` | cgroup memory limit in MiB, or `null` if unlimited. |
+| `memoryUsedMiB` | `number \| null` | Current cgroup memory usage, in MiB. |
+| `diskTotalMiB` | `number \| null` | Total disk space for the data volume, in MiB. |
+| `diskFreeMiB` | `number \| null` | Free disk space for the data volume, in MiB. |
 
 
 You can fetch the schema for the Service Ping by submitting a GET request to `https://deployments.sourcebot.dev/schema`
@@ -82,12 +82,12 @@ body: {
     "cpuCores": 8,
     "cpuQuota": 4,
     "loadAverage1m": 1.24,
-    "totalMemoryBytes": 16777216000,
-    "freeMemoryBytes": 4194304000,
-    "memoryLimitBytes": 8589934592,
-    "memoryUsedBytes": 3221225472,
-    "diskTotalBytes": 107374182400,
-    "diskFreeBytes": 53687091200
+    "totalMemoryMiB": 16000,
+    "freeMemoryMiB": 4000,
+    "memoryLimitMiB": 8192,
+    "memoryUsedMiB": 3072,
+    "diskTotalMiB": 102400,
+    "diskFreeMiB": 54968
   },
   "activationCode": "sb_act_3a925f51...."
 }

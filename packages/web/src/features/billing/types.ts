@@ -17,17 +17,17 @@ export const systemInfoSchema = z.object({
     cpuQuota: z.number().nonnegative().nullable(),
     loadAverage1m: z.number().nonnegative().nullable(),
 
-    // Memory, in bytes. `total`/`free` are host-level (os.totalmem / os.freemem);
+    // Memory, in MiB. `total`/`free` are host-level (os.totalmem / os.freemem);
     // `limit`/`used` come from the cgroup and reflect the container's actual RAM
     // allocation and current usage (null when unset or unreadable).
-    totalMemoryBytes: z.number().nonnegative(),
-    freeMemoryBytes: z.number().nonnegative(),
-    memoryLimitBytes: z.number().nonnegative().nullable(),
-    memoryUsedBytes: z.number().nonnegative().nullable(),
+    totalMemoryMiB: z.number().nonnegative(),
+    freeMemoryMiB: z.number().nonnegative(),
+    memoryLimitMiB: z.number().nonnegative().nullable(),
+    memoryUsedMiB: z.number().nonnegative().nullable(),
 
-    // Disk, in bytes, for the DATA_CACHE_DIR volume (where repos are indexed).
-    diskTotalBytes: z.number().nonnegative().nullable(),
-    diskFreeBytes: z.number().nonnegative().nullable(),
+    // Disk, in MiB, for the DATA_CACHE_DIR volume (where repos are indexed).
+    diskTotalMiB: z.number().nonnegative().nullable(),
+    diskFreeMiB: z.number().nonnegative().nullable(),
 });
 export type SystemInfo = z.infer<typeof systemInfoSchema>;
 

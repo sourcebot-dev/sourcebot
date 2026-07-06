@@ -42,14 +42,20 @@ export const getSystemInfo = async (): Promise<SystemInfo> => {
         cpuQuota,
         // os.loadavg() returns [0, 0, 0] on unsupported platforms (e.g. Windows).
         loadAverage1m: os.platform() === 'win32' ? null : os.loadavg()[0],
-        totalMemoryBytes: os.totalmem(),
-        freeMemoryBytes: os.freemem(),
-        memoryLimitBytes,
-        memoryUsedBytes,
-        diskTotalBytes: disk.totalBytes,
-        diskFreeBytes: disk.freeBytes,
+        totalMemoryMiB: bytesToMiB(os.totalmem()),
+        freeMemoryMiB: bytesToMiB(os.freemem()),
+        memoryLimitMiB: memoryLimitBytes === null ? null : bytesToMiB(memoryLimitBytes),
+        memoryUsedMiB: memoryUsedBytes === null ? null : bytesToMiB(memoryUsedBytes),
+        diskTotalMiB: disk.totalBytes === null ? null : bytesToMiB(disk.totalBytes),
+        diskFreeMiB: disk.freeBytes === null ? null : bytesToMiB(disk.freeBytes),
     };
 };
+
+const BYTES_PER_MIB = 1024 * 1024;
+
+// Memory and disk are both reported in whole MiB (binary, 1024-based units),
+// matching how RAM and container/k8s volumes are sized.
+const bytesToMiB = (bytes: number): number => Math.round(bytes / BYTES_PER_MIB);
 
 const readFileTrimmed = async (path: string): Promise<string | null> => {
     try {
