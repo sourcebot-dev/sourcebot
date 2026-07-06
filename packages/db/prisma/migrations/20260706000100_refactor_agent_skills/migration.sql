@@ -14,8 +14,12 @@ CREATE TABLE "AgentSkill" (
     "updatedById" TEXT,
     "orgId" INTEGER NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "featured" BOOLEAN NOT NULL DEFAULT false,
     "autoEnrolled" BOOLEAN NOT NULL DEFAULT false,
+    "sourceRepoName" TEXT,
+    "sourceFilePath" TEXT,
+    "sourceRevision" TEXT,
+    "sourceBlobSha" TEXT,
+    "sourceImportedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -47,7 +51,7 @@ CREATE INDEX "AgentSkill_orgId_idx" ON "AgentSkill"("orgId");
 CREATE INDEX "AgentSkill_orgId_visibility_scopeId_idx" ON "AgentSkill"("orgId", "visibility", "scopeId");
 
 -- CreateIndex
-CREATE INDEX "AgentSkill_shared_catalog_idx" ON "AgentSkill"("orgId", "visibility", "scopeId", "enabled", "featured" DESC, "updatedAt" DESC, "name");
+CREATE INDEX "AgentSkill_shared_catalog_idx" ON "AgentSkill"("orgId", "visibility", "scopeId", "enabled", "updatedAt" DESC, "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AgentSkill_orgId_visibility_scopeId_slug_key" ON "AgentSkill"("orgId", "visibility", "scopeId", "slug");
