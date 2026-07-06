@@ -5,9 +5,6 @@ import { z } from "zod";
  * running with. Used to quickly diagnose resource issues (e.g. insufficient
  * RAM) from the service ping. Every field is best-effort; anything we can't
  * read is reported as `null`.
- *
- * @warning : must be kept in sync with the mirrored schema in
- * `lighthouse: lambda/routes/ping.ts`.
  */
 export const systemInfoSchema = z.object({
     platform: z.string(),
