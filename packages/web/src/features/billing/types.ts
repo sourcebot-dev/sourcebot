@@ -10,18 +10,12 @@ export const systemInfoSchema = z.object({
     platform: z.string(),
     arch: z.string(),
 
-    // CPU. `cpuCores` is the number of logical cores visible to the host;
-    // `cpuQuota` is the effective cgroup CPU limit in cores (null when unset or
-    // unreadable), which is what a container is actually allowed to use.
-    cpuCores: z.number().int().nonnegative(),
+    // CPU. `cpuQuota` is the effective cgroup CPU limit in cores (null when
+    // unset or unreadable), which is what a container is actually allowed to use.
     cpuQuota: z.number().nonnegative().nullable(),
-    loadAverage1m: z.number().nonnegative().nullable(),
 
-    // Memory, in MiB. `total`/`free` are host-level (os.totalmem / os.freemem);
-    // `limit`/`used` come from the cgroup and reflect the container's actual RAM
-    // allocation and current usage (null when unset or unreadable).
-    totalMemoryMiB: z.number().nonnegative(),
-    freeMemoryMiB: z.number().nonnegative(),
+    // Memory, in MiB, from the cgroup: the container's actual RAM limit and
+    // current usage (null when unset or unreadable).
     memoryLimitMiB: z.number().nonnegative().nullable(),
     memoryUsedMiB: z.number().nonnegative().nullable(),
 

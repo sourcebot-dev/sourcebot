@@ -33,11 +33,7 @@ The `systemInfo` object contains a best-effort snapshot of the resources the dep
 | --- | --- | --- |
 | `platform` | `string` | Operating system platform (e.g. `linux`). |
 | `arch` | `string` | CPU architecture (e.g. `x64`, `arm64`). |
-| `cpuCores` | `integer` | Number of logical CPU cores visible to the host. |
 | `cpuQuota` | `number \| null` | Effective cgroup CPU limit in cores, or `null` if unlimited. |
-| `loadAverage1m` | `number \| null` | 1-minute load average. |
-| `totalMemoryMiB` | `number` | Total host memory, in MiB. |
-| `freeMemoryMiB` | `number` | Free host memory, in MiB. |
 | `memoryLimitMiB` | `number \| null` | cgroup memory limit in MiB, or `null` if unlimited. |
 | `memoryUsedMiB` | `number \| null` | Current cgroup memory usage, in MiB. |
 | `diskTotalMiB` | `number \| null` | Total disk space for the data volume, in MiB. |
@@ -79,11 +75,7 @@ body: {
   "systemInfo": {
     "platform": "linux",
     "arch": "x64",
-    "cpuCores": 8,
     "cpuQuota": 4,
-    "loadAverage1m": 1.24,
-    "totalMemoryMiB": 16000,
-    "freeMemoryMiB": 4000,
     "memoryLimitMiB": 8192,
     "memoryUsedMiB": 3072,
     "diskTotalMiB": 102400,

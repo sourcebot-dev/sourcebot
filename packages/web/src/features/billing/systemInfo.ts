@@ -17,15 +17,15 @@ const CGROUP_V1_CPU_QUOTA = '/sys/fs/cgroup/cpu/cpu.cfs_quota_us';
 const CGROUP_V1_CPU_PERIOD = '/sys/fs/cgroup/cpu/cpu.cfs_period_us';
 
 /**
- * Collects a snapshot of the host / container resources this deployment is
- * running with, so we can quickly diagnose resource issues (e.g. "the customer
- * doesn't have enough RAM") from the service ping.
+ * Collects a snapshot of the resources this deployment is running with, so we
+ * can quickly diagnose resource issues (e.g. "the customer doesn't have enough
+ * RAM") from the service ping.
  *
  * Everything is best-effort: any value we can't read is reported as `null` so a
- * partial snapshot still goes out. The container-aware fields (cgroup limits /
- * usage) are what actually reflect the resources available to a Dockerized or
- * Kubernetes deployment — `os.totalmem()` and `os.cpus()` report the *host*
- * machine, not the container's cgroup limits.
+ * partial snapshot still goes out. Resource figures come from the container's
+ * cgroup (and `statfs` for disk) rather than host-level readings, which in a
+ * Dockerized or Kubernetes deployment report the underlying machine, not the
+ * container's actual limits.
  */
 export const getSystemInfo = async (): Promise<SystemInfo> => {
     const [memoryLimitBytes, memoryUsedBytes, cpuQuota, disk] = await Promise.all([
@@ -38,12 +38,7 @@ export const getSystemInfo = async (): Promise<SystemInfo> => {
     return {
         platform: os.platform(),
         arch: os.arch(),
-        cpuCores: os.cpus().length,
         cpuQuota,
-        // os.loadavg() returns [0, 0, 0] on unsupported platforms (e.g. Windows).
-        loadAverage1m: os.platform() === 'win32' ? null : os.loadavg()[0],
-        totalMemoryMiB: bytesToMiB(os.totalmem()),
-        freeMemoryMiB: bytesToMiB(os.freemem()),
         memoryLimitMiB: memoryLimitBytes === null ? null : bytesToMiB(memoryLimitBytes),
         memoryUsedMiB: memoryUsedBytes === null ? null : bytesToMiB(memoryUsedBytes),
         diskTotalMiB: disk.totalBytes === null ? null : bytesToMiB(disk.totalBytes),
