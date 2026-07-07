@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
 - Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
 - [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
+- Fixed GitLab topic include and exclude filters missing mixed-case project topics. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
 
 ## [5.0.4] - 2026-06-18
 
