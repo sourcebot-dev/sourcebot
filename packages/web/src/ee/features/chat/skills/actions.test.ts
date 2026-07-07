@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { CodeHostType, OrgRole } from "@sourcebot/db";
+import { CodeHostType, OrgRole, Prisma } from "@sourcebot/db";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 
@@ -40,6 +40,7 @@ vi.mock("next/cache", () => ({
 const {
     adoptSharedSkill,
     createSharedAgentSkill,
+    deletePersonalAgentSkill,
     deleteSharedAgentSkill,
     getAgentSkillSourceStatus,
     getSharedAgentSkill,
@@ -271,6 +272,7 @@ describe("publishPersonalAgentSkillToShared", () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
+                id: "personal-skill",
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
@@ -664,6 +666,55 @@ describe("listSharedAgentSkillCatalog", () => {
     });
 });
 
+describe("deletePersonalAgentSkill", () => {
+    test("deletes the personal skill with one scoped delete", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "member-1" });
+        prisma.agentSkill.delete.mockResolvedValue({
+            id: "skill-1",
+            sourceRepoName: "github.com/acme/widgets",
+        });
+
+        const result = await deletePersonalAgentSkill("skill-1");
+
+        expect(result).toEqual({ success: true });
+        expect(prisma.agentSkill.delete).toHaveBeenCalledWith({
+            where: {
+                id: "skill-1",
+                visibility: "PERSONAL",
+                scopeId: "member-1",
+                orgId: 1,
+                createdById: "member-1",
+            },
+            select: {
+                id: true,
+                sourceRepoName: true,
+            },
+        });
+        expect(prisma.agentSkill.findFirst).not.toHaveBeenCalled();
+        expect(prisma.agentSkill.deleteMany).not.toHaveBeenCalled();
+    });
+
+    test("returns skillNotFound when the personal skill is missing or out of scope", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "member-1" });
+        prisma.agentSkill.delete.mockRejectedValue(
+            new Prisma.PrismaClientKnownRequestError("Record not found", {
+                code: "P2025",
+                clientVersion: "0",
+            }),
+        );
+
+        const result = await deletePersonalAgentSkill("skill-1");
+
+        expect(result).toEqual({
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.AGENT_SKILL_NOT_FOUND,
+            message: "Skill not found.",
+        });
+        expect(prisma.agentSkill.findFirst).not.toHaveBeenCalled();
+        expect(prisma.agentSkill.deleteMany).not.toHaveBeenCalled();
+    });
+});
+
 describe("deleteSharedAgentSkill", () => {
     test("returns skillNotFound when the shared skill is disabled or missing", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
@@ -790,6 +841,10 @@ describe("updateSharedAgentSkill", () => {
                 id: true,
                 createdById: true,
                 sourceRepoName: true,
+                name: true,
+                slug: true,
+                description: true,
+                instructions: true,
             },
         });
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
@@ -818,6 +873,10 @@ describe("updateSharedAgentSkill", () => {
                 id: true,
                 createdById: true,
                 sourceRepoName: true,
+                name: true,
+                slug: true,
+                description: true,
+                instructions: true,
             },
         });
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
@@ -829,6 +888,10 @@ describe("updateSharedAgentSkill", () => {
             id: "skill-1",
             createdById: "author-1",
             sourceRepoName: null,
+            name: "Review",
+            slug: "review",
+            description: "Review risky changes.",
+            instructions: "Review the change.",
         });
         prisma.agentSkill.update.mockResolvedValue({
             id: "skill-1",
@@ -857,6 +920,10 @@ describe("updateSharedAgentSkill", () => {
                 id: true,
                 createdById: true,
                 sourceRepoName: true,
+                name: true,
+                slug: true,
+                description: true,
+                instructions: true,
             },
         });
         expect(prisma.agentSkill.update).toHaveBeenCalledWith({
@@ -1583,6 +1650,7 @@ describe("updateSharedAgentSkillFromSource", () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
+                id: "personal-skill",
                 slug: "deploy-widgets",
                 name: "Deploy Widgets",
                 description: "Deploy steps",

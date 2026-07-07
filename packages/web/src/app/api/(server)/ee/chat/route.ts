@@ -186,17 +186,19 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
             const askMcpSource = source === 'sourcebot-web-client' ? source : undefined;
-            const askMcpAvailability = await getAskMcpAvailabilityAnalytics({
-                prisma,
-                userId: user?.id,
-                orgId: org.id,
-                disabledMcpServerIds,
-            });
-            const askSkillAvailability = await getAskSkillAvailabilityAnalytics({
-                prisma,
-                userId: user?.id,
-                orgId: org.id,
-            });
+            const [askMcpAvailability, askSkillAvailability] = await Promise.all([
+                getAskMcpAvailabilityAnalytics({
+                    prisma,
+                    userId: user?.id,
+                    orgId: org.id,
+                    disabledMcpServerIds,
+                }),
+                getAskSkillAvailabilityAnalytics({
+                    prisma,
+                    userId: user?.id,
+                    orgId: org.id,
+                }),
+            ]);
 
             await captureEvent('ask_message_sent', {
                 chatId: id,

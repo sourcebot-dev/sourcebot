@@ -1,10 +1,24 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
 import type { SBChatMessage } from "@/features/chat/types";
+import { hasEntitlement } from "@/lib/entitlements";
 
 vi.mock("server-only", () => ({ default: vi.fn() }));
+vi.mock("@/lib/entitlements", () => ({ hasEntitlement: vi.fn() }));
 
-import { getAskSkillTurnCompletedAnalytics } from "./skillAnalytics.server";
+import {
+    getAskSkillAvailabilityAnalytics,
+    getAskSkillTurnCompletedAnalytics,
+} from "./skillAnalytics.server";
+
+type AskSkillAvailabilityPrisma = Parameters<typeof getAskSkillAvailabilityAnalytics>[0]["prisma"];
+
+const hasEntitlementMock = vi.mocked(hasEntitlement);
+
+beforeEach(() => {
+    vi.clearAllMocks();
+    hasEntitlementMock.mockResolvedValue(true);
+});
 
 const userMessageWithCommand = (commandId: string): SBChatMessage => ({
     id: "user-message",
@@ -35,6 +49,50 @@ const assistantMessage = (parts: SBChatMessage["parts"]): SBChatMessage => ({
         totalResponseTimeMs: 123,
     },
     parts,
+});
+
+describe("getAskSkillAvailabilityAnalytics", () => {
+    test("counts accessible skills without building command definitions", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn()
+                    .mockResolvedValueOnce([
+                        { sourceRepoName: null },
+                        { sourceRepoName: "github.com/acme/widgets" },
+                        { sourceRepoName: "github.com/acme/secret" },
+                    ])
+                    .mockResolvedValueOnce([
+                        { sourceRepoName: null },
+                        { sourceRepoName: "github.com/acme/widgets" },
+                    ]),
+            },
+            repo: {
+                findMany: vi.fn().mockResolvedValue([{ name: "github.com/acme/widgets" }]),
+            },
+        };
+
+        const analytics = await getAskSkillAvailabilityAnalytics({
+            prisma: prisma as unknown as AskSkillAvailabilityPrisma,
+            userId: "user-1",
+            orgId: 1,
+        });
+
+        expect(analytics).toEqual({ availableSkillCount: 4 });
+        expect(prisma.agentSkill.findMany).toHaveBeenCalledTimes(2);
+        expect(prisma.agentSkill.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            select: { sourceRepoName: true },
+        }));
+        expect(prisma.agentSkill.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            select: { sourceRepoName: true },
+        }));
+        expect(prisma.repo.findMany).toHaveBeenCalledWith({
+            where: {
+                name: { in: ["github.com/acme/widgets", "github.com/acme/secret"] },
+                orgId: 1,
+            },
+            select: { name: true },
+        });
+    });
 });
 
 describe("getAskSkillTurnCompletedAnalytics", () => {

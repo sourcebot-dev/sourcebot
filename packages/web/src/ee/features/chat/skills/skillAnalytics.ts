@@ -5,7 +5,6 @@ import type {
     AskSkillScope,
     PosthogEventMap,
 } from "@/lib/posthogEvents";
-import type { AgentSkillVisibility } from "@sourcebot/db";
 
 type AskSkillInvokedEvent = PosthogEventMap['ask_skill_invoked'];
 type AskSkillInvokedSource = AskSkillInvokedEvent['source'];
@@ -58,9 +57,6 @@ export const normalizeSkillAnalyticsEntryPoint = (
 
 export const skillScopeFromSourceId = (sourceId: string): AskSkillScope =>
     sourceId === ASK_COMMAND_SOURCE_SHARED_SKILL ? 'shared' : 'personal';
-
-export const skillScopeFromVisibility = (visibility: AgentSkillVisibility): AskSkillScope =>
-    visibility === 'SHARED' ? 'shared' : 'personal';
 
 /**
  * Single source of truth for the `ask_skill_invoked` event payload, shared by

@@ -10,8 +10,9 @@ import type {
     AskSkillChangedField,
     AskSkillCreationMethod,
     AskSkillEntryPoint,
+    PosthogEventMap,
 } from "@/lib/posthogEvents";
-import { isUniqueConstraintError } from "@/lib/prismaErrors";
+import { isRecordNotFoundError, isUniqueConstraintError } from "@/lib/prismaErrors";
 import { requestBodySchemaValidationError, unexpectedError, ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { sew } from "@/middleware/sew";
@@ -88,6 +89,28 @@ type SkillAnalyticsContext = {
 };
 
 const SKILL_ANALYTICS_SOURCE = 'sourcebot-web-client' as const;
+
+type SkillOutcomeEventName = {
+    [EventName in keyof PosthogEventMap]: PosthogEventMap[EventName] extends { success: boolean }
+        ? EventName
+        : never;
+}[keyof PosthogEventMap];
+type SkillEventBase<EventName extends SkillOutcomeEventName> =
+    Omit<PosthogEventMap[EventName], "success" | "failureReason">;
+type SkillEventOutcome =
+    | { success: true }
+    | { success: false; failureReason: string };
+
+const emitSkillEvent = <EventName extends SkillOutcomeEventName>(
+    eventName: EventName,
+    base: SkillEventBase<EventName>,
+    outcome: SkillEventOutcome,
+) => {
+    void captureEvent(eventName, {
+        ...base,
+        ...outcome,
+    } as PosthogEventMap[EventName]);
+};
 
 const getSkillAnalyticsEntryPoint = (analytics?: SkillAnalyticsContext): AskSkillEntryPoint =>
     normalizeSkillAnalyticsEntryPoint(analytics?.entryPoint);
@@ -187,6 +210,18 @@ type ManageableSharedSkill = {
     createdById: string;
     sourceRepoName: string | null;
 };
+type ManageableSharedSkillUpdateSnapshot = ManageableSharedSkill & Pick<
+    AgentSkill,
+    "name" | "slug" | "description" | "instructions"
+>;
+type RequireManageableSharedSkillParams = {
+    prisma: PrismaClient;
+    orgId: number;
+    userId: string;
+    role: OrgRole;
+    skillId: string;
+    requireEnabled?: boolean;
+};
 
 // The provenance columns copied verbatim when a synced skill changes scope
 // (publish or make-personal), so the new row stays linked to the same source
@@ -210,33 +245,49 @@ const canManageSharedSkill = (
     role: OrgRole,
 ) => skill.createdById === userId || role === OrgRole.OWNER;
 
-const requireManageableSharedSkill = async ({
+async function requireManageableSharedSkill(
+    params: RequireManageableSharedSkillParams & { includeUpdateSnapshot: true },
+): Promise<ManageableSharedSkillUpdateSnapshot | ServiceError>;
+async function requireManageableSharedSkill(
+    params: RequireManageableSharedSkillParams & { includeUpdateSnapshot?: false },
+): Promise<ManageableSharedSkill | ServiceError>;
+async function requireManageableSharedSkill({
     prisma,
     orgId,
     userId,
     role,
     skillId,
     requireEnabled = true,
-}: {
-    prisma: PrismaClient;
-    orgId: number;
-    userId: string;
-    role: OrgRole;
-    skillId: string;
-    requireEnabled?: boolean;
-}): Promise<ManageableSharedSkill | ServiceError> => {
-    const skill = await prisma.agentSkill.findFirst({
-        where: {
-            id: skillId,
-            ...sharedAgentSkillAuthScope(orgId),
-            ...(requireEnabled ? { enabled: true } : {}),
-        },
-        select: {
-            id: true,
-            createdById: true,
-            sourceRepoName: true,
-        },
-    });
+    includeUpdateSnapshot = false,
+}: RequireManageableSharedSkillParams & { includeUpdateSnapshot?: boolean }): Promise<
+    ManageableSharedSkill | ManageableSharedSkillUpdateSnapshot | ServiceError
+> {
+    const where = {
+        id: skillId,
+        ...sharedAgentSkillAuthScope(orgId),
+        ...(requireEnabled ? { enabled: true } : {}),
+    };
+    const skill = includeUpdateSnapshot
+        ? await prisma.agentSkill.findFirst({
+            where,
+            select: {
+                id: true,
+                createdById: true,
+                sourceRepoName: true,
+                name: true,
+                slug: true,
+                description: true,
+                instructions: true,
+            },
+        })
+        : await prisma.agentSkill.findFirst({
+            where,
+            select: {
+                id: true,
+                createdById: true,
+                sourceRepoName: true,
+            },
+        });
 
     if (!skill) {
         return skillNotFound();
@@ -247,7 +298,7 @@ const requireManageableSharedSkill = async ({
     }
 
     return skill;
-};
+}
 
 const sharedSkillCreateDataForUser = ({
     orgId,
@@ -467,6 +518,13 @@ export const createPersonalAgentSkill = async (
             const { source } = parsed.data;
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
             const creationMethod = analytics?.creationMethod ?? (source ? 'repository' : 'manual');
+            const eventBase: SkillEventBase<'ask_skill_created'> = {
+                source: SKILL_ANALYTICS_SOURCE,
+                entryPoint,
+                scope: 'personal',
+                creationMethod,
+                isSynced: source !== undefined,
+            };
 
             try {
                 const skill = await prisma.agentSkill.create({
@@ -492,36 +550,21 @@ export const createPersonalAgentSkill = async (
                 });
 
                 refreshSkillSettingsViews();
-                void captureEvent('ask_skill_created', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'personal',
-                    creationMethod,
-                    isSynced: source !== undefined,
+                emitSkillEvent('ask_skill_created', {
+                    ...eventBase,
                     skillIdHash: hashSkillId(skill.id),
-                    success: true,
-                });
+                }, { success: true });
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
-                    void captureEvent('ask_skill_created', {
-                        source: SKILL_ANALYTICS_SOURCE,
-                        entryPoint,
-                        scope: 'personal',
-                        creationMethod,
-                        isSynced: source !== undefined,
+                    emitSkillEvent('ask_skill_created', eventBase, {
                         success: false,
                         failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                     });
                     return skillAlreadyExists(parsed.data.slug);
                 }
 
-                void captureEvent('ask_skill_created', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'personal',
-                    creationMethod,
-                    isSynced: source !== undefined,
+                emitSkillEvent('ask_skill_created', eventBase, {
                     success: false,
                     failureReason: ErrorCode.UNEXPECTED_ERROR,
                 });
@@ -573,6 +616,14 @@ export const updatePersonalAgentSkill = async (
             const isSynced = existingSkill.sourceRepoName !== null;
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
             const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
+            const eventBase: SkillEventBase<'ask_skill_updated'> = {
+                source: SKILL_ANALYTICS_SOURCE,
+                entryPoint,
+                scope: 'personal',
+                isSynced,
+                skillIdHash: hashSkillId(existingSkill.id),
+                changedFieldTypes,
+            };
 
             try {
                 const skill = await prisma.agentSkill.update({
@@ -593,38 +644,18 @@ export const updatePersonalAgentSkill = async (
                 });
 
                 refreshSkillSettingsViews();
-                void captureEvent('ask_skill_updated', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'personal',
-                    isSynced,
-                    skillIdHash: hashSkillId(skill.id),
-                    changedFieldTypes,
-                    success: true,
-                });
+                emitSkillEvent('ask_skill_updated', eventBase, { success: true });
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
-                    void captureEvent('ask_skill_updated', {
-                        source: SKILL_ANALYTICS_SOURCE,
-                        entryPoint,
-                        scope: 'personal',
-                        isSynced,
-                        skillIdHash: hashSkillId(existingSkill.id),
-                        changedFieldTypes,
+                    emitSkillEvent('ask_skill_updated', eventBase, {
                         success: false,
                         failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                     });
                     return skillAlreadyExists(parsed.data.slug);
                 }
 
-                void captureEvent('ask_skill_updated', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'personal',
-                    isSynced,
-                    skillIdHash: hashSkillId(existingSkill.id),
-                    changedFieldTypes,
+                emitSkillEvent('ask_skill_updated', eventBase, {
                     success: false,
                     failureReason: ErrorCode.UNEXPECTED_ERROR,
                 });
@@ -779,13 +810,15 @@ export const updatePersonalAgentSkillFromSource = async (
         }
 
         const entryPoint = getSkillAnalyticsEntryPoint(analytics);
+        const eventBase: SkillEventBase<'ask_skill_source_refresh_completed'> = {
+            source: SKILL_ANALYTICS_SOURCE,
+            entryPoint,
+            scope: 'personal',
+            skillIdHash: hashSkillId(skill.id),
+        };
         const refresh = await buildSourceRefreshData(skill, { org, prisma });
         if (isServiceError(refresh)) {
-            void captureEvent('ask_skill_source_refresh_completed', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'personal',
-                skillIdHash: hashSkillId(skill.id),
+            emitSkillEvent('ask_skill_source_refresh_completed', eventBase, {
                 success: false,
                 failureReason: getSkillFailureReason(refresh),
             });
@@ -805,11 +838,7 @@ export const updatePersonalAgentSkillFromSource = async (
                 },
             });
         } catch (error) {
-            void captureEvent('ask_skill_source_refresh_completed', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'personal',
-                skillIdHash: hashSkillId(skill.id),
+            emitSkillEvent('ask_skill_source_refresh_completed', eventBase, {
                 success: false,
                 failureReason: ErrorCode.UNEXPECTED_ERROR,
             });
@@ -817,13 +846,7 @@ export const updatePersonalAgentSkillFromSource = async (
         }
 
         refreshSkillSettingsViews();
-        void captureEvent('ask_skill_source_refresh_completed', {
-            source: SKILL_ANALYTICS_SOURCE,
-            entryPoint,
-            scope: 'personal',
-            skillIdHash: hashSkillId(updated.id),
-            success: true,
-        });
+        emitSkillEvent('ask_skill_source_refresh_completed', eventBase, { success: true });
         return toAgentSkillListItem(updated);
     }));
 
@@ -875,13 +898,15 @@ export const updateSharedAgentSkillFromSource = async (
             return skillNotFound();
         }
 
+        const eventBase: SkillEventBase<'ask_skill_source_refresh_completed'> = {
+            source: SKILL_ANALYTICS_SOURCE,
+            entryPoint,
+            scope: 'shared',
+            skillIdHash: hashSkillId(skill.id),
+        };
         const refresh = await buildSourceRefreshData(skill, { org, prisma });
         if (isServiceError(refresh)) {
-            void captureEvent('ask_skill_source_refresh_completed', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'shared',
-                skillIdHash: hashSkillId(skill.id),
+            emitSkillEvent('ask_skill_source_refresh_completed', eventBase, {
                 success: false,
                 failureReason: getSkillFailureReason(refresh),
             });
@@ -902,11 +927,7 @@ export const updateSharedAgentSkillFromSource = async (
                     select: sharedCatalogSkillSelect(user.id, org.id),
                 });
             } catch (error) {
-                void captureEvent('ask_skill_source_refresh_completed', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'shared',
-                    skillIdHash: hashSkillId(skill.id),
+                emitSkillEvent('ask_skill_source_refresh_completed', eventBase, {
                     success: false,
                     failureReason: ErrorCode.UNEXPECTED_ERROR,
                 });
@@ -915,13 +936,7 @@ export const updateSharedAgentSkillFromSource = async (
         })();
 
         refreshSkillSettingsViews();
-        void captureEvent('ask_skill_source_refresh_completed', {
-            source: SKILL_ANALYTICS_SOURCE,
-            entryPoint,
-            scope: 'shared',
-            skillIdHash: hashSkillId(skill.id),
-            success: true,
-        });
+        emitSkillEvent('ask_skill_source_refresh_completed', eventBase, { success: true });
         return toSharedAgentSkillCatalogItem(updated, user.id);
     }));
 
@@ -935,30 +950,23 @@ export const deletePersonalAgentSkill = async (
             return askError;
         }
 
-        const skill = await prisma.agentSkill.findFirst({
-            where: {
-                id: skillId,
-                ...personalAgentSkillAuthScope(user.id, org.id),
-            },
-            select: {
-                id: true,
-                sourceRepoName: true,
-            },
-        });
-
-        if (!skill) {
-            return skillNotFound();
-        }
-
-        const result = await prisma.agentSkill.deleteMany({
-            where: {
-                id: skill.id,
-                ...personalAgentSkillAuthScope(user.id, org.id),
-            },
-        });
-
-        if (result.count === 0) {
-            return skillNotFound();
+        let skill: Pick<AgentSkill, "id" | "sourceRepoName">;
+        try {
+            skill = await prisma.agentSkill.delete({
+                where: {
+                    id: skillId,
+                    ...personalAgentSkillAuthScope(user.id, org.id),
+                },
+                select: {
+                    id: true,
+                    sourceRepoName: true,
+                },
+            });
+        } catch (error) {
+            if (isRecordNotFoundError(error)) {
+                return skillNotFound();
+            }
+            throw error;
         }
 
         refreshSkillSettingsViews();
@@ -1009,6 +1017,15 @@ export const publishPersonalAgentSkillToShared = async (
 
         const entryPoint = getSkillAnalyticsEntryPoint(analytics);
         const isSynced = isSyncedSkill(personalSkill);
+        const permissionSyncEnabled = env.PERMISSION_SYNC_ENABLED === 'true';
+        const eventBase: SkillEventBase<'ask_skill_shared'> = {
+            source: SKILL_ANALYTICS_SOURCE,
+            entryPoint,
+            isSynced,
+            skillIdHash: hashSkillId(personalSkill.id),
+            permissionSyncEnabled,
+            requiredRepoAccessWarning: isSynced && permissionSyncEnabled,
+        };
         try {
             const sharedSkill = await prisma.$transaction(async (tx) => {
                 const createdSkill = await tx.agentSkill.create({
@@ -1045,38 +1062,21 @@ export const publishPersonalAgentSkillToShared = async (
             });
 
             refreshSkillSettingsViews();
-            void captureEvent('ask_skill_shared', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                isSynced,
+            emitSkillEvent('ask_skill_shared', {
+                ...eventBase,
                 skillIdHash: hashSkillId(sharedSkill.id),
-                permissionSyncEnabled: env.PERMISSION_SYNC_ENABLED === 'true',
-                requiredRepoAccessWarning: isSynced && env.PERMISSION_SYNC_ENABLED === 'true',
-                success: true,
-            });
+            }, { success: true });
             return toSharedAgentSkillCatalogItem(sharedSkill, user.id);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
-                void captureEvent('ask_skill_shared', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    isSynced,
-                    skillIdHash: hashSkillId(personalSkill.id),
-                    permissionSyncEnabled: env.PERMISSION_SYNC_ENABLED === 'true',
-                    requiredRepoAccessWarning: isSynced && env.PERMISSION_SYNC_ENABLED === 'true',
+                emitSkillEvent('ask_skill_shared', eventBase, {
                     success: false,
                     failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                 });
                 return skillAlreadyExists(personalSkill.slug);
             }
 
-            void captureEvent('ask_skill_shared', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                isSynced,
-                skillIdHash: hashSkillId(personalSkill.id),
-                permissionSyncEnabled: env.PERMISSION_SYNC_ENABLED === 'true',
-                requiredRepoAccessWarning: isSynced && env.PERMISSION_SYNC_ENABLED === 'true',
+            emitSkillEvent('ask_skill_shared', eventBase, {
                 success: false,
                 failureReason: ErrorCode.UNEXPECTED_ERROR,
             });
@@ -1139,6 +1139,14 @@ export const makeSharedAgentSkillPersonal = async (
         const entryPoint = getSkillAnalyticsEntryPoint(analytics);
         const actorRelationship = getSharedSkillActorRelationship(sharedSkill, user.id, role);
         const isSynced = isSyncedSkill(sharedSkill);
+        const eventBase: SkillEventBase<'ask_skill_made_personal'> = {
+            source: SKILL_ANALYTICS_SOURCE,
+            entryPoint,
+            isSynced,
+            wasAutoEnrolled: sharedSkill.autoEnrolled,
+            skillIdHash: hashSkillId(sharedSkill.id),
+            actorRelationship,
+        };
         try {
             const personalSkill = await prisma.$transaction(async (tx) => {
                 const createdSkill = await tx.agentSkill.create({
@@ -1175,38 +1183,18 @@ export const makeSharedAgentSkillPersonal = async (
             });
 
             refreshSkillSettingsViews();
-            void captureEvent('ask_skill_made_personal', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                isSynced,
-                wasAutoEnrolled: sharedSkill.autoEnrolled,
-                skillIdHash: hashSkillId(sharedSkill.id),
-                actorRelationship,
-                success: true,
-            });
+            emitSkillEvent('ask_skill_made_personal', eventBase, { success: true });
             return toAgentSkillListItem(personalSkill);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
-                void captureEvent('ask_skill_made_personal', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    isSynced,
-                    wasAutoEnrolled: sharedSkill.autoEnrolled,
-                    skillIdHash: hashSkillId(sharedSkill.id),
-                    actorRelationship,
+                emitSkillEvent('ask_skill_made_personal', eventBase, {
                     success: false,
                     failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                 });
                 return skillAlreadyExists(sharedSkill.slug);
             }
 
-            void captureEvent('ask_skill_made_personal', {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                isSynced,
-                wasAutoEnrolled: sharedSkill.autoEnrolled,
-                skillIdHash: hashSkillId(sharedSkill.id),
-                actorRelationship,
+            emitSkillEvent('ask_skill_made_personal', eventBase, {
                 success: false,
                 failureReason: ErrorCode.UNEXPECTED_ERROR,
             });
@@ -1305,6 +1293,13 @@ export const createSharedAgentSkill = async (
 
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
             const creationMethod = analytics?.creationMethod ?? 'manual';
+            const eventBase: SkillEventBase<'ask_skill_created'> = {
+                source: SKILL_ANALYTICS_SOURCE,
+                entryPoint,
+                scope: 'shared',
+                creationMethod,
+                isSynced: false,
+            };
             try {
                 const skill = await prisma.$transaction(async (tx) => {
                     return createSharedSkillForUser({
@@ -1316,36 +1311,21 @@ export const createSharedAgentSkill = async (
                 });
 
                 refreshSkillSettingsViews();
-                void captureEvent('ask_skill_created', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'shared',
-                    creationMethod,
-                    isSynced: false,
+                emitSkillEvent('ask_skill_created', {
+                    ...eventBase,
                     skillIdHash: hashSkillId(skill.id),
-                    success: true,
-                });
+                }, { success: true });
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
-                    void captureEvent('ask_skill_created', {
-                        source: SKILL_ANALYTICS_SOURCE,
-                        entryPoint,
-                        scope: 'shared',
-                        creationMethod,
-                        isSynced: false,
+                    emitSkillEvent('ask_skill_created', eventBase, {
                         success: false,
                         failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                     });
                     return skillAlreadyExists(parsed.data.slug);
                 }
 
-                void captureEvent('ask_skill_created', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'shared',
-                    creationMethod,
-                    isSynced: false,
+                emitSkillEvent('ask_skill_created', eventBase, {
                     success: false,
                     failureReason: ErrorCode.UNEXPECTED_ERROR,
                 });
@@ -1377,38 +1357,27 @@ export const updateSharedAgentSkill = async (
                 role,
                 skillId: parsed.data.id,
                 requireEnabled: true,
+                includeUpdateSnapshot: true,
             });
 
             if ("errorCode" in existingSkill) {
                 return existingSkill;
             }
 
-            const currentSkill = await prisma.agentSkill.findFirst({
-                where: {
-                    id: existingSkill.id,
-                    ...sharedAgentSkillAuthScope(org.id),
-                    enabled: true,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    description: true,
-                    instructions: true,
-                    sourceRepoName: true,
-                },
-            });
-
-            if (!currentSkill) {
-                return skillNotFound();
-            }
-
             // As with personal skills, a synced skill's description and
             // instructions track the source file, so only its name and command are
             // editable here; content changes from the client are ignored.
-            const isSynced = currentSkill.sourceRepoName !== null;
+            const isSynced = existingSkill.sourceRepoName !== null;
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
-            const changedFieldTypes = getChangedFieldTypes(currentSkill, parsed.data);
+            const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
+            const eventBase: SkillEventBase<'ask_skill_updated'> = {
+                source: SKILL_ANALYTICS_SOURCE,
+                entryPoint,
+                scope: 'shared',
+                isSynced,
+                skillIdHash: hashSkillId(existingSkill.id),
+                changedFieldTypes,
+            };
 
             try {
                 const skill = await prisma.agentSkill.update({
@@ -1429,38 +1398,18 @@ export const updateSharedAgentSkill = async (
                 });
 
                 refreshSkillSettingsViews();
-                void captureEvent('ask_skill_updated', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'shared',
-                    isSynced,
-                    skillIdHash: hashSkillId(skill.id),
-                    changedFieldTypes,
-                    success: true,
-                });
+                emitSkillEvent('ask_skill_updated', eventBase, { success: true });
                 return toAgentSkillListItem(skill);
             } catch (error) {
                 if (isUniqueConstraintError(error)) {
-                    void captureEvent('ask_skill_updated', {
-                        source: SKILL_ANALYTICS_SOURCE,
-                        entryPoint,
-                        scope: 'shared',
-                        isSynced,
-                        skillIdHash: hashSkillId(currentSkill.id),
-                        changedFieldTypes,
+                    emitSkillEvent('ask_skill_updated', eventBase, {
                         success: false,
                         failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
                     });
                     return skillAlreadyExists(parsed.data.slug);
                 }
 
-                void captureEvent('ask_skill_updated', {
-                    source: SKILL_ANALYTICS_SOURCE,
-                    entryPoint,
-                    scope: 'shared',
-                    isSynced,
-                    skillIdHash: hashSkillId(currentSkill.id),
-                    changedFieldTypes,
+                emitSkillEvent('ask_skill_updated', eventBase, {
                     success: false,
                     failureReason: ErrorCode.UNEXPECTED_ERROR,
                 });

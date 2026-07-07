@@ -4,8 +4,11 @@ import { commandInvocationDataSchema } from "@/features/chat/commands/types";
 import type { SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
 import { getTurnProgressState } from "@/features/chat/utils";
 import { hasEntitlement } from "@/lib/entitlements";
-import type { PrismaClient } from "@sourcebot/db";
-import { buildSkillRegistry } from "./registry";
+import {
+    personalAgentSkillAuthScope,
+    sharedAgentSkillVisibleToUserWhere,
+    type PrismaClient,
+} from "@sourcebot/db";
 
 export type AskSkillAvailabilityAnalytics = {
     availableSkillCount: number;
@@ -27,6 +30,36 @@ const emptyAskSkillAvailability: AskSkillAvailabilityAnalytics = {
 };
 
 type AskSkillAvailabilityPrismaClient = Pick<PrismaClient, "agentSkill" | "repo">;
+type SkillAvailabilityRow = {
+    sourceRepoName: string | null;
+};
+
+const distinctSourceRepoNames = (skills: SkillAvailabilityRow[]): string[] =>
+    [...new Set(
+        skills
+            .map((skill) => skill.sourceRepoName)
+            .filter((name): name is string => typeof name === "string" && name.length > 0),
+    )];
+
+const countSkillsAccessibleBySourceRepo = async (
+    skills: SkillAvailabilityRow[],
+    { prisma, orgId }: { prisma: AskSkillAvailabilityPrismaClient; orgId: number },
+): Promise<number> => {
+    const repoNames = distinctSourceRepoNames(skills);
+    if (repoNames.length === 0) {
+        return skills.length;
+    }
+
+    const visibleRepos = await prisma.repo.findMany({
+        where: { name: { in: repoNames }, orgId },
+        select: { name: true },
+    });
+    const visibleRepoNames = new Set(visibleRepos.map((repo) => repo.name));
+
+    return skills.filter(
+        (skill) => !skill.sourceRepoName || visibleRepoNames.has(skill.sourceRepoName),
+    ).length;
+};
 
 export async function getAskSkillAvailabilityAnalytics({
     prisma,
@@ -41,15 +74,30 @@ export async function getAskSkillAvailabilityAnalytics({
         return emptyAskSkillAvailability;
     }
 
-    const skillRegistry = await buildSkillRegistry({
-        prisma: prisma as PrismaClient,
-        userId,
-        orgId,
-    }).catch(() => []);
+    try {
+        const [personalSkills, sharedSkills] = await Promise.all([
+            prisma.agentSkill.findMany({
+                where: {
+                    ...personalAgentSkillAuthScope(userId, orgId),
+                    enabled: true,
+                },
+                select: { sourceRepoName: true },
+            }),
+            prisma.agentSkill.findMany({
+                where: sharedAgentSkillVisibleToUserWhere(userId, orgId),
+                select: { sourceRepoName: true },
+            }),
+        ]);
 
-    return {
-        availableSkillCount: skillRegistry.length,
-    };
+        const availableSkillCount = await countSkillsAccessibleBySourceRepo(
+            [...personalSkills, ...sharedSkills],
+            { prisma, orgId },
+        );
+
+        return { availableSkillCount };
+    } catch {
+        return emptyAskSkillAvailability;
+    }
 }
 
 type LoadSkillToolPart = SBChatMessagePart & {

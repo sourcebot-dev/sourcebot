@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createSharedAgentSkill, createPersonalAgentSkill, updateSharedAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
+import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
@@ -99,7 +100,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
     const [instructionsEditorKey, setInstructionsEditorKey] = useState(0);
     const [publishToShared, setPublishToShared] = useState(false);
-    const [createDraftMethod, setCreateDraftMethod] = useState<"manual" | "local_markdown">("manual");
+    const { createDraftMethod, markLocalMarkdownDraft } = useCreateSkillDraftMethod();
     const isEditing = skill !== null;
     const isEditingSharedSkill = skill?.scope === "SHARED";
     const saveMode: SaveMode = isEditing
@@ -182,7 +183,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                 description: parsed.description ?? current.description,
                 instructions: parsed.instructions,
             }));
-            setCreateDraftMethod("local_markdown");
+            markLocalMarkdownDraft();
             setInstructionsEditorKey((key) => key + 1);
 
             if (parsed.slug || parsed.name) {

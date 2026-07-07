@@ -51,6 +51,7 @@ import {
 import { getSkillSourceStatus } from "@/app/api/(client)/client";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { ImportFromRepoDialog, type ImportedRepoSkill } from "@/ee/features/chat/skills/components/importFromRepoDialog";
+import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
 import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markdownRenderer";
 import { TableOfContents } from "@/ee/features/chat/components/chatThread/tableOfContents";
 import { useExtractTOCItems } from "@/ee/features/chat/useTOCItems";
@@ -278,7 +279,12 @@ export function SkillsPage({
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState<AgentSkillInput>(emptySkillForm);
-    const [createDraftMethod, setCreateDraftMethod] = useState<"manual" | "local_markdown">("manual");
+    const {
+        createDraftMethod,
+        markManualDraft,
+        markLocalMarkdownDraft,
+        resetDraftMethod,
+    } = useCreateSkillDraftMethod();
     const [isSlugTouched, setIsSlugTouched] = useState(false);
     // Bumped whenever we enter create mode or import, to remount the (uncontrolled)
     // instructions editor with fresh content.
@@ -386,7 +392,7 @@ export function SkillsPage({
             setIsEditing(false);
             setSelectedId(null);
             setForm(emptySkillForm);
-            setCreateDraftMethod("manual");
+            markManualDraft();
             setIsSlugTouched(false);
             setCreateEditorNonce((nonce) => nonce + 1);
         });
@@ -406,7 +412,7 @@ export function SkillsPage({
                 description: parsed.description ?? "",
                 instructions: parsed.instructions,
             });
-            setCreateDraftMethod("local_markdown");
+            markLocalMarkdownDraft();
             setIsSlugTouched(Boolean(parsed.slug || parsed.name));
             setCreateEditorNonce((nonce) => nonce + 1);
             toast({
@@ -556,7 +562,7 @@ export function SkillsPage({
         setIsEditing(false);
         setIsCreatingNew(false);
         setForm(emptySkillForm);
-        setCreateDraftMethod("manual");
+        resetDraftMethod();
         setIsSlugTouched(false);
     };
 
