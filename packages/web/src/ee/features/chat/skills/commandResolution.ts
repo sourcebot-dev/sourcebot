@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { captureEvent } from "@/lib/posthog";
-import { buildAskSkillInvokedEvent } from "./skillAnalytics";
+import { buildAskSkillInvokedEvent, skillScopeFromSourceId } from "./skillAnalytics";
 import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
 import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
 import type { FileSource, SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
@@ -302,9 +302,17 @@ export const materializeCommandMessageTexts = async ({
                 activationMethod: 'manual',
                 skillId: command.commandId,
                 success: true,
-                slug: command.slug,
-                name: command.name,
-                sourceLabel: command.sourceLabel,
+                scope: skillScopeFromSourceId(command.sourceId),
+                isSynced: typeof skill.sourceRepoName === "string",
+                source: requestSource,
+            }));
+        } else {
+            void captureEvent('ask_skill_invoked', buildAskSkillInvokedEvent({
+                activationMethod: 'manual',
+                skillId: command.commandId,
+                success: false,
+                failureReason: 'not_found_or_unauthorized',
+                scope: skillScopeFromSourceId(command.sourceId),
                 source: requestSource,
             }));
         }

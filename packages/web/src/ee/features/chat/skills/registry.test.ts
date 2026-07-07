@@ -24,6 +24,7 @@ describe("buildSkillRegistry", () => {
                 slug: "translate",
                 name: "Translate",
                 description: "Translate text",
+                isSynced: false,
             },
             {
                 id: "o1",
@@ -32,6 +33,7 @@ describe("buildSkillRegistry", () => {
                 slug: "audit",
                 name: "Audit",
                 description: "Audit billing",
+                isSynced: false,
             },
         ]);
 
@@ -57,6 +59,7 @@ describe("resolveAutoInvocableSkill", () => {
             slug: "audit",
             name: "Audit",
             instructions: "Audit the billing system",
+            isSynced: false,
         });
         const prisma = { agentSkill: { findFirst } } as never;
 
@@ -69,6 +72,7 @@ describe("resolveAutoInvocableSkill", () => {
             slug: "audit",
             name: "Audit",
             instructions: "Audit the billing system",
+            isSynced: false,
         });
         expect(findFirst).toHaveBeenCalledWith({
             where: {
@@ -97,6 +101,7 @@ describe("resolveAutoInvocableSkill", () => {
             slug: "translate",
             name: "Translate",
             instructions: "Translate the text",
+            isSynced: false,
         });
         const prisma = { agentSkill: { findFirst } } as never;
 
@@ -109,6 +114,7 @@ describe("resolveAutoInvocableSkill", () => {
             slug: "translate",
             name: "Translate",
             instructions: "Translate the text",
+            isSynced: false,
         });
     });
 
@@ -165,6 +171,6 @@ describe("resolveAutoInvocableSkill", () => {
 
         const result = await resolveAutoInvocableSkill({ prisma, userId: "user-1", orgId: 7, skillId: "o1" });
 
-        expect(result).toMatchObject({ id: "o1", instructions: "Audit the billing system" });
+        expect(result).toMatchObject({ id: "o1", instructions: "Audit the billing system", isSynced: true });
     });
 });

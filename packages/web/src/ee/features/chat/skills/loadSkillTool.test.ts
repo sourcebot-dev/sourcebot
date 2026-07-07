@@ -33,6 +33,7 @@ describe("createLoadSkillTool", () => {
             slug: "translate",
             name: "Translate",
             instructions: "Translate the file to the requested language.",
+            sourceRepoName: null,
         });
         const prisma = { agentSkill: { findFirst } } as never;
 
@@ -45,8 +46,9 @@ describe("createLoadSkillTool", () => {
         });
         expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
             activationMethod: "auto",
-            skillId: "p1",
-            slug: "translate",
+            skillIdHash: expect.any(String),
+            scope: "personal",
+            isSynced: false,
             success: true,
         }));
     });
@@ -62,8 +64,9 @@ describe("createLoadSkillTool", () => {
         expect(result).not.toHaveProperty("instructions");
         expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
             activationMethod: "auto",
-            skillId: "not-visible",
+            skillIdHash: expect.any(String),
             success: false,
+            failureReason: "not_found_or_unauthorized",
         }));
     });
 
@@ -81,8 +84,9 @@ describe("createLoadSkillTool", () => {
         expect(JSON.stringify(result)).not.toContain("connection pool exhausted");
         expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
             activationMethod: "auto",
-            skillId: "p1",
+            skillIdHash: expect.any(String),
             success: false,
+            failureReason: "load_error",
         }));
     });
 });

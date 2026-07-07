@@ -30,7 +30,7 @@ import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHA
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
-import type { AskCommandDefinition, CommandMentionData } from "@/features/chat/commands/types";
+import { ASK_COMMAND_SOURCE_SHARED_SKILL, type AskCommandDefinition, type CommandMentionData } from "@/features/chat/commands/types";
 import { shouldUsePlainComposerEnterBehavior } from "./keyboard";
 import { SourceLabelBadge } from "./sourceLabelBadge";
 
@@ -519,6 +519,14 @@ const ChatBoxComponent = ({
                 }, range);
                 break;
             case 'command':
+                captureEvent('ask_skill_command_selected', {
+                    source: 'sourcebot-web-client',
+                    entryPoint: 'chat_box',
+                    scope: suggestion.sourceId === ASK_COMMAND_SOURCE_SHARED_SKILL ? 'shared' : 'personal',
+                    isSynced: suggestion.isSynced === true,
+                    suggestionIndex: Math.max(0, suggestions.findIndex((item) => item === suggestion)),
+                    visibleSuggestionCount: suggestions.length,
+                });
                 insertMention(editor, {
                     type: 'command',
                     commandId: suggestion.id,
@@ -534,7 +542,7 @@ const ChatBoxComponent = ({
                 break;
         }
         ReactEditor.focus(editor);
-    }, [editor, range]);
+    }, [captureEvent, editor, range, suggestions]);
 
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
         // Detect the OS raw-paste chord so the upcoming `paste` event can skip

@@ -183,7 +183,7 @@ describe('SkillsPage', () => {
 
         fireEvent.click(within(dialog).getByRole('button', { name: 'Make personal' }));
 
-        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
+        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill', { entryPoint: 'skills_settings' });
     });
 
     test("removes another user's shared skill from the catalog when an owner makes it personal", async () => {
@@ -211,7 +211,7 @@ describe('SkillsPage', () => {
 
         await waitFor(() => expect(screen.getByText('No shared skills yet.')).toBeTruthy());
         expect(screen.queryByRole('switch', { name: 'Enable Deploy Checklist' })).toBeNull();
-        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
+        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill', { entryPoint: 'skills_settings' });
     });
 
     test('publishes a personal skill when the Shared toggle is turned on', async () => {
@@ -227,7 +227,7 @@ describe('SkillsPage', () => {
 
         fireEvent.click(screen.getByRole('switch', { name: 'Shared' }));
 
-        expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('personal-skill');
+        expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('personal-skill', { entryPoint: 'skills_settings' });
     });
 
     test('confirms before sharing a synced skill, warning that owners without repo access can still see it', async () => {
@@ -252,7 +252,7 @@ describe('SkillsPage', () => {
 
         fireEvent.click(within(dialog).getByRole('button', { name: 'Share skill' }));
 
-        expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('synced-skill');
+        expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' });
     });
 
     test('shares a synced skill immediately (no warning) when permission syncing is off', async () => {
@@ -269,7 +269,7 @@ describe('SkillsPage', () => {
 
         // With syncing off there is no access caveat, so it publishes directly
         // without the confirmation dialog.
-        await waitFor(() => expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('synced-skill'));
+        await waitFor(() => expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' }));
         expect(screen.queryByRole('alertdialog')).toBeNull();
     });
 
@@ -293,7 +293,7 @@ describe('SkillsPage', () => {
 
         fireEvent.click(screen.getByRole('switch', { name: 'Enable Deploy Checklist' }));
 
-        expect(skillActions.adoptSharedSkill).toHaveBeenCalledWith('others-skill');
+        expect(skillActions.adoptSharedSkill).toHaveBeenCalledWith('others-skill', { entryPoint: 'skills_settings' });
     });
 
     test("shows the list toggle as on for shared skills the member has enabled", () => {
@@ -352,7 +352,7 @@ describe('SkillsPage', () => {
         const updateButton = await screen.findByRole('button', { name: /Update from source/ });
         fireEvent.click(updateButton);
 
-        await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill'));
+        await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' }));
         expect(clientApi.getSkillSourceStatus).toHaveBeenCalledWith('synced-skill');
     });
 
@@ -389,7 +389,7 @@ describe('SkillsPage', () => {
         fireEvent.click(updateButton);
 
         // The shared (not personal) update path runs for a shared skill.
-        await waitFor(() => expect(skillActions.updateSharedAgentSkillFromSource).toHaveBeenCalledWith('shared-synced-skill'));
+        await waitFor(() => expect(skillActions.updateSharedAgentSkillFromSource).toHaveBeenCalledWith('shared-synced-skill', { entryPoint: 'skills_settings' }));
         expect(skillActions.updatePersonalAgentSkillFromSource).not.toHaveBeenCalled();
     });
 

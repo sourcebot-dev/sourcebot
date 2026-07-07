@@ -5,7 +5,7 @@ import { z } from "zod";
 import _dedent from "dedent";
 import { captureEvent } from "@/lib/posthog";
 import type { AskMcpAnalyticsSource } from "@/lib/posthogEvents";
-import { buildAskSkillInvokedEvent } from "./skillAnalytics";
+import { buildAskSkillInvokedEvent, skillScopeFromSourceId } from "./skillAnalytics";
 import { resolveAutoInvocableSkill } from "./registry";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -64,11 +64,12 @@ export const createLoadSkillTool = ({
             // Both failure paths — an unknown/unauthorized id and a transient
             // lookup error — must fail closed identically: emit a success:false
             // event and return a generic message that never reveals why it failed.
-            const captureFailure = () => {
+            const captureFailure = (failureReason: string) => {
                 void captureEvent('ask_skill_invoked', buildAskSkillInvokedEvent({
                     activationMethod: 'auto',
                     skillId: skill_id,
                     success: false,
+                    failureReason,
                     source: analyticsContext?.source,
                     chatId: analyticsContext?.chatId,
                     traceId: analyticsContext?.traceId,
@@ -82,7 +83,7 @@ export const createLoadSkillTool = ({
                 if (!skill) {
                     // Fail closed without leaking whether the id exists: the model
                     // simply learns this skill is not available to auto-invoke.
-                    captureFailure();
+                    captureFailure('not_found_or_unauthorized');
                     return {
                         error: 'That skill is not available. Use only the skills listed in the <agent_skills> section, referencing their exact id.',
                     };
@@ -94,9 +95,8 @@ export const createLoadSkillTool = ({
                     activationMethod: 'auto',
                     skillId: skill.id,
                     success: true,
-                    slug: skill.slug,
-                    name: skill.name,
-                    sourceLabel: skill.sourceLabel,
+                    scope: skillScopeFromSourceId(skill.sourceId),
+                    isSynced: skill.isSynced,
                     source: analyticsContext?.source,
                     chatId: analyticsContext?.chatId,
                     traceId: analyticsContext?.traceId,
@@ -119,7 +119,7 @@ export const createLoadSkillTool = ({
                     skillId: skill_id,
                     error: error instanceof Error ? error.message : String(error),
                 });
-                captureFailure();
+                captureFailure('load_error');
                 return {
                     error: 'That skill could not be loaded right now. You can retry once, or continue without it.',
                 };

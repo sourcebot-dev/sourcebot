@@ -144,11 +144,11 @@ describe("materializeCommandMessageText", () => {
 
         expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
             activationMethod: "manual",
-            skillId: "skill-1",
+            skillIdHash: expect.any(String),
             source: "sourcebot-mcp-server",
             success: true,
-            slug: "translate",
-            name: "Translate",
+            scope: "personal",
+            isSynced: false,
         }));
     });
 

@@ -16,6 +16,10 @@ vi.mock("@/middleware/withAuth", () => ({
     withAuth: vi.fn((callback: (context: unknown) => unknown) => callback(mocks.authContext)),
 }));
 
+vi.mock("@/lib/posthog", () => ({
+    captureEvent: vi.fn(),
+}));
+
 vi.mock("@sourcebot/shared", () => ({
     createLogger: () => ({ error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
     env: { NODE_ENV: "test" },
@@ -60,6 +64,7 @@ function createPrismaMock() {
         agentSkill: {
             create: vi.fn(),
             delete: vi.fn(),
+            deleteMany: vi.fn(),
             findFirst: vi.fn(),
             findMany: vi.fn(),
             update: vi.fn(),
@@ -305,6 +310,7 @@ describe("publishPersonalAgentSkillToShared", () => {
                 createdById: "member-1",
             },
             select: {
+                id: true,
                 slug: true,
                 name: true,
                 description: true,
@@ -929,6 +935,7 @@ describe("adoptSharedSkill", () => {
             select: {
                 id: true,
                 sourceRepoName: true,
+                autoEnrolled: true,
             },
         });
         expect(prisma.agentSkillAdoption.upsert).not.toHaveBeenCalled();
@@ -996,6 +1003,7 @@ describe("unadoptSharedSkill", () => {
             select: {
                 id: true,
                 autoEnrolled: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkillAdoption.deleteMany).toHaveBeenCalledWith({
@@ -1129,6 +1137,7 @@ describe("setSharedSkillFlag", () => {
             },
             select: {
                 id: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.update).toHaveBeenCalledWith({

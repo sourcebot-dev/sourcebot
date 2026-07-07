@@ -18,6 +18,7 @@ import { createSharedAgentSkill, createPersonalAgentSkill, updateSharedAgentSkil
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { isServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
@@ -82,6 +83,7 @@ export function SharedSkillEditorPage(props: { skill: AgentSkillListItem }) {
 function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const router = useRouter();
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
     const markdownFileInputRef = useRef<HTMLInputElement>(null);
     const initialForm: AgentSkillInput = skill
         ? {
@@ -97,6 +99,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
     const [instructionsEditorKey, setInstructionsEditorKey] = useState(0);
     const [publishToShared, setPublishToShared] = useState(false);
+    const [createDraftMethod, setCreateDraftMethod] = useState<"manual" | "local_markdown">("manual");
     const isEditing = skill !== null;
     const isEditingSharedSkill = skill?.scope === "SHARED";
     const saveMode: SaveMode = isEditing
@@ -149,6 +152,14 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         }
 
         if (!/\.(md|markdown)$/i.test(file.name)) {
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'account_ask_agent_settings',
+                method: 'local_markdown',
+                isSynced: false,
+                success: false,
+                failureReason: 'unsupported_file_type',
+            });
             toast({ title: "Unsupported file", description: "Choose a markdown file ending in .md or .markdown.", variant: "destructive" });
             return;
         }
@@ -156,12 +167,22 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         try {
             const text = await file.text();
             const parsed = parseAgentSkillMarkdown(text, file.name);
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'account_ask_agent_settings',
+                method: 'local_markdown',
+                isSynced: false,
+                hasFrontmatter: parsed.hasFrontmatter,
+                hasDescription: Boolean(parsed.description),
+                success: true,
+            });
             setForm((current) => ({
                 name: parsed.name ?? current.name,
                 slug: parsed.slug ?? current.slug,
                 description: parsed.description ?? current.description,
                 instructions: parsed.instructions,
             }));
+            setCreateDraftMethod("local_markdown");
             setInstructionsEditorKey((key) => key + 1);
 
             if (parsed.slug || parsed.name) {
@@ -176,6 +197,14 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                 variant: parsed.frontmatterError ? "destructive" : undefined,
             });
         } catch {
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'account_ask_agent_settings',
+                method: 'local_markdown',
+                isSynced: false,
+                success: false,
+                failureReason: 'file_read_error',
+            });
             toast({ title: "Error", description: "Failed to import markdown file.", variant: "destructive" });
         }
     };
@@ -185,10 +214,16 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         setIsSaving(true);
         try {
             const result = await ({
-                editShared: () => updateSharedAgentSkill({ id: skill!.id, ...form }),
-                editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...form }),
-                createShared: () => createSharedAgentSkill(form),
-                createPersonal: () => createPersonalAgentSkill(form),
+                editShared: () => updateSharedAgentSkill({ id: skill!.id, ...form }, { entryPoint: 'account_ask_agent_settings' }),
+                editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...form }, { entryPoint: 'account_ask_agent_settings' }),
+                createShared: () => createSharedAgentSkill(form, {
+                    entryPoint: 'account_ask_agent_settings',
+                    creationMethod: createDraftMethod,
+                }),
+                createPersonal: () => createPersonalAgentSkill(form, {
+                    entryPoint: 'account_ask_agent_settings',
+                    creationMethod: createDraftMethod,
+                }),
             } satisfies Record<SaveMode, () => ReturnType<typeof createPersonalAgentSkill>>)[saveMode]();
 
             if (isServiceError(result)) {

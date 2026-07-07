@@ -53,6 +53,7 @@ export const toAskCommandDefinition = (
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
+    isSynced: typeof skill.sourceRepoName === "string",
 });
 
 /**

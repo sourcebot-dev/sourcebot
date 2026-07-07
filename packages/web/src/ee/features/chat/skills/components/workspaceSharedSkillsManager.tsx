@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { InfoIcon, Loader2, SearchIcon, Trash2Icon } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
@@ -25,6 +25,7 @@ import {
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import { sortSharedAgentSkillManagementItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 import { pluralize } from "@/features/chat/mcp/utils";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { cn } from "@/lib/utils";
 
 // Synced = mirrors a repository file (has a source); Manual = created in-app or
@@ -37,12 +38,29 @@ export function WorkspaceSharedSkillsManager({
     initialOrgSkills: SharedAgentSkillManagementItem[];
 }) {
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
+    const didCapturePageViewRef = useRef(false);
     const [orgSkills, setOrgSkills] = useState(() => sortSharedAgentSkillManagementItems(initialOrgSkills));
     const [search, setSearch] = useState("");
     const [sourceFilter, setSourceFilter] = useState<SkillSourceFilter>("all");
     const [flagPendingSkills, setFlagPendingSkills] = useState<Record<string, OrgSkillFlagKey>>({});
     const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
     const [skillToDelete, setSkillToDelete] = useState<SharedAgentSkillManagementItem | null>(null);
+
+    useEffect(() => {
+        if (didCapturePageViewRef.current) {
+            return;
+        }
+        didCapturePageViewRef.current = true;
+        captureEvent('ask_workspace_skills_manager_viewed', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'workspace_ask_agent_settings',
+            sharedSkillCount: orgSkills.length,
+            syncedSharedSkillCount: orgSkills.filter((skill) => skill.source !== null).length,
+            manualSharedSkillCount: orgSkills.filter((skill) => skill.source === null).length,
+            autoEnrolledSkillCount: orgSkills.filter((skill) => skill.autoEnrolled).length,
+        });
+    }, [captureEvent, orgSkills]);
 
     const handleFlagChange = async (
         skill: SharedAgentSkillManagementItem,

@@ -24,6 +24,7 @@ export interface ResolvedAutoInvocableSkill {
     slug: string;
     name: string;
     instructions: string;
+    isSynced: boolean;
 }
 
 /**
@@ -115,5 +116,6 @@ export const resolveAutoInvocableSkill = async ({
         slug: skill.slug,
         name: skill.name,
         instructions: skill.instructions,
+        isSynced: typeof skill.sourceRepoName === "string",
     };
 };

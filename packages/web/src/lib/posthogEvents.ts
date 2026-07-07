@@ -17,6 +17,16 @@ export type SourcebotWebClientSource = 'sourcebot-web-client';
 export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent';
 export type McpConnectorEntryPoint = 'chat' | 'account_settings' | 'workspace_settings' | 'unknown';
 export type McpConnectorAuthMode = 'dynamic' | 'static';
+export type AskSkillScope = 'personal' | 'shared';
+export type AskSkillEntryPoint =
+    'skills_settings' |
+    'account_ask_agent_settings' |
+    'workspace_ask_agent_settings' |
+    'chat_box' |
+    'unknown';
+export type AskSkillCreationMethod = 'manual' | 'local_markdown' | 'repository';
+export type AskSkillChangedField = 'name' | 'command' | 'description' | 'instructions';
+export type AskSkillActorRelationship = 'creator' | 'owner' | 'member';
 
 export type PosthogEventMap = {
     search_finished: {
@@ -250,12 +260,138 @@ export type PosthogEventMap = {
         traceId?: string,
         source: string,
         activationMethod: 'auto' | 'manual',
-        skillId: string,
-        slug?: string,
-        name?: string,
-        sourceLabel?: string,
+        skillIdHash?: string,
+        scope?: AskSkillScope,
+        isSynced?: boolean,
         success: boolean,
+        failureReason?: string,
         durationMs?: number,
+    },
+    ask_skill_turn_completed: {
+        chatId: string,
+        traceId?: string,
+        source?: SourcebotWebClientSource,
+        availableSkillCount: number,
+        manualInvocationCount: number,
+        autoInvocationCount: number,
+        successfulInvocationCount: number,
+        failedInvocationCount: number,
+        uniqueSkillCount: number,
+        durationMs: number,
+    },
+    ask_skill_created: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        creationMethod: AskSkillCreationMethod,
+        isSynced: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_updated: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        isSynced: boolean,
+        skillIdHash?: string,
+        changedFieldTypes: AskSkillChangedField[],
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_deleted: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        isSynced: boolean,
+        skillIdHash?: string,
+        actorRelationship: AskSkillActorRelationship,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_shared: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        isSynced: boolean,
+        skillIdHash?: string,
+        permissionSyncEnabled: boolean,
+        requiredRepoAccessWarning: boolean,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_made_personal: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        isSynced: boolean,
+        wasAutoEnrolled: boolean,
+        skillIdHash?: string,
+        actorRelationship: AskSkillActorRelationship,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_adoption_changed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        action: 'adopted' | 'removed',
+        isSynced: boolean,
+        autoEnrolled: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_auto_enrollment_changed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        enabled: boolean,
+        isSynced: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_command_selected: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'chat_box',
+        scope: AskSkillScope,
+        isSynced: boolean,
+        suggestionIndex: number,
+        visibleSuggestionCount: number,
+    },
+    ask_skill_import_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        method: Exclude<AskSkillCreationMethod, 'manual'>,
+        isSynced: boolean,
+        hasFrontmatter?: boolean,
+        hasDescription?: boolean,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_source_refresh_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skills_page_viewed: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'skills_settings',
+        personalSkillCount: number,
+        sharedSkillCount: number,
+        visibleSharedSkillCount: number,
+        adoptedSharedSkillCount: number,
+        syncedSkillCount: number,
+        isOwner: boolean,
+        permissionSyncEnabled: boolean,
+    },
+    ask_workspace_skills_manager_viewed: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'workspace_ask_agent_settings',
+        sharedSkillCount: number,
+        syncedSharedSkillCount: number,
+        manualSharedSkillCount: number,
+        autoEnrolledSkillCount: number,
     },
     ask_mcp_connector_added: {
         source: SourcebotWebClientSource,

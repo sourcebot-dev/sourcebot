@@ -11,6 +11,7 @@ export type AskCommandDefinition = {
     name: string;
     description: string;
     sourceLabel?: string;
+    isSynced?: boolean;
     aliases?: string[];
     isHidden?: boolean;
 }

@@ -73,6 +73,7 @@ import {
     type SharedAgentSkillCatalogItem,
 } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
@@ -249,9 +250,11 @@ export function SkillsPage({
     permissionSyncEnabled,
 }: SkillsPageProps) {
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
     const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
     const [sharedSkills, setSharedSkills] = useState(() => sortSharedAgentSkillCatalogItems(initialSharedSkills));
     const [searchQuery, setSearchQuery] = useState("");
+    const didCapturePageViewRef = useRef(false);
 
     useEffect(() => {
         setPersonalSkills(sortAgentSkillListItems(initialPersonalSkills));
@@ -275,6 +278,7 @@ export function SkillsPage({
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState<AgentSkillInput>(emptySkillForm);
+    const [createDraftMethod, setCreateDraftMethod] = useState<"manual" | "local_markdown">("manual");
     const [isSlugTouched, setIsSlugTouched] = useState(false);
     // Bumped whenever we enter create mode or import, to remount the (uncontrolled)
     // instructions editor with fresh content.
@@ -293,6 +297,27 @@ export function SkillsPage({
     const [confirmPublishSynced, setConfirmPublishSynced] = useState<DetailSkill | null>(null);
     const [confirmDeletePersonal, setConfirmDeletePersonal] = useState<DetailSkill | null>(null);
     const [confirmDeleteShared, setConfirmDeleteShared] = useState<DetailSkill | null>(null);
+
+    useEffect(() => {
+        if (didCapturePageViewRef.current) {
+            return;
+        }
+        didCapturePageViewRef.current = true;
+        captureEvent('ask_skills_page_viewed', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'skills_settings',
+            personalSkillCount: personalSkills.length,
+            sharedSkillCount: sharedSkills.length,
+            visibleSharedSkillCount: sharedSkills.filter((skill) => skill.isVisibleToUser).length,
+            adoptedSharedSkillCount: sharedSkills.filter((skill) => skill.isAdopted).length,
+            syncedSkillCount: [
+                ...personalSkills,
+                ...sharedSkills,
+            ].filter((skill) => skill.source !== null).length,
+            isOwner,
+            permissionSyncEnabled,
+        });
+    }, [captureEvent, isOwner, permissionSyncEnabled, personalSkills, sharedSkills]);
 
     const selectedSkill: DetailSkill | null = useMemo(() => {
         if (selectedId === null) {
@@ -361,6 +386,7 @@ export function SkillsPage({
             setIsEditing(false);
             setSelectedId(null);
             setForm(emptySkillForm);
+            setCreateDraftMethod("manual");
             setIsSlugTouched(false);
             setCreateEditorNonce((nonce) => nonce + 1);
         });
@@ -380,6 +406,7 @@ export function SkillsPage({
                 description: parsed.description ?? "",
                 instructions: parsed.instructions,
             });
+            setCreateDraftMethod("local_markdown");
             setIsSlugTouched(Boolean(parsed.slug || parsed.name));
             setCreateEditorNonce((nonce) => nonce + 1);
             toast({
@@ -406,6 +433,9 @@ export function SkillsPage({
             description: imported.parsed.description ?? "",
             instructions: imported.parsed.instructions,
             source: imported.source,
+        }, {
+            entryPoint: 'skills_settings',
+            creationMethod: 'repository',
         });
         if (isServiceError(result)) {
             toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -427,7 +457,7 @@ export function SkillsPage({
         setSourceUpdatePendingId(skill.id);
         try {
             if (skill.scope === "SHARED") {
-                const result = await updateSharedAgentSkillFromSource(skill.id);
+                const result = await updateSharedAgentSkillFromSource(skill.id, { entryPoint: 'skills_settings' });
                 if (isServiceError(result)) {
                     toast({ title: "Error", description: result.message, variant: "destructive" });
                     return;
@@ -436,7 +466,7 @@ export function SkillsPage({
                     item.id === result.id ? result : item,
                 )));
             } else {
-                const result = await updatePersonalAgentSkillFromSource(skill.id);
+                const result = await updatePersonalAgentSkillFromSource(skill.id, { entryPoint: 'skills_settings' });
                 if (isServiceError(result)) {
                     toast({ title: "Error", description: result.message, variant: "destructive" });
                     return;
@@ -467,6 +497,14 @@ export function SkillsPage({
         }
 
         if (!/\.(md|markdown)$/i.test(file.name)) {
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'skills_settings',
+                method: 'local_markdown',
+                isSynced: false,
+                success: false,
+                failureReason: 'unsupported_file_type',
+            });
             toast({ title: "Unsupported file", description: "Choose a markdown file ending in .md or .markdown.", variant: "destructive" });
             return;
         }
@@ -475,11 +513,29 @@ export function SkillsPage({
         try {
             text = await file.text();
         } catch {
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'skills_settings',
+                method: 'local_markdown',
+                isSynced: false,
+                success: false,
+                failureReason: 'file_read_error',
+            });
             toast({ title: "Error", description: "Failed to import markdown file.", variant: "destructive" });
             return;
         }
 
-        applyImportedSkillMarkdown(parseAgentSkillMarkdown(text, file.name));
+        const parsed = parseAgentSkillMarkdown(text, file.name);
+        captureEvent('ask_skill_import_completed', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'skills_settings',
+            method: 'local_markdown',
+            isSynced: false,
+            hasFrontmatter: parsed.hasFrontmatter,
+            hasDescription: Boolean(parsed.description),
+            success: true,
+        });
+        applyImportedSkillMarkdown(parsed);
     };
 
     const handleStartEdit = () => {
@@ -500,6 +556,7 @@ export function SkillsPage({
         setIsEditing(false);
         setIsCreatingNew(false);
         setForm(emptySkillForm);
+        setCreateDraftMethod("manual");
         setIsSlugTouched(false);
     };
 
@@ -537,7 +594,10 @@ export function SkillsPage({
         setIsSaving(true);
         try {
             if (isCreatingNew) {
-                const result = await createPersonalAgentSkill(form);
+                const result = await createPersonalAgentSkill(form, {
+                    entryPoint: 'skills_settings',
+                    creationMethod: createDraftMethod,
+                });
                 if (isServiceError(result)) {
                     toast({ title: "Error", description: result.message, variant: "destructive" });
                     return;
@@ -554,8 +614,8 @@ export function SkillsPage({
             }
 
             const result = selectedSkill.scope === "SHARED"
-                ? await updateSharedAgentSkill({ id: selectedSkill.id, ...form })
-                : await updatePersonalAgentSkill({ id: selectedSkill.id, ...form });
+                ? await updateSharedAgentSkill({ id: selectedSkill.id, ...form }, { entryPoint: 'skills_settings' })
+                : await updatePersonalAgentSkill({ id: selectedSkill.id, ...form }, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -580,7 +640,7 @@ export function SkillsPage({
     const handlePublish = async (skill: DetailSkill) => {
         setScopePendingId(skill.id);
         try {
-            const result = await publishPersonalAgentSkillToShared(skill.id);
+            const result = await publishPersonalAgentSkillToShared(skill.id, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -603,7 +663,7 @@ export function SkillsPage({
     const handleMakePersonal = async (skill: DetailSkill) => {
         setScopePendingId(skill.id);
         try {
-            const result = await makeSharedAgentSkillPersonal(skill.id);
+            const result = await makeSharedAgentSkillPersonal(skill.id, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -653,8 +713,8 @@ export function SkillsPage({
         setAdoptionPendingId(skillId);
         try {
             const result = adopt
-                ? await adoptSharedSkill(skillId)
-                : await unadoptSharedSkill(skillId);
+                ? await adoptSharedSkill(skillId, { entryPoint: 'skills_settings' })
+                : await unadoptSharedSkill(skillId, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -680,7 +740,7 @@ export function SkillsPage({
     const handleDeletePersonal = async (skill: DetailSkill) => {
         setDeletingId(skill.id);
         try {
-            const result = await deletePersonalAgentSkill(skill.id);
+            const result = await deletePersonalAgentSkill(skill.id, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -701,7 +761,7 @@ export function SkillsPage({
     const handleDeleteShared = async (skill: DetailSkill) => {
         setDeletingId(skill.id);
         try {
-            const result = await deleteSharedAgentSkill(skill.id);
+            const result = await deleteSharedAgentSkill(skill.id, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;

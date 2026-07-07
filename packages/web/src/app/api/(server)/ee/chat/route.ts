@@ -11,6 +11,7 @@ import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageMod
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
+import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -191,6 +192,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 orgId: org.id,
                 disabledMcpServerIds,
             });
+            const askSkillAvailability = await getAskSkillAvailabilityAnalytics({
+                prisma,
+                userId: user?.id,
+                orgId: org.id,
+            });
 
             await captureEvent('ask_message_sent', {
                 chatId: id,
@@ -240,6 +246,17 @@ export const POST = apiHandler(async (req: NextRequest) => {
                             chatId: id,
                             source: askMcpSource,
                             ...askMcpTurnCompleted,
+                        });
+                    }
+                    const askSkillTurnCompleted = getAskSkillTurnCompletedAnalytics({
+                        messages,
+                        availability: askSkillAvailability,
+                    });
+                    if (askSkillTurnCompleted) {
+                        void captureEvent('ask_skill_turn_completed', {
+                            chatId: id,
+                            source: askMcpSource,
+                            ...askSkillTurnCompleted,
                         });
                     }
                 },

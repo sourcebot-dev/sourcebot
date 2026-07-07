@@ -2,46 +2,49 @@ import { describe, expect, test } from "vitest";
 import { buildAskSkillInvokedEvent } from "./skillAnalytics";
 
 describe("buildAskSkillInvokedEvent", () => {
-    test("builds a success payload with skill identity and the auto analytics context", () => {
+    test("builds a success payload with safe skill metadata and the auto analytics context", () => {
         const event = buildAskSkillInvokedEvent({
             activationMethod: "auto",
             skillId: "skill-1",
             success: true,
-            slug: "translate",
-            name: "Translate",
-            sourceLabel: "Personal",
+            scope: "personal",
+            isSynced: false,
             chatId: "chat-1",
             traceId: "trace-1",
             durationMs: 42,
         });
 
-        expect(event).toEqual({
+        expect(event).toMatchObject({
             source: "sourcebot-ask-agent",
             activationMethod: "auto",
-            skillId: "skill-1",
+            skillIdHash: expect.any(String),
+            scope: "personal",
+            isSynced: false,
             success: true,
-            slug: "translate",
-            name: "Translate",
-            sourceLabel: "Personal",
             chatId: "chat-1",
             traceId: "trace-1",
             durationMs: 42,
         });
+        expect(event).not.toHaveProperty("slug");
+        expect(event).not.toHaveProperty("name");
+        expect(event).not.toHaveProperty("sourceLabel");
     });
 
-    test("omits skill identity on failure (the skill was never resolved)", () => {
+    test("omits content-like skill identity on failure", () => {
         const event = buildAskSkillInvokedEvent({
             activationMethod: "auto",
             skillId: "ghost",
             success: false,
+            failureReason: "not_found_or_unauthorized",
             durationMs: 7,
         });
 
-        expect(event).toEqual({
+        expect(event).toMatchObject({
             source: "sourcebot-ask-agent",
             activationMethod: "auto",
-            skillId: "ghost",
+            skillIdHash: expect.any(String),
             success: false,
+            failureReason: "not_found_or_unauthorized",
             chatId: undefined,
             traceId: undefined,
             durationMs: 7,
@@ -56,12 +59,14 @@ describe("buildAskSkillInvokedEvent", () => {
             activationMethod: "manual",
             skillId: "skill-1",
             success: true,
-            slug: "translate",
-            name: "Translate",
+            scope: "shared",
+            isSynced: true,
         });
         expect(manual.source).toBe("sourcebot-ask-agent");
         expect(manual.durationMs).toBeUndefined();
-        expect(manual.sourceLabel).toBeUndefined();
+        expect(manual.scope).toBe("shared");
+        expect(manual.isSynced).toBe(true);
+        expect(manual).not.toHaveProperty("sourceLabel");
 
         const explicit = buildAskSkillInvokedEvent({
             activationMethod: "auto",

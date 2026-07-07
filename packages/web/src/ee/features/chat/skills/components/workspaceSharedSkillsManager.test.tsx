@@ -146,7 +146,7 @@ describe('WorkspaceSharedSkillsManager', () => {
         await waitFor(() => expect(skillActions.setSharedSkillFlag).toHaveBeenCalledWith({
             skillId: 'alpha',
             data: { autoEnrolled: true },
-        }));
+        }, { entryPoint: 'workspace_ask_agent_settings' }));
         expect(skillNamesInOrder()).toEqual(['Alpha', 'Beta']);
     });
 
@@ -163,7 +163,7 @@ describe('WorkspaceSharedSkillsManager', () => {
         await waitFor(() => expect(skillActions.setSharedSkillFlag).toHaveBeenCalledWith({
             skillId: 'synced',
             data: { autoEnrolled: true },
-        }));
+        }, { entryPoint: 'workspace_ask_agent_settings' }));
     });
 
     test('reports no matches when search and filters exclude everything', () => {

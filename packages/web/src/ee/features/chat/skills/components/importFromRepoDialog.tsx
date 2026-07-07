@@ -10,6 +10,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFileSource, getFiles, listRepos } from "@/app/api/(client)/client";
 import { parseAgentSkillMarkdown, type ParsedAgentSkillMarkdown } from "@/ee/features/chat/skills/types";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import type { RepositoryQuery } from "@/lib/types";
 import { unwrapServiceError } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ interface ImportFromRepoDialogProps {
 }
 
 export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: ImportFromRepoDialogProps) => {
+    const captureEvent = useCaptureEvent();
     const [selectedRepo, setSelectedRepo] = useState<RepositoryQuery | null>(null);
     const [repoQuery, setRepoQuery] = useState("");
     const [fileQuery, setFileQuery] = useState("");
@@ -119,11 +121,29 @@ export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: 
             if (!result.blobSha) {
                 // Without the blob OID we can't track the file for syncing; don't
                 // create a half-linked skill. Leave the dialog open to retry.
+                captureEvent('ask_skill_import_completed', {
+                    source: 'sourcebot-web-client',
+                    entryPoint: 'skills_settings',
+                    method: 'repository',
+                    isSynced: true,
+                    success: false,
+                    failureReason: 'missing_blob_sha',
+                });
                 onError("Couldn't determine the file version to sync. Please try again.");
                 return;
             }
+            const parsed = parseAgentSkillMarkdown(result.source, name);
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'skills_settings',
+                method: 'repository',
+                isSynced: true,
+                hasFrontmatter: parsed.hasFrontmatter,
+                hasDescription: Boolean(parsed.description),
+                success: true,
+            });
             onImport({
-                parsed: parseAgentSkillMarkdown(result.source, name),
+                parsed,
                 source: {
                     repoName: selectedRepo.repoName,
                     filePath: path,
@@ -133,6 +153,14 @@ export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: 
             });
             resetAndClose();
         } catch {
+            captureEvent('ask_skill_import_completed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'skills_settings',
+                method: 'repository',
+                isSynced: true,
+                success: false,
+                failureReason: 'file_load_error',
+            });
             onError("Failed to load the selected file.");
         } finally {
             setIsImporting(false);

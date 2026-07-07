@@ -12,7 +12,7 @@ export async function deleteWorkspaceSkill<T extends { id: string }>({
     skillId: string;
     updateOrgSkills: (updater: (skills: T[]) => T[]) => void;
 }): Promise<ServiceError | null> {
-    const result = await deleteSharedAgentSkill(skillId);
+    const result = await deleteSharedAgentSkill(skillId, { entryPoint: 'workspace_ask_agent_settings' });
     if (isServiceError(result)) {
         return result;
     }
@@ -34,6 +34,8 @@ export async function updateWorkspaceSkillFlag({
     const result = await setSharedSkillFlag({
         skillId,
         data: { autoEnrolled: checked },
+    }, {
+        entryPoint: 'workspace_ask_agent_settings',
     });
     if (isServiceError(result)) {
         return result;
