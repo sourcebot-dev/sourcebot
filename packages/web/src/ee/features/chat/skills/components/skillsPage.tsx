@@ -612,15 +612,7 @@ export function SkillsPage({
                 result,
                 ...current.filter((item) => item.id !== result.id),
             ]));
-            if (skill.isCreatedByUser) {
-                setSharedSkills((current) => current.filter((item) => item.id !== skill.id));
-            } else {
-                setSharedSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
-                    item.id === skill.id
-                        ? { ...item, isAdopted: false, isRemoved: item.autoEnrolled, isVisibleToUser: false }
-                        : item,
-                )));
-            }
+            setSharedSkills((current) => current.filter((item) => item.id !== skill.id));
             setConfirmMakePersonal(null);
             setSelectedId(result.id);
             toast({ description: "Skill made personal." });

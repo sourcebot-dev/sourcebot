@@ -186,6 +186,34 @@ describe('SkillsPage', () => {
         expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
     });
 
+    test("removes another user's shared skill from the catalog when an owner makes it personal", async () => {
+        vi.mocked(skillActions.makeSharedAgentSkillPersonal).mockResolvedValue({
+            id: 'new-personal-skill',
+            scope: 'PERSONAL',
+            slug: sharedSkill.slug,
+            name: sharedSkill.name,
+            description: sharedSkill.description,
+            instructions: sharedSkill.instructions,
+            enabled: true,
+            source: null,
+            createdAt: sharedSkill.createdAt,
+            updatedAt: sharedSkill.updatedAt,
+        });
+
+        renderSkillsPage({
+            sharedSkills: [{ ...sharedSkill, isCreatedByUser: false }],
+            isOwner: true,
+        });
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Shared' }));
+        const dialog = await screen.findByRole('alertdialog');
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Make personal' }));
+
+        await waitFor(() => expect(screen.getByText('No shared skills yet.')).toBeTruthy());
+        expect(screen.queryByRole('switch', { name: 'Enable Deploy Checklist' })).toBeNull();
+        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
+    });
+
     test('publishes a personal skill when the Shared toggle is turned on', async () => {
         vi.mocked(skillActions.publishPersonalAgentSkillToShared).mockResolvedValue({
             ...sharedSkill,
