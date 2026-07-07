@@ -66,23 +66,17 @@ export const publicHealthResponseSchema = z.object({
 
 // EE: User Management
 export const publicEeUserSchema = z.object({
-    name: z.string().nullable(),
-    email: z.string(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-}).openapi('PublicEeUser');
-
-export const publicEeUserListItemSchema = z.object({
     id: z.string(),
     name: z.string().nullable(),
     email: z.string(),
     role: z.enum(['OWNER', 'MEMBER']),
     suspendedAt: z.string().datetime().nullable(),
     createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
     lastActivityAt: z.string().datetime().nullable(),
-}).openapi('PublicEeUserListItem');
+}).openapi('PublicEeUser');
 
-export const publicEeUsersResponseSchema = z.array(publicEeUserListItemSchema).openapi('PublicEeUsersResponse');
+export const publicEeUsersResponseSchema = z.array(publicEeUserSchema).openapi('PublicEeUsersResponse');
 
 export const publicEeDeleteUserResponseSchema = z.object({
     success: z.boolean(),
