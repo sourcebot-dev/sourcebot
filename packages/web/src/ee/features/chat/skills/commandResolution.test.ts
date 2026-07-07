@@ -1,14 +1,19 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 // commandResolution is guarded with `import 'server-only'` and imports
 // captureEvent from @/lib/posthog (a server-only module). Stub both so the
 // suite can import the module under test in vitest's node environment.
+const captureEvent = vi.hoisted(() => vi.fn());
 vi.mock("server-only", () => ({ default: vi.fn() }));
-vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn() }));
+vi.mock("@/lib/posthog", () => ({ captureEvent }));
 
 import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
 import type { FileSource, SBChatMessage } from "@/features/chat/types";
 import { getFileSourcesFromText, getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";
+
+beforeEach(() => {
+    captureEvent.mockClear();
+});
 
 const createCommandMessage = (
     visibleText: string,
@@ -117,6 +122,34 @@ describe("materializeCommandMessageText", () => {
                 sourceRepoName: true,
             },
         });
+    });
+
+    test("uses the request source for manual invocation analytics", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "skill-1",
+                    instructions: "Translate the most recent message into French.",
+                }]),
+            },
+        };
+
+        await materializeCommandMessageText({
+            message: createCommandMessage("hello French"),
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+            requestSource: "sourcebot-mcp-server",
+        });
+
+        expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
+            activationMethod: "manual",
+            skillId: "skill-1",
+            source: "sourcebot-mcp-server",
+            success: true,
+            slug: "translate",
+            name: "Translate",
+        }));
     });
 
     test("adds file sources from materialized skill instructions", async () => {

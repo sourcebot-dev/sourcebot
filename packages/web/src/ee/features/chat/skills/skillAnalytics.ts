@@ -1,6 +1,7 @@
-import type { AskMcpAnalyticsSource, PosthogEventMap } from "@/lib/posthogEvents";
+import type { PosthogEventMap } from "@/lib/posthogEvents";
 
 type AskSkillInvokedEvent = PosthogEventMap['ask_skill_invoked'];
+type AskSkillInvokedSource = AskSkillInvokedEvent['source'];
 
 // Shared inputs across every ask_skill_invoked emission. `source` defaults to
 // the agent; chatId/traceId/durationMs are present only where the call site has
@@ -8,7 +9,7 @@ type AskSkillInvokedEvent = PosthogEventMap['ask_skill_invoked'];
 type AskSkillInvokedBase = {
     activationMethod: AskSkillInvokedEvent['activationMethod'];
     skillId: string;
-    source?: AskMcpAnalyticsSource;
+    source?: AskSkillInvokedSource;
     chatId?: string;
     traceId?: string;
     durationMs?: number;
@@ -30,7 +31,7 @@ type AskSkillInvokedInput =
         success: false;
     });
 
-const DEFAULT_SKILL_ANALYTICS_SOURCE: AskMcpAnalyticsSource = 'sourcebot-ask-agent';
+const DEFAULT_SKILL_ANALYTICS_SOURCE: AskSkillInvokedSource = 'sourcebot-ask-agent';
 
 /**
  * Single source of truth for the `ask_skill_invoked` event payload, shared by

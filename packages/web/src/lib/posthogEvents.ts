@@ -248,7 +248,7 @@ export type PosthogEventMap = {
     ask_skill_invoked: {
         chatId?: string,
         traceId?: string,
-        source: AskMcpAnalyticsSource,
+        source: string,
         activationMethod: 'auto' | 'manual',
         skillId: string,
         slug?: string,

@@ -170,17 +170,20 @@ export const materializeCommandMessageText = async ({
     prisma,
     userId,
     orgId,
+    requestSource,
 }: {
     message: SBChatMessage;
     prisma: PrismaClient;
     userId?: string;
     orgId?: number;
+    requestSource?: string;
 }): Promise<SBChatMessage> => {
     const [materializedMessage] = await materializeCommandMessageTexts({
         messages: [message],
         prisma,
         userId,
         orgId,
+        requestSource,
     });
 
     return materializedMessage;
@@ -191,11 +194,13 @@ export const materializeCommandMessageTexts = async ({
     prisma,
     userId,
     orgId,
+    requestSource,
 }: {
     messages: SBChatMessage[];
     prisma: PrismaClient;
     userId?: string;
     orgId?: number;
+    requestSource?: string;
 }): Promise<SBChatMessage[]> => {
     const resolvableCommands = messages
         .map((message, index): ResolvableCommandMessage | undefined => {
@@ -300,6 +305,7 @@ export const materializeCommandMessageTexts = async ({
                 slug: command.slug,
                 name: command.name,
                 sourceLabel: command.sourceLabel,
+                source: requestSource,
             }));
         }
     }
