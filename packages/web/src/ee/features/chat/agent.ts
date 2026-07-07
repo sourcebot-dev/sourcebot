@@ -178,12 +178,23 @@ const buildUserModelMessage = ({
     return { role: 'user', content: baseText };
 };
 
-// Collapse whitespace so any skill-authored catalog field (name, argument hint,
-// or description) renders as a single catalog line and cannot break out of the
-// `<agent_skills>` block structure (e.g. an interior newline closing the block
-// early). Every value interpolated into the catalog line must pass through this.
+// Collapse whitespace and entity-escape skill-authored catalog fields so they
+// render as a single line and cannot be reinterpreted as tags inside the
+// `<agent_skills>` block. Every value interpolated into the catalog line must
+// pass through this.
 const sanitizeSkillCatalogText = (value: string): string =>
-    value.replace(/\s+/g, ' ').trim();
+    value.replace(/\s+/g, ' ').trim().replace(/[&<>]/g, (char) => {
+        switch (char) {
+            case '&':
+                return '&amp;';
+            case '<':
+                return '&lt;';
+            case '>':
+                return '&gt;';
+            default:
+                return char;
+        }
+    });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
