@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeftIcon, FileTextIcon, Loader2Icon } from "lucide-react";
+import { ArrowLeftIcon, FileTextIcon, Loader2Icon, XIcon } from "lucide-react";
 import {
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFileSource, getFiles, listRepos } from "@/app/api/(client)/client";
 import { parseAgentSkillMarkdown, type ParsedAgentSkillMarkdown } from "@/ee/features/chat/skills/types";
@@ -141,11 +141,18 @@ export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: 
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) { resetAndClose(); } }} modal={true}>
-            <DialogContent className="overflow-hidden p-0 shadow-lg max-w-[90vw] sm:max-w-2xl top-[20%] translate-y-0">
+            <DialogContent
+                className="overflow-hidden p-0 shadow-lg max-w-[90vw] sm:max-w-2xl top-[20%] translate-y-0"
+                hideCloseButton
+            >
                 <DialogTitle className="sr-only">Import a skill from a repository</DialogTitle>
                 <DialogDescription className="sr-only">
                     Browse your indexed repositories and import a markdown file as a skill.
                 </DialogDescription>
+                <DialogClose className="absolute right-2 top-1.5 z-10 inline-flex h-8 w-8 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                    <XIcon className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                </DialogClose>
 
                 {selectedRepo === null ? (
                     <Command shouldFilter={false}>
@@ -188,7 +195,7 @@ export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: 
                     </Command>
                 ) : (
                     <Command shouldFilter={false}>
-                        <div className="flex items-center gap-2 border-b px-3 py-2">
+                        <div className="flex h-11 items-center gap-2 border-b px-3 pr-12">
                             <button
                                 type="button"
                                 onClick={handleBackToRepos}
