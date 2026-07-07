@@ -125,4 +125,39 @@ describe("useUnsavedChangesGuard — in-app router.push", () => {
             expect(router.push).toHaveBeenCalledWith("/elsewhere");
         });
     });
+
+    test("bypass suppresses only the next push", async () => {
+        const router = makeMockRouter();
+
+        function Probe() {
+            const r = useContext(AppRouterContext);
+            const guard = useUnsavedChangesGuard({ enabled: true });
+            return (
+                <>
+                    <button type="button" onClick={() => guard.bypass()}>
+                        bypass
+                    </button>
+                    <button type="button" data-active={guard.active} onClick={() => r?.push("/elsewhere")}>
+                        go
+                    </button>
+                </>
+            );
+        }
+
+        renderWithRouter(<Probe />, router);
+
+        fireEvent.click(screen.getByRole("button", { name: "bypass" }));
+        fireEvent.click(screen.getByRole("button", { name: "go" }));
+
+        await waitFor(() => {
+            expect(router.push).toHaveBeenCalledWith("/elsewhere");
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: "go" }));
+
+        await waitFor(() => {
+            expect(screen.getByRole("button", { name: "go" }).getAttribute("data-active")).toBe("true");
+        });
+        expect(router.push).toHaveBeenCalledTimes(1);
+    });
 });

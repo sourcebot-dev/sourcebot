@@ -42,6 +42,7 @@ export function useUnsavedChangesGuard({ enabled, confirm }: UseUnsavedChangesGu
     const navGuard = useNavigationGuard({
         enabled: ({ type }) => {
             if (bypassRef.current) {
+                bypassRef.current = false;
                 return false;
             }
             // A "refresh" here means a client-side `router.refresh()` (not the
