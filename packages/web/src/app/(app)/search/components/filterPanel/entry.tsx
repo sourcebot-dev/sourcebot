@@ -34,9 +34,13 @@ export const Entry = ({
         countText = "999+";
     }
     return (
-        <div
+        <button
+            type="button"
+            aria-pressed={isSelected}
+            disabled={isDisabled && !isSelected}
             className={clsx(
-                "flex flex-row items-center justify-between py-0.5 px-1 cursor-pointer rounded-md gap-2 select-none",
+                "flex w-full flex-row items-center justify-between py-0.5 px-1 cursor-pointer rounded-md gap-2 select-none text-left",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                 {
                     "hover:bg-gray-200 dark:hover:bg-gray-700": !isSelected,
                     "bg-blue-200 dark:bg-blue-400": isSelected,
@@ -45,25 +49,25 @@ export const Entry = ({
             )}
             onClick={() => onClicked()}
         >
-            <div className="flex flex-row items-center gap-1 overflow-hidden min-w-0">
+            <span className="flex flex-row items-center gap-1 overflow-hidden min-w-0">
                 {Icon ? Icon : (
                     <QuestionMarkCircledIcon className="w-4 h-4 flex-shrink-0" />
                 )}
-                <div className="overflow-hidden flex-1 min-w-0">
+                <span className="overflow-hidden flex-1 min-w-0">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <p className="overflow-hidden text-ellipsis whitespace-nowrap truncate-start"><span>{displayName}</span></p>
+                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap truncate-start">{displayName}</span>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-sm">
                             <p className="font-mono text-sm break-all whitespace-pre-wrap">{displayName}</p>
                         </TooltipContent>
                     </Tooltip>
-                </div>
-            </div>
-            <div className="px-2 py-0.5 bg-accent text-sm rounded-md flex-shrink-0">
+                </span>
+            </span>
+            <span className="px-2 py-0.5 bg-accent text-sm rounded-md flex-shrink-0">
                 {countText}
-            </div>
-        </div>
+            </span>
+        </button>
     );
 }
 
