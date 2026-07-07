@@ -970,15 +970,14 @@ export const deletePersonalAgentSkill = async (
         }
 
         refreshSkillSettingsViews();
-        void captureEvent('ask_skill_deleted', {
+        emitSkillEvent('ask_skill_deleted', {
             source: SKILL_ANALYTICS_SOURCE,
             entryPoint: getSkillAnalyticsEntryPoint(analytics),
             scope: 'personal',
             isSynced: isSyncedSkill(skill),
             skillIdHash: hashSkillId(skill.id),
             actorRelationship: 'creator',
-            success: true,
-        });
+        }, { success: true });
         return { success: true };
     }));
 
@@ -1446,15 +1445,14 @@ export const deleteSharedAgentSkill = async (
         });
 
         refreshSkillSettingsViews();
-        void captureEvent('ask_skill_deleted', {
+        emitSkillEvent('ask_skill_deleted', {
             source: SKILL_ANALYTICS_SOURCE,
             entryPoint: getSkillAnalyticsEntryPoint(analytics),
             scope: 'shared',
             isSynced: isSyncedSkill(existingSkill),
             skillIdHash: hashSkillId(existingSkill.id),
             actorRelationship: getSharedSkillActorRelationship(existingSkill, user.id, role),
-            success: true,
-        });
+        }, { success: true });
         return { success: true };
     }));
 

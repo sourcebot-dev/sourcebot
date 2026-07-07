@@ -9,6 +9,7 @@ import {
     sharedAgentSkillVisibleToUserWhere,
     type PrismaClient,
 } from "@sourcebot/db";
+import { filterSkillsBySourceRepoAccess } from "./sourceRepoAccess";
 
 export type AskSkillAvailabilityAnalytics = {
     availableSkillCount: number;
@@ -30,36 +31,6 @@ const emptyAskSkillAvailability: AskSkillAvailabilityAnalytics = {
 };
 
 type AskSkillAvailabilityPrismaClient = Pick<PrismaClient, "agentSkill" | "repo">;
-type SkillAvailabilityRow = {
-    sourceRepoName: string | null;
-};
-
-const distinctSourceRepoNames = (skills: SkillAvailabilityRow[]): string[] =>
-    [...new Set(
-        skills
-            .map((skill) => skill.sourceRepoName)
-            .filter((name): name is string => typeof name === "string" && name.length > 0),
-    )];
-
-const countSkillsAccessibleBySourceRepo = async (
-    skills: SkillAvailabilityRow[],
-    { prisma, orgId }: { prisma: AskSkillAvailabilityPrismaClient; orgId: number },
-): Promise<number> => {
-    const repoNames = distinctSourceRepoNames(skills);
-    if (repoNames.length === 0) {
-        return skills.length;
-    }
-
-    const visibleRepos = await prisma.repo.findMany({
-        where: { name: { in: repoNames }, orgId },
-        select: { name: true },
-    });
-    const visibleRepoNames = new Set(visibleRepos.map((repo) => repo.name));
-
-    return skills.filter(
-        (skill) => !skill.sourceRepoName || visibleRepoNames.has(skill.sourceRepoName),
-    ).length;
-};
 
 export async function getAskSkillAvailabilityAnalytics({
     prisma,
@@ -89,12 +60,12 @@ export async function getAskSkillAvailabilityAnalytics({
             }),
         ]);
 
-        const availableSkillCount = await countSkillsAccessibleBySourceRepo(
+        const accessibleSkills = await filterSkillsBySourceRepoAccess(
             [...personalSkills, ...sharedSkills],
-            { prisma, orgId },
+            { prisma: prisma as PrismaClient, orgId },
         );
 
-        return { availableSkillCount };
+        return { availableSkillCount: accessibleSkills.length };
     } catch {
         return emptyAskSkillAvailability;
     }
