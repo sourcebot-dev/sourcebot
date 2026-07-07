@@ -84,6 +84,14 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 
+    if (tree.children.length === 0) {
+        return (
+            <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+                This repository is empty
+            </div>
+        );
+    }
+
     return (
         <ScrollArea
             className="h-full w-full overflow-auto p-0.5"
@@ -94,4 +102,3 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
         </ScrollArea>
     )
 }
-

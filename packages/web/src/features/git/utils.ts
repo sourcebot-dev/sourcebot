@@ -1,4 +1,5 @@
 import { FileTreeItem, FileTreeNode } from "./types";
+import type { SimpleGit } from "simple-git";
 
 // @note: reject refs starting with '-' to prevent git flag injection.
 export const isGitRefValid = (ref: string): boolean => {
@@ -44,7 +45,31 @@ export const compareFileTreeItems = (a: FileTreeItem, b: FileTreeItem): number =
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }
 
+export const isGitRepositoryEmpty = async (git: Pick<SimpleGit, 'raw'>): Promise<boolean> => {
+    try {
+        const count = await git.raw(['rev-list', '--count', '--all']);
+        return Number.parseInt(count.trim(), 10) === 0;
+    } catch {
+        return false;
+    }
+}
 
+export const isDefaultRepositoryRef = async (git: Pick<SimpleGit, 'raw'>, revisionName: string): Promise<boolean> => {
+    if (revisionName === 'HEAD') {
+        return true;
+    }
+
+    try {
+        const defaultBranch = (await git.raw(['symbolic-ref', '--short', 'HEAD'])).trim();
+        return revisionName === defaultBranch || revisionName === `refs/heads/${defaultBranch}`;
+    } catch {
+        return false;
+    }
+}
+
+export const isEmptyRepositoryRootRef = async (git: Pick<SimpleGit, 'raw'>, revisionName: string): Promise<boolean> => {
+    return await isDefaultRepositoryRef(git, revisionName) && await isGitRepositoryEmpty(git);
+}
 
 export const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {

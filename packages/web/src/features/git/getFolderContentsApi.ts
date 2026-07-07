@@ -1,11 +1,11 @@
 import { sew } from "@/middleware/sew";
 import { FileTreeItem } from "./types";
-import { notFound, unexpectedError } from '@/lib/serviceError';
+import { invalidGitRef, notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
-import { compareFileTreeItems, isPathValid, normalizePath } from './utils';
+import { compareFileTreeItems, isEmptyRepositoryRootRef, isGitRefValid, isPathValid, normalizePath } from './utils';
 import { logger } from './logger';
 
 
@@ -15,6 +15,10 @@ export const getFolderContentsRequestSchema = z.object({
     path: z.string(),
 });
 export type GetFolderContentsRequest = z.infer<typeof getFolderContentsRequestSchema>;
+export type GetFolderContentsResponse = {
+    items: FileTreeItem[];
+    isRepositoryEmpty: boolean;
+};
 
 /**
  * Returns the contents of a folder at a given path in a given repository,
@@ -36,6 +40,10 @@ export const getFolderContents = async ({ repoName, revisionName, path }: GetFol
         const { path: repoPath } = getRepoPath(repo);
         const git = simpleGit().cwd(repoPath);
 
+        if (!isGitRefValid(revisionName)) {
+            return invalidGitRef(revisionName);
+        }
+
         if (!isPathValid(path)) {
             return notFound();
         }
@@ -47,12 +55,20 @@ export const getFolderContents = async ({ repoName, revisionName, path }: GetFol
                 // Disable quoting of non-ASCII characters in paths
                 '-c', 'core.quotePath=false',
                 'ls-tree',
-                revisionName,
                 // format as output as {type},{path}
                 '--format=%(objecttype),%(path)',
+                revisionName,
+                '--',
                 ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
             ]);
         } catch (error) {
+            if (await isEmptyRepositoryRootRef(git, revisionName)) {
+                return {
+                    items: [],
+                    isRepositoryEmpty: true,
+                };
+            }
+
             logger.error('git ls-tree failed.', { error });
             return unexpectedError('git ls-tree command failed.');
         }
@@ -78,5 +94,8 @@ export const getFolderContents = async ({ repoName, revisionName, path }: GetFol
         // Sort the contents in place, first by type (trees before blobs), then by name.
         contents.sort(compareFileTreeItems);
 
-        return contents;
+        return {
+            items: contents,
+            isRepositoryEmpty: false,
+        } satisfies GetFolderContentsResponse;
     }));
