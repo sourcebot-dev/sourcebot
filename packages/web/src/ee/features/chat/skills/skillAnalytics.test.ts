@@ -14,7 +14,7 @@ describe("buildAskSkillInvokedEvent", () => {
             durationMs: 42,
         });
 
-        expect(event).toMatchObject({
+        expect(event).toEqual({
             source: "sourcebot-ask-agent",
             activationMethod: "auto",
             skillIdHash: expect.any(String),
@@ -25,9 +25,6 @@ describe("buildAskSkillInvokedEvent", () => {
             traceId: "trace-1",
             durationMs: 42,
         });
-        expect(event).not.toHaveProperty("slug");
-        expect(event).not.toHaveProperty("name");
-        expect(event).not.toHaveProperty("sourceLabel");
     });
 
     test("omits content-like skill identity on failure", () => {
@@ -39,19 +36,18 @@ describe("buildAskSkillInvokedEvent", () => {
             durationMs: 7,
         });
 
-        expect(event).toMatchObject({
+        expect(event).toEqual({
             source: "sourcebot-ask-agent",
             activationMethod: "auto",
             skillIdHash: expect.any(String),
+            scope: undefined,
+            isSynced: undefined,
             success: false,
             failureReason: "not_found_or_unauthorized",
             chatId: undefined,
             traceId: undefined,
             durationMs: 7,
         });
-        expect(event).not.toHaveProperty("slug");
-        expect(event).not.toHaveProperty("name");
-        expect(event).not.toHaveProperty("sourceLabel");
     });
 
     test("defaults the source to the agent but honors an explicit override (manual path)", () => {
