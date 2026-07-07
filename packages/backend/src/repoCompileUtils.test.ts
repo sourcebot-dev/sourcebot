@@ -259,4 +259,40 @@ describe('compileGenericGitHostConfig_url', () => {
         const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
         expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/repo');
     });
+
+    test('should decode URL-encoded characters in remote url pathname', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(true);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://github.com/test/Project%20Name%20With%20Spaces.git',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.repoData[0].name).toBe('github.com/test/Project Name With Spaces');
+        expect(result.repoData[0].displayName).toBe('github.com/test/Project Name With Spaces');
+
+        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/Project Name With Spaces');
+        expect(metadata.gitConfig!['zoekt.display-name']).toBe('github.com/test/Project Name With Spaces');
+    });
+
+    test('should preserve malformed URL-encoded characters in remote url pathname', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(true);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://github.com/test/Project%GGName.git',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.repoData[0].name).toBe('github.com/test/Project%GGName');
+
+        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/Project%GGName');
+    });
 });
