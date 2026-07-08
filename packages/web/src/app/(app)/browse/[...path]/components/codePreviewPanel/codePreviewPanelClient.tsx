@@ -4,6 +4,7 @@ import { getFileBlame, getFileSource } from "@/app/api/(client)/client";
 import { PathHeader } from "@/app/(app)/components/pathHeader";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, getCodeHostInfoForRepo, isServiceError, truncateSha } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -57,30 +58,6 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
         enabled: !!blame,
     });
 
-    if (isFileSourcePending || (blame && isBlamePending)) {
-        return (
-            <div className="flex flex-col w-full min-h-full items-center justify-center">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
-            </div>
-        );
-    }
-
-    if (!fileSourceResponse || isServiceError(fileSourceResponse)) {
-        return <div>Error loading file source: {isServiceError(fileSourceResponse) ? fileSourceResponse.message : 'No response received'}</div>
-    }
-
-    if (blameResponse !== undefined && isServiceError(blameResponse)) {
-        return <div>Error loading blame: {blameResponse.message}</div>
-    }
-
-    const source = fileSourceResponse.source;
-    const lineCount = source.length === 0
-        ? 0
-        : source.split('\n').length - (source.endsWith('\n') ? 1 : 0);
-    const byteSize = new TextEncoder().encode(source).length;
-    const fileSize = formatFileSize(byteSize);
-
     const codeHostInfo = getCodeHostInfoForRepo({
         codeHostType: repo.codeHostType,
         name: repo.name,
@@ -88,10 +65,112 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
         externalWebUrl: repo.externalWebUrl,
     });
 
-    // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
+    const loadedFile = fileSourceResponse && !isServiceError(fileSourceResponse) ? fileSourceResponse : undefined;
+
+    // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. This
     // will break if the default branch is not main.
-    const fileWebUrl = repo.codeHostType === "azuredevops" && fileSourceResponse.externalWebUrl ?
-        fileSourceResponse.externalWebUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.externalWebUrl;
+    const fileWebUrl = loadedFile
+        ? (repo.codeHostType === "azuredevops" && loadedFile.externalWebUrl
+            ? loadedFile.externalWebUrl.replace("version=GBHEAD", "version=GBmain")
+            : loadedFile.externalWebUrl)
+        : undefined;
+
+    // Line/size stats are derived from the fetched file, so they only appear
+    // once it has loaded. The surrounding toolbar (blame toggle) does not wait.
+    const lineCount = loadedFile === undefined
+        ? undefined
+        : loadedFile.source.length === 0
+            ? 0
+            : loadedFile.source.split('\n').length - (loadedFile.source.endsWith('\n') ? 1 : 0);
+    const fileSize = loadedFile === undefined
+        ? undefined
+        : formatFileSize(new TextEncoder().encode(loadedFile.source).length);
+
+    // The path header and separator are derived entirely from props, so they
+    // render immediately. Only the body below depends on the fetched source,
+    // so the loading / error states live here rather than replacing the whole
+    // panel.
+    const renderBody = () => {
+        if (isFileSourcePending || (blame && isBlamePending)) {
+            return (
+                <div className="flex flex-1 flex-col w-full items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                </div>
+            );
+        }
+
+        if (!fileSourceResponse || isServiceError(fileSourceResponse)) {
+            return (
+                <div className="p-4 text-sm text-destructive">
+                    Error loading file source: {isServiceError(fileSourceResponse) ? fileSourceResponse.message : 'No response received'}
+                </div>
+            );
+        }
+
+        if (blameResponse !== undefined && isServiceError(blameResponse)) {
+            return (
+                <div className="p-4 text-sm text-destructive">
+                    Error loading blame: {blameResponse.message}
+                </div>
+            );
+        }
+
+        return (
+            <>
+                {previewRef && (
+                    <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
+                        <span className="text-sm">
+                            Previewing file at revision{" "}
+                            <Link
+                                href={getBrowsePath({
+                                    repoName,
+                                    revisionName,
+                                    path: '',
+                                    pathType: 'commit',
+                                    commitSha: previewRef,
+                                })}
+                                className="font-mono text-link hover:underline"
+                            >
+                                {truncateSha(previewRef)}
+                            </Link>
+                        </span>
+                        <Tooltip key={previewRef}>
+                            <TooltipTrigger>
+                                <Button
+                                    asChild
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground"
+                                >
+                                    <Link
+                                        href={getBrowsePath({
+                                            repoName,
+                                            revisionName,
+                                            path,
+                                            pathType: 'blob',
+                                        })}
+                                        aria-label="Close preview"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Close preview</TooltipContent>
+                        </Tooltip>
+                    </div>
+                )}
+                <PureCodePreviewPanel
+                    source={fileSourceResponse.source}
+                    language={fileSourceResponse.language}
+                    repoName={repoName}
+                    path={path}
+                    revisionName={contentRef ?? 'HEAD'}
+                    blame={blame ? blameResponse : undefined}
+                />
+            </>
+        );
+    };
 
     return (
         <>
@@ -128,9 +207,13 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
                         path={path}
                         blame={blame ?? false}
                     />
-                    <span className="text-sm text-muted-foreground">
-                        {lineCount.toLocaleString()} lines · {fileSize}
-                    </span>
+                    {isFileSourcePending ? (
+                        <Skeleton className="h-4 w-32" />
+                    ) : lineCount !== undefined ? (
+                        <span className="text-sm text-muted-foreground">
+                            {lineCount.toLocaleString()} lines · {fileSize}
+                        </span>
+                    ) : null}
                     {blame && (
                         <>
                             <Separator orientation="vertical" className="h-4" />
@@ -139,56 +222,7 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
                     )}
                 </div>
             )}
-            {previewRef && (
-                <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
-                    <span className="text-sm">
-                        Previewing file at revision{" "}
-                        <Link
-                            href={getBrowsePath({
-                                repoName,
-                                revisionName,
-                                path: '',
-                                pathType: 'commit',
-                                commitSha: previewRef,
-                            })}
-                            className="font-mono text-link hover:underline"
-                        >
-                            {truncateSha(previewRef)}
-                        </Link>
-                    </span>
-                    <Tooltip key={previewRef}>
-                        <TooltipTrigger>
-                            <Button
-                                asChild
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground"
-                            >
-                                <Link
-                                    href={getBrowsePath({
-                                        repoName,
-                                        revisionName,
-                                        path,
-                                        pathType: 'blob',
-                                    })}
-                                    aria-label="Close preview"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Close preview</TooltipContent>
-                    </Tooltip>
-                </div>
-            )}
-            <PureCodePreviewPanel
-                source={fileSourceResponse.source}
-                language={fileSourceResponse.language}
-                repoName={repoName}
-                path={path}
-                revisionName={contentRef ?? 'HEAD'}
-                blame={blame ? blameResponse : undefined}
-            />
+            {renderBody()}
         </>
     )
 }
