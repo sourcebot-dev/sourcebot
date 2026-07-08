@@ -49,6 +49,18 @@ import {
     updateSharedAgentSkillFromSource,
 } from "@/ee/features/chat/skills/actions";
 import { getSkillSourceStatus } from "@/app/api/(client)/client";
+import {
+    SKILL_COMMAND_HELP,
+    SKILL_COMMAND_PLACEHOLDER,
+    SKILL_DESCRIPTION_HELP,
+    SKILL_DESCRIPTION_LOCKED_HELP,
+    SKILL_DESCRIPTION_PLACEHOLDER,
+    SKILL_INSTRUCTIONS_HELP,
+    SKILL_INSTRUCTIONS_LOCKED_HELP,
+    SKILL_INSTRUCTIONS_PLACEHOLDER,
+    SKILL_NAME_HELP,
+    SKILL_NAME_PLACEHOLDER,
+} from "@/ee/features/chat/skills/components/skillEditorCopy";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { ImportFromRepoDialog, type ImportedRepoSkill } from "@/ee/features/chat/skills/components/importFromRepoDialog";
 import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
@@ -78,9 +90,11 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
-const INSTRUCTIONS_PLACEHOLDER = `Find where a symbol is defined and used across the codebase.
-
-Search for exact matches, related types, tests, and call sites. Prioritize the files most likely to explain the behavior.`;
+const SHARED_SKILL_SWITCH_CLASS_NAME = cn(
+    "data-[state=unchecked]:bg-muted-foreground/40 data-[state=unchecked]:border-muted-foreground/70",
+    "data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600",
+    "[&>span]:bg-foreground",
+);
 
 const emptySkillForm: AgentSkillInput = {
     name: "",
@@ -218,9 +232,7 @@ function SkillListRow({ name, slug, isActive, badge, enabled, togglePending, onT
                     aria-label={`Enable ${name}`}
                     className={cn(
                         "mr-3 shrink-0",
-                        "data-[state=unchecked]:bg-muted-foreground/40 data-[state=unchecked]:border-muted-foreground/70",
-                        "data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600",
-                        "[&>span]:bg-foreground",
+                        SHARED_SKILL_SWITCH_CLASS_NAME,
                     )}
                 />
             )}
@@ -1260,6 +1272,7 @@ function SkillDetailView({
                                     disabled={sharedToggleDisabled}
                                     onCheckedChange={(checked) => onSharedToggle(checked)}
                                     aria-label="Shared"
+                                    className={SHARED_SKILL_SWITCH_CLASS_NAME}
                                 />
                             )}
                         </label>
@@ -1607,10 +1620,14 @@ function SkillEditForm({
                         id="skill-name"
                         value={form.name}
                         onChange={(event) => onNameChange(event.target.value)}
-                        placeholder="Find references"
+                        placeholder={SKILL_NAME_PLACEHOLDER}
+                        aria-describedby="skill-name-help"
                         maxLength={80}
                         required
                     />
+                    <p id="skill-name-help" className="text-xs text-muted-foreground">
+                        {SKILL_NAME_HELP}
+                    </p>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="skill-command">Command</Label>
@@ -1621,12 +1638,16 @@ function SkillEditForm({
                             value={form.slug}
                             onChange={(event) => onSlugChange(event.target.value)}
                             onBlur={onSlugBlur}
-                            placeholder="find-refs"
+                            placeholder={SKILL_COMMAND_PLACEHOLDER}
+                            aria-describedby="skill-command-help"
                             className="pl-7 font-mono"
                             maxLength={64}
                             required
                         />
                     </div>
+                    <p id="skill-command-help" className="text-xs text-muted-foreground">
+                        {SKILL_COMMAND_HELP}
+                    </p>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="skill-description">
@@ -1639,50 +1660,59 @@ function SkillEditForm({
                         id="skill-description"
                         value={form.description}
                         onChange={(event) => onDescriptionChange(event.target.value)}
-                        placeholder="Search for a symbol or API and summarize where it is defined, used, and tested."
+                        placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
+                        aria-describedby="skill-description-help"
                         className="min-h-16 resize-y disabled:cursor-not-allowed disabled:opacity-70"
                         maxLength={500}
                         disabled={contentLocked}
                     />
+                    <p id="skill-description-help" className="text-xs text-muted-foreground">
+                        {contentLocked ? SKILL_DESCRIPTION_LOCKED_HELP : SKILL_DESCRIPTION_HELP}
+                    </p>
                 </div>
             </div>
 
             {/* Instructions */}
             <div className="flex w-full min-h-0 flex-1 flex-col pb-6 pt-6">
-                <div className="mx-auto mb-3 flex w-full max-w-5xl items-center justify-between gap-2 px-6">
-                    <div className="flex items-center gap-3">
-                        <Label htmlFor="skill-instructions" className="text-sm font-semibold">Instructions</Label>
-                        {contentLocked ? (
-                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <FolderGit2Icon className="h-3.5 w-3.5" />
-                                Synced from {lockedSource?.repoName} · read-only
-                            </span>
-                        ) : (
-                            <ToggleGroup
-                                type="single"
-                                value={instructionsView}
-                                onValueChange={(value) => {
-                                    if (value) {
-                                        setInstructionsView(value as InstructionsView);
-                                    }
-                                }}
-                                className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
-                            >
-                                <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                    Write
-                                </ToggleGroupItem>
-                                <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                    Split
-                                </ToggleGroupItem>
-                                <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                    Preview
-                                </ToggleGroupItem>
-                            </ToggleGroup>
-                        )}
+                <div className="mx-auto mb-3 flex w-full max-w-5xl flex-col gap-1 px-6">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                            <Label htmlFor="skill-instructions" className="text-sm font-semibold">Instructions</Label>
+                            {contentLocked ? (
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <FolderGit2Icon className="h-3.5 w-3.5" />
+                                    Synced from {lockedSource?.repoName} · read-only
+                                </span>
+                            ) : (
+                                <ToggleGroup
+                                    type="single"
+                                    value={instructionsView}
+                                    onValueChange={(value) => {
+                                        if (value) {
+                                            setInstructionsView(value as InstructionsView);
+                                        }
+                                    }}
+                                    className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
+                                >
+                                    <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                        Write
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                        Split
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                        Preview
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                            )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                            markdown · {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
+                        </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                        markdown · {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
-                    </span>
+                    <p id="skill-instructions-help" className="text-xs text-muted-foreground">
+                        {contentLocked ? SKILL_INSTRUCTIONS_LOCKED_HELP : SKILL_INSTRUCTIONS_HELP}
+                    </p>
                 </div>
                 {contentLocked ? (
                     <div className="mx-auto flex w-full min-h-0 max-w-5xl flex-1 px-6">
@@ -1710,7 +1740,8 @@ function SkillEditForm({
                                     id="skill-instructions"
                                     value={form.instructions}
                                     onChange={onInstructionsChange}
-                                    placeholder={INSTRUCTIONS_PLACEHOLDER}
+                                    placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
+                                    ariaDescribedBy="skill-instructions-help"
                                     className="h-full resize-none font-mono text-sm leading-relaxed"
                                 />
                             </div>

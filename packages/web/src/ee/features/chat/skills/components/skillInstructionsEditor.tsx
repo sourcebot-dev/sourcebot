@@ -22,6 +22,7 @@ interface SkillInstructionsEditorProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    ariaDescribedBy?: string;
     className?: string;
     readOnly?: boolean;
 }
@@ -119,6 +120,7 @@ export const SkillInstructionsEditor = ({
     value,
     onChange,
     placeholder,
+    ariaDescribedBy,
     className,
     readOnly,
 }: SkillInstructionsEditorProps) => {
@@ -144,6 +146,7 @@ export const SkillInstructionsEditor = ({
                 id={id}
                 className={className}
                 placeholder={placeholder}
+                ariaDescribedBy={ariaDescribedBy}
                 readOnly={readOnly}
             />
         </Slate>
@@ -154,8 +157,9 @@ const SkillInstructionsEditable = ({
     id,
     className,
     placeholder,
+    ariaDescribedBy,
     readOnly,
-}: Pick<SkillInstructionsEditorProps, "id" | "className" | "placeholder" | "readOnly">) => {
+}: Pick<SkillInstructionsEditorProps, "id" | "className" | "placeholder" | "ariaDescribedBy" | "readOnly">) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
     const editor = useSlate();
@@ -279,6 +283,7 @@ const SkillInstructionsEditable = ({
                 )}
                 <Editable
                     aria-label="Skill instructions"
+                    aria-describedby={ariaDescribedBy}
                     className={cn(
                         "h-full w-full overflow-y-auto rounded-md border border-input bg-background px-3 py-2 pb-8 font-mono text-sm leading-relaxed ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                         className,

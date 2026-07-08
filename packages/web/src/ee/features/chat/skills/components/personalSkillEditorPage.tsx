@@ -15,6 +15,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createSharedAgentSkill, createPersonalAgentSkill, updateSharedAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
+import {
+    SKILL_COMMAND_HELP,
+    SKILL_COMMAND_PLACEHOLDER,
+    SKILL_DESCRIPTION_HELP,
+    SKILL_DESCRIPTION_PLACEHOLDER,
+    SKILL_INSTRUCTIONS_HELP,
+    SKILL_INSTRUCTIONS_PLACEHOLDER,
+    SKILL_NAME_HELP,
+    SKILL_NAME_PLACEHOLDER,
+} from "@/ee/features/chat/skills/components/skillEditorCopy";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
@@ -24,14 +34,6 @@ import { isServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
 const DETAILS_COLLAPSED_STORAGE_KEY = "sb.skillEditor.detailsCollapsed";
-const INSTRUCTIONS_PLACEHOLDER = `Find where a symbol is defined and used across the codebase.
-
-Search for exact matches, related types, tests, and call sites. Prioritize the files most likely to explain the behavior.
-
-Return:
-- the most relevant files and symbols
-- a short explanation of how the code is connected
-- any follow-up searches that would narrow the answer`;
 
 const emptySkillForm: AgentSkillInput = {
     name: "",
@@ -279,8 +281,8 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                         <input
                             value={form.name}
                             onChange={(event) => handleNameChange(event.target.value)}
-                            placeholder={isEditing ? "Untitled skill" : "New skill"}
-                            size={Math.max(form.name.length || (isEditing ? "Untitled skill".length : "New skill".length), 4)}
+                            placeholder={SKILL_NAME_PLACEHOLDER}
+                            size={Math.max(form.name.length || SKILL_NAME_PLACEHOLDER.length, 4)}
                             maxLength={80}
                             aria-label="Skill name"
                             className="min-w-0 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground placeholder:font-normal"
@@ -305,15 +307,20 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             <div className="flex min-h-0 flex-1">
                 {/* Instructions canvas */}
                 <div className="flex min-w-0 flex-1 flex-col px-6 py-4">
-                    <div className="mb-3 flex items-baseline gap-2">
-                        <Label htmlFor="agent-skill-instructions" className="text-sm font-semibold">
-                            Instructions
-                        </Label>
-                        <span className="truncate text-xs text-muted-foreground">
-                            {isDetailsCollapsed
-                                ? "Focus mode — open details to edit name, command & description"
-                                : "Markdown"}
-                        </span>
+                    <div className="mb-3 space-y-1">
+                        <div className="flex items-baseline gap-2">
+                            <Label htmlFor="agent-skill-instructions" className="text-sm font-semibold">
+                                Instructions
+                            </Label>
+                            <span className="truncate text-xs text-muted-foreground">
+                                {isDetailsCollapsed
+                                    ? "Focus mode - open details to edit name, command & description"
+                                    : "Markdown"}
+                            </span>
+                        </div>
+                        <p id="agent-skill-instructions-help" className="text-xs text-muted-foreground">
+                            {SKILL_INSTRUCTIONS_HELP}
+                        </p>
                     </div>
                     <div className="relative min-h-0 flex-1">
                         <SkillInstructionsEditor
@@ -321,7 +328,8 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                             id="agent-skill-instructions"
                             value={form.instructions}
                             onChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
-                            placeholder={INSTRUCTIONS_PLACEHOLDER}
+                            placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
+                            ariaDescribedBy="agent-skill-instructions-help"
                             className="h-full resize-none pb-8 font-mono text-sm leading-relaxed"
                         />
                         <span className="pointer-events-none absolute bottom-3 right-4 text-xs text-muted-foreground">
@@ -374,10 +382,14 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     id="agent-skill-name"
                                     value={form.name}
                                     onChange={(event) => handleNameChange(event.target.value)}
-                                    placeholder="Find references"
+                                    placeholder={SKILL_NAME_PLACEHOLDER}
+                                    aria-describedby="agent-skill-name-help"
                                     maxLength={80}
                                     required
                                 />
+                                <p id="agent-skill-name-help" className="text-xs text-muted-foreground">
+                                    {SKILL_NAME_HELP}
+                                </p>
                             </div>
 
                             <div className="space-y-2">
@@ -403,12 +415,16 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                 slug: normalizeAgentSkillSlug(current.slug),
                                             }));
                                         }}
-                                        placeholder="find-refs"
+                                        placeholder={SKILL_COMMAND_PLACEHOLDER}
+                                        aria-describedby="agent-skill-command-help"
                                         className="pl-7 font-mono"
                                         maxLength={64}
                                         required
                                     />
                                 </div>
+                                <p id="agent-skill-command-help" className="text-xs text-muted-foreground">
+                                    {SKILL_COMMAND_HELP}
+                                </p>
                             </div>
 
                             <div className="space-y-2">
@@ -420,10 +436,14 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     id="agent-skill-description"
                                     value={form.description}
                                     onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                                    placeholder="Search for a symbol or API and summarize where it is defined, used, and tested."
+                                    placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
+                                    aria-describedby="agent-skill-description-help"
                                     className="min-h-72 resize-y"
                                     maxLength={500}
                                 />
+                                <p id="agent-skill-description-help" className="text-xs text-muted-foreground">
+                                    {SKILL_DESCRIPTION_HELP}
+                                </p>
                             </div>
 
                             {!isEditing && (
