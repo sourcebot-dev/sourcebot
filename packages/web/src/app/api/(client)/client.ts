@@ -14,8 +14,14 @@ import {
 } from "@/features/codeNav/types";
 import {
     Commit,
+    CommitDetail,
+    FileBlameRequest,
+    FileBlameResponse,
+    FileTreeItem,
+    GetDiffResult,
     GetFilesRequest,
     GetFilesResponse,
+    GetFolderContentsRequest,
     GetTreeRequest,
     GetTreeResponse,
     FileSourceRequest,
@@ -162,6 +168,74 @@ export const listCommits = async (queryParams: ListCommitsQueryParams): Promise<
 
     const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
     return { commits: result as Commit[], totalCount };
+}
+
+export const getCommit = async (queryParams: { repo: string; ref: string }): Promise<CommitDetail | ServiceError> => {
+    const url = new URL("/api/commit", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        url.searchParams.set(key, value);
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as CommitDetail | ServiceError;
+}
+
+export const getDiff = async (queryParams: { repo: string; base: string; head: string; path?: string }): Promise<GetDiffResult | ServiceError> => {
+    const url = new URL("/api/diff", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value !== undefined) {
+            url.searchParams.set(key, value);
+        }
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as GetDiffResult | ServiceError;
+}
+
+export const getFolderContents = async (queryParams: GetFolderContentsRequest): Promise<FileTreeItem[] | ServiceError> => {
+    const url = new URL("/api/folder_contents", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        url.searchParams.set(key, value);
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as FileTreeItem[] | ServiceError;
+}
+
+export const getFileBlame = async (queryParams: FileBlameRequest): Promise<FileBlameResponse | ServiceError> => {
+    const url = new URL("/api/blame", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value !== undefined) {
+            url.searchParams.set(key, value);
+        }
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as FileBlameResponse | ServiceError;
 }
 
 export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => {
