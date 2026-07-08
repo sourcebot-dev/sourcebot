@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made the backend worker API address configurable via the `WORKER_API_URL` environment variable (default `http://localhost:3060`) instead of being hardcoded. [#1409](https://github.com/sourcebot-dev/sourcebot/pull/1409)
 - [EE] Disabled `DELETE /api/ee/user` while SCIM provisioning is enabled, and switched it to an org-scoped membership removal (with last-owner protection) instead of a global account delete. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
 - [EE] Unified the `GET /api/ee/user` and `GET /api/ee/users` response shapes behind a shared mapper; the single-user endpoint is now scoped to org membership, and both include role, membership status, and last activity. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
+- Browse blob, tree, and commit pages now fetch file sources, folder contents, and diffs client-side via API routes instead of embedding them in the server-rendered page, keeping documents small and event-loop pressure low for large files and commits. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added text file attachments to Ask Sourcebot, letting users attach text/code/config files to a chat message via the paperclip button, drag-and-drop, or paste, with large pastes auto-converted to attachments. [#1374](https://github.com/sourcebot-dev/sourcebot/pull/1374)
 - [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
 - Added deployment system resource stats (CPU cores + cgroup quota, host + container memory, disk, load average) to the service ping, so resource issues can be diagnosed more quickly. [#1424](https://github.com/sourcebot-dev/sourcebot/pull/1424)
+- Added a `robots.txt` that disallows crawlers, with an allowlist for link-preview bots so shared links keep their OpenGraph previews. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
@@ -35,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
 - Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
 - [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
+- Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
 
 ## [5.0.4] - 2026-06-18
 
