@@ -114,6 +114,7 @@
                                 "root": "docs/configuration/auth/authentication",
                                 "pages": [
                                     "docs/configuration/auth/providers",
+                                    "docs/configuration/auth/scim",
                                     "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"

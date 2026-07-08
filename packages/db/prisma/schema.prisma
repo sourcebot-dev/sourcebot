@@ -286,9 +286,12 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  scimTokens  ScimToken[]
   attachments Attachment[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
+
+  isScimEnabled Boolean    @default(false)
 
   /// @deprecated This property can be controlled by the environment
   /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
@@ -412,7 +415,23 @@ model UserToOrg {
 
   role OrgRole @default(MEMBER)
 
+  /// When set, the membership is suspended and the user is treated as a
+  /// non-member for auth purposes (see `getAuthContext`).
+  suspendedAt DateTime?
+
+  /// The IdP-supplied `externalId` for this membership when provisioned via
+  /// SCIM. Null for members that joined through invites or self-serve sign-up.
+  scimExternalId String?
+
+  /// Last time the user performed an authenticated action *in this org*. Unlike
+  /// `User.lastActiveAt` (which is global to the instance), this is scoped to
+  /// the membership, so it distinguishes a member who has been active in this
+  /// org from one who was provisioned but never signed in here. Null means the
+  /// member has never been active in this org.
+  lastActiveAt DateTime?
+
   @@id([orgId, userId])
+  @@unique([orgId, scimExternalId])
 }
 
 model ApiKey {
@@ -427,6 +446,23 @@ model ApiKey {
 
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
+}
+
+/// Org-scoped bearer token presented by an IdP (Okta, Entra) to authenticate
+/// against the SCIM provisioning endpoints. Unlike `ApiKey`, a SCIM token is
+/// not tied to a user — it acts on behalf of the SCIM integration for the
+/// whole org. Only the HMAC hash of the secret is stored.
+model ScimToken {
+  name String
+  hash String @id @unique
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([orgId])
 }
 
 model Audit {
@@ -732,6 +768,7 @@ model OAuthAuthorizationCode {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   redirectUri   String
   codeChallenge String // BASE64URL(SHA-256(codeVerifier))
+  scope         String      @default("")
   resource      String? // RFC 8707: canonical URI of the target resource server
   dpopJkt       String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt     DateTime

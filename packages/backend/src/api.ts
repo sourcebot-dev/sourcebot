@@ -14,7 +14,9 @@ import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import z from 'zod';
 
 const logger = createLogger('api');
-const PORT = 3060;
+
+const workerApiUrl = new URL(env.WORKER_API_URL);
+const PORT = Number(workerApiUrl.port) || (workerApiUrl.protocol === "https:" ? 443 : 80);
 
 export class Api {
     private server: http.Server;

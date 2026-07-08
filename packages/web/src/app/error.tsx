@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { serviceErrorSchema } from '@/lib/serviceError';
 import { SourcebotLogo } from './components/sourcebotLogo';
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
+import { ErrorCode } from "@/lib/errorCodes";
+import { OrgAtCapacityCard } from "@/features/membership/components/orgAtCapacityCard";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }, reset: () => void }) {
     useEffect(() => {
@@ -36,6 +38,10 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             message: error.message,
         }
     }, [error]);
+
+    if (errorCode === ErrorCode.ORG_SEAT_COUNT_REACHED) {
+        return <OrgAtCapacityCard onRetry={reset} />;
+    }
 
     return (
         <div className="flex flex-col min-h-screen justify-center items-center bg-backgroundSecondary">

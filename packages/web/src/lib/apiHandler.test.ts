@@ -13,7 +13,7 @@ describe('apiHandler', () => {
             method: 'POST',
         });
 
-        const handler = apiHandler(async () => {
+        const handler = apiHandler(async (_request: NextRequest) => {
             expect(getCurrentRequest()).toBe(request);
             await Promise.resolve();
             expect(getCurrentRequest()).toBe(request);

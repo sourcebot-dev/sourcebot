@@ -13,6 +13,8 @@ import { client } from "./client";
 import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
+import { activeMembershipWhere } from "@/features/membership/utils";
+import { getSystemInfo } from "./systemInfo";
 
 const logger = createLogger('service-ping');
 
@@ -32,38 +34,42 @@ export const syncWithLighthouse = async (orgId: number) => {
     const mauCutoff = new Date(now - 30 * DAY_MS);
 
     const [
-        userCount,
-        repoCount,
+        activeUserCount,
         dauCount,
         wauCount,
         mauCount,
+        repoCount,
     ] = await Promise.all([
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                ...activeMembershipWhere(),
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: dauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: wauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                ...activeMembershipWhere(),
+                lastActiveAt: { gte: mauCutoff },
             },
         }),
         __unsafePrisma.repo.count({
             where: {
                 orgId,
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: dauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: wauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: mauCutoff },
             },
         }),
     ]);
@@ -74,11 +80,17 @@ export const syncWithLighthouse = async (orgId: number) => {
 
     const isLanguageModelConfigured = (await getConfiguredLanguageModels()).length > 0;
 
+    // Best-effort — a failure to collect system info must never prevent the ping.
+    const systemInfo = await getSystemInfo().catch((error) => {
+        logger.warn(`Failed to collect system info for service ping: ${error}`);
+        return undefined;
+    });
+
     const payload: ServicePingRequest = {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
         hostname: env.AUTH_URL,
-        userCount,
+        userCount: activeUserCount,
         repoCount,
         dauCount,
         wauCount,
@@ -86,6 +98,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         deploymentType: inferDeploymentType(),
         isTelemetryEnabled: env.SOURCEBOT_TELEMETRY_DISABLED === 'false',
         isLanguageModelConfigured,
+        ...(systemInfo && { systemInfo }),
         ...(activationCode && { activationCode }),
     };
 

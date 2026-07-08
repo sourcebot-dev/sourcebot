@@ -25,6 +25,19 @@ The data contained within the Service Ping is limited to:
 | `isTelemetryEnabled` | `boolean` | Whether anonymous product telemetry is enabled. |
 | `isLanguageModelConfigured` | `boolean` | Whether at least one language model is configured. |
 | `activationCode` | `string` | Activation code, if your instance has one bound. |
+| `systemInfo` | `object` | Resource facts about the deployment (CPU, memory, disk). See below. |
+
+The `systemInfo` object contains a best-effort snapshot of the resources the deployment is running with. It is used to diagnose resource issues (e.g. insufficient RAM). Any field that cannot be read is reported as `null`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `platform` | `string` | Operating system platform (e.g. `linux`). |
+| `arch` | `string` | CPU architecture (e.g. `x64`, `arm64`). |
+| `cpuQuota` | `number \| null` | Effective cgroup CPU limit in cores, or `null` if unlimited. |
+| `memoryLimitMiB` | `number \| null` | cgroup memory limit in MiB, or `null` if unlimited. |
+| `memoryUsedMiB` | `number \| null` | Current cgroup memory usage, in MiB. |
+| `diskTotalMiB` | `number \| null` | Total disk space for the data volume, in MiB. |
+| `diskFreeMiB` | `number \| null` | Free disk space for the data volume, in MiB. |
 
 
 You can fetch the schema for the Service Ping by submitting a GET request to `https://deployments.sourcebot.dev/schema`
@@ -59,6 +72,15 @@ body: {
   "deploymentType": "other",
   "isTelemetryEnabled": true,
   "isLanguageModelConfigured": true,
+  "systemInfo": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpuQuota": 4,
+    "memoryLimitMiB": 8192,
+    "memoryUsedMiB": 3072,
+    "diskTotalMiB": 102400,
+    "diskFreeMiB": 54968
+  },
   "activationCode": "sb_act_3a925f51...."
 }
 ```

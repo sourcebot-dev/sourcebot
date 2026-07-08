@@ -1,7 +1,7 @@
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
-import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE, SOURCEBOT_OAUTH_SCOPES } from '@/ee/features/oauth/constants';
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 
 // RFC 9728: OAuth 2.0 Protected Resource Metadata (path-specific form)
@@ -37,6 +37,7 @@ export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { p
         authorization_servers: [
             issuer
         ],
+        scopes_supported: SOURCEBOT_OAUTH_SCOPES,
         bearer_methods_supported: ['header'],
     });
 });

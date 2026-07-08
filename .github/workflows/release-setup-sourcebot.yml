@@ -72,7 +72,7 @@ jobs:
           # Bump packages/setupWizard/package.json only. --no-git-tag-version
           # writes the new version without creating a commit or tag (we do that
           # ourselves, with a release-specific tag, further down).
-          npm version "${{ inputs.bump_type }}" --no-git-tag-version
+          npm version "${{ inputs.bump_type }}" --no-git-tag-version --no-workspaces-update
           VERSION=$(node -p "require('./package.json').version")
           echo "Bumped setup-sourcebot to $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

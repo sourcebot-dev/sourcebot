@@ -1,14 +1,16 @@
 import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
-import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
-import { notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
+import { insufficientOAuthScope, notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
 import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { activatePendingMembership } from "@/features/membership/membership.service";
+import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
 
@@ -30,9 +32,12 @@ type OptionalAuthContext =
         prisma: PrismaClient;
     };
 
+type AuthOptions = {
+    requiredOAuthScopes?: readonly string[];
+};
 
-export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, options: AuthOptions = {}) => {
+    const authContext = await getAuthContext(options);
 
     if (isServiceError(authContext)) {
         return authContext;
@@ -47,8 +52,8 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
     return fn({ user, org, role, prisma });
 };
 
-export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, options: AuthOptions = {}) => {
+    const authContext = await getAuthContext(options);
     if (isServiceError(authContext)) {
         return authContext;
     }
@@ -63,7 +68,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
     return fn(authContext);
 };
 
-export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
+export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {
     const authResult = await getAuthenticatedUser();
 
     const org = await __unsafePrisma.org.findUnique({
@@ -87,7 +92,10 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    const role = membership?.role;
+    // A suspended membership is treated as if the user is not a member: they get
+    // no role and are denied by `withAuth`. This is also the only gate for
+    // API-key auth, which bypasses the JWT `sessionVersion` logout check.
+    const role = (membership && membership.suspendedAt == null) ? membership.role : undefined;
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
@@ -101,10 +109,35 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         } satisfies ServiceError;
     }
 
+    if (
+        authResult?.source === 'oauth' &&
+        options.requiredOAuthScopes?.length &&
+        !hasRequiredOAuthScopes(authResult.oauthScopes ?? [], options.requiredOAuthScopes)
+    ) {
+        return insufficientOAuthScope(options.requiredOAuthScopes);
+    }
+
     const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
 
     if (user) {
         updateUserLastActiveAt(user);
+    }
+
+    // If the user is currently in a "pending"
+    // state, then we need to activate them.
+    if (
+        membership &&
+        membership.suspendedAt === null &&
+        membership.lastActiveAt === null
+    ) {
+        const result = await activatePendingMembership(membership);
+        if (isServiceError(result)) {
+            return result;
+        }
+    }
+
+    if (membership) {
+        updateMembershipLastActiveAt(membership);
     }
 
     if (user && role) {
@@ -131,9 +164,35 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
         .catch(() => { /* updaing the lastActiveAt is best effort. */ });
 };
 
+const updateMembershipLastActiveAt = (membership: UserToOrg) => {
+    if (membership.suspendedAt != null) {
+        return;
+    }
+
+    const now = Date.now();
+    if (
+        membership.lastActiveAt &&
+        (now - membership.lastActiveAt.getTime()) < LAST_ACTIVE_AT_THRESHOLD_MS
+    ) {
+        return;
+    }
+
+    // Fired without a await to avoid blocking; this is only a freshness refresh
+    // for already-active memberships, not seat admission.
+    void __unsafePrisma.userToOrg
+        .updateMany({
+            where: {
+                orgId: membership.orgId,
+                userId: membership.userId,
+            },
+            data: { lastActiveAt: new Date(now) },
+        })
+        .catch(() => { /* updating the lastActiveAt is best effort. */ });
+};
+
 type AuthSource = 'session' | 'oauth' | 'api_key';
 
-export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
+export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource, oauthScopes?: string[] } | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -198,7 +257,11 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return { user: oauthToken.user, source: 'oauth' };
+                return {
+                    user: oauthToken.user,
+                    source: 'oauth',
+                    oauthScopes: parseOAuthScopeString(oauthToken.scope)
+                };
             }
         }
 

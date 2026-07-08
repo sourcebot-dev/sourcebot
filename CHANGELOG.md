@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
 - Refactored Ask Sourcebot user message text extraction into a shared helper that robustly handles non-text message parts. [#1371](https://github.com/sourcebot-dev/sourcebot/pull/1371)
+- Made the backend worker API address configurable via the `WORKER_API_URL` environment variable (default `http://localhost:3060`) instead of being hardcoded. [#1409](https://github.com/sourcebot-dev/sourcebot/pull/1409)
+- [EE] Disabled `DELETE /api/ee/user` while SCIM provisioning is enabled, and switched it to an org-scoped membership removal (with last-owner protection) instead of a global account delete. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
+- [EE] Unified the `GET /api/ee/user` and `GET /api/ee/users` response shapes behind a shared mapper; the single-user endpoint is now scoped to org membership, and both include role, membership status, and last activity. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
@@ -19,12 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added DPoP sender-constrained OAuth tokens for MCP clients. [#1395](https://github.com/sourcebot-dev/sourcebot/pull/1395)
 - [EE] Added text file attachments to Ask Sourcebot, letting users attach text/code/config files to a chat message via the paperclip button, drag-and-drop, or paste, with large pastes auto-converted to attachments. [#1374](https://github.com/sourcebot-dev/sourcebot/pull/1374)
 - [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
+- Added deployment system resource stats (CPU cores + cgroup quota, host + container memory, disk, load average) to the service ping, so resource issues can be diagnosed more quickly. [#1424](https://github.com/sourcebot-dev/sourcebot/pull/1424)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
 - [EE] Fixed Ask Sourcebot mermaid diagrams overflowing their container by contain-fitting them to both width and height, and made revealing a diagram from the answer jump it into view instantly to avoid over/undershooting. [#1373](https://github.com/sourcebot-dev/sourcebot/pull/1373)
 - Verified GitHub review webhook deliveries before processing them. [#1378](https://github.com/sourcebot-dev/sourcebot/pull/1378)
 - Passed Zoekt index parameters via argv to preserve revision names with punctuation. [#1376](https://github.com/sourcebot-dev/sourcebot/pull/1376)
+- [EE] Validated OAuth bearer token scopes before allowing access to the Sourcebot MCP resource server. [#1396](https://github.com/sourcebot-dev/sourcebot/pull/1396)
+- Added HTTP security headers to all web app responses. [#1407](https://github.com/sourcebot-dev/sourcebot/pull/1407)
+- Maintained the sidebar scroll position when navigating between chats instead of resetting to the top. [#1411](https://github.com/sourcebot-dev/sourcebot/pull/1411)
+- Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
+- Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
+- [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
 - Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
 
 ## [5.0.4] - 2026-06-18
@@ -59,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 - Added a list of configured SSO providers from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+- [EE] Added a SCIM 2.0 server for automated user provisioning and deprovisioning from identity providers (Okta, Entra). [#1306](https://github.com/sourcebot-dev/sourcebot/pull/1306)
 
 ### Fixed
 - Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)

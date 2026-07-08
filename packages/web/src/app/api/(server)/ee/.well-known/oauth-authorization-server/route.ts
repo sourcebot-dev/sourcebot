@@ -1,6 +1,6 @@
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { env } from '@sourcebot/shared';
-import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE, SOURCEBOT_OAUTH_SCOPES } from '@/ee/features/oauth/constants';
 import { hasEntitlement } from '@/lib/entitlements';
 import { SUPPORTED_DPOP_SIGNING_ALGS } from '@/ee/features/oauth/dpop';
 
@@ -25,6 +25,7 @@ export const GET = oauthApiHandler(async () => {
         revocation_endpoint: `${issuer}/api/ee/oauth/revoke`,
         response_types_supported: ['code'],
         grant_types_supported: ['authorization_code', 'refresh_token'],
+        scopes_supported: SOURCEBOT_OAUTH_SCOPES,
         code_challenge_methods_supported: ['S256'],
         token_endpoint_auth_methods_supported: ['none'],
         dpop_signing_alg_values_supported: SUPPORTED_DPOP_SIGNING_ALGS,

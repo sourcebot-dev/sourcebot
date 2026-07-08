@@ -1090,47 +1090,6 @@
       "PublicEeUser": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "name",
-          "email",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "PublicEeDeleteUserResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "success",
-          "message"
-        ]
-      },
-      "PublicEeUserListItem": {
-        "type": "object",
-        "properties": {
           "id": {
             "type": "string"
           },
@@ -1148,7 +1107,16 @@
               "MEMBER"
             ]
           },
+          "suspendedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -1163,14 +1131,31 @@
           "name",
           "email",
           "role",
+          "suspendedAt",
           "createdAt",
+          "updatedAt",
           "lastActivityAt"
+        ]
+      },
+      "PublicEeDeleteUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
         ]
       },
       "PublicEeUsersResponse": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/PublicEeUserListItem"
+          "$ref": "#/components/schemas/PublicEeUser"
         }
       },
       "PublicEeAuditRecord": {
@@ -2285,7 +2270,7 @@
           "Enterprise (EE)"
         ],
         "summary": "Get a user",
-        "description": "Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.",
+        "description": "Fetches details for a single organization member by `userId`. Only organization owners can access this endpoint.",
         "x-mint": {
           "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
@@ -2333,7 +2318,7 @@
             }
           },
           "404": {
-            "description": "User not found.",
+            "description": "User is not a member of this organization.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2359,8 +2344,8 @@
         "tags": [
           "Enterprise (EE)"
         ],
-        "summary": "Delete a user",
-        "description": "Permanently deletes a user and all associated records. Only organization owners can delete other users.",
+        "summary": "Remove a user from the organization",
+        "description": "Removes a user from the organization, revoking their access and their sessions. Only organization owners can access this endpoint.",
         "x-mint": {
           "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
@@ -2368,17 +2353,17 @@
           {
             "schema": {
               "type": "string",
-              "description": "The ID of the user to delete."
+              "description": "The ID of the user to remove."
             },
             "required": true,
-            "description": "The ID of the user to delete.",
+            "description": "The ID of the user to remove.",
             "name": "userId",
             "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "User deleted successfully.",
+            "description": "User removed successfully.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2388,7 +2373,7 @@
             }
           },
           "400": {
-            "description": "Missing userId parameter or attempting to delete own account.",
+            "description": "Missing userId parameter.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2398,7 +2383,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions.",
+            "description": "Insufficient permissions, the last active owner cannot be removed, or SCIM provisioning is enabled (membership is managed through your identity provider).",
             "content": {
               "application/json": {
                 "schema": {
@@ -2408,7 +2393,7 @@
             }
           },
           "404": {
-            "description": "User not found.",
+            "description": "User is not a member of this organization.",
             "content": {
               "application/json": {
                 "schema": {
