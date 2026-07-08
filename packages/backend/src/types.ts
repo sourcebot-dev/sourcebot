@@ -25,3 +25,87 @@ export type RepoAuthCredentials = {
      */
     connectionConfig?: ConnectionConfig;
 }
+
+export interface ProcessContext<TData> {
+  data: TData;
+  jobId: string;
+  attemptsMade: number;
+  maxAttempts: number;
+  signal: AbortSignal;
+  log(message: string): Promise<void>;
+  updateProgress(progress: number | object): Promise<void>;
+}
+
+export interface QueueSpec<TData> {
+  name: string;
+  dedupKey(data: TData): string;
+  jobOptions: {
+    attempts: number;
+    backoff: { type: 'fixed' | 'exponential'; delayMs: number };
+    keep: { completed: number; failed: number };
+  };
+}
+
+export interface Workload<TData, TResult = unknown> {
+  spec: QueueSpec<TData>;
+  concurrency: number;
+  rateLimit?: { max: number; per: string };
+  process(ctx: ProcessContext<TData>): Promise<TResult>;
+  onTerminalFailure?(data: TData, err: Error): Promise<void>;
+}
+
+
+export type Schedule = { every: string } | { pattern: string };
+
+export interface JobManager {
+  register<T>(w: Workload<T>): void;
+  registerCron(cron: CronWorkload): void;
+
+  start(): Promise<void>;
+  stop(): Promise<void>;
+
+  trigger<T>(workload: string, data: T): Promise<void>;
+
+  status(workload: string): Promise<QueueCounts>;
+  jobDetail(workload: string, jobId: string): Promise<JobDetail | null>;
+}
+
+export interface CronWorkload {
+  name: string;
+  schedule: Schedule;
+  handler(ctx: CronContext): Promise<void>;
+}
+
+export interface CronContext {
+  trigger<T>(workload: string, data: T): Promise<void>;
+}
+
+
+export interface QueueCounts {
+  waiting: number;
+  active: number;
+  delayed: number;
+  completed: number;
+  failed: number;
+  paused: number;
+  prioritized?: number;
+  'waiting-children'?: number;
+}
+
+export interface JobDetail<TData = unknown, TResult = unknown> {
+  id: string;
+  name: string;
+  state: 'waiting' | 'active' | 'delayed' | 'completed' | 'failed' | 'paused' | 'unknown';
+  data: TData;
+  attemptsMade: number;
+  maxAttempts: number;
+  result?: TResult | null;
+  failedReason?: string | null;
+  stacktrace?: string[];
+  logs: string[];
+  enqueuedAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  waitMs?: number | null;
+  runMs?: number | null;
+}

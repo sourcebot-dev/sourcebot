@@ -20,6 +20,8 @@ import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
 import { redis } from "./redis.js";
+import { BullMQJobManager, reconcile } from "./jobManager.js";
+import { QueueSpec, Workload } from "./types.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -83,6 +85,51 @@ const api = new Api(
 
 logger.info('Worker started.');
 
+// Background jobs run through the JobManager (BullMQ/Redis as the source of truth). Phase 0
+// wires the framework here in place of the old per-manager pollers; the real workloads
+// (repo-index, connection-sync, permission syncers) are ported onto it in subsequent phases.
+const jobManager = new BullMQJobManager(redis);
+
+
+const demoSpec: QueueSpec<{ id: string }> = {
+    name: 'demo',
+    dedupKey: ({ id }) => `demo:${id}`,
+    jobOptions: {
+        attempts: 2,
+        backoff: { type: 'fixed', delayMs: 1000 },
+        keep: { completed: 50, failed: 50 },
+    },
+};
+
+const demoWorkload: Workload<{ id: string }, { id: string; ranAt: number }> = {
+    spec: demoSpec,
+    concurrency: 2,
+    process: async ({ data: { id }, jobId, attemptsMade }) => {
+        logger.info(`demo: processing "${id}" (job ${jobId}, attempt ${attemptsMade})`);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (id === 'gamma') {
+            throw new Error(`demo: simulated failure processing "${id}"`);
+        }
+        return { id, ranAt: Date.now() };
+    },
+    onTerminalFailure: async ({ id }, err) => {
+        logger.warn(`demo: "${id}" failed terminally: ${err.message}`);
+    },
+};
+jobManager.register(demoWorkload);
+
+// The reconcile sweep for the demo queue, expressed as a cron workload: every 15s it triggers
+// a fixed set into `demo`. Dedup keeps an in-flight item from re-queuing, but a finished one
+// re-enqueues on the next tick, so the loop visibly cycles.
+jobManager.registerCron(reconcile({
+    name: 'demo-sweep',
+    schedule: { every: '15s' },
+    target: 'demo',
+    scan: async () => ['alpha', 'beta', 'gamma'].map((id) => ({ id })),
+}));
+
+await jobManager.start();
+
 const listenToShutdownSignals = () => {
     const signals = SHUTDOWN_SIGNALS;
 
@@ -104,6 +151,7 @@ const listenToShutdownSignals = () => {
             await auditLogPruner.dispose()
             await attachmentPruner.dispose()
             await configManager.dispose()
+            await jobManager.stop();
 
             await prisma.$disconnect();
             await redis.quit();
