@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { UserAvatar } from "@/components/userAvatar";
 import { getSkillSourceStatus } from "@/app/api/(client)/client";
 import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markdownRenderer";
 import { TableOfContents } from "@/ee/features/chat/components/chatThread/tableOfContents";
@@ -215,7 +216,10 @@ function SkillMetaChips({ skill }: { skill: DetailSkill }) {
                 {isShared ? <Building2Icon className="h-3.5 w-3.5" /> : <BookOpenIcon className="h-3.5 w-3.5" />}
                 {isShared ? "Shared · workspace" : "Personal · only you"}
             </span>
-            <span className={chipClass}>{skill.addedByEmail || "Unknown"}</span>
+            <span className={chipClass}>
+                <UserAvatar email={skill.addedByEmail} className="size-4" />
+                {skill.addedByEmail || "Unknown"}
+            </span>
             <span className={chipClass}>Updated {formatUpdatedAt(skill.updatedAt)}</span>
         </>
     );
@@ -232,7 +236,10 @@ function SkillDetailMetaFields({ skill }: { skill: DetailSkill }) {
                 </span>
             </DetailMetaField>
             <DetailMetaField label="Added by">
-                {skill.addedByEmail || "Unknown"}
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <UserAvatar email={skill.addedByEmail} className="size-5" />
+                    <span className="truncate">{skill.addedByEmail || "Unknown"}</span>
+                </span>
             </DetailMetaField>
             <DetailMetaField label="Updated">
                 {formatUpdatedAt(skill.updatedAt)}
