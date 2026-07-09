@@ -5,14 +5,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DeleteWorkspaceSkillDialog } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import { type DetailSkill } from "@/ee/features/chat/skills/components/skillsPageShared";
+import { type AgentSkillSyncField } from "@/ee/features/chat/skills/types";
 
 interface PendingDiscardTransition {
     run: () => void;
 }
 
+interface ConfirmSyncOverwrite {
+    skill: DetailSkill;
+    overwrittenFields: AgentSkillSyncField[];
+}
+
+const formatSyncFields = (fields: AgentSkillSyncField[]) =>
+    fields.length === 2 ? "description and instructions" : fields[0];
+
 interface SkillsPageDialogsProps {
     pendingDiscard: PendingDiscardTransition | null;
     navGuardActive: boolean;
+    confirmSyncOverwrite: ConfirmSyncOverwrite | null;
     confirmMakePersonal: DetailSkill | null;
     confirmPublishSynced: DetailSkill | null;
     confirmDeletePersonal: DetailSkill | null;
@@ -23,6 +33,8 @@ interface SkillsPageDialogsProps {
     onConfirmPendingDiscard: () => void;
     onCancelNavigation: () => void;
     onConfirmNavigation: () => void;
+    onCloseSyncOverwrite: () => void;
+    onConfirmSyncOverwrite: (skill: DetailSkill) => void;
     onCloseMakePersonal: () => void;
     onConfirmMakePersonal: (skill: DetailSkill) => void;
     onClosePublishSynced: () => void;
@@ -36,6 +48,7 @@ interface SkillsPageDialogsProps {
 export function SkillsPageDialogs({
     pendingDiscard,
     navGuardActive,
+    confirmSyncOverwrite,
     confirmMakePersonal,
     confirmPublishSynced,
     confirmDeletePersonal,
@@ -46,6 +59,8 @@ export function SkillsPageDialogs({
     onConfirmPendingDiscard,
     onCancelNavigation,
     onConfirmNavigation,
+    onCloseSyncOverwrite,
+    onConfirmSyncOverwrite,
     onCloseMakePersonal,
     onConfirmMakePersonal,
     onClosePublishSynced,
@@ -106,6 +121,40 @@ export function SkillsPageDialogs({
                             onClick={onConfirmNavigation}
                         >
                             Discard changes
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog
+                open={confirmSyncOverwrite !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        onCloseSyncOverwrite();
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Overwrite local edits?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The {confirmSyncOverwrite ? formatSyncFields(confirmSyncOverwrite.overwrittenFields) : ""} of{" "}
+                            <span className="font-semibold text-foreground">{confirmSyncOverwrite?.skill.name}</span>{" "}
+                            {confirmSyncOverwrite?.overwrittenFields.length === 2 ? "have" : "has"} been edited since the skill was last synced. Updating from source will replace those edits with the source file&apos;s content. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={onCloseSyncOverwrite}>Keep my edits</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                if (confirmSyncOverwrite) {
+                                    onConfirmSyncOverwrite(confirmSyncOverwrite.skill);
+                                }
+                            }}
+                        >
+                            Overwrite and sync
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

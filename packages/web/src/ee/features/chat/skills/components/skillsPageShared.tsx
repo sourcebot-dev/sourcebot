@@ -36,8 +36,8 @@ export interface DetailSkill {
     isVisibleToUser: boolean;
     isCreatedByUser: boolean;
     canManage: boolean;
-    // The repository file this skill mirrors, or null. When set, the skill is a
-    // read-only sync target: no inline editing, refreshed via "Update from source".
+    // The repository file this skill is synced from, or null. Synced skills stay
+    // fully editable; updating from source replaces edited content with the file's.
     source: AgentSkillSourceRef | null;
 }
 

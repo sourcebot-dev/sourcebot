@@ -5,11 +5,44 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ReactNode } from 'react';
 import type { AgentSkillListItem, SharedAgentSkillCatalogItem } from '@/ee/features/chat/skills/types';
 
+// The repo-import dialog's internals (repo/file browsing) are covered by its own
+// test file; here it is stubbed with a trigger that immediately hands the page a
+// parsed skill plus its source provenance, exercising the page-side import flow.
+vi.mock('@/ee/features/chat/skills/components/importFromRepoDialog', () => ({
+    ImportFromRepoDialog: ({ open, onImport }: {
+        open: boolean;
+        onImport: (imported: unknown) => void;
+    }) => open
+        ? (
+            <button
+                onClick={() => onImport({
+                    parsed: {
+                        name: 'Deploy Widgets',
+                        slug: 'deploy-widgets',
+                        description: 'Steps to deploy',
+                        instructions: 'Run the deploy script.',
+                        hasFrontmatter: true,
+                    },
+                    source: {
+                        repoName: 'github.com/acme/widgets',
+                        filePath: 'docs/skill.md',
+                        revision: 'main',
+                        blobSha: 'blob-sha-123',
+                    },
+                })}
+            >
+                Import stub skill
+            </button>
+        )
+        : null,
+}));
+
 vi.mock('@/ee/features/chat/skills/actions', () => ({
     adoptSharedSkill: vi.fn(),
     createPersonalAgentSkill: vi.fn(),
     deletePersonalAgentSkill: vi.fn(),
     deleteSharedAgentSkill: vi.fn(),
+    getAgentSkillSyncPreview: vi.fn(),
     makeSharedAgentSkillPersonal: vi.fn(),
     publishPersonalAgentSkillToShared: vi.fn(),
     unadoptSharedSkill: vi.fn(),
@@ -332,8 +365,13 @@ describe('SkillsPage', () => {
         expect(within(rowButton).getByText('Auto')).toBeTruthy();
     });
 
-    test('shows a repo-synced skill as read-only and updates it from source', async () => {
+    test('shows a repo-synced skill\'s provenance and updates it from source without a warning when nothing is overwritten', async () => {
         vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
+        vi.mocked(skillActions.getAgentSkillSyncPreview).mockResolvedValue({
+            status: 'update_available',
+            changedFields: ['instructions'],
+            overwrittenLocalEdits: [],
+        });
         vi.mocked(skillActions.updatePersonalAgentSkillFromSource).mockResolvedValue({
             ...syncedSkill,
             instructions: 'Refreshed deploy script.',
@@ -342,39 +380,95 @@ describe('SkillsPage', () => {
 
         renderSkillsPage({ personalSkills: [syncedSkill] });
 
-        // Provenance banner is shown. Name + command stay editable (Edit present)...
+        // Provenance banner is shown, and the skill stays editable and shareable.
         expect(await screen.findByText('github.com/acme/widgets')).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
-        // ...and a synced skill can now be shared; the shared copy stays synced.
         expect(screen.getByRole('switch', { name: 'Shared' })).toBeTruthy();
 
         // The freshness check resolves to "update available", surfacing the action.
         const updateButton = await screen.findByRole('button', { name: /Update from source/ });
         fireEvent.click(updateButton);
 
+        // The sync preview reports no local edits at risk, so no warning dialog is
+        // shown and the sync proceeds directly.
         await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' }));
+        expect(skillActions.getAgentSkillSyncPreview).toHaveBeenCalledWith('synced-skill');
+        expect(screen.queryByText('Overwrite local edits?')).toBeNull();
         expect(clientApi.getSkillSourceStatus).toHaveBeenCalledWith('synced-skill');
     });
 
-    test('lets you edit a synced skill\'s name and command but locks its content', async () => {
+    test('warns before a sync that would overwrite local edits and syncs on confirm', async () => {
+        vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
+        vi.mocked(skillActions.getAgentSkillSyncPreview).mockResolvedValue({
+            status: 'update_available',
+            changedFields: ['description', 'instructions'],
+            overwrittenLocalEdits: ['description', 'instructions'],
+        });
+        vi.mocked(skillActions.updatePersonalAgentSkillFromSource).mockResolvedValue({
+            ...syncedSkill,
+            updatedAt: '2026-06-25T00:00:00.000Z',
+        });
+
+        renderSkillsPage({ personalSkills: [syncedSkill] });
+
+        fireEvent.click(await screen.findByRole('button', { name: /Update from source/ }));
+
+        // The preview reports edited fields at risk, so the sync pauses on a warning.
+        expect(await screen.findByText('Overwrite local edits?')).toBeTruthy();
+        expect(skillActions.updatePersonalAgentSkillFromSource).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Overwrite and sync' }));
+
+        await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' }));
+    });
+
+    test('offers Force sync when the skill is already up to date', async () => {
+        vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'in_sync' });
+        vi.mocked(skillActions.getAgentSkillSyncPreview).mockResolvedValue({
+            status: 'in_sync',
+            changedFields: ['instructions'],
+            overwrittenLocalEdits: ['instructions'],
+        });
+        vi.mocked(skillActions.updatePersonalAgentSkillFromSource).mockResolvedValue({
+            ...syncedSkill,
+            updatedAt: '2026-06-25T00:00:00.000Z',
+        });
+
+        renderSkillsPage({ personalSkills: [syncedSkill] });
+
+        // Up-to-date skills still expose a sync action to restore the source
+        // content over local edits, behind the same conditional warning.
+        fireEvent.click(await screen.findByRole('button', { name: /Force sync/ }));
+
+        expect(await screen.findByText('Overwrite local edits?')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Overwrite and sync' }));
+
+        await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill', { entryPoint: 'skills_settings' }));
+    });
+
+    test('lets you edit a synced skill\'s content, marking it as synced', async () => {
         vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'in_sync' });
 
         renderSkillsPage({ personalSkills: [syncedSkill] });
 
         fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
 
-        // Name and command are editable local labels.
+        // Every field of a synced skill is editable, including its content.
         const nameInput = await screen.findByDisplayValue('Deploy Widgets') as HTMLInputElement;
         expect(nameInput.disabled).toBe(false);
         expect((screen.getByDisplayValue('deploy-widgets') as HTMLInputElement).disabled).toBe(false);
-
-        // The description is locked and the instructions are shown read-only/synced.
-        expect((screen.getByDisplayValue('Deploy steps') as HTMLTextAreaElement).disabled).toBe(true);
+        expect((screen.getByDisplayValue('Deploy steps') as HTMLTextAreaElement).disabled).toBe(false);
+        // The form still surfaces the skill's synced provenance.
         expect(screen.getByText(/Synced from github\.com\/acme\/widgets/)).toBeTruthy();
     });
 
     test('keeps a shared skill synced and lets an owner update it from source', async () => {
         vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
+        vi.mocked(skillActions.getAgentSkillSyncPreview).mockResolvedValue({
+            status: 'update_available',
+            changedFields: ['instructions'],
+            overwrittenLocalEdits: [],
+        });
         vi.mocked(skillActions.updateSharedAgentSkillFromSource).mockResolvedValue({
             ...sharedSyncedSkill,
             instructions: 'Refreshed deploy script.',
@@ -391,6 +485,43 @@ describe('SkillsPage', () => {
         // The shared (not personal) update path runs for a shared skill.
         await waitFor(() => expect(skillActions.updateSharedAgentSkillFromSource).toHaveBeenCalledWith('shared-synced-skill', { entryPoint: 'skills_settings' }));
         expect(skillActions.updatePersonalAgentSkillFromSource).not.toHaveBeenCalled();
+    });
+
+    test('imports a repository skill into the create form and saves it with its source', async () => {
+        vi.mocked(skillActions.createPersonalAgentSkill).mockResolvedValue({
+            ...syncedSkill,
+            id: 'imported-skill',
+        });
+
+        renderSkillsPage({});
+
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Add skill' }), { key: 'Enter' });
+        fireEvent.click(await screen.findByText('Import from repository'));
+        fireEvent.click(await screen.findByText('Import stub skill'));
+
+        // The import lands in the create form (not a direct create) so the user
+        // reviews the content — and can fill in a missing description — first.
+        expect(await screen.findByText('New skill')).toBeTruthy();
+        expect(screen.getByDisplayValue('Deploy Widgets')).toBeTruthy();
+        expect(screen.getByDisplayValue('Steps to deploy')).toBeTruthy();
+        expect(skillActions.createPersonalAgentSkill).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: /Create skill/ }));
+
+        // Saving carries the repository provenance so the skill is created synced.
+        await waitFor(() => expect(skillActions.createPersonalAgentSkill).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Deploy Widgets',
+                description: 'Steps to deploy',
+                source: {
+                    repoName: 'github.com/acme/widgets',
+                    filePath: 'docs/skill.md',
+                    revision: 'main',
+                    blobSha: 'blob-sha-123',
+                },
+            }),
+            { entryPoint: 'skills_settings', creationMethod: 'repository' },
+        ));
     });
 
     test('imports a skill from a markdown file and pre-populates the create form', async () => {

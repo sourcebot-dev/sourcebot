@@ -252,9 +252,11 @@ function DetailMetaField({ label, children }: { label: string; children: ReactNo
 
 // Banner shown above a synced skill's content: provenance on the left, and, for
 // users who can refresh it (a personal skill's owner, or a shared skill's author /
-// org owner), a live freshness check and the "Update from source" action when the
-// indexed file has moved ahead of the imported version. Adopters who can't manage
-// a shared skill see only the provenance.
+// org owner), a live freshness check and a sync action: "Update from source" when
+// the indexed file has moved ahead of the imported version, or "Force sync" when
+// it hasn't (to restore the skill's content from the file, discarding local
+// edits). Either path warns first if it would overwrite local edits. Adopters who
+// can't manage a shared skill see only the provenance.
 function SkillSourceSyncBanner({
     skill,
     source,
@@ -299,6 +301,16 @@ function SkillSourceSyncBanner({
                                 <RefreshCwIcon className="mr-2 h-4 w-4" />
                             )}
                             {updatePending ? "Updating..." : "Update from source"}
+                        </Button>
+                    )}
+                    {status === "in_sync" && (
+                        <Button size="sm" variant="outline" onClick={onUpdateFromSource} disabled={updatePending}>
+                            {updatePending ? (
+                                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <RefreshCwIcon className="mr-2 h-4 w-4" />
+                            )}
+                            {updatePending ? "Syncing..." : "Force sync"}
                         </Button>
                     )}
                 </div>

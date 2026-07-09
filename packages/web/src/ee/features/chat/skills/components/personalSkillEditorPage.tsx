@@ -471,10 +471,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                         name="description"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>
-                                                    Description
-                                                    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
-                                                </FormLabel>
+                                                <FormLabel>Description</FormLabel>
                                                 <FormControl>
                                                     <Textarea
                                                         {...field}

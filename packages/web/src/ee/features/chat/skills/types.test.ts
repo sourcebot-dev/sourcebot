@@ -45,7 +45,7 @@ describe("agentSkillInputSchema", () => {
         expect(result.success).toBe(false);
     });
 
-    test("allows an empty description", () => {
+    test("rejects an empty description", () => {
         const result = agentSkillInputSchema.safeParse({
             name: "PR review",
             slug: "pr-review",
@@ -53,10 +53,7 @@ describe("agentSkillInputSchema", () => {
             instructions: "Find correctness issues.",
         });
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-            expect(result.data.description).toBe("");
-        }
+        expect(result.success).toBe(false);
     });
 });
 

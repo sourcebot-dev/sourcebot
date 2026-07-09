@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { AskSkillCreationMethod } from "@/lib/posthogEvents";
 
-export type CreateSkillDraftMethod = Extract<AskSkillCreationMethod, "manual" | "local_markdown">;
+export type CreateSkillDraftMethod = AskSkillCreationMethod;
 
 export const useCreateSkillDraftMethod = () => {
     const [createDraftMethod, setCreateDraftMethod] = useState<CreateSkillDraftMethod>("manual");
@@ -12,6 +12,7 @@ export const useCreateSkillDraftMethod = () => {
         createDraftMethod,
         markManualDraft: () => setCreateDraftMethod("manual"),
         markLocalMarkdownDraft: () => setCreateDraftMethod("local_markdown"),
+        markRepositoryDraft: () => setCreateDraftMethod("repository"),
         resetDraftMethod: () => setCreateDraftMethod("manual"),
     };
 };

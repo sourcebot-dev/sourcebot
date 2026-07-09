@@ -2,7 +2,7 @@
 
 import { checkAskEntitlement } from "@/features/chat/utils.server";
 import { type AskCommandDefinition } from "@/features/chat/commands/types";
-import { getFileSourceForRepo, resolveFileBlobShaForRepo } from "@/features/git";
+import { getBlobContentForRepo, getFileSourceForRepo, resolveFileBlobShaForRepo } from "@/features/git";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
 import type {
@@ -35,7 +35,10 @@ import {
     type AgentSkillInput,
     type AgentSkillListItem,
     type AgentSkillSourceStatus,
+    type AgentSkillSyncField,
+    type AgentSkillSyncPreview,
     type CreatePersonalAgentSkillInput,
+    type ParsedAgentSkillMarkdown,
     type SharedAgentSkillCatalogItem,
     type SharedAgentSkillManagementItem,
     type UpdateAgentSkillInput,
@@ -135,7 +138,7 @@ const getSharedSkillActorRelationship = (
 };
 
 const getChangedFieldTypes = (
-    before: Pick<AgentSkill, "name" | "slug" | "description" | "instructions" | "sourceRepoName">,
+    before: Pick<AgentSkill, "name" | "slug" | "description" | "instructions">,
     after: AgentSkillInput,
 ): AskSkillChangedField[] => {
     const changedFields: AskSkillChangedField[] = [];
@@ -145,13 +148,11 @@ const getChangedFieldTypes = (
     if (before.slug !== after.slug) {
         changedFields.push('command');
     }
-    if (!isSyncedSkill(before)) {
-        if (before.description !== after.description) {
-            changedFields.push('description');
-        }
-        if (before.instructions !== after.instructions) {
-            changedFields.push('instructions');
-        }
+    if (before.description !== after.description) {
+        changedFields.push('description');
+    }
+    if (before.instructions !== after.instructions) {
+        changedFields.push('instructions');
     }
     return changedFields;
 };
@@ -537,8 +538,8 @@ export const createPersonalAgentSkill = async (
                         createdById: user.id,
                         updatedById: user.id,
                         // When imported from a repository file, record provenance so the
-                        // skill is a read-only mirror that can be synced against the
-                        // indexed file. sourceBlobSha is the comparison key.
+                        // skill can be synced against the indexed file. sourceBlobSha is
+                        // the comparison key.
                         ...(source ? {
                             sourceRepoName: source.repoName,
                             sourceFilePath: source.filePath,
@@ -609,10 +610,9 @@ export const updatePersonalAgentSkill = async (
                 return skillNotFound();
             }
 
-            // For skills imported from a repository, the description and instructions
-            // stay synced with the source file (refreshed via
-            // updatePersonalAgentSkillFromSource), so only the local labels — name and
-            // command — are editable here. Content changes from the client are ignored.
+            // Synced skills stay editable: local edits to description/instructions
+            // persist until the user updates the skill from its source file, which
+            // replaces them with the file's content.
             const isSynced = existingSkill.sourceRepoName !== null;
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
             const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
@@ -628,19 +628,13 @@ export const updatePersonalAgentSkill = async (
             try {
                 const skill = await prisma.agentSkill.update({
                     where: { id: existingSkill.id },
-                    data: isSynced
-                        ? {
-                            slug: parsed.data.slug,
-                            name: parsed.data.name,
-                            updatedById: user.id,
-                        }
-                        : {
-                            slug: parsed.data.slug,
-                            name: parsed.data.name,
-                            description: parsed.data.description,
-                            instructions: parsed.data.instructions,
-                            updatedById: user.id,
-                        },
+                    data: {
+                        slug: parsed.data.slug,
+                        name: parsed.data.name,
+                        description: parsed.data.description,
+                        instructions: parsed.data.instructions,
+                        updatedById: user.id,
+                    },
                 });
 
                 refreshSkillSettingsViews();
@@ -696,12 +690,29 @@ const resolveSourceStatus = async (
     return { status: currentSha === skill.sourceBlobSha ? "in_sync" : "update_available" };
 };
 
+type SyncedSkillSnapshot = Pick<
+    AgentSkill,
+    "name" | "slug" | "description" | "instructions" | "sourceRepoName" | "sourceFilePath" | "sourceRevision"
+>;
+
+// The refreshed content a sync would write, merged from the source file over the
+// skill's current values: fields the file doesn't provide (no description front
+// matter, empty body) keep their local values so a sync never erases content the
+// file can't replace.
+const mergeSourceContent = (
+    skill: Pick<AgentSkill, "description" | "instructions">,
+    parsedMarkdown: ParsedAgentSkillMarkdown,
+): { description: string; instructions: string } => ({
+    description: parsedMarkdown.description ?? skill.description,
+    instructions: parsedMarkdown.instructions.length > 0 ? parsedMarkdown.instructions : skill.instructions,
+});
+
 // Re-reads a synced skill's source file and validates the refreshed content against
 // its preserved labels, returning the columns to write. The name and slug are local
 // labels (passed in, never overwritten); only description, instructions, and the
-// blob OID come from the file.
+// blob OID come from the file, with absent fields keeping their current values.
 const buildSourceRefreshData = async (
-    skill: Pick<AgentSkill, "name" | "slug" | "sourceRepoName" | "sourceFilePath" | "sourceRevision">,
+    skill: SyncedSkillSnapshot,
     context: SourceFreshnessContext,
 ): Promise<{ description: string; instructions: string; sourceBlobSha: string } | ServiceError> => {
     if (!skill.sourceRepoName || !skill.sourceFilePath || !skill.sourceRevision) {
@@ -727,8 +738,7 @@ const buildSourceRefreshData = async (
     const candidate = agentSkillInputSchema.safeParse({
         name: skill.name,
         slug: skill.slug,
-        description: parsedMarkdown.description ?? "",
-        instructions: parsedMarkdown.instructions,
+        ...mergeSourceContent(skill, parsedMarkdown),
     });
 
     if (!candidate.success) {
@@ -777,6 +787,101 @@ export const getAgentSkillSourceStatus = async (
         return resolveSourceStatus(skill, { org, prisma });
     }));
 
+// Computes what applying "update from source" right now would do, without writing
+// anything: which fields would change, and which of those changes would overwrite
+// local edits. Local edits are detected on demand by re-reading the originally
+// imported file version (by its stored blob OID) and comparing it to the skill's
+// current content — nothing extra is persisted. If the imported blob is no longer
+// readable (e.g. pruned after an upstream force-push), every field the sync would
+// change is conservatively reported as a local edit.
+export const getAgentSkillSyncPreview = async (
+    skillId: string,
+): Promise<AgentSkillSyncPreview | ServiceError> => sew(() =>
+    withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
+        const skill = await prisma.agentSkill.findFirst({
+            where: {
+                id: skillId,
+                OR: [
+                    personalAgentSkillAuthScope(user.id, org.id),
+                    { ...sharedAgentSkillAuthScope(org.id), enabled: true },
+                ],
+            },
+            select: {
+                description: true,
+                instructions: true,
+                sourceRepoName: true,
+                sourceFilePath: true,
+                sourceRevision: true,
+                sourceBlobSha: true,
+            },
+        });
+
+        if (!skill) {
+            return skillNotFound();
+        }
+
+        if (!skill.sourceRepoName || !skill.sourceFilePath || !skill.sourceRevision || !skill.sourceBlobSha) {
+            return skillNotSynced();
+        }
+
+        const fileResult = await getFileSourceForRepo(
+            { path: skill.sourceFilePath, repo: skill.sourceRepoName, ref: skill.sourceRevision },
+            { org, prisma },
+        );
+
+        if (isServiceError(fileResult)) {
+            return fileResult;
+        }
+
+        if (!fileResult.blobSha) {
+            return unexpectedError("Could not determine the source file version.");
+        }
+
+        const status: AgentSkillSourceStatus = fileResult.blobSha === skill.sourceBlobSha
+            ? "in_sync"
+            : "update_available";
+
+        const fileName = skill.sourceFilePath.split("/").pop();
+        const merged = mergeSourceContent(skill, parseAgentSkillMarkdown(fileResult.source, fileName));
+
+        const changedFields: AgentSkillSyncField[] = [];
+        if (merged.description !== skill.description) {
+            changedFields.push("description");
+        }
+        if (merged.instructions !== skill.instructions) {
+            changedFields.push("instructions");
+        }
+
+        if (changedFields.length === 0) {
+            return { status, changedFields, overwrittenLocalEdits: [] };
+        }
+
+        const importedContent = await getBlobContentForRepo(
+            { repo: skill.sourceRepoName, blobSha: skill.sourceBlobSha },
+            { org, prisma },
+        );
+
+        if (isServiceError(importedContent)) {
+            return { status, changedFields, overwrittenLocalEdits: changedFields };
+        }
+
+        // A field counts as locally edited when its current value differs from what
+        // the imported file version supplied. The description baseline uses "" for
+        // an absent front-matter description: a non-empty local value can then only
+        // have come from the user (typed at import time or edited later).
+        const imported = parseAgentSkillMarkdown(importedContent, fileName);
+        const overwrittenLocalEdits = changedFields.filter((field) => field === "description"
+            ? skill.description !== (imported.description ?? "")
+            : skill.instructions !== imported.instructions);
+
+        return { status, changedFields, overwrittenLocalEdits };
+    }));
+
 // Re-imports a synced personal skill's content from its source file, refreshing
 // description/instructions and the stored blob OID. Name and slug are preserved so
 // the skill's label and /command stay stable.
@@ -799,6 +904,8 @@ export const updatePersonalAgentSkillFromSource = async (
                 id: true,
                 name: true,
                 slug: true,
+                description: true,
+                instructions: true,
                 sourceRepoName: true,
                 sourceFilePath: true,
                 sourceRevision: true,
@@ -888,6 +995,8 @@ export const updateSharedAgentSkillFromSource = async (
                 id: true,
                 name: true,
                 slug: true,
+                description: true,
+                instructions: true,
                 sourceRepoName: true,
                 sourceFilePath: true,
                 sourceRevision: true,
@@ -1363,9 +1472,8 @@ export const updateSharedAgentSkill = async (
                 return existingSkill;
             }
 
-            // As with personal skills, a synced skill's description and
-            // instructions track the source file, so only its name and command are
-            // editable here; content changes from the client are ignored.
+            // As with personal skills, a synced shared skill stays editable; local
+            // edits persist until an update from source replaces them.
             const isSynced = existingSkill.sourceRepoName !== null;
             const entryPoint = getSkillAnalyticsEntryPoint(analytics);
             const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
@@ -1381,19 +1489,13 @@ export const updateSharedAgentSkill = async (
             try {
                 const skill = await prisma.agentSkill.update({
                     where: { id: existingSkill.id },
-                    data: isSynced
-                        ? {
-                            slug: parsed.data.slug,
-                            name: parsed.data.name,
-                            updatedById: user.id,
-                        }
-                        : {
-                            slug: parsed.data.slug,
-                            name: parsed.data.name,
-                            description: parsed.data.description,
-                            instructions: parsed.data.instructions,
-                            updatedById: user.id,
-                        },
+                    data: {
+                        slug: parsed.data.slug,
+                        name: parsed.data.name,
+                        description: parsed.data.description,
+                        instructions: parsed.data.instructions,
+                        updatedById: user.id,
+                    },
                 });
 
                 refreshSkillSettingsViews();

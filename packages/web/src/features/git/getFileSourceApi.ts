@@ -155,6 +155,46 @@ export const resolveFileBlobShaForRepo = async (
     }
 });
 
+const gitBlobShaSchema = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
+
+/**
+ * Reads a blob's raw content by its git object id from an indexed repo's local
+ * clone. Used to recover the originally-imported version of a synced agent
+ * skill file so local edits can be detected without storing extra state.
+ * Privileged: intended for callers that have already established org context
+ * (e.g. via withAuth); repo visibility is enforced by the caller's prisma.
+ */
+export const getBlobContentForRepo = async (
+    { repo: repoName, blobSha }: { repo: string; blobSha: string },
+    { org, prisma }: { org: Org; prisma: PrismaClient },
+): Promise<string | ServiceError> => sew(async () => {
+    const repo = await prisma.repo.findFirst({
+        where: { name: repoName, orgId: org.id },
+    });
+    if (!repo) {
+        return notFound(`Repository "${repoName}" not found.`);
+    }
+
+    if (!gitBlobShaSchema.test(blobSha)) {
+        return invalidGitRef(blobSha);
+    }
+
+    const { path: repoPath } = getRepoPath(repo);
+    const git = simpleGit().cwd(repoPath);
+
+    try {
+        return await git.raw(['cat-file', 'blob', blobSha]);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // The object may have been pruned (e.g. after an upstream force-push and
+        // gc), so treat any lookup failure as "blob not found".
+        if (errorMessage.includes('does not exist') || errorMessage.includes('bad file') || errorMessage.includes('Not a valid object name') || errorMessage.includes('invalid object name')) {
+            return notFound(`Blob "${blobSha}" not found in repository "${repoName}".`);
+        }
+        return unexpectedError(errorMessage);
+    }
+});
+
 export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
     if (user) {
         const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;

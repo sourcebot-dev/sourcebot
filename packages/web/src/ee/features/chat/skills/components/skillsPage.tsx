@@ -7,6 +7,7 @@ import {
     createPersonalAgentSkill,
     deletePersonalAgentSkill,
     deleteSharedAgentSkill,
+    getAgentSkillSyncPreview,
     makeSharedAgentSkillPersonal,
     publishPersonalAgentSkillToShared,
     unadoptSharedSkill,
@@ -34,6 +35,8 @@ import {
     sortSharedAgentSkillCatalogItems,
     type AgentSkillInput,
     type AgentSkillListItem,
+    type AgentSkillSource,
+    type AgentSkillSyncField,
     type ParsedAgentSkillMarkdown,
     type SharedAgentSkillCatalogItem,
 } from "@/ee/features/chat/skills/types";
@@ -92,11 +95,15 @@ export function SkillsPage({
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [draftInitialForm, setDraftInitialForm] = useState<AgentSkillInput>(emptySkillForm);
+    // The repository provenance carried by the current create draft (repo imports
+    // only). Attached on save so the created skill is linked to its source file.
+    const [draftSource, setDraftSource] = useState<AgentSkillSource | null>(null);
     const [isFormDirty, setIsFormDirty] = useState(false);
     const {
         createDraftMethod,
         markManualDraft,
         markLocalMarkdownDraft,
+        markRepositoryDraft,
         resetDraftMethod,
     } = useCreateSkillDraftMethod();
     const [initialSlugTouched, setInitialSlugTouched] = useState(false);
@@ -113,6 +120,12 @@ export function SkillsPage({
     const [sourceUpdatePendingId, setSourceUpdatePendingId] = useState<string | null>(null);
 
     const [pendingDiscard, setPendingDiscard] = useState<{ run: () => void } | null>(null);
+    // Set when a requested sync would overwrite locally-edited fields; the sync
+    // only proceeds after the user confirms losing those edits.
+    const [confirmSyncOverwrite, setConfirmSyncOverwrite] = useState<{
+        skill: DetailSkill;
+        overwrittenFields: AgentSkillSyncField[];
+    } | null>(null);
     const [confirmMakePersonal, setConfirmMakePersonal] = useState<DetailSkill | null>(null);
     const [confirmPublishSynced, setConfirmPublishSynced] = useState<DetailSkill | null>(null);
     const [confirmDeletePersonal, setConfirmDeletePersonal] = useState<DetailSkill | null>(null);
@@ -189,6 +202,7 @@ export function SkillsPage({
             setIsEditing(false);
             setSelectedId(null);
             setDraftInitialForm(emptySkillForm);
+            setDraftSource(null);
             markManualDraft();
             setInitialSlugTouched(false);
             setIsFormDirty(false);
@@ -199,7 +213,12 @@ export function SkillsPage({
     // Drop into the create form pre-populated from a parsed markdown skill (a local
     // file or a repository file): front matter fills name, command, and description,
     // and the body becomes the instructions, so the user can review before saving.
-    const applyImportedSkillMarkdown = (parsed: ParsedAgentSkillMarkdown) => {
+    // Repository imports also carry the source provenance so the created skill
+    // stays linked to (and syncable from) its file.
+    const applyImportedSkillMarkdown = (
+        parsed: ParsedAgentSkillMarkdown,
+        source: AgentSkillSource | null = null,
+    ) => {
         guardedTransition(() => {
             setIsCreatingNew(true);
             setIsEditing(false);
@@ -210,56 +229,33 @@ export function SkillsPage({
                 description: parsed.description ?? "",
                 instructions: parsed.instructions,
             });
-            markLocalMarkdownDraft();
+            setDraftSource(source);
+            if (source) {
+                markRepositoryDraft();
+            } else {
+                markLocalMarkdownDraft();
+            }
             setInitialSlugTouched(Boolean(parsed.slug || parsed.name));
             setIsFormDirty(false);
             setCreateEditorNonce((nonce) => nonce + 1);
+            const importedMessage = source
+                ? "Skill imported from repository. Review it and save to create the skill."
+                : "Markdown skill imported.";
             toast({
                 title: parsed.frontmatterError ? "Front matter issue" : undefined,
                 description: parsed.frontmatterError
-                    ? `Markdown skill imported. ${parsed.frontmatterError}`
-                    : "Markdown skill imported.",
+                    ? `${importedMessage} ${parsed.frontmatterError}`
+                    : importedMessage,
                 variant: parsed.frontmatterError ? "destructive" : undefined,
             });
         });
     };
 
-    // Repository imports create a read-only skill that stays linked to its source
-    // file, so (unlike file import) we create it directly rather than dropping into
-    // the editable form. The repo → file navigation is itself the confirmation.
     const handleImportRepoSkill = (imported: ImportedRepoSkill) => {
-        guardedTransition(() => { void createSkillFromRepo(imported); });
+        applyImportedSkillMarkdown(imported.parsed, imported.source);
     };
 
-    const createSkillFromRepo = async (imported: ImportedRepoSkill) => {
-        const result = await createPersonalAgentSkill({
-            name: imported.parsed.name ?? "",
-            slug: imported.parsed.slug ?? "",
-            description: imported.parsed.description ?? "",
-            instructions: imported.parsed.instructions,
-            source: imported.source,
-        }, {
-            entryPoint: 'skills_settings',
-            creationMethod: 'repository',
-        });
-        if (isServiceError(result)) {
-            toast({ title: "Error", description: result.message, variant: "destructive" });
-            return;
-        }
-        setPersonalSkills((current) => sortAgentSkillListItems([result, ...current.filter((item) => item.id !== result.id)]));
-        exitFormMode();
-        setSelectedId(result.id);
-        toast({
-            title: imported.parsed.frontmatterError ? "Front matter issue" : undefined,
-            description: imported.parsed.frontmatterError
-                ? `Skill imported from repository. ${imported.parsed.frontmatterError}`
-                : "Skill imported from repository.",
-            variant: imported.parsed.frontmatterError ? "destructive" : undefined,
-        });
-    };
-
-    const handleUpdateFromSource = async (skill: DetailSkill) => {
-        setSourceUpdatePendingId(skill.id);
+    const performUpdateFromSource = async (skill: DetailSkill) => {
         try {
             if (skill.scope === "SHARED") {
                 const result = await updateSharedAgentSkillFromSource(skill.id, { entryPoint: 'skills_settings' });
@@ -286,6 +282,38 @@ export function SkillsPage({
         } finally {
             setSourceUpdatePendingId(null);
         }
+    };
+
+    // Syncing replaces the skill's content with the source file's, so first check
+    // (without writing anything) whether that would overwrite local edits. Only
+    // then is a warning shown; a sync that loses nothing proceeds directly.
+    const handleUpdateFromSource = async (skill: DetailSkill) => {
+        setSourceUpdatePendingId(skill.id);
+        let preview;
+        try {
+            preview = await getAgentSkillSyncPreview(skill.id);
+        } catch {
+            setSourceUpdatePendingId(null);
+            toast({ title: "Error", description: "Failed to update from source.", variant: "destructive" });
+            return;
+        }
+        if (isServiceError(preview)) {
+            setSourceUpdatePendingId(null);
+            toast({ title: "Error", description: preview.message, variant: "destructive" });
+            return;
+        }
+        if (preview.overwrittenLocalEdits.length > 0) {
+            setSourceUpdatePendingId(null);
+            setConfirmSyncOverwrite({ skill, overwrittenFields: preview.overwrittenLocalEdits });
+            return;
+        }
+        await performUpdateFromSource(skill);
+    };
+
+    const handleConfirmSyncOverwrite = async (skill: DetailSkill) => {
+        setSourceUpdatePendingId(skill.id);
+        setConfirmSyncOverwrite(null);
+        await performUpdateFromSource(skill);
     };
 
     const triggerMarkdownImport = () => {
@@ -362,6 +390,7 @@ export function SkillsPage({
         setIsEditing(false);
         setIsCreatingNew(false);
         setDraftInitialForm(emptySkillForm);
+        setDraftSource(null);
         resetDraftMethod();
         setInitialSlugTouched(false);
         setIsFormDirty(false);
@@ -392,7 +421,10 @@ export function SkillsPage({
         setIsSaving(true);
         try {
             if (isCreatingNew) {
-                const result = await createPersonalAgentSkill(values, {
+                const result = await createPersonalAgentSkill({
+                    ...values,
+                    source: draftSource ?? undefined,
+                }, {
                     entryPoint: 'skills_settings',
                     creationMethod: createDraftMethod,
                 });
@@ -629,6 +661,7 @@ export function SkillsPage({
                             mode="create"
                             initialForm={draftInitialForm}
                             isSaving={isSaving}
+                            syncedSource={draftSource}
                             initialSlugTouched={initialSlugTouched}
                             onDirtyChange={setIsFormDirty}
                             onSubmit={handleSubmit}
@@ -643,7 +676,7 @@ export function SkillsPage({
                             mode="edit"
                             initialForm={draftInitialForm}
                             isSaving={isSaving}
-                            lockedSource={selectedSkill.source}
+                            syncedSource={selectedSkill.source}
                             initialSlugTouched={initialSlugTouched}
                             onDirtyChange={setIsFormDirty}
                             onSubmit={handleSubmit}
@@ -686,6 +719,7 @@ export function SkillsPage({
             <SkillsPageDialogs
                 pendingDiscard={pendingDiscard}
                 navGuardActive={navGuard.active}
+                confirmSyncOverwrite={confirmSyncOverwrite}
                 confirmMakePersonal={confirmMakePersonal}
                 confirmPublishSynced={confirmPublishSynced}
                 confirmDeletePersonal={confirmDeletePersonal}
@@ -699,6 +733,8 @@ export function SkillsPage({
                 }}
                 onCancelNavigation={() => navGuard.resolve(false)}
                 onConfirmNavigation={() => navGuard.resolve(true)}
+                onCloseSyncOverwrite={() => setConfirmSyncOverwrite(null)}
+                onConfirmSyncOverwrite={(skill) => void handleConfirmSyncOverwrite(skill)}
                 onCloseMakePersonal={() => setConfirmMakePersonal(null)}
                 onConfirmMakePersonal={(skill) => void handleMakePersonal(skill)}
                 onClosePublishSynced={() => setConfirmPublishSynced(null)}

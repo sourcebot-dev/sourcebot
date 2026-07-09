@@ -17,11 +17,10 @@ import {
     SKILL_COMMAND_HELP,
     SKILL_COMMAND_PLACEHOLDER,
     SKILL_DESCRIPTION_HELP,
-    SKILL_DESCRIPTION_LOCKED_HELP,
     SKILL_DESCRIPTION_PLACEHOLDER,
     SKILL_INSTRUCTIONS_HELP,
-    SKILL_INSTRUCTIONS_LOCKED_HELP,
     SKILL_INSTRUCTIONS_PLACEHOLDER,
+    SKILL_INSTRUCTIONS_SYNCED_HELP,
     SKILL_NAME_HELP,
     SKILL_NAME_PLACEHOLDER,
 } from "@/ee/features/chat/skills/components/skillEditorCopy";
@@ -44,10 +43,10 @@ interface SkillEditFormProps {
     mode: "create" | "edit";
     initialForm: AgentSkillInput;
     isSaving: boolean;
-    // When set, the skill is synced from this repository file: its description and
-    // instructions are read-only here (refreshed via "Update from source"); only the
-    // name and command stay editable.
-    lockedSource?: AgentSkillSourceRef | null;
+    // When set, the skill is (or will be, in create mode) synced from this
+    // repository file. All fields stay editable; local edits persist until the
+    // skill is updated from its source, which replaces them.
+    syncedSource?: AgentSkillSourceRef | null;
     initialSlugTouched?: boolean;
     onDirtyChange: (isDirty: boolean) => void;
     onSubmit: (form: AgentSkillInput) => void | Promise<void>;
@@ -60,7 +59,7 @@ export function SkillEditForm({
     mode,
     initialForm,
     isSaving,
-    lockedSource = null,
+    syncedSource = null,
     initialSlugTouched = false,
     onDirtyChange,
     onSubmit,
@@ -71,7 +70,6 @@ export function SkillEditForm({
     const [instructionsView, setInstructionsView] = useState<InstructionsView>("write");
     const [isSlugTouched, setIsSlugTouched] = useState(initialSlugTouched);
     const formRef = useRef<HTMLFormElement>(null);
-    const contentLocked = lockedSource !== null;
     const skillForm = useForm<AgentSkillInput>({
         resolver: zodResolver(agentSkillInputSchema),
         defaultValues: initialForm,
@@ -250,12 +248,7 @@ export function SkillEditForm({
                     name="description"
                     render={({ field }) => (
                         <FormItem className="sm:col-span-2">
-                            <FormLabel>
-                                Description
-                                <span className="ml-1 font-normal text-muted-foreground">
-                                    {contentLocked ? "(synced from source)" : "(optional)"}
-                                </span>
-                            </FormLabel>
+                            <FormLabel>Description</FormLabel>
                             <FormControl>
                                 <Textarea
                                     {...field}
@@ -263,13 +256,12 @@ export function SkillEditForm({
                                         handleDescriptionChange(event.target.value);
                                     }}
                                     placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
-                                    className="min-h-16 resize-y disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="min-h-16 resize-y"
                                     maxLength={500}
-                                    disabled={contentLocked}
                                 />
                             </FormControl>
                             <FormDescription className="text-xs">
-                                {contentLocked ? SKILL_DESCRIPTION_LOCKED_HELP : SKILL_DESCRIPTION_HELP}
+                                {SKILL_DESCRIPTION_HELP}
                             </FormDescription>
                             <FormMessage className="text-xs" />
                         </FormItem>
@@ -282,32 +274,31 @@ export function SkillEditForm({
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3">
                             <Label htmlFor="skill-instructions" className="text-sm font-semibold">Instructions</Label>
-                            {contentLocked ? (
+                            <ToggleGroup
+                                type="single"
+                                value={instructionsView}
+                                onValueChange={(value) => {
+                                    if (value) {
+                                        setInstructionsView(value as InstructionsView);
+                                    }
+                                }}
+                                className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
+                            >
+                                <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Write
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Split
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Preview
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                            {syncedSource && (
                                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <FolderGit2Icon className="h-3.5 w-3.5" />
-                                    Synced from {lockedSource?.repoName} · read-only
+                                    Synced from {syncedSource.repoName}
                                 </span>
-                            ) : (
-                                <ToggleGroup
-                                    type="single"
-                                    value={instructionsView}
-                                    onValueChange={(value) => {
-                                        if (value) {
-                                            setInstructionsView(value as InstructionsView);
-                                        }
-                                    }}
-                                    className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
-                                >
-                                    <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                        Write
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                        Split
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                        Preview
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
                             )}
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -315,7 +306,7 @@ export function SkillEditForm({
                         </span>
                     </div>
                     <p id={instructionsHelpId} className="text-xs text-muted-foreground">
-                        {contentLocked ? SKILL_INSTRUCTIONS_LOCKED_HELP : SKILL_INSTRUCTIONS_HELP}
+                        {syncedSource ? SKILL_INSTRUCTIONS_SYNCED_HELP : SKILL_INSTRUCTIONS_HELP}
                     </p>
                     {instructionsError?.message && (
                         <p id={instructionsErrorId} className="text-xs font-medium text-destructive">
@@ -323,8 +314,33 @@ export function SkillEditForm({
                         </p>
                     )}
                 </div>
-                {contentLocked ? (
-                    <div className="mx-auto flex w-full min-h-0 max-w-5xl flex-1 px-6">
+                <div className={cn(
+                    "mx-auto flex w-full min-h-0 flex-1 gap-4 px-6",
+                    instructionsView === "split" ? "max-w-none" : "max-w-5xl",
+                )}>
+                    <div className={cn("h-full min-h-0 flex-1", instructionsView === "preview" && "hidden")}>
+                        <div className="relative h-full">
+                            <FormField
+                                control={control}
+                                name="instructions"
+                                render={({ field }) => (
+                                    <SkillInstructionsEditor
+                                        key={editorKey}
+                                        id="skill-instructions"
+                                        value={field.value}
+                                        onChange={(instructions) => {
+                                            handleInstructionsChange(instructions);
+                                        }}
+                                        placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
+                                        ariaDescribedBy={instructionsDescriptionIds}
+                                        ariaInvalid={Boolean(instructionsError)}
+                                        className="h-full resize-none font-mono text-sm leading-relaxed"
+                                    />
+                                )}
+                            />
+                        </div>
+                    </div>
+                    {instructionsView !== "write" && (
                         <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
                             {instructions.trim() ? (
                                 <MarkdownRenderer
@@ -333,52 +349,11 @@ export function SkillEditForm({
                                     className="prose-sm max-w-none"
                                 />
                             ) : (
-                                <p className="text-sm text-muted-foreground">No instructions.</p>
+                                <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
                             )}
                         </div>
-                    </div>
-                ) : (
-                    <div className={cn(
-                        "mx-auto flex w-full min-h-0 flex-1 gap-4 px-6",
-                        instructionsView === "split" ? "max-w-none" : "max-w-5xl",
-                    )}>
-                        <div className={cn("h-full min-h-0 flex-1", instructionsView === "preview" && "hidden")}>
-                            <div className="relative h-full">
-                                <FormField
-                                    control={control}
-                                    name="instructions"
-                                    render={({ field }) => (
-                                        <SkillInstructionsEditor
-                                            key={editorKey}
-                                            id="skill-instructions"
-                                            value={field.value}
-                                            onChange={(instructions) => {
-                                                handleInstructionsChange(instructions);
-                                            }}
-                                            placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
-                                            ariaDescribedBy={instructionsDescriptionIds}
-                                            ariaInvalid={Boolean(instructionsError)}
-                                            className="h-full resize-none font-mono text-sm leading-relaxed"
-                                        />
-                                    )}
-                                />
-                            </div>
-                        </div>
-                        {instructionsView !== "write" && (
-                            <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
-                                {instructions.trim() ? (
-                                    <MarkdownRenderer
-                                        content={instructions}
-                                        escapeHtml
-                                        className="prose-sm max-w-none"
-                                    />
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </form>
         </Form>

@@ -28,6 +28,7 @@ vi.mock("@sourcebot/shared", () => ({
 // actions.ts imports the git barrel for repo-source syncing; stub it so the test
 // doesn't pull the server-only git chain into this (non-RSC) environment.
 vi.mock("@/features/git", () => ({
+    getBlobContentForRepo: vi.fn(),
     getFileSourceForRepo: vi.fn(),
     resolveFileBlobShaForRepo: vi.fn(),
 }));
@@ -43,6 +44,7 @@ const {
     deletePersonalAgentSkill,
     deleteSharedAgentSkill,
     getAgentSkillSourceStatus,
+    getAgentSkillSyncPreview,
     getSharedAgentSkill,
     listAgentSkillCommands,
     listSharedAgentSkillCatalog,
@@ -938,7 +940,7 @@ describe("updateSharedAgentSkill", () => {
         });
     });
 
-    test("writes only name and command for a repo-synced shared skill", async () => {
+    test("applies content edits to a repo-synced shared skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "author-1" });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
@@ -950,8 +952,8 @@ describe("updateSharedAgentSkill", () => {
             visibility: "SHARED",
             slug: "renamed",
             name: "Renamed",
-            description: "kept from source",
-            instructions: "kept body from source",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
             enabled: true,
             sourceRepoName: "github.com/acme/widgets",
             sourceFilePath: "docs/skill.md",
@@ -964,16 +966,19 @@ describe("updateSharedAgentSkill", () => {
             id: "skill-1",
             name: "Renamed",
             slug: "renamed",
-            description: "attempted description change",
-            instructions: "attempted instruction change that is long enough",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
         });
 
         const updateArg = prisma.agentSkill.update.mock.calls[0][0];
-        expect(updateArg.data).toMatchObject({ name: "Renamed", slug: "renamed" });
-        // A synced shared skill's content tracks the source file, so the client's
-        // description/instructions are ignored here.
-        expect(updateArg.data.description).toBeUndefined();
-        expect(updateArg.data.instructions).toBeUndefined();
+        // Synced skills stay editable: local content edits persist until the skill
+        // is updated from its source file.
+        expect(updateArg.data).toMatchObject({
+            name: "Renamed",
+            slug: "renamed",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
+        });
         expect(result).toMatchObject({ id: "skill-1", slug: "renamed", source: { repoName: "github.com/acme/widgets" } });
     });
 });
@@ -1368,8 +1373,145 @@ describe("getAgentSkillSourceStatus", () => {
     });
 });
 
+describe("getAgentSkillSyncPreview", () => {
+    const syncedSkillRow = {
+        description: "Steps to deploy",
+        instructions: "Run the deploy script.",
+        sourceRepoName: "github.com/acme/widgets",
+        sourceFilePath: "docs/skill.md",
+        sourceRevision: "main",
+        sourceBlobSha: "imported-sha",
+    };
+    const importedSource = "---\ndescription: Steps to deploy\n---\n\nRun the deploy script.";
+    const fileResponse = (source: string, blobSha: string) => ({
+        source,
+        language: "Markdown",
+        path: "docs/skill.md",
+        repo: "github.com/acme/widgets",
+        repoCodeHostType: CodeHostType.github,
+        webUrl: "https://sourcebot.example.com/browse",
+        blobSha,
+    });
+
+    test("reports nothing to change when the skill matches its source file", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedSkillRow);
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(fileResponse(importedSource, "imported-sha"));
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        expect(result).toEqual({ status: "in_sync", changedFields: [], overwrittenLocalEdits: [] });
+        // With nothing to change there's no reason to read the imported version.
+        expect(gitMock.getBlobContentForRepo).not.toHaveBeenCalled();
+    });
+
+    test("reports a pure upstream change as safe to sync", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedSkillRow);
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(
+            fileResponse("---\ndescription: Steps to deploy\n---\n\nRun the new deploy script.", "new-sha"),
+        );
+        // The imported version matches the skill's current content: never edited.
+        vi.mocked(gitMock.getBlobContentForRepo).mockResolvedValue(importedSource);
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        expect(result).toEqual({
+            status: "update_available",
+            changedFields: ["instructions"],
+            overwrittenLocalEdits: [],
+        });
+        expect(gitMock.getBlobContentForRepo).toHaveBeenCalledWith(
+            { repo: "github.com/acme/widgets", blobSha: "imported-sha" },
+            expect.anything(),
+        );
+    });
+
+    test("flags locally edited fields that a sync would overwrite", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            ...syncedSkillRow,
+            instructions: "My locally edited instructions.",
+        });
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(fileResponse(importedSource, "imported-sha"));
+        vi.mocked(gitMock.getBlobContentForRepo).mockResolvedValue(importedSource);
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        // A force sync of an up-to-date skill: the local instructions differ from
+        // the imported version, so syncing would destroy them.
+        expect(result).toEqual({
+            status: "in_sync",
+            changedFields: ["instructions"],
+            overwrittenLocalEdits: ["instructions"],
+        });
+    });
+
+    test("keeps a locally added description safe when the source file has none", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            ...syncedSkillRow,
+            description: "Description the user typed.",
+        });
+        // The upstream file dropped its front matter entirely; a sync keeps the
+        // local description, so only the instructions change.
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(
+            fileResponse("Run the new deploy script.", "new-sha"),
+        );
+        vi.mocked(gitMock.getBlobContentForRepo).mockResolvedValue(importedSource);
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        expect(result).toEqual({
+            status: "update_available",
+            changedFields: ["instructions"],
+            overwrittenLocalEdits: [],
+        });
+    });
+
+    test("treats every change as a local edit when the imported version is unreadable", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedSkillRow);
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(
+            fileResponse("---\ndescription: New steps\n---\n\nRun the new deploy script.", "new-sha"),
+        );
+        vi.mocked(gitMock.getBlobContentForRepo).mockResolvedValue({
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Blob not found.",
+        });
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        // Without the imported version we can't tell edits from upstream changes,
+        // so warn about everything the sync would rewrite.
+        expect(result).toEqual({
+            status: "update_available",
+            changedFields: ["description", "instructions"],
+            overwrittenLocalEdits: ["description", "instructions"],
+        });
+    });
+
+    test("rejects when the skill is not linked to a repository source", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            description: "Manual skill",
+            instructions: "Do the thing.",
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            sourceBlobSha: null,
+        });
+
+        const result = await getAgentSkillSyncPreview("skill-1");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.INVALID_REQUEST_BODY });
+        expect(gitMock.getFileSourceForRepo).not.toHaveBeenCalled();
+    });
+});
+
 describe("updatePersonalAgentSkill", () => {
-    test("writes only name and command for a repo-synced skill, leaving content synced", async () => {
+    test("applies content edits to a repo-synced skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", sourceRepoName: "github.com/acme/widgets" });
         prisma.agentSkill.update.mockResolvedValue({
@@ -1377,8 +1519,8 @@ describe("updatePersonalAgentSkill", () => {
             visibility: "PERSONAL",
             slug: "renamed",
             name: "Renamed",
-            description: "kept from source",
-            instructions: "kept body from source",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
             enabled: true,
             sourceRepoName: "github.com/acme/widgets",
             sourceFilePath: "docs/skill.md",
@@ -1391,15 +1533,19 @@ describe("updatePersonalAgentSkill", () => {
             id: "skill-1",
             name: "Renamed",
             slug: "renamed",
-            description: "attempted description change",
-            instructions: "attempted instruction change that is long enough",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
         });
 
         const updateArg = prisma.agentSkill.update.mock.calls[0][0];
-        expect(updateArg.data).toMatchObject({ name: "Renamed", slug: "renamed" });
-        // Content fields are not written for synced skills, even if sent by the client.
-        expect(updateArg.data.description).toBeUndefined();
-        expect(updateArg.data.instructions).toBeUndefined();
+        // Synced skills stay editable: local content edits persist until the skill
+        // is updated from its source file.
+        expect(updateArg.data).toMatchObject({
+            name: "Renamed",
+            slug: "renamed",
+            description: "Edited description",
+            instructions: "Edited instructions that are long enough",
+        });
         expect(result).toMatchObject({ id: "skill-1", slug: "renamed", source: { repoName: "github.com/acme/widgets" } });
     });
 
@@ -1446,6 +1592,8 @@ describe("updatePersonalAgentSkillFromSource", () => {
             id: "skill-1",
             name: "My Deploy",
             slug: "my-deploy",
+            description: "Old steps",
+            instructions: "Run the old deploy script.",
             sourceRepoName: "github.com/acme/widgets",
             sourceFilePath: "docs/skill.md",
             sourceRevision: "main",
@@ -1493,6 +1641,54 @@ describe("updatePersonalAgentSkillFromSource", () => {
             name: "My Deploy",
             slug: "my-deploy",
             source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+        });
+    });
+
+    test("keeps the local description when the source file does not provide one", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "skill-1",
+            name: "My Deploy",
+            slug: "my-deploy",
+            description: "Description the user typed.",
+            instructions: "Run the old deploy script.",
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+        });
+        // The source file has no front matter, so it supplies no description; the
+        // sync must not erase the locally-added one.
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue({
+            source: "Run the new deploy script.",
+            language: "Markdown",
+            path: "docs/skill.md",
+            repo: "github.com/acme/widgets",
+            repoCodeHostType: CodeHostType.github,
+            webUrl: "https://sourcebot.example.com/browse",
+            blobSha: "new-sha",
+        });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "skill-1",
+            visibility: "PERSONAL",
+            slug: "my-deploy",
+            name: "My Deploy",
+            description: "Description the user typed.",
+            instructions: "Run the new deploy script.",
+            enabled: true,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-06-20T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-25T00:00:00.000Z"),
+        });
+
+        await updatePersonalAgentSkillFromSource("skill-1");
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.data).toMatchObject({
+            description: "Description the user typed.",
+            instructions: "Run the new deploy script.",
+            sourceBlobSha: "new-sha",
         });
     });
 

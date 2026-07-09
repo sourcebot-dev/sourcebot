@@ -21,13 +21,13 @@ const agentSkillSlugSchema = z.string()
 export const agentSkillInputSchema = z.object({
     name: z.string().trim().min(1, "Name is required.").max(80, "Name must be 80 characters or fewer."),
     slug: agentSkillSlugSchema,
-    description: z.string().trim().max(500, "Description must be 500 characters or fewer."),
+    description: z.string().trim().min(1, "Description is required.").max(500, "Description must be 500 characters or fewer."),
     instructions: z.string().trim().min(1, "Instructions are required.").max(20000, "Instructions must be 20,000 characters or fewer."),
 });
 
 // Provenance for a skill imported from an indexed repository file. When present,
-// the created skill becomes a read-only mirror of that file (synced via the git
-// blob OID). Personal-only: shared skills never carry source.
+// the created skill stays linked to that file (tracked via the git blob OID): it
+// remains editable, and can be re-synced from the file on demand.
 export const agentSkillSourceSchema = z.object({
     repoName: z.string().trim().min(1),
     filePath: z.string().trim().min(1),
@@ -67,6 +67,21 @@ export type AgentSkillSourceRef = z.infer<typeof agentSkillSourceRefSchema>;
 export type AgentSkillSourceStatus = z.infer<typeof agentSkillSourceStatusSchema>;
 export type CreatePersonalAgentSkillInput = z.infer<typeof createPersonalAgentSkillInputSchema>;
 
+// The content fields a sync can rewrite. Name and command are local labels and
+// are never touched by a sync.
+export type AgentSkillSyncField = "description" | "instructions";
+
+// What applying "update from source" right now would do, computed on demand so
+// nothing has to be persisted. `changedFields` are the fields whose values would
+// change; `overwrittenLocalEdits` is the subset whose current values were edited
+// locally (they differ from the imported source version), i.e. the fields whose
+// edits a sync would destroy. A warning is only warranted when it is non-empty.
+export type AgentSkillSyncPreview = {
+    status: AgentSkillSourceStatus;
+    changedFields: AgentSkillSyncField[];
+    overwrittenLocalEdits: AgentSkillSyncField[];
+};
+
 export const agentSkillListItemSchema = z.object({
     id: z.string(),
     scope: z.custom<AgentSkillVisibility>(),
@@ -75,8 +90,8 @@ export const agentSkillListItemSchema = z.object({
     description: z.string(),
     instructions: z.string(),
     enabled: z.boolean(),
-    // The repository file this skill mirrors, or null for manually-created and
-    // local-file-imported skills. Presence marks the skill as read-only/synced.
+    // The repository file this skill is synced from, or null for manually-created
+    // and local-file-imported skills.
     source: agentSkillSourceRefSchema.nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),

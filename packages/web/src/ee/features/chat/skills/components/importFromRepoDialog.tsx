@@ -18,7 +18,7 @@ const MAX_RESULTS = 100;
 const MARKDOWN_FILE_REGEX = /\.(md|markdown)$/i;
 
 // A markdown file imported from a repository, carrying the provenance needed to
-// create a read-only skill that stays synced with its source.
+// create a skill that stays linked to (and syncable from) its source file.
 export interface ImportedRepoSkill {
     parsed: ParsedAgentSkillMarkdown;
     source: {
