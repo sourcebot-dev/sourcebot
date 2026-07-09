@@ -1,8 +1,7 @@
 'use client';
 
-import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
+import { FileMentionComponent } from "@/features/chat/components/mentionChip";
 import { SuggestionBox } from "@/features/chat/components/chatBox/suggestionsBox";
 import type { FileSuggestion, RefineSuggestion, Suggestion, SuggestionMode } from "@/features/chat/components/chatBox/types";
 import { useSuggestionModeAndQuery } from "@/features/chat/components/chatBox/useSuggestionModeAndQuery";
@@ -10,12 +9,11 @@ import { useSuggestionsData } from "@/features/chat/components/chatBox/useSugges
 import type { CustomElement, FileMentionData, MentionElement, RenderElementPropsFor } from "@/features/chat/types";
 import { useCustomSlateEditor } from "@/features/chat/useCustomSlateEditor";
 import { fileReferenceToString, insertMention, isCustomTextElement, isMentionElement, isParagraphElement } from "@/features/chat/utils";
-import { useIsMac } from "@/hooks/useIsMac";
 import { cn } from "@/lib/utils";
 import { computePosition, flip, offset, shift, type VirtualElement } from "@floating-ui/react";
-import { Fragment, type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Descendant, insertText } from "slate";
-import { Editable, ReactEditor, type RenderElementProps, type RenderLeafProps, Slate, useFocused, useSelected, useSlate } from "slate-react";
+import { Editable, ReactEditor, type RenderElementProps, type RenderLeafProps, Slate, useSlate } from "slate-react";
 
 interface SkillInstructionsEditorProps {
     id?: string;
@@ -320,90 +318,4 @@ const SkillInstructionsEditable = ({
 
 const DefaultElement = (props: RenderElementProps) => (
     <p {...props.attributes} className="m-0">{props.children}</p>
-);
-
-const FileMentionComponent = ({
-    attributes,
-    children,
-    element: { data },
-}: RenderElementPropsFor<MentionElement>) => {
-    const selected = useSelected();
-    const focused = useFocused();
-    const isMac = useIsMac();
-
-    if (data.type !== "file") {
-        return <span {...attributes}>{children}</span>;
-    }
-
-    return (
-        <MentionChip
-            attributes={attributes}
-            content={
-                <Fragment>
-                    <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
-                    {data.name}
-                </Fragment>
-            }
-            focused={focused}
-            isMac={isMac}
-            selected={selected}
-            tooltipContent={
-                <span className="text-xs font-mono">
-                    <span className="font-medium">{data.repo.split("/").pop()}</span>/{data.path}
-                </span>
-            }
-        >
-            {children}
-        </MentionChip>
-    );
-};
-
-interface MentionChipProps {
-    attributes: RenderElementPropsFor<MentionElement>["attributes"];
-    children: ReactNode;
-    content: ReactNode;
-    focused: boolean;
-    isMac: boolean;
-    selected: boolean;
-    tooltipContent: ReactNode;
-}
-
-const MentionChip = ({
-    attributes,
-    children,
-    content,
-    focused,
-    isMac,
-    selected,
-    tooltipContent,
-}: MentionChipProps) => (
-    <Tooltip>
-        <TooltipTrigger asChild>
-            <span
-                {...attributes}
-                contentEditable={false}
-                className={cn(
-                    "mb-1 mr-1.5 inline-block rounded bg-muted px-1.5 py-0.5 align-baseline text-xs font-mono",
-                    selected && focused ? "ring-2 ring-blue-300" : undefined,
-                )}
-            >
-                <span contentEditable={false} className="flex select-none flex-row items-center">
-                    {isMac ? (
-                        <Fragment>
-                            {children}
-                            {content}
-                        </Fragment>
-                    ) : (
-                        <Fragment>
-                            {content}
-                            {children}
-                        </Fragment>
-                    )}
-                </span>
-            </span>
-        </TooltipTrigger>
-        <TooltipContent>
-            {tooltipContent}
-        </TooltipContent>
-    </Tooltip>
 );

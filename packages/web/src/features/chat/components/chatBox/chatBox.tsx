@@ -1,8 +1,8 @@
 'use client';
 
-import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import { FileMentionComponent, MentionChip } from "@/features/chat/components/mentionChip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
-import { forwardRef, Fragment, KeyboardEvent, memo, Ref, type ReactNode, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
-import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
+import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { SuggestionBox } from "./suggestionsBox";
 import { Suggestion } from "./types";
@@ -798,37 +798,11 @@ const Leaf = (props: RenderLeafProps) => {
     )
 }
 
-const MentionComponent = ({
-    attributes,
-    children,
-    element: { data },
-}: RenderElementPropsFor<MentionElement>) => {
-    const selected = useSelected();
-    const focused = useFocused();
-    const isMac = useIsMac();
+const MentionComponent = (props: RenderElementPropsFor<MentionElement>) => {
+    const { attributes, children, element: { data } } = props;
 
     if (data.type === 'file') {
-        return (
-            <MentionChip
-                attributes={attributes}
-                content={
-                    <Fragment>
-                        <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
-                        {data.name}
-                    </Fragment>
-                }
-                focused={focused}
-                isMac={isMac}
-                selected={selected}
-                tooltipContent={
-                    <span className="text-xs font-mono">
-                        <span className="font-medium">{data.repo.split('/').pop()}</span>/{data.path}
-                    </span>
-                }
-            >
-                {children}
-            </MentionChip>
-        )
+        return <FileMentionComponent {...props} />;
     }
 
     if (data.type === 'command') {
@@ -843,9 +817,6 @@ const MentionComponent = ({
                         )}
                     </span>
                 }
-                focused={focused}
-                isMac={isMac}
-                selected={selected}
                 tooltipContent={<CommandMentionTooltip data={data} />}
             >
                 {children}
@@ -868,58 +839,3 @@ const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
         </span>
     );
 };
-
-interface MentionChipProps {
-    attributes: RenderElementPropsFor<MentionElement>["attributes"];
-    children: ReactNode;
-    content: ReactNode;
-    focused: boolean;
-    isMac: boolean;
-    selected: boolean;
-    tooltipContent: ReactNode;
-}
-
-const MentionChip = ({
-    attributes,
-    children,
-    content,
-    focused,
-    isMac,
-    selected,
-    tooltipContent,
-}: MentionChipProps) => {
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <span
-                    {...attributes}
-                    contentEditable={false}
-                    className={cn(
-                        "px-1.5 py-0.5 mr-1.5 mb-1 align-baseline inline-block rounded bg-muted text-xs font-mono",
-                        {
-                            "ring-2 ring-blue-300": selected && focused
-                        }
-                    )}
-                >
-                    <span contentEditable={false} className="flex flex-row items-center select-none">
-                        {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
-                        {isMac ? (
-                            <Fragment>
-                                {children}
-                                {content}
-                            </Fragment>
-                        ) : (
-                            <Fragment>
-                                {content}
-                                {children}
-                            </Fragment>
-                        )}
-                    </span>
-                </span>
-            </TooltipTrigger>
-            <TooltipContent>
-                {tooltipContent}
-            </TooltipContent>
-        </Tooltip>
-    )
-}
