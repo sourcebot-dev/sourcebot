@@ -13,7 +13,7 @@ import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ChatEntitlementMessage } from "@/features/chat/components/chatEntitlementMessage";
 import { env } from "@sourcebot/shared";
-import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/commands.server";
+import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;

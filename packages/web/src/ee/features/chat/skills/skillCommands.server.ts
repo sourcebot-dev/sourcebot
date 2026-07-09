@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { AskCommandDefinition } from "@/features/chat/commands/types";
 import { isServiceError } from "@/lib/utils";
 import { listAgentSkillCommands, listSharedAgentSkillCommands, listPersonalAgentSkillCommands } from "./actions";

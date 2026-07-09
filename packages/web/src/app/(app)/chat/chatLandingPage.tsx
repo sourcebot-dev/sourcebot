@@ -14,7 +14,7 @@ import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
-import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/commands.server";
+import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
 
 export async function ChatLandingPage() {
     const languageModels = await getConfiguredLanguageModelsInfo();
