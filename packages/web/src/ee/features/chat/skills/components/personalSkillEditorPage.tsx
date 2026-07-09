@@ -26,21 +26,17 @@ import {
     SKILL_NAME_PLACEHOLDER,
 } from "@/ee/features/chat/skills/components/skillEditorCopy";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
+import {
+    emptySkillForm,
+    INSTRUCTIONS_MAX_LENGTH,
+} from "@/ee/features/chat/skills/components/skillsPageShared";
 import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { isServiceError } from "@/lib/utils";
 
-const INSTRUCTIONS_MAX_LENGTH = 20000;
 const DETAILS_COLLAPSED_STORAGE_KEY = "sb.skillEditor.detailsCollapsed";
-
-const emptySkillForm: AgentSkillInput = {
-    name: "",
-    slug: "",
-    description: "",
-    instructions: "",
-};
 
 type SaveMode = "editShared" | "editPersonal" | "createShared" | "createPersonal";
 
