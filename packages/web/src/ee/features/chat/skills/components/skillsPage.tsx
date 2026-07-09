@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
     adoptSharedSkill,
@@ -29,7 +29,6 @@ import {
 import { SkillsPageSidebar } from "@/ee/features/chat/skills/components/skillsPageSidebar";
 import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
 import {
-    normalizeAgentSkillSlug,
     parseAgentSkillMarkdown,
     sortAgentSkillListItems,
     sortSharedAgentSkillCatalogItems,
@@ -92,14 +91,15 @@ export function SkillsPage({
     });
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [form, setForm] = useState<AgentSkillInput>(emptySkillForm);
+    const [draftInitialForm, setDraftInitialForm] = useState<AgentSkillInput>(emptySkillForm);
+    const [isFormDirty, setIsFormDirty] = useState(false);
     const {
         createDraftMethod,
         markManualDraft,
         markLocalMarkdownDraft,
         resetDraftMethod,
     } = useCreateSkillDraftMethod();
-    const [isSlugTouched, setIsSlugTouched] = useState(false);
+    const [initialSlugTouched, setInitialSlugTouched] = useState(false);
     // Bumped whenever we enter create mode or import, to remount the (uncontrolled)
     // instructions editor with fresh content.
     const [createEditorNonce, setCreateEditorNonce] = useState(0);
@@ -154,25 +154,8 @@ export function SkillsPage({
         return null;
     }, [selectedId, personalSkills, sharedSkills, currentUserEmail, isOwner]);
 
-    const baselineForm: AgentSkillInput = useMemo(() => {
-        if (isCreatingNew || !selectedSkill) {
-            return emptySkillForm;
-        }
-        return {
-            name: selectedSkill.name,
-            slug: selectedSkill.slug,
-            description: selectedSkill.description,
-            instructions: selectedSkill.instructions,
-        };
-    }, [isCreatingNew, selectedSkill]);
-
     const isFormActive = isEditing || isCreatingNew;
-    const isDirty = isFormActive && (
-        form.name !== baselineForm.name ||
-        form.slug !== baselineForm.slug ||
-        form.description !== baselineForm.description ||
-        form.instructions !== baselineForm.instructions
-    );
+    const isDirty = isFormActive && isFormDirty;
 
     // Intercept cross-page navigation (sidebar links, browser back) while there
     // are unsaved edits, and resolve it through the themed dialog below.
@@ -205,9 +188,10 @@ export function SkillsPage({
             setIsCreatingNew(true);
             setIsEditing(false);
             setSelectedId(null);
-            setForm(emptySkillForm);
+            setDraftInitialForm(emptySkillForm);
             markManualDraft();
-            setIsSlugTouched(false);
+            setInitialSlugTouched(false);
+            setIsFormDirty(false);
             setCreateEditorNonce((nonce) => nonce + 1);
         });
     };
@@ -220,14 +204,15 @@ export function SkillsPage({
             setIsCreatingNew(true);
             setIsEditing(false);
             setSelectedId(null);
-            setForm({
+            setDraftInitialForm({
                 name: parsed.name ?? "",
                 slug: parsed.slug ?? "",
                 description: parsed.description ?? "",
                 instructions: parsed.instructions,
             });
             markLocalMarkdownDraft();
-            setIsSlugTouched(Boolean(parsed.slug || parsed.name));
+            setInitialSlugTouched(Boolean(parsed.slug || parsed.name));
+            setIsFormDirty(false);
             setCreateEditorNonce((nonce) => nonce + 1);
             toast({
                 title: parsed.frontmatterError ? "Front matter issue" : undefined,
@@ -362,34 +347,28 @@ export function SkillsPage({
         if (!selectedSkill) {
             return;
         }
-        setForm({
+        setDraftInitialForm({
             name: selectedSkill.name,
             slug: selectedSkill.slug,
             description: selectedSkill.description,
             instructions: selectedSkill.instructions,
         });
-        setIsSlugTouched(true);
+        setInitialSlugTouched(true);
+        setIsFormDirty(false);
         setIsEditing(true);
     };
 
     const exitFormMode = () => {
         setIsEditing(false);
         setIsCreatingNew(false);
-        setForm(emptySkillForm);
+        setDraftInitialForm(emptySkillForm);
         resetDraftMethod();
-        setIsSlugTouched(false);
+        setInitialSlugTouched(false);
+        setIsFormDirty(false);
     };
 
     const handleCancelEdit = () => {
         guardedTransition(exitFormMode);
-    };
-
-    const handleNameChange = (name: string) => {
-        setForm((current) => ({
-            ...current,
-            name,
-            slug: isSlugTouched ? current.slug : normalizeAgentSkillSlug(name),
-        }));
     };
 
     // Replace a shared skill in local state, preserving catalog-only flags that
@@ -409,12 +388,11 @@ export function SkillsPage({
         )));
     };
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleSubmit = async (values: AgentSkillInput) => {
         setIsSaving(true);
         try {
             if (isCreatingNew) {
-                const result = await createPersonalAgentSkill(form, {
+                const result = await createPersonalAgentSkill(values, {
                     entryPoint: 'skills_settings',
                     creationMethod: createDraftMethod,
                 });
@@ -434,8 +412,8 @@ export function SkillsPage({
             }
 
             const result = selectedSkill.scope === "SHARED"
-                ? await updateSharedAgentSkill({ id: selectedSkill.id, ...form }, { entryPoint: 'skills_settings' })
-                : await updatePersonalAgentSkill({ id: selectedSkill.id, ...form }, { entryPoint: 'skills_settings' });
+                ? await updateSharedAgentSkill({ id: selectedSkill.id, ...values }, { entryPoint: 'skills_settings' })
+                : await updatePersonalAgentSkill({ id: selectedSkill.id, ...values }, { entryPoint: 'skills_settings' });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -455,6 +433,14 @@ export function SkillsPage({
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleInvalidSubmit = () => {
+        toast({
+            title: "Fix validation errors",
+            description: "Review the highlighted fields before saving.",
+            variant: "destructive",
+        });
     };
 
     const handlePublish = async (skill: DetailSkill) => {
@@ -641,15 +627,12 @@ export function SkillsPage({
                     {isCreatingNew ? (
                         <SkillEditForm
                             mode="create"
-                            form={form}
+                            initialForm={draftInitialForm}
                             isSaving={isSaving}
-                            isDirty={isDirty}
-                            onNameChange={handleNameChange}
-                            onSlugChange={(slug) => { setIsSlugTouched(true); setForm((current) => ({ ...current, slug })); }}
-                            onSlugBlur={() => setForm((current) => ({ ...current, slug: normalizeAgentSkillSlug(current.slug) }))}
-                            onDescriptionChange={(description) => setForm((current) => ({ ...current, description }))}
-                            onInstructionsChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
+                            initialSlugTouched={initialSlugTouched}
+                            onDirtyChange={setIsFormDirty}
                             onSubmit={handleSubmit}
+                            onInvalidSubmit={handleInvalidSubmit}
                             onCancel={handleCancelEdit}
                             editorKey={`new-${createEditorNonce}`}
                         />
@@ -658,16 +641,13 @@ export function SkillsPage({
                     ) : isEditing ? (
                         <SkillEditForm
                             mode="edit"
-                            form={form}
+                            initialForm={draftInitialForm}
                             isSaving={isSaving}
-                            isDirty={isDirty}
                             lockedSource={selectedSkill.source}
-                            onNameChange={handleNameChange}
-                            onSlugChange={(slug) => { setIsSlugTouched(true); setForm((current) => ({ ...current, slug })); }}
-                            onSlugBlur={() => setForm((current) => ({ ...current, slug: normalizeAgentSkillSlug(current.slug) }))}
-                            onDescriptionChange={(description) => setForm((current) => ({ ...current, description }))}
-                            onInstructionsChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
+                            initialSlugTouched={initialSlugTouched}
+                            onDirtyChange={setIsFormDirty}
                             onSubmit={handleSubmit}
+                            onInvalidSubmit={handleInvalidSubmit}
                             onCancel={handleCancelEdit}
                             editorKey={`edit-${selectedSkill.id}`}
                         />

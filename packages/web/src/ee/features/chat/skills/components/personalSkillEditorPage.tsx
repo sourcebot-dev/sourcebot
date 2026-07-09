@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, Building2Icon, PanelRightCloseIcon, PanelRightOpenIcon, PencilIcon, PlusIcon, UploadIcon } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { useToast } from "@/components/hooks/use-toast";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -31,7 +34,7 @@ import {
     INSTRUCTIONS_MAX_LENGTH,
 } from "@/ee/features/chat/skills/components/skillsPageShared";
 import { useCreateSkillDraftMethod } from "@/ee/features/chat/skills/components/useCreateSkillDraftMethod";
-import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
+import { agentSkillInputSchema, normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { isServiceError } from "@/lib/utils";
@@ -92,7 +95,12 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             instructions: skill.instructions,
         }
         : emptySkillForm;
-    const [form, setForm] = useState<AgentSkillInput>(initialForm);
+    const form = useForm<AgentSkillInput>({
+        resolver: zodResolver(agentSkillInputSchema),
+        defaultValues: initialForm,
+    });
+    const watchedName = useWatch({ control: form.control, name: "name" }) ?? "";
+    const watchedSlug = useWatch({ control: form.control, name: "slug" }) ?? "";
     const [isSlugTouched, setIsSlugTouched] = useState(skill !== null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
@@ -107,12 +115,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const saveConfig = saveModeConfig[saveMode];
     const SaveIcon = saveConfig.icon;
 
-    const isDirty =
-        form.name !== initialForm.name ||
-        form.slug !== initialForm.slug ||
-        form.description !== initialForm.description ||
-        form.instructions !== initialForm.instructions ||
-        (!isEditing && publishToShared);
+    const isDirty = form.formState.isDirty || (!isEditing && publishToShared);
 
     // Intercept in-app navigation (the Cancel button, the Back link, settings
     // sidebar links, and the browser back button) while there are unsaved
@@ -133,12 +136,18 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         window.localStorage.setItem(DETAILS_COLLAPSED_STORAGE_KEY, String(collapsed));
     };
 
+    const setFormValue = (name: keyof AgentSkillInput, value: string) => {
+        form.setValue(name, value, {
+            shouldDirty: true,
+            shouldValidate: form.formState.isSubmitted,
+        });
+    };
+
     const handleNameChange = (name: string) => {
-        setForm((current) => ({
-            ...current,
-            name,
-            slug: isSlugTouched ? current.slug : normalizeAgentSkillSlug(name),
-        }));
+        setFormValue("name", name);
+        if (!isSlugTouched) {
+            setFormValue("slug", normalizeAgentSkillSlug(name));
+        }
     };
 
     const handleMarkdownFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +175,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         try {
             const text = await file.text();
             const parsed = parseAgentSkillMarkdown(text, file.name);
+            const current = form.getValues();
             captureEvent('ask_skill_import_completed', {
                 source: 'sourcebot-web-client',
                 entryPoint: 'account_ask_agent_settings',
@@ -175,12 +185,10 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                 hasDescription: Boolean(parsed.description),
                 success: true,
             });
-            setForm((current) => ({
-                name: parsed.name ?? current.name,
-                slug: parsed.slug ?? current.slug,
-                description: parsed.description ?? current.description,
-                instructions: parsed.instructions,
-            }));
+            setFormValue("name", parsed.name ?? current.name);
+            setFormValue("slug", parsed.slug ?? current.slug);
+            setFormValue("description", parsed.description ?? current.description);
+            setFormValue("instructions", parsed.instructions);
             markLocalMarkdownDraft();
             setInstructionsEditorKey((key) => key + 1);
 
@@ -208,18 +216,17 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         }
     };
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleSubmit = async (values: AgentSkillInput) => {
         setIsSaving(true);
         try {
             const result = await ({
-                editShared: () => updateSharedAgentSkill({ id: skill!.id, ...form }, { entryPoint: 'account_ask_agent_settings' }),
-                editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...form }, { entryPoint: 'account_ask_agent_settings' }),
-                createShared: () => createSharedAgentSkill(form, {
+                editShared: () => updateSharedAgentSkill({ id: skill!.id, ...values }, { entryPoint: 'account_ask_agent_settings' }),
+                editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...values }, { entryPoint: 'account_ask_agent_settings' }),
+                createShared: () => createSharedAgentSkill(values, {
                     entryPoint: 'account_ask_agent_settings',
                     creationMethod: createDraftMethod,
                 }),
-                createPersonal: () => createPersonalAgentSkill(form, {
+                createPersonal: () => createPersonalAgentSkill(values, {
                     entryPoint: 'account_ask_agent_settings',
                     creationMethod: createDraftMethod,
                 }),
@@ -244,6 +251,18 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         }
     };
 
+    const handleInvalidSubmit = (errors: FieldErrors<AgentSkillInput>) => {
+        if (errors.name || errors.slug || errors.description) {
+            setDetailsCollapsed(false);
+        }
+
+        toast({
+            title: "Fix validation errors",
+            description: "Review the highlighted fields before saving.",
+            variant: "destructive",
+        });
+    };
+
     const handleCancel = () => {
         router.push("/settings/accountAskAgent");
     };
@@ -254,261 +273,292 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
 
     return (
         <>
-        <form onSubmit={handleSubmit} className="flex h-full flex-col bg-background">
-            <input
-                ref={markdownFileInputRef}
-                type="file"
-                accept=".md,.markdown,text/markdown,text/plain"
-                className="hidden"
-                onChange={handleMarkdownFileChange}
-            />
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)} className="flex h-full flex-col bg-background" noValidate>
+                    <input
+                        ref={markdownFileInputRef}
+                        type="file"
+                        accept=".md,.markdown,text/markdown,text/plain"
+                        className="hidden"
+                        onChange={handleMarkdownFileChange}
+                    />
 
-            {/* Top bar */}
-            <header className="flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3">
-                <div className="flex min-w-0 items-center gap-3">
-                    <Link
-                        href="/settings/accountAskAgent"
-                        className="inline-flex shrink-0 items-center gap-1.5 text-sm text-link hover:underline"
-                    >
-                        <ArrowLeftIcon className="h-4 w-4" />
-                        Back to Ask Sourcebot
-                    </Link>
-                    <span className="flex min-w-0 items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 transition-colors focus-within:border-ring focus-within:bg-muted/60">
-                        <input
-                            value={form.name}
-                            onChange={(event) => handleNameChange(event.target.value)}
-                            placeholder={SKILL_NAME_PLACEHOLDER}
-                            size={Math.max(form.name.length || SKILL_NAME_PLACEHOLDER.length, 4)}
-                            maxLength={80}
-                            aria-label="Skill name"
-                            className="min-w-0 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground placeholder:font-normal"
-                        />
-                        {form.slug && (
-                            <span className="shrink-0 font-mono text-xs text-muted-foreground">/{form.slug}</span>
-                        )}
-                    </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    <Button type="button" variant="outline" disabled={isSaving} onClick={handleCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSaving}>
-                        <SaveIcon className="h-4 w-4 mr-2" />
-                        {isSaving ? "Saving..." : saveConfig.buttonLabel}
-                    </Button>
-                </div>
-            </header>
-
-            {/* Body: instructions canvas + details panel */}
-            <div className="flex min-h-0 flex-1">
-                {/* Instructions canvas */}
-                <div className="flex min-w-0 flex-1 flex-col px-6 py-4">
-                    <div className="mb-3 space-y-1">
-                        <div className="flex items-baseline gap-2">
-                            <Label htmlFor="agent-skill-instructions" className="text-sm font-semibold">
-                                Instructions
-                            </Label>
-                            <span className="truncate text-xs text-muted-foreground">
-                                {isDetailsCollapsed
-                                    ? "Focus mode - open details to edit name, command & description"
-                                    : "Markdown"}
-                            </span>
-                        </div>
-                        <p id="agent-skill-instructions-help" className="text-xs text-muted-foreground">
-                            {SKILL_INSTRUCTIONS_HELP}
-                        </p>
-                    </div>
-                    <div className="relative min-h-0 flex-1">
-                        <SkillInstructionsEditor
-                            key={instructionsEditorKey}
-                            id="agent-skill-instructions"
-                            value={form.instructions}
-                            onChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
-                            placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
-                            ariaDescribedBy="agent-skill-instructions-help"
-                            className="h-full resize-none pb-8 font-mono text-sm leading-relaxed"
-                        />
-                        <span className="pointer-events-none absolute bottom-3 right-4 text-xs text-muted-foreground">
-                            {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Details panel / collapsed rail */}
-                {isDetailsCollapsed ? (
-                    <aside className="flex w-12 shrink-0 flex-col items-center gap-3 border-l py-4">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground"
-                            aria-label="Open skill details"
-                            onClick={() => setDetailsCollapsed(false)}
-                        >
-                            <PanelRightOpenIcon className="h-4 w-4" />
-                        </Button>
-                        <button
-                            type="button"
-                            onClick={() => setDetailsCollapsed(false)}
-                            className="text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground [writing-mode:vertical-rl]"
-                        >
-                            Details
-                        </button>
-                    </aside>
-                ) : (
-                    <aside className="flex w-[360px] shrink-0 flex-col border-l">
-                        <div className="flex shrink-0 items-center justify-between px-5 py-4">
-                            <h4 className="text-sm font-semibold text-foreground">Skill details</h4>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground"
-                                aria-label="Collapse skill details"
-                                onClick={() => setDetailsCollapsed(true)}
+                    {/* Top bar */}
+                    <header className="flex shrink-0 items-center justify-between gap-4 border-b px-6 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <Link
+                                href="/settings/accountAskAgent"
+                                className="inline-flex shrink-0 items-center gap-1.5 text-sm text-link hover:underline"
                             >
-                                <PanelRightCloseIcon className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-5">
-                            <div className="space-y-2">
-                                <Label htmlFor="agent-skill-name">Name</Label>
-                                <Input
-                                    id="agent-skill-name"
-                                    value={form.name}
+                                <ArrowLeftIcon className="h-4 w-4" />
+                                Back to Ask Sourcebot
+                            </Link>
+                            <span className="flex min-w-0 items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1 transition-colors focus-within:border-ring focus-within:bg-muted/60">
+                                <input
+                                    value={watchedName}
                                     onChange={(event) => handleNameChange(event.target.value)}
                                     placeholder={SKILL_NAME_PLACEHOLDER}
-                                    aria-describedby="agent-skill-name-help"
+                                    size={Math.max(watchedName.length || SKILL_NAME_PLACEHOLDER.length, 4)}
                                     maxLength={80}
-                                    required
+                                    aria-label="Skill name"
+                                    aria-invalid={Boolean(form.formState.errors.name)}
+                                    className="min-w-0 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground placeholder:font-normal"
                                 />
-                                <p id="agent-skill-name-help" className="text-xs text-muted-foreground">
-                                    {SKILL_NAME_HELP}
-                                </p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="agent-skill-command">Command</Label>
-                                <div className="relative">
-                                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                                        /
-                                    </span>
-                                    <Input
-                                        id="agent-skill-command"
-                                        value={form.slug}
-                                        onChange={(event) => {
-                                            const { value } = event.target;
-                                            setIsSlugTouched(true);
-                                            setForm((current) => ({
-                                                ...current,
-                                                slug: value,
-                                            }));
-                                        }}
-                                        onBlur={() => {
-                                            setForm((current) => ({
-                                                ...current,
-                                                slug: normalizeAgentSkillSlug(current.slug),
-                                            }));
-                                        }}
-                                        placeholder={SKILL_COMMAND_PLACEHOLDER}
-                                        aria-describedby="agent-skill-command-help"
-                                        className="pl-7 font-mono"
-                                        maxLength={64}
-                                        required
-                                    />
-                                </div>
-                                <p id="agent-skill-command-help" className="text-xs text-muted-foreground">
-                                    {SKILL_COMMAND_HELP}
-                                </p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="agent-skill-description">
-                                    Description
-                                    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
-                                </Label>
-                                <Textarea
-                                    id="agent-skill-description"
-                                    value={form.description}
-                                    onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                                    placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
-                                    aria-describedby="agent-skill-description-help"
-                                    className="min-h-72 resize-y"
-                                    maxLength={500}
-                                />
-                                <p id="agent-skill-description-help" className="text-xs text-muted-foreground">
-                                    {SKILL_DESCRIPTION_HELP}
-                                </p>
-                            </div>
-
-                            {!isEditing && (
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
-                                    <Label
-                                        htmlFor="agent-skill-publish-to-shared"
-                                        className="flex min-w-0 items-center gap-2 text-sm font-medium"
-                                    >
-                                        <Building2Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span className="truncate">Create as shared skill</span>
-                                    </Label>
-                                    <Switch
-                                        id="agent-skill-publish-to-shared"
-                                        checked={publishToShared}
-                                        disabled={isSaving}
-                                        onCheckedChange={setPublishToShared}
-                                    />
-                                </div>
-                            )}
+                                {watchedSlug && (
+                                    <span className="shrink-0 font-mono text-xs text-muted-foreground">/{watchedSlug}</span>
+                                )}
+                            </span>
                         </div>
-
-                        <div className="shrink-0 space-y-2 border-t px-5 py-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full"
-                                disabled={isSaving}
-                                onClick={triggerMarkdownImport}
-                            >
-                                <UploadIcon className="h-4 w-4 mr-2" />
-                                Import markdown
+                        <div className="flex shrink-0 items-center gap-2">
+                            <Button type="button" variant="outline" disabled={isSaving} onClick={handleCancel}>
+                                Cancel
                             </Button>
-                            <p className="text-xs text-muted-foreground">
-                                Front matter can fill name, command, and description on import.
-                            </p>
+                            <Button type="submit" disabled={isSaving}>
+                                <SaveIcon className="h-4 w-4 mr-2" />
+                                {isSaving ? "Saving..." : saveConfig.buttonLabel}
+                            </Button>
                         </div>
-                    </aside>
-                )}
-            </div>
-        </form>
+                    </header>
 
-        <AlertDialog
-            open={navGuard.active}
-            onOpenChange={(open) => {
-                if (!open) {
-                    navGuard.resolve(false);
-                }
-            }}
-        >
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        You have unsaved changes to this skill. If you leave now, your progress will be lost.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => navGuard.resolve(false)}>
-                        Keep editing
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => navGuard.resolve(true)}
-                    >
-                        Discard changes
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                    {/* Body: instructions canvas + details panel */}
+                    <div className="flex min-h-0 flex-1">
+                        {/* Instructions canvas */}
+                        <FormField
+                            control={form.control}
+                            name="instructions"
+                            render={({ field, fieldState }) => {
+                                const instructionsHelpId = "agent-skill-instructions-help";
+                                const instructionsErrorId = "agent-skill-instructions-error";
+                                const instructionsDescriptionIds = fieldState.error
+                                    ? `${instructionsHelpId} ${instructionsErrorId}`
+                                    : instructionsHelpId;
+
+                                return (
+                                    <FormItem className="flex min-w-0 flex-1 flex-col space-y-0 px-6 py-4">
+                                        <div className="mb-3 space-y-1">
+                                            <div className="flex items-baseline gap-2">
+                                                <Label htmlFor="agent-skill-instructions" className="text-sm font-semibold">
+                                                    Instructions
+                                                </Label>
+                                                <span className="truncate text-xs text-muted-foreground">
+                                                    {isDetailsCollapsed
+                                                        ? "Focus mode - open details to edit name, command & description"
+                                                        : "Markdown"}
+                                                </span>
+                                            </div>
+                                            <p id={instructionsHelpId} className="text-xs text-muted-foreground">
+                                                {SKILL_INSTRUCTIONS_HELP}
+                                            </p>
+                                            <FormMessage id={instructionsErrorId} className="text-xs" />
+                                        </div>
+                                        <div className="relative min-h-0 flex-1">
+                                            <SkillInstructionsEditor
+                                                key={instructionsEditorKey}
+                                                id="agent-skill-instructions"
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                placeholder={SKILL_INSTRUCTIONS_PLACEHOLDER}
+                                                ariaDescribedBy={instructionsDescriptionIds}
+                                                ariaInvalid={Boolean(fieldState.error)}
+                                                className="h-full resize-none pb-8 font-mono text-sm leading-relaxed"
+                                            />
+                                            <span className="pointer-events-none absolute bottom-3 right-4 text-xs text-muted-foreground">
+                                                {field.value.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </FormItem>
+                                );
+                            }}
+                        />
+
+                        {/* Details panel / collapsed rail */}
+                        {isDetailsCollapsed ? (
+                            <aside className="flex w-12 shrink-0 flex-col items-center gap-3 border-l py-4">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground"
+                                    aria-label="Open skill details"
+                                    onClick={() => setDetailsCollapsed(false)}
+                                >
+                                    <PanelRightOpenIcon className="h-4 w-4" />
+                                </Button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDetailsCollapsed(false)}
+                                    className="text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground [writing-mode:vertical-rl]"
+                                >
+                                    Details
+                                </button>
+                            </aside>
+                        ) : (
+                            <aside className="flex w-[360px] shrink-0 flex-col border-l">
+                                <div className="flex shrink-0 items-center justify-between px-5 py-4">
+                                    <h4 className="text-sm font-semibold text-foreground">Skill details</h4>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground"
+                                        aria-label="Collapse skill details"
+                                        onClick={() => setDetailsCollapsed(true)}
+                                    >
+                                        <PanelRightCloseIcon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-5">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Name</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        onChange={(event) => handleNameChange(event.target.value)}
+                                                        placeholder={SKILL_NAME_PLACEHOLDER}
+                                                        maxLength={80}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription className="text-xs">
+                                                    {SKILL_NAME_HELP}
+                                                </FormDescription>
+                                                <FormMessage className="text-xs" />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="slug"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Command</FormLabel>
+                                                <div className="relative">
+                                                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                                        /
+                                                    </span>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            onChange={(event) => {
+                                                                setIsSlugTouched(true);
+                                                                field.onChange(event);
+                                                            }}
+                                                            onBlur={() => {
+                                                                field.onBlur();
+                                                                setFormValue("slug", normalizeAgentSkillSlug(form.getValues("slug")));
+                                                            }}
+                                                            placeholder={SKILL_COMMAND_PLACEHOLDER}
+                                                            className="pl-7 font-mono"
+                                                            maxLength={64}
+                                                        />
+                                                    </FormControl>
+                                                </div>
+                                                <FormDescription className="text-xs">
+                                                    {SKILL_COMMAND_HELP}
+                                                </FormDescription>
+                                                <FormMessage className="text-xs" />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>
+                                                    Description
+                                                    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        {...field}
+                                                        placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
+                                                        className="min-h-72 resize-y"
+                                                        maxLength={500}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription className="text-xs">
+                                                    {SKILL_DESCRIPTION_HELP}
+                                                </FormDescription>
+                                                <FormMessage className="text-xs" />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    {!isEditing && (
+                                        <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+                                            <Label
+                                                htmlFor="agent-skill-publish-to-shared"
+                                                className="flex min-w-0 items-center gap-2 text-sm font-medium"
+                                            >
+                                                <Building2Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                <span className="truncate">Create as shared skill</span>
+                                            </Label>
+                                            <Switch
+                                                id="agent-skill-publish-to-shared"
+                                                checked={publishToShared}
+                                                disabled={isSaving}
+                                                onCheckedChange={setPublishToShared}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="shrink-0 space-y-2 border-t px-5 py-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        disabled={isSaving}
+                                        onClick={triggerMarkdownImport}
+                                    >
+                                        <UploadIcon className="h-4 w-4 mr-2" />
+                                        Import markdown
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        Front matter can fill name, command, and description on import.
+                                    </p>
+                                </div>
+                            </aside>
+                        )}
+                    </div>
+                </form>
+            </Form>
+
+            <AlertDialog
+                open={navGuard.active}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        navGuard.resolve(false);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You have unsaved changes to this skill. If you leave now, your progress will be lost.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => navGuard.resolve(false)}>
+                            Keep editing
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => navGuard.resolve(true)}
+                        >
+                            Discard changes
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
