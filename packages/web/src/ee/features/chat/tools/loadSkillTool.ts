@@ -5,8 +5,8 @@ import { z } from "zod";
 import _dedent from "dedent";
 import { captureEvent } from "@/lib/posthog";
 import type { AskMcpAnalyticsSource } from "@/lib/posthogEvents";
-import { buildAskSkillInvokedEvent, skillScopeFromSourceId } from "./skillAnalytics";
-import { resolveAutoInvocableSkill } from "./registry";
+import { buildAskSkillInvokedEvent, skillScopeFromSourceId } from "../skills/skillAnalytics";
+import { resolveAutoInvocableSkill } from "../skills/registry";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 

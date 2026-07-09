@@ -15,11 +15,9 @@ import {
     UIMessageStreamOnFinishCallback,
     UIMessageStreamOptions,
     UIMessageStreamWriter,
-    tool,
     Tool,
     NoSuchToolError,
 } from "ai";
-import { z } from "zod";
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
@@ -28,13 +26,14 @@ import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getA
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
-import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee/features/chat/mcp/mcpToolRegistry";
+import { buildMcpToolRegistry, McpToolRegistryEntry } from "@/ee/features/chat/mcp/mcpToolRegistry";
 import { PromptCacheStrategy, mergeProviderOptions, detectPromptCacheBreak, detectUnexpectedCacheMiss } from "./promptCaching";
 import { hasEntitlement } from '@/lib/entitlements';
 import { getUserMessageModelText } from "./skills/commandResolution";
 import { buildSkillRegistry } from "./skills/registry";
 import { type AskCommandDefinition } from "@/features/chat/commands/types";
-import { createLoadSkillTool, LOAD_SKILL_TOOL_NAME } from "./skills/loadSkillTool";
+import { createLoadSkillTool, LOAD_SKILL_TOOL_NAME } from "./tools/loadSkillTool";
+import { createToolRequestActivationTool, TOOL_REQUEST_ACTIVATION_TOOL_NAME } from "./tools/toolRequestActivation";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -589,29 +588,7 @@ const createAgentStream = async ({
 
     const staticTtl = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL;
 
-    const toolRequestActivation = tool({
-        description: dedent`
-        Activate an MCP tool by name so it becomes callable on your next step.
-        You MUST pass an exact tool name from the tool registry in the system prompt.
-        Do NOT pass natural language descriptions or sentences.
-        If you need multiple tools, call this once per tool.
-
-        Examples:
-          CORRECT: tool_to_activate_name="mcp_linear__save_comment"
-          CORRECT: tool_to_activate_name="mcp_linear__create_attachment"
-          INCORRECT: tool_to_activate_name="create a linear issue and update status"
-          INCORRECT: tool_to_activate_name="find tools for commenting on issues"
-        `,
-        inputSchema: z.object({
-            tool_to_activate_name: z.string().describe('Exact tool name from the registry, e.g. "mcp_linear__save_comment"'),
-        }),
-        execute: async ({ tool_to_activate_name }) => {
-            const results = searchMcpTools(tool_to_activate_name, mcpRegistry);
-            return {
-                results: results.map(e => ({ name: e.name, description: e.description })),
-            };
-        },
-    });
+    const toolRequestActivation = createToolRequestActivationTool(mcpRegistry);
 
     // Build the skill catalog once, from the requester's static (userId, orgId)
     // context. Gated like MCP tools: anonymous/programmatic callers (no
@@ -652,7 +629,7 @@ const createAgentStream = async ({
     const builtinToolNames = Object.keys(builtinTools);
     const allTools: Record<string, Tool> = {
         ...builtinTools,
-        ...(hasMcpTools ? { tool_request_activation: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
+        ...(hasMcpTools ? { [TOOL_REQUEST_ACTIVATION_TOOL_NAME]: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
         ...(loadSkillTool ? { [LOAD_SKILL_TOOL_NAME]: loadSkillTool } : {}),
     };
 
@@ -664,7 +641,7 @@ const createAgentStream = async ({
     // tool added here automatically survives past step 1.
     const alwaysActiveTools = [
         ...builtinToolNames,
-        ...(hasMcpTools ? ['tool_request_activation'] : []),
+        ...(hasMcpTools ? [TOOL_REQUEST_ACTIVATION_TOOL_NAME] : []),
         ...(hasSkills ? [LOAD_SKILL_TOOL_NAME] : []),
     ];
 
@@ -743,7 +720,7 @@ const createAgentStream = async ({
                 const activated = new Set<string>();
                 for (const step of steps) {
                     for (const toolResult of step.toolResults) {
-                        if (!toolResult || toolResult.toolName !== 'tool_request_activation') {
+                        if (!toolResult || toolResult.toolName !== TOOL_REQUEST_ACTIVATION_TOOL_NAME) {
                             continue;
                         }
                         const output = toolResult.output as { results?: Array<{ name: string }> };
@@ -948,13 +925,13 @@ const createPrompt = ({
     if (mcpToolRegistry.length > 0) {
         dynamicSections.push(dedent`
         <mcp_tools>
-        External MCP tools are available but must first be activated via \`tool_request_activation\`.
+        External MCP tools are available but must first be activated via \`${TOOL_REQUEST_ACTIVATION_TOOL_NAME}\`.
 
         **CRITICAL**: The list below is the complete and authoritative inventory of all tools available to you:
         ${mcpToolRegistry.map(e => `- ${e.name}: ${e.description}`).join('\n')}
 
-        **How to use tool_request_activation**: Pass the exact tool name from the list above as the \`tool_to_activate_name\` parameter. Do NOT pass natural language descriptions or sentences. If you need multiple tools, call \`tool_request_activation\` once per tool.
-        Example: to activate the comment tool, call \`tool_request_activation\` with tool_to_activate_name="mcp_linear__save_comment", NOT tool_to_activate_name="save a comment on an issue".
+        **How to use ${TOOL_REQUEST_ACTIVATION_TOOL_NAME}**: Pass the exact tool name from the list above as the \`tool_to_activate_name\` parameter. Do NOT pass natural language descriptions or sentences. If you need multiple tools, call \`${TOOL_REQUEST_ACTIVATION_TOOL_NAME}\` once per tool.
+        Example: to activate the comment tool, call \`${TOOL_REQUEST_ACTIVATION_TOOL_NAME}\` with tool_to_activate_name="mcp_linear__save_comment", NOT tool_to_activate_name="save a comment on an issue".
         </mcp_tools>
         `);
     }

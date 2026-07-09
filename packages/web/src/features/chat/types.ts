@@ -104,7 +104,7 @@ export type SBChatMessageToolTypes = {
     };
     // load_skill is constructed in the EE agent (createLoadSkillTool), not in
     // createTools, so its UI part shape is declared here by hand — mirror of the
-    // execute() return in ee/features/chat/skills/loadSkillTool.ts.
+    // execute() return in ee/features/chat/tools/loadSkillTool.ts.
     load_skill: {
         input: { skill_id: string };
         output:

@@ -102,7 +102,7 @@ vi.mock('./skills/registry', () => ({
     buildSkillRegistry: mockSkillRegistry.buildSkillRegistry,
 }));
 
-vi.mock('./skills/loadSkillTool', () => ({
+vi.mock('./tools/loadSkillTool', () => ({
     LOAD_SKILL_TOOL_NAME: 'load_skill',
     createLoadSkillTool: mockLoadSkillTool.createLoadSkillTool,
 }));
