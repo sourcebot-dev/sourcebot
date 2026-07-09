@@ -7,21 +7,17 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markdownRenderer";
 import {
-    SKILL_COMMAND_HELP,
     SKILL_COMMAND_PLACEHOLDER,
-    SKILL_DESCRIPTION_HELP,
     SKILL_DESCRIPTION_PLACEHOLDER,
-    SKILL_INSTRUCTIONS_HELP,
     SKILL_INSTRUCTIONS_PLACEHOLDER,
     SKILL_INSTRUCTIONS_SYNCED_HELP,
-    SKILL_NAME_HELP,
     SKILL_NAME_PLACEHOLDER,
 } from "@/ee/features/chat/skills/components/skillEditorCopy";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
@@ -87,9 +83,10 @@ export function SkillEditForm({
     const instructionsError = formState.errors.instructions;
     const instructionsHelpId = "skill-instructions-help";
     const instructionsErrorId = "skill-instructions-error";
-    const instructionsDescriptionIds = instructionsError
-        ? `${instructionsHelpId} ${instructionsErrorId}`
-        : instructionsHelpId;
+    const instructionsDescriptionIds = [
+        syncedSource ? instructionsHelpId : null,
+        instructionsError ? instructionsErrorId : null,
+    ].filter(Boolean).join(" ") || undefined;
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -205,9 +202,6 @@ export function SkillEditForm({
                                     maxLength={80}
                                 />
                             </FormControl>
-                            <FormDescription className="text-xs">
-                                {SKILL_NAME_HELP}
-                            </FormDescription>
                             <FormMessage className="text-xs" />
                         </FormItem>
                     )}
@@ -236,9 +230,6 @@ export function SkillEditForm({
                                     />
                                 </FormControl>
                             </div>
-                            <FormDescription className="text-xs">
-                                {SKILL_COMMAND_HELP}
-                            </FormDescription>
                             <FormMessage className="text-xs" />
                         </FormItem>
                     )}
@@ -260,9 +251,6 @@ export function SkillEditForm({
                                     maxLength={500}
                                 />
                             </FormControl>
-                            <FormDescription className="text-xs">
-                                {SKILL_DESCRIPTION_HELP}
-                            </FormDescription>
                             <FormMessage className="text-xs" />
                         </FormItem>
                     )}
@@ -305,9 +293,11 @@ export function SkillEditForm({
                             markdown · {(instructions ?? "").length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
                         </span>
                     </div>
-                    <p id={instructionsHelpId} className="text-xs text-muted-foreground">
-                        {syncedSource ? SKILL_INSTRUCTIONS_SYNCED_HELP : SKILL_INSTRUCTIONS_HELP}
-                    </p>
+                    {syncedSource && (
+                        <p id={instructionsHelpId} className="text-xs text-muted-foreground">
+                            {SKILL_INSTRUCTIONS_SYNCED_HELP}
+                        </p>
+                    )}
                     {instructionsError?.message && (
                         <p id={instructionsErrorId} className="text-xs font-medium text-destructive">
                             {instructionsError.message}

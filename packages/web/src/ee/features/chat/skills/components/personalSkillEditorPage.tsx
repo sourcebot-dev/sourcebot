@@ -12,20 +12,16 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createSharedAgentSkill, createPersonalAgentSkill, updateSharedAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
 import {
-    SKILL_COMMAND_HELP,
     SKILL_COMMAND_PLACEHOLDER,
-    SKILL_DESCRIPTION_HELP,
     SKILL_DESCRIPTION_PLACEHOLDER,
-    SKILL_INSTRUCTIONS_HELP,
     SKILL_INSTRUCTIONS_PLACEHOLDER,
-    SKILL_NAME_HELP,
     SKILL_NAME_PLACEHOLDER,
 } from "@/ee/features/chat/skills/components/skillEditorCopy";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
@@ -327,11 +323,10 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                             control={form.control}
                             name="instructions"
                             render={({ field, fieldState }) => {
-                                const instructionsHelpId = "agent-skill-instructions-help";
                                 const instructionsErrorId = "agent-skill-instructions-error";
                                 const instructionsDescriptionIds = fieldState.error
-                                    ? `${instructionsHelpId} ${instructionsErrorId}`
-                                    : instructionsHelpId;
+                                    ? instructionsErrorId
+                                    : undefined;
 
                                 return (
                                     <FormItem className="flex min-w-0 flex-1 flex-col space-y-0 px-6 py-4">
@@ -346,9 +341,6 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                         : "Markdown"}
                                                 </span>
                                             </div>
-                                            <p id={instructionsHelpId} className="text-xs text-muted-foreground">
-                                                {SKILL_INSTRUCTIONS_HELP}
-                                            </p>
                                             <FormMessage id={instructionsErrorId} className="text-xs" />
                                         </div>
                                         <div className="relative min-h-0 flex-1">
@@ -423,9 +415,6 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                         maxLength={80}
                                                     />
                                                 </FormControl>
-                                                <FormDescription className="text-xs">
-                                                    {SKILL_NAME_HELP}
-                                                </FormDescription>
                                                 <FormMessage className="text-xs" />
                                             </FormItem>
                                         )}
@@ -458,9 +447,6 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                         />
                                                     </FormControl>
                                                 </div>
-                                                <FormDescription className="text-xs">
-                                                    {SKILL_COMMAND_HELP}
-                                                </FormDescription>
                                                 <FormMessage className="text-xs" />
                                             </FormItem>
                                         )}
@@ -480,9 +466,6 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                         maxLength={500}
                                                     />
                                                 </FormControl>
-                                                <FormDescription className="text-xs">
-                                                    {SKILL_DESCRIPTION_HELP}
-                                                </FormDescription>
                                                 <FormMessage className="text-xs" />
                                             </FormItem>
                                         )}
