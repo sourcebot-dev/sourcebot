@@ -24,11 +24,19 @@ Each skill has four fields:
 - **Description**: A short summary of when Ask Sourcebot should use the skill.
 - **Instructions**: The markdown context or guidance Ask Sourcebot uses when the skill runs.
 
+<Frame>
+  <img src="/images/skills_create.png" alt="Create a skill" />
+</Frame>
+
 ## Writing instructions
 
 Keep the description specific. Ask Sourcebot uses it to decide when a skill is relevant, and users see it when browsing slash commands.
 
 Put the useful context or guidance in the instructions.
+
+<Frame>
+  <img src="/images/skills_editor.png" alt="Skill editor" />
+</Frame>
 
 ## Using skills in chat
 
@@ -37,6 +45,10 @@ Type `/` at the start of an Ask Sourcebot prompt to browse available skill comma
 When you select a skill, Ask Sourcebot expands the command into that skill's instructions before answering. If the instructions include file mentions, those files are added to the chat context automatically.
 
 Ask Sourcebot may also load a matching skill automatically. When this happens, the chat details show the loaded skill name and command.
+
+<Frame>
+  <img src="/images/skills_slash_command.png" alt="Skill slash command suggestions" />
+</Frame>
 
 ## Personal and shared skills
 
@@ -48,6 +60,10 @@ Skills can be personal or shared:
 You can add or remove shared skills from your own Ask commands from **Settings -> Skills**. Skill authors and organization owners can edit or delete shared skills.
 
 Organization owners can manage shared skills from **Settings -> Workspace -> Ask Sourcebot**. Owners can also enable **Auto** for a shared skill, which adds it to members' Ask commands by default.
+
+<Frame>
+  <img src="/images/skills_workspace_manager.png" alt="Workspace shared skills manager" />
+</Frame>
 
 ## Importing skills
 
@@ -81,6 +97,10 @@ Synced skills behave like manually-created skills, with a link back to their sou
 - When the skill is already up to date, use **Force sync** to restore the content from the source file.
 - Either action warns you first if it would overwrite local edits.
 - Fields the source file does not provide (for example, a missing `description`) keep their local values when you sync.
+
+<Frame>
+  <img src="/images/skills_synced_from_repo.png" alt="Synced repository skill" />
+</Frame>
 
 ## Permissions and synced skills
 
