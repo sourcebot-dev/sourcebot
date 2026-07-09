@@ -16,7 +16,6 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 declare module "@tanstack/react-table" {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -621,11 +620,9 @@ export const MembersTable = ({
                                                                     <Info className="h-3.5 w-3.5" />
                                                                 </button>
                                                             </TooltipTrigger>
-                                                            <TooltipPrimitive.Portal>
-                                                                <TooltipContent className="max-w-xs">
-                                                                    {section.description}
-                                                                </TooltipContent>
-                                                            </TooltipPrimitive.Portal>
+                                                            <TooltipContent className="max-w-xs">
+                                                                {section.description}
+                                                            </TooltipContent>
                                                         </Tooltip>
                                                         •
                                                         <span>{section.rows.length}</span>
