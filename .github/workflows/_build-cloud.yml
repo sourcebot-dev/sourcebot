@@ -1,21 +1,5 @@
 # Internal reusable workflow for building a non-OSS ("cloud") Docker image and
 # pushing it to Amazon ECR.
-#
-# Unlike _build.yml (which builds the public, multi-platform OSS image for GHCR),
-# this workflow bakes environment-specific configuration into the image — Sentry
-# DSNs, the Sentry environment name — and uploads source maps to Sentry. Those
-# values come from the GitHub Environment named by `environment`, so a new
-# deployment environment is a new Environment plus a small caller workflow.
-#
-# Each environment publishes to its own ECR repository, `sourcebot-<environment>`,
-# owned by CicdStack in the sourcebot-demo-infra repo.
-#
-# Single-platform (linux/amd64): the EKS `general-purpose` NodePool that runs
-# Sourcebot pins `kubernetes.io/arch: amd64`. Building one platform lets us push
-# tags directly, skipping the push-by-digest + manifest-merge dance _build.yml
-# needs. It also avoids ECR lifecycle rules for untagged images silently deleting
-# a manifest list's per-platform children.
-
 name: Build Cloud Image
 
 on:
@@ -42,10 +26,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Gates the job on the Environment's protection rules, and — because the
-    # OIDC subject for a job with an environment is
-    # `repo:<org>/<repo>:environment:<name>` — is what the ECR push role's trust
-    # policy matches on. Also what makes `vars`/`secrets` below resolve.
     environment: ${{ inputs.environment }}
     permissions:
       contents: read
@@ -60,16 +40,10 @@ jobs:
           submodules: "true"
           fetch-depth: 0
 
-      # The exact commit built. `github.sha` is the SHA of the ref the workflow
-      # was *dispatched* on, which is not necessarily `git_ref`.
       - name: Resolve build commit SHA
         id: commit
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      # Fail fast, and loudly. The Dockerfile only uploads source maps when every
-      # Sentry input is non-empty, so a missing var or secret would otherwise
-      # produce a perfectly green build of an image with no Sentry wiring. Values
-      # are never printed — only whether each resolved to something.
       - name: Validate environment configuration
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
