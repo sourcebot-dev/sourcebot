@@ -2,7 +2,7 @@
 
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
-import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpServerIconContext";
+import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { DynamicToolUIPart } from "ai";

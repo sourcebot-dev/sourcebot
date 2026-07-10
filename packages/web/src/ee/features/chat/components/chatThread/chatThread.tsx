@@ -28,7 +28,7 @@ import { duplicateChat } from '@/features/chat/actions';
 import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
-import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpServerIconContext';
+import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';

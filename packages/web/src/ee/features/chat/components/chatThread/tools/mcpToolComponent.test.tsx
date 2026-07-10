@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import type { DynamicToolUIPart } from 'ai';
 import { describe, expect, test } from 'vitest';
-import { McpToolNameContext } from '@/ee/features/chat/mcpServerIconContext';
+import { McpToolNameContext } from '@/ee/features/chat/mcpDisplayMetadataContext';
 import { getMcpToolDisplayParts, McpToolComponent } from './mcpToolComponent';
 
 describe('getMcpToolDisplayParts', () => {

@@ -6,7 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ToolTokenBadge } from "./toolTokenBadge";
-import { useMcpToolNameMap } from "@/ee/features/chat/mcpServerIconContext";
+import { useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
 import { getMcpToolDisplayParts } from "./mcpToolComponent";
 
 interface ToolSearchResult {

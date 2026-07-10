@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
-import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpServerIconContext";
+import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
 import { useToolApproval } from "@/ee/features/chat/toolApprovalContext";
 import { SBChatToolPart } from "@/features/chat/utils";
 import { cn } from "@/lib/utils";
