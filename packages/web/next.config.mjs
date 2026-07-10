@@ -146,8 +146,8 @@ export default withSentryConfig(nextConfig, {
     // For all available options, see:
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_WEBAPP_PROJECT,
-    authToken: process.env.SENTRY_SMUAT,
-    release: process.env.SENTRY_RELEASE,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: { name: process.env.SENTRY_RELEASE },
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,
