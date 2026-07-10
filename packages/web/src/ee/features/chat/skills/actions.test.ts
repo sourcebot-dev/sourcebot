@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { CodeHostType, OrgRole, Prisma } from "@sourcebot/db";
+import { CodeHostType, OrgRole, Prisma, sharedAgentSkillVisibleToUserWhere } from "@sourcebot/db";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 
@@ -1338,7 +1338,7 @@ describe("getAgentSkillSourceStatus", () => {
         });
     });
 
-    test("looks the skill up across the caller's personal scope or any enabled shared skill", async () => {
+    test("looks the skill up across the caller's personal scope or shared skills visible to them", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue(syncedRow);
         vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue("old-sha");
@@ -1355,12 +1355,7 @@ describe("getAgentSkillSourceStatus", () => {
                         orgId: 1,
                         createdById: "member-1",
                     },
-                    {
-                        visibility: "SHARED",
-                        scopeId: "1",
-                        orgId: 1,
-                        enabled: true,
-                    },
+                    sharedAgentSkillVisibleToUserWhere("member-1", 1),
                 ],
             },
             select: {
@@ -1507,6 +1502,29 @@ describe("getAgentSkillSyncPreview", () => {
 
         expect(result).toMatchObject({ errorCode: ErrorCode.INVALID_REQUEST_BODY });
         expect(gitMock.getFileSourceForRepo).not.toHaveBeenCalled();
+    });
+
+    test("looks the skill up across the caller's personal scope or shared skills visible to them", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedSkillRow);
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue(fileResponse(importedSource, "imported-sha"));
+
+        await getAgentSkillSyncPreview("skill-1");
+
+        expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+            where: {
+                id: "skill-1",
+                OR: [
+                    {
+                        visibility: "PERSONAL",
+                        scopeId: "member-1",
+                        orgId: 1,
+                        createdById: "member-1",
+                    },
+                    sharedAgentSkillVisibleToUserWhere("member-1", 1),
+                ],
+            },
+        }));
     });
 });
 

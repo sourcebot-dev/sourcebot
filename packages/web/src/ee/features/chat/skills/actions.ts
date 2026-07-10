@@ -753,8 +753,8 @@ const buildSourceRefreshData = async (
 };
 
 // Reports whether a synced skill's source file has changed since import. Read-only,
-// so it accepts either the caller's own personal skill or any shared skill visible
-// in the org; repo access stays user-scoped (see resolveSourceStatus).
+// so it accepts either the caller's own personal skill or a shared skill visible
+// to the caller; repo access stays user-scoped (see resolveSourceStatus).
 export const getAgentSkillSourceStatus = async (
     skillId: string,
 ): Promise<{ status: AgentSkillSourceStatus } | ServiceError> => sew(() =>
@@ -769,7 +769,7 @@ export const getAgentSkillSourceStatus = async (
                 id: skillId,
                 OR: [
                     personalAgentSkillAuthScope(user.id, org.id),
-                    { ...sharedAgentSkillAuthScope(org.id), enabled: true },
+                    sharedAgentSkillVisibleToUserWhere(user.id, org.id),
                 ],
             },
             select: {
@@ -808,7 +808,7 @@ export const getAgentSkillSyncPreview = async (
                 id: skillId,
                 OR: [
                     personalAgentSkillAuthScope(user.id, org.id),
-                    { ...sharedAgentSkillAuthScope(org.id), enabled: true },
+                    sharedAgentSkillVisibleToUserWhere(user.id, org.id),
                 ],
             },
             select: {
