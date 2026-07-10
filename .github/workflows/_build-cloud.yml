@@ -39,6 +39,9 @@ jobs:
           ref: ${{ inputs.git_ref }}
           submodules: "true"
           fetch-depth: 0
+          # Nothing after checkout talks to the remote, so don't leave the token
+          # behind in the workspace's .git/config.
+          persist-credentials: false
 
       - name: Resolve build commit SHA
         id: commit
@@ -46,6 +49,7 @@ jobs:
 
       - name: Validate environment configuration
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           AWS_ECR_ROLE_ARN: ${{ vars.AWS_ECR_ROLE_ARN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
@@ -62,7 +66,7 @@ jobs:
                       NEXT_PUBLIC_SENTRY_BACKEND_DSN \
                       SENTRY_ORG SENTRY_WEBAPP_PROJECT SENTRY_BACKEND_PROJECT; do
             if [ -z "${!name}" ]; then
-              echo "::error::${name} is not set on the '${{ inputs.environment }}' environment (or the repository)."
+              echo "::error::${name} is not set on the '${ENVIRONMENT}' environment (or the repository)."
               missing=1
             else
               echo "ok: ${name}"
@@ -131,6 +135,8 @@ jobs:
 
       - name: Summarize
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           {
@@ -138,9 +144,9 @@ jobs:
             echo
             echo "| | |"
             echo "|---|---|"
-            echo "| Environment | \`${{ inputs.environment }}\` |"
-            echo "| Commit | \`${{ steps.commit.outputs.sha }}\` |"
-            echo "| Sentry release | \`${{ steps.commit.outputs.sha }}\` |"
+            echo "| Environment | \`${ENVIRONMENT}\` |"
+            echo "| Commit | \`${COMMIT_SHA}\` |"
+            echo "| Sentry release | \`${COMMIT_SHA}\` |"
             echo
             echo '```'
             echo "$TAGS"
