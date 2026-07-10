@@ -47,6 +47,7 @@ const withExpandedCommandText = (
     commandPart: CommandMessagePart,
     command: CommandInvocationData,
     expandedText: string,
+    resolutionStatus: CommandInvocationData["resolutionStatus"],
 ): SBChatMessage => ({
     ...message,
     parts: message.parts.map((part) => {
@@ -59,10 +60,57 @@ const withExpandedCommandText = (
             data: {
                 ...command,
                 expandedText,
+                resolutionStatus,
             },
         };
     }),
 });
+
+const restorePersistedCommandMessageTexts = (
+    messages: SBChatMessage[],
+    persistedMessages: SBChatMessage[],
+): SBChatMessage[] => {
+    const persistedCommandsByMessageId = new Map<string, CommandInvocationData>();
+
+    for (const message of persistedMessages) {
+        if (message.role !== "user") {
+            continue;
+        }
+
+        const invocation = getCommandInvocation(message);
+        if (!invocation || invocation.command.expandedText === undefined) {
+            continue;
+        }
+
+        persistedCommandsByMessageId.set(message.id, invocation.command);
+    }
+
+    return messages.map((message) => {
+        if (message.role !== "user") {
+            return message;
+        }
+
+        const invocation = getCommandInvocation(message);
+        const persistedCommand = persistedCommandsByMessageId.get(message.id);
+        if (
+            !invocation ||
+            !persistedCommand ||
+            persistedCommand.commandId !== invocation.command.commandId ||
+            persistedCommand.sourceId !== invocation.command.sourceId ||
+            persistedCommand.expandedText === undefined
+        ) {
+            return message;
+        }
+
+        return withExpandedCommandText(
+            message,
+            invocation.commandPart,
+            invocation.command,
+            persistedCommand.expandedText,
+            persistedCommand.resolutionStatus,
+        );
+    });
+};
 
 type ResolvableCommandMessage = {
     index: number;
@@ -191,18 +239,28 @@ export const materializeCommandMessageText = async ({
 
 export const materializeCommandMessageTexts = async ({
     messages,
+    persistedMessages = [],
     prisma,
     userId,
     orgId,
     requestSource,
 }: {
     messages: SBChatMessage[];
+    persistedMessages?: SBChatMessage[];
     prisma: PrismaClient;
     userId?: string;
     orgId?: number;
     requestSource?: string;
 }): Promise<SBChatMessage[]> => {
-    const resolvableCommands = messages
+    // The browser keeps its pre-materialization copy of prior user messages and
+    // sends the full history on every request. Restore server-persisted command
+    // snapshots before resolving anything so old invocations neither pick up
+    // edited skill instructions nor emit invocation analytics again.
+    const messagesWithPersistedCommands = restorePersistedCommandMessageTexts(
+        messages,
+        persistedMessages,
+    );
+    const resolvableCommands = messagesWithPersistedCommands
         .map((message, index): ResolvableCommandMessage | undefined => {
             if (message.role !== "user") {
                 return undefined;
@@ -222,7 +280,7 @@ export const materializeCommandMessageTexts = async ({
         .filter((message) => message !== undefined);
 
     if (resolvableCommands.length === 0) {
-        return messages.map(withFileSourcesFromExistingMaterializedCommand);
+        return messagesWithPersistedCommands.map(withFileSourcesFromExistingMaterializedCommand);
     }
 
     const personalScope = userId !== undefined && orgId !== undefined
@@ -286,13 +344,19 @@ export const materializeCommandMessageTexts = async ({
         ] as const),
     ]);
 
-    const materializedMessages = [...messages];
+    const materializedMessages = [...messagesWithPersistedCommands];
     for (const { index, message, commandPart, command, fallbackText } of resolvableCommands) {
         const skill = skillById.get(commandLookupKey(command.sourceId, command.commandId));
         const expandedText = skill
             ? skill.instructions
             : fallbackText;
-        materializedMessages[index] = withExpandedCommandText(message, commandPart, command, expandedText);
+        materializedMessages[index] = withExpandedCommandText(
+            message,
+            commandPart,
+            command,
+            expandedText,
+            skill ? "success" : "failure",
+        );
 
         // Symmetric observability with auto-invocation (load_skill). Only fires
         // for newly-materialized commands — already-expanded ones are filtered

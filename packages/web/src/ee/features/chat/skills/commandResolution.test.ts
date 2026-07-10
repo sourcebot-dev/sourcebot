@@ -22,6 +22,7 @@ const createCommandMessage = (
         id: string;
         commandId: string;
         sourceId: string;
+        resolutionStatus: "success" | "failure";
         sources: FileSource[];
     }> = {},
 ): SBChatMessage => ({
@@ -41,6 +42,9 @@ const createCommandMessage = (
                 slug: "translate",
                 name: "Translate",
                 ...(expandedText !== undefined ? { expandedText } : {}),
+                ...(overrides.resolutionStatus !== undefined
+                    ? { resolutionStatus: overrides.resolutionStatus }
+                    : {}),
             },
         },
         ...(overrides.sources ?? []).map((source) => ({
@@ -105,6 +109,7 @@ describe("materializeCommandMessageText", () => {
                 slug: "translate",
                 name: "Translate",
                 expandedText: "Translate the most recent message into French.",
+                resolutionStatus: "success",
             },
         });
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
@@ -278,6 +283,12 @@ describe("materializeCommandMessageText", () => {
         });
 
         expect(getUserMessageModelText(message)).toBe("/translate hello French");
+        expect(message.parts).toContainEqual(expect.objectContaining({
+            type: "data-command",
+            data: expect.objectContaining({
+                resolutionStatus: "failure",
+            }),
+        }));
     });
 
     test("materializes adopted shared skills within the active org", async () => {
@@ -510,5 +521,54 @@ describe("materializeCommandMessageTexts", () => {
             "Personal translation skill.",
             "Shared translation skill.",
         ]);
+    });
+
+    test("restores persisted expansions before resolving newly submitted commands", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "skill-2",
+                    instructions: "Generate a current Python tutorial.",
+                }]),
+            },
+        };
+
+        const messages = await materializeCommandMessageTexts({
+            messages: [
+                createCommandMessage("hello French", undefined, {
+                    id: "message-1",
+                    commandId: "skill-1",
+                }),
+                createCommandMessage("Python decorators", undefined, {
+                    id: "message-2",
+                    commandId: "skill-2",
+                }),
+            ],
+            persistedMessages: [
+                createCommandMessage("hello French", "Translate using the original instructions.", {
+                    id: "message-1",
+                    commandId: "skill-1",
+                }),
+            ],
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+        });
+
+        expect(prisma.agentSkill.findMany).toHaveBeenCalledWith(expect.objectContaining({
+            where: expect.objectContaining({
+                id: { in: ["skill-2"] },
+            }),
+        }));
+        expect(messages.map(getUserMessageModelText)).toEqual([
+            "Translate using the original instructions.",
+            "Generate a current Python tutorial.",
+        ]);
+        expect(captureEvent).toHaveBeenCalledTimes(1);
+        expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
+            activationMethod: "manual",
+            skillIdHash: expect.any(String),
+            success: true,
+        }));
     });
 });

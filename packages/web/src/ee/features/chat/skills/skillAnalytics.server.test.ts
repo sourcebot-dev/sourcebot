@@ -20,7 +20,10 @@ beforeEach(() => {
     hasEntitlementMock.mockResolvedValue(true);
 });
 
-const userMessageWithCommand = (commandId: string): SBChatMessage => ({
+const userMessageWithCommand = (
+    commandId: string,
+    resolutionStatus: "success" | "failure" = "success",
+): SBChatMessage => ({
     id: "user-message",
     role: "user",
     parts: [
@@ -36,6 +39,7 @@ const userMessageWithCommand = (commandId: string): SBChatMessage => ({
                 sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
                 slug: "review",
                 name: "Review",
+                resolutionStatus,
             },
         },
     ],
@@ -139,6 +143,27 @@ describe("getAskSkillTurnCompletedAnalytics", () => {
             successfulInvocationCount: 2,
             failedInvocationCount: 1,
             uniqueSkillCount: 2,
+            durationMs: 123,
+        });
+    });
+
+    test("counts a failed manual skill as a failed invocation", () => {
+        const analytics = getAskSkillTurnCompletedAnalytics({
+            messages: [
+                userMessageWithCommand("missing-skill", "failure"),
+                assistantMessage([{ type: "text", text: "I could not load that skill." }]),
+            ],
+            availability: { availableSkillCount: 3 },
+        });
+
+        expect(analytics).toEqual({
+            traceId: "trace-1",
+            availableSkillCount: 3,
+            manualInvocationCount: 1,
+            autoInvocationCount: 0,
+            successfulInvocationCount: 0,
+            failedInvocationCount: 1,
+            uniqueSkillCount: 1,
             durationMs: 123,
         });
     });

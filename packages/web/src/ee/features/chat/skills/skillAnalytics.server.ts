@@ -103,13 +103,25 @@ const getLoadedSkillId = (part: LoadSkillToolPart): string | undefined => {
     return skill.id;
 };
 
-const getManualCommandSkillId = (part: SBChatMessagePart): string | undefined => {
+type ManualSkillInvocation = {
+    skillId: string;
+    success: boolean;
+};
+
+const getManualSkillInvocation = (part: SBChatMessagePart): ManualSkillInvocation | undefined => {
     if (part.type !== "data-command") {
         return undefined;
     }
 
     const parsed = commandInvocationDataSchema.safeParse(part.data);
-    return parsed.success ? parsed.data.commandId : undefined;
+    if (!parsed.success) {
+        return undefined;
+    }
+
+    return {
+        skillId: parsed.data.commandId,
+        success: parsed.data.resolutionStatus === "success",
+    };
 };
 
 export function getAskSkillTurnCompletedAnalytics({
@@ -133,9 +145,12 @@ export function getAskSkillTurnCompletedAnalytics({
     const latestAssistantIndex = messages.length - 1;
     const latestUserMessage = [...messages.slice(0, latestAssistantIndex)].reverse()
         .find((message) => message.role === "user");
-    const manualSkillIds = latestUserMessage?.parts
-        .map(getManualCommandSkillId)
-        .filter((skillId): skillId is string => skillId !== undefined) ?? [];
+    const manualInvocations = latestUserMessage?.parts
+        .map(getManualSkillInvocation)
+        .filter((invocation): invocation is ManualSkillInvocation => invocation !== undefined) ?? [];
+    const manualSkillIds = manualInvocations.map(({ skillId }) => skillId);
+    const manualSuccessCount = manualInvocations.filter(({ success }) => success).length;
+    const manualFailureCount = manualInvocations.length - manualSuccessCount;
 
     const loadSkillToolParts = latestAssistantMessage.parts.filter(isLoadSkillToolPart);
     const autoSkillIds = loadSkillToolParts
@@ -156,8 +171,8 @@ export function getAskSkillTurnCompletedAnalytics({
         availableSkillCount: availability.availableSkillCount,
         manualInvocationCount,
         autoInvocationCount,
-        successfulInvocationCount: manualInvocationCount + autoSuccessCount,
-        failedInvocationCount: autoFailureCount,
+        successfulInvocationCount: manualSuccessCount + autoSuccessCount,
+        failedInvocationCount: manualFailureCount + autoFailureCount,
         uniqueSkillCount,
         durationMs: latestAssistantMessage.metadata?.totalResponseTimeMs ?? 0,
     };

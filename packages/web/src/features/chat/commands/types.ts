@@ -39,6 +39,8 @@ export const isCommandMentionData = (value: unknown): value is CommandMentionDat
 
 export const commandInvocationDataSchema = commandMentionDataSchema.extend({
     expandedText: z.string().optional(),
+    // Server-assigned outcome of resolving the command to its executable text.
+    resolutionStatus: z.enum(["success", "failure"]).optional(),
 });
 
 export type CommandInvocationData = z.infer<typeof commandInvocationDataSchema>;

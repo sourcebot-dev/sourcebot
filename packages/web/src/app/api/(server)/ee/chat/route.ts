@@ -2,7 +2,7 @@ import { sew } from "@/middleware/sew";
 import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/ee/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
-import { additionalChatRequestParamsSchema } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, type SBChatMessage } from "@/features/chat/types";
 import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
 import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
 import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
@@ -213,6 +213,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const messagesWithMaterializedCommands = await materializeCommandMessageTexts({
                 messages,
+                persistedMessages: chat.messages as unknown as SBChatMessage[],
                 prisma,
                 userId: user?.id,
                 orgId: org.id,
