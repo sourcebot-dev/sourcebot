@@ -102,6 +102,7 @@
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@replit/codemirror-vim": "^6.2.1",
     "@sentry/nextjs": "^10.40.0",
+    "@sentry/profiling-node": "^10.40.0",
     "@shopify/lang-jsonc": "^1.0.0",
     "@sourcebot/codemirror-lang-tcl": "^1.0.13",
     "@sourcebot/db": "workspace:*",

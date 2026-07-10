@@ -9380,6 +9380,7 @@ __metadata:
     "@replit/codemirror-lang-svelte": "npm:^6.0.0"
     "@replit/codemirror-vim": "npm:^6.2.1"
     "@sentry/nextjs": "npm:^10.40.0"
+    "@sentry/profiling-node": "npm:^10.40.0"
     "@shopify/lang-jsonc": "npm:^1.0.0"
     "@sourcebot/codemirror-lang-tcl": "npm:^1.0.13"
     "@sourcebot/db": "workspace:*"

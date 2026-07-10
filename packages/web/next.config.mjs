@@ -104,6 +104,13 @@ const nextConfig = {
                         key: "Content-Security-Policy",
                         value: "frame-ancestors 'self'",
                     },
+                    // Opts the document into the JS Self-Profiling API, which Sentry's
+                    // browser profiling integration needs in order to start a profiler.
+                    // @see: https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/
+                    {
+                        key: "Document-Policy",
+                        value: "js-profiling",
+                    },
                 ],
             },
         ];
