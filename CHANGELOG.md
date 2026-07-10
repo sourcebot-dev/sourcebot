@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-07-10
+
 ### Changed
 - [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
 - Refactored Ask Sourcebot user message text extraction into a shared helper that robustly handles non-text message parts. [#1371](https://github.com/sourcebot-dev/sourcebot/pull/1371)
