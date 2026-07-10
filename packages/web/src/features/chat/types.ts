@@ -153,6 +153,9 @@ export type SBChatMessageDataParts = {
     // The `mcp-server` data type carries favicon metadata for connected MCP servers,
     // keyed by sanitized server name (e.g. "linear").
     "mcp-server": { sanitizedName: string; faviconUrl: string },
+    // The `mcp-tool` data type maps the provider-safe model tool name back to
+    // the raw MCP tool name for display.
+    "mcp-tool": { modelToolName: string; rawToolName: string },
     // The `mcp-failed-server` data type surfaces MCP servers that failed to load their tools.
     "mcp-failed-server": { serverName: string },
     // A user-provided file attachment included with the message.

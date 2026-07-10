@@ -265,6 +265,62 @@ beforeEach(() => {
 });
 
 describe('createMessageStream approval continuation', () => {
+    test('streams raw MCP tool names for client display', async () => {
+        const { getConnectedMcpClients } = await import('@/ee/features/chat/mcp/mcpClientFactory');
+        const { getMcpTools } = await import('@/ee/features/chat/mcp/mcpToolSets');
+        vi.mocked(getConnectedMcpClients).mockResolvedValueOnce([
+            { serverId: 'server-backstage', serverName: 'Backstage' },
+        ] as never);
+        vi.mocked(getMcpTools).mockResolvedValueOnce({
+            tools: {},
+            failedServers: [],
+            serverFaviconUrls: {
+                backstage: 'https://backstage.example.com/favicon.ico',
+            },
+            toolDisplayNames: {
+                'mcp_backstage__catalog_query-catalog-entities': 'catalog.query-catalog-entities',
+            },
+            cleanup: vi.fn(),
+        });
+        mockAi.streamText.mockReturnValue(createFakeStreamResult());
+
+        await createMessageStream({
+            chatId: 'chat-id',
+            messages: [createUserMessage()],
+            selectedRepos: [],
+            disabledMcpServerIds: [],
+            prisma: {},
+            model: {},
+            modelName: 'test-model',
+            promptCacheStrategy: noopStrategy,
+            onFinish: vi.fn(),
+            onError: () => 'error',
+            userId: 'user-id',
+            orgId: 1,
+        } as unknown as Parameters<typeof createMessageStream>[0]);
+
+        const execute = mockAi.latestCreateUIMessageStreamOptions?.execute;
+        if (!execute) {
+            throw new Error('Expected createUIMessageStream to capture execute callback.');
+        }
+
+        const write = vi.fn();
+        await execute({
+            writer: {
+                merge: vi.fn(),
+                write,
+            },
+        });
+
+        expect(write).toHaveBeenCalledWith({
+            type: 'data-mcp-tool',
+            data: {
+                modelToolName: 'mcp_backstage__catalog_query-catalog-entities',
+                rawToolName: 'catalog.query-catalog-entities',
+            },
+        });
+    });
+
     test.each([
         ['dynamic', dynamicApprovalRespondedPart],
         ['static', staticApprovalRespondedPart],
