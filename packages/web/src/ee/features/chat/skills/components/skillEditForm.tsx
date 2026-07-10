@@ -92,12 +92,15 @@ export function SkillEditForm({
         const onKeyDown = (event: KeyboardEvent) => {
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
                 event.preventDefault();
+                if (isSaving) {
+                    return;
+                }
                 formRef.current?.requestSubmit();
             }
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
+    }, [isSaving]);
 
     useEffect(() => {
         reset(initialForm);
