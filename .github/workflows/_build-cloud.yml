@@ -77,6 +77,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check Prisma migrations
+        uses: ./.github/actions/check-prisma-migrations
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
