@@ -12,11 +12,14 @@ if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SEN
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN,
         environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-
+        integrations: [
+            Sentry.browserProfilingIntegration(),
+        ],
         tracesSampleRate: 1.0,
-
-        // Setting this option to true will print useful information to the console while you're setting up Sentry.
-        debug: false,
+        // Evaluated once per `Sentry.init()`, i.e. once per page load.
+        profileSessionSampleRate: 1.0,
+        // Profile only while a sampled root span is active, rather than continuously.
+        profileLifecycle: 'trace',
     });
 } else {
     console.debug("[client] Sentry was not initialized");
