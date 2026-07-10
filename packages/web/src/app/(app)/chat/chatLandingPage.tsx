@@ -13,12 +13,18 @@ import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
+import { hasEntitlement } from "@/lib/entitlements";
+import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
 
 export async function ChatLandingPage() {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const searchContexts = await getSearchContexts();
     const allRepos = await getRepos();
     const session = await auth();
+    const hasAskEntitlement = await hasEntitlement('ask');
+    const askCommands = session?.user && hasAskEntitlement
+        ? await listAgentSkillCommandsOrEmpty()
+        : [];
 
     const carouselRepos = await getRepos({
         where: {
@@ -69,6 +75,7 @@ export async function ChatLandingPage() {
                             languageModels={languageModels}
                             repos={allRepos}
                             searchContexts={searchContexts}
+                            askCommands={askCommands}
                             isAuthenticated={!!session}
                             isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                             maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}

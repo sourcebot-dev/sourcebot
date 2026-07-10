@@ -10,6 +10,7 @@ import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
 export type { FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";
+import type { CommandInvocationData, CommandMentionData } from "./commands/types";
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
@@ -101,6 +102,15 @@ export type SBChatMessageToolTypes = {
         input: { tool_to_activate_name: string };
         output: { results: Array<{ name: string; description: string }> };
     };
+    // load_skill is constructed in the EE agent (createLoadSkillTool), not in
+    // createTools, so its UI part shape is declared here by hand — mirror of the
+    // execute() return in ee/features/chat/tools/loadSkillTool.ts.
+    load_skill: {
+        input: { skill_id: string };
+        output:
+            | { skill: { id: string; slug: string; name: string }; instructions: string }
+            | { error: string };
+    };
 };
 
 // A user-provided file attachment. The `text` variant carries the file's
@@ -147,6 +157,9 @@ export type SBChatMessageDataParts = {
     "mcp-failed-server": { serverName: string },
     // A user-provided file attachment included with the message.
     "attachment": AttachmentData,
+    // The `command` data type preserves the slash command identity so the server
+    // can resolve and expand the command's instructions securely.
+    "command": CommandInvocationData,
 }
 
 export type SBChatMessage = UIMessage<
@@ -170,16 +183,21 @@ export type ParagraphElement = {
     children: Descendant[];
 }
 
-export type FileMentionData = {
-    type: 'file';
-    repo: string;
-    path: string;
-    name: string;
-    language: string;
-    revision: string;
-}
+export const fileMentionDataSchema = z.object({
+    type: z.literal('file'),
+    repo: z.string(),
+    path: z.string(),
+    name: z.string(),
+    language: z.string(),
+    revision: z.string(),
+});
 
-export type MentionData = FileMentionData;
+export type FileMentionData = z.infer<typeof fileMentionDataSchema>;
+
+export const isFileMentionData = (value: unknown): value is FileMentionData =>
+    fileMentionDataSchema.safeParse(value).success;
+
+export type MentionData = FileMentionData | CommandMentionData;
 
 export type MentionElement = {
     type: 'mention';

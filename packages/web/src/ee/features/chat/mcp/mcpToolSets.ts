@@ -8,8 +8,9 @@ import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
-import { McpServerToolPermission, Prisma } from '@sourcebot/db';
+import { McpServerToolPermission } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
+import { isUniqueConstraintError } from '@/lib/prismaErrors';
 import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
 import { getRedisClient } from '@/lib/redis';
 import {
@@ -49,7 +50,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             },
         });
     } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        if (!isUniqueConstraintError(error)) {
             throw error;
         }
 

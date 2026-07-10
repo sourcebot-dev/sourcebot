@@ -35,6 +35,7 @@ import { HasLicenseProvider } from "@/features/billing/hasLicenseProvider";
 import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 import { LanguageModelProvider } from "@/features/chat/languageModelContext";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
+import { NavigationGuardProvider } from "next-navigation-guard";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -183,32 +184,35 @@ export default async function Layout(props: LayoutProps) {
             >
                 <LanguageModelProvider languageModels={languageModels}>
                     <SyntaxGuideProvider>
-                        <div className="fixed inset-0 flex bg-shell">
-                            <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
-                                {sidebar}
-                                <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
-                                    <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
-                                        <BannerHeightObserver>
-                                            <BannerSlot
-                                                role={role}
-                                                license={license}
-                                                offlineLicense={offlineLicense}
-                                                hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
-                                                hasPendingFirstSync={hasPendingFirstSync}
-                                                currentVersion={SOURCEBOT_VERSION}
-                                                latestVersion={latestVersion}
-                                            />
-                                        </BannerHeightObserver>
-                                        <div className="flex-1 min-h-0 overflow-y-scroll [scrollbar-gutter:stable]">
-                                            {children}
+                        {/* Keep one guard provider above both sidebar and content so browser history is tracked before guarded routes mount. */}
+                        <NavigationGuardProvider>
+                            <div className="fixed inset-0 flex bg-shell">
+                                <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+                                    {sidebar}
+                                    <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
+                                        <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
+                                            <BannerHeightObserver>
+                                                <BannerSlot
+                                                    role={role}
+                                                    license={license}
+                                                    offlineLicense={offlineLicense}
+                                                    hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
+                                                    hasPendingFirstSync={hasPendingFirstSync}
+                                                    currentVersion={SOURCEBOT_VERSION}
+                                                    latestVersion={latestVersion}
+                                                />
+                                            </BannerHeightObserver>
+                                            <div className="flex-1 min-h-0 overflow-y-scroll [scrollbar-gutter:stable]">
+                                                {children}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </SidebarProvider>
-                        </div>
-                        <SyntaxReferenceGuide />
-                        <GitHubStarToast />
-                        <CheckoutReturnHandler />
+                                </SidebarProvider>
+                            </div>
+                            <SyntaxReferenceGuide />
+                            <GitHubStarToast />
+                            <CheckoutReturnHandler />
+                        </NavigationGuardProvider>
                     </SyntaxGuideProvider>
                 </LanguageModelProvider>
             </HasLicenseProvider>

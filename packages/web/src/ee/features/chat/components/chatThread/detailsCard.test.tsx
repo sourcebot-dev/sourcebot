@@ -119,4 +119,68 @@ describe('DetailsCard', () => {
         expect(screen.queryByText('Tool activation failed: Activation failed')).toBeTruthy();
         expect(screen.queryByText('Activating tool...')).toBeNull();
     });
+
+    test('renders a loaded skill as a tool call with its name and command', () => {
+        const loadedSkillPart = {
+            type: 'tool-load_skill',
+            toolCallId: 'tool-call-1',
+            state: 'output-available',
+            input: { skill_id: 'skill-1' },
+            output: {
+                skill: { id: 'skill-1', slug: 'review-pr', name: 'Review PR' },
+                instructions: 'Look for correctness issues first.',
+            },
+        } satisfies SBChatMessagePart;
+
+        const { container } = render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [loadedSkillPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(container.textContent).toContain('Loaded skill:');
+        expect(container.textContent).toContain('Review PR');
+        expect(container.textContent).toContain('/review-pr');
+        expect(screen.queryByText('Loading skill...')).toBeNull();
+        // Instructions live behind a collapsed details section.
+        expect(screen.queryByText('Look for correctness issues first.')).toBeNull();
+    });
+
+    test('renders an unavailable skill load instead of a silent no-op', () => {
+        const unavailableSkillPart = {
+            type: 'tool-load_skill',
+            toolCallId: 'tool-call-2',
+            state: 'output-available',
+            input: { skill_id: 'ghost-skill' },
+            output: { error: 'That skill is not available.' },
+        } satisfies SBChatMessagePart;
+
+        const { container } = render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [unavailableSkillPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(container.textContent).toContain('ghost-skill');
+        expect(container.textContent).toContain('was unavailable');
+        expect(screen.queryByText('Loading skill...')).toBeNull();
+    });
 });

@@ -334,6 +334,8 @@ model Org {
   repoVisits RepoVisit[]
 
   mcpServers McpServer[]
+  agentSkills AgentSkill[]
+  agentSkillAdoptions AgentSkillAdoption[]
 
   license License?
   servicePingEvents ServicePingEvent[]
@@ -519,6 +521,9 @@ model User {
   sessionVersion Int @default(0)
 
   userMcpServers       UserMcpServer[]
+  createdAgentSkills   AgentSkill[] @relation("AgentSkillCreatedBy")
+  updatedAgentSkills   AgentSkill[] @relation("AgentSkillUpdatedBy")
+  agentSkillAdoptions  AgentSkillAdoption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -739,6 +744,93 @@ model ChatAccess {
   createdAt DateTime @default(now())
 
   @@unique([chatId, userId])
+}
+
+enum AgentSkillVisibility {
+  PERSONAL
+  SHARED
+}
+
+model AgentSkill {
+  id String @id @default(cuid())
+
+  // Namespace identity for slash-command uniqueness and lookup.
+  // This is not a foreign key and should not be used as an authorization check by itself.
+  //
+  // Every skill belongs to an org (orgId is always set).
+  // PERSONAL: scopeId is the user id; the skill is private to that user within the org.
+  // SHARED:   scopeId is String(orgId); the skill is visible to the whole org (opt-in via adoptions).
+  //
+  // Future sharing/grants should treat this as the skill's home namespace, not as the ACL.
+  visibility AgentSkillVisibility
+  scopeId    String
+  slug       String
+
+  name         String
+  description  String
+  instructions String
+
+  // The user who authored the skill. This is audit metadata, separate from
+  // the namespace that owns the slash-command slug.
+  createdBy   User   @relation("AgentSkillCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  updatedBy   User?   @relation("AgentSkillUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedById String?
+
+  // The owning org. Both PERSONAL and SHARED skills are scoped to an org, so a
+  // user's personal skills change when they switch orgs.
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  enabled      Boolean  @default(true)
+  autoEnrolled Boolean  @default(false)
+
+  // Provenance for skills imported from an indexed repository file. All null for
+  // skills created manually or imported from a local file. When set, the skill's
+  // content is a read-only mirror of the source file: edits happen in the repo and
+  // are pulled in via "Update from source". sourceBlobSha (the git blob OID at
+  // import) is the comparison key used to detect when the indexed file has changed.
+  // Sync is personal-only; publishing to shared snapshots the content and drops
+  // these fields.
+  sourceRepoName   String?
+  sourceFilePath   String?
+  sourceRevision   String?
+  sourceBlobSha    String?
+  sourceImportedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adoptions AgentSkillAdoption[]
+
+  @@unique([orgId, visibility, scopeId, slug])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([orgId])
+  @@index([orgId, visibility, scopeId])
+  @@index([orgId, visibility, scopeId, enabled, updatedAt(sort: Desc), name], map: "AgentSkill_shared_catalog_idx")
+}
+
+model AgentSkillAdoption {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  agentSkill   AgentSkill @relation(fields: [agentSkillId], references: [id], onDelete: Cascade)
+  agentSkillId String
+
+  createdAt DateTime @default(now())
+  removedAt DateTime?
+
+  @@unique([orgId, userId, agentSkillId])
+  @@index([userId, orgId, removedAt])
+  @@index([agentSkillId])
+  @@index([orgId])
 }
 
 // OAuth2 Authorization Server models
