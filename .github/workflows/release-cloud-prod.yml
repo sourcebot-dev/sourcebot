@@ -1,0 +1,51 @@
+# Builds the production image (app.sourcebot.dev) and pushes it to Amazon ECR.
+#
+# This is *not* the OSS image: it has the prod Sentry DSNs baked in and uploads
+# source maps to Sentry. See _build-cloud.yml.
+#
+# Publishes to the `sourcebot-prod` ECR repository:
+#
+#   push to main    -> :main, :sha-<commit-sha>
+#   push v*.*.* tag -> :v<x.y.z>, :latest
+#
+# The `sha-` prefix is load-bearing: CicdStack's lifecycle rule expires old commit
+# images by matching that prefix, which is what keeps `main`, `latest` and `v*`
+# from ever being expired by count.
+#
+# Prod deploys from the `:main` tag. The OSS image (ghcr.io/sourcebot-dev/sourcebot)
+# is still built independently by release-dev.yml / release-prod.yml.
+#
+# Note: the Prisma migration backstop is not repeated here — release-dev.yml runs
+# `check-prisma-migrations` on the same commit for every push to main.
+
+name: Release Sourcebot (Cloud - Production)
+
+# The called workflow's permissions are capped by the caller's, and `id-token` is
+# never granted by default — without requesting it here, the OIDC token request
+# that assumes the ECR push role fails.
+permissions:
+  contents: read
+  id-token: write
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-cloud-prod-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-cloud.yml
+    with:
+      environment: prod
+      git_ref: ${{ github.ref }}
+      docker_tags: |
+        type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+        type=sha,format=long,enable=${{ github.ref == 'refs/heads/main' }}
+        type=semver,pattern=v{{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+        type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+    secrets: inherit
