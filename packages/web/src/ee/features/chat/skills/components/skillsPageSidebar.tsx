@@ -61,9 +61,9 @@ export function SkillsPageSidebar({
     const hasSearchQuery = Boolean(searchQuery.trim());
 
     return (
-        <aside className="flex w-[320px] shrink-0 flex-col border-r">
-            <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5">
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Skills</h2>
+        <aside className="flex w-[320px] shrink-0 flex-col border-r pr-5">
+            <div className="flex shrink-0 items-center justify-between pb-3">
+                <h2 className="text-lg font-medium">Skills</h2>
                 <input
                     ref={markdownFileInputRef}
                     type="file"
@@ -98,7 +98,7 @@ export function SkillsPageSidebar({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="shrink-0 px-5 pb-3">
+            <div className="shrink-0 pb-3">
                 <div className="relative">
                     <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -110,7 +110,7 @@ export function SkillsPageSidebar({
                 </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 pb-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
                 <SkillListSection
                     label="Personal"
                     count={filteredPersonal.length}
