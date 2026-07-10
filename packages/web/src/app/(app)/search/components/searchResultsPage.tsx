@@ -15,13 +15,14 @@ import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { getCodeParserByLanguageName } from "@/lib/codeHighlight";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { SearchQueryParams } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
-import { Session } from "next-auth";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -29,10 +30,26 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import { CopyIconButton } from "../../components/copyIconButton";
 import { SearchBar } from "../../components/searchBar";
 import { useStreamedSearch } from "../useStreamedSearch";
-import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
+
+const CodePreviewPanel = dynamic(
+    () => import("./codePreviewPanel").then(module => ({ default: module.CodePreviewPanel })),
+    { ssr: false },
+);
+
+const commonSearchResultLanguages = [
+    "TypeScript",
+    "JavaScript",
+    "Python",
+    "Go",
+    "Rust",
+    "Java",
+    "C++",
+    "C#",
+    "JSON",
+];
 
 interface SearchResultsPageProps {
     searchQuery: string;
@@ -53,6 +70,12 @@ export const SearchResultsPage = ({
     const { setSearchHistory } = useSearchHistory();
     const { toast } = useToast();
     const captureEvent = useCaptureEvent();
+
+    useEffect(() => {
+        void Promise.allSettled(
+            commonSearchResultLanguages.map(getCodeParserByLanguageName),
+        );
+    }, []);
 
     // Encodes the number of matches to return in the search response.
     const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${defaultMaxMatchCount}`);
