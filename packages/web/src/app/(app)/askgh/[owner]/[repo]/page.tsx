@@ -1,10 +1,12 @@
 import { addGithubRepo } from "@/features/workerApi/actions";
 import { isServiceError } from "@/lib/utils";
-import { ServiceErrorException } from "@/lib/serviceError";
+import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
+import { ErrorCode } from "@/lib/errorCodes";
 import { __unsafePrisma } from "@/prisma";
 import { getRepoInfo } from "./api";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { RepoIndexedGuard } from "./components/repoIndexedGuard";
+import { RepoNotFound } from "./components/repoNotFound";
 import { LandingPage } from "./components/landingPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { auth } from "@/auth";
@@ -27,7 +29,7 @@ export default async function GitHubRepoPage(props: PageProps) {
         return <ChatEntitlementMessage source="chat" returnPath={`/askgh/${owner}/${repo}`} />;
     }
     
-    const repoId = await (async () => {
+    const repoIdOrError = await (async (): Promise<number | ServiceError> => {
         // 1. Look up repo by owner/repo
         const displayName = `${owner}/${repo}`;
         const existingRepo = await __unsafePrisma.repo.findFirst({
@@ -46,11 +48,21 @@ export default async function GitHubRepoPage(props: PageProps) {
         const response = await addGithubRepo(owner, repo);
 
         if (isServiceError(response)) {
-            throw new ServiceErrorException(response);
+            return response;
         }
 
         return response.repoId;
     })();
+
+    if (isServiceError(repoIdOrError)) {
+        if (repoIdOrError.errorCode === ErrorCode.REPOSITORY_NOT_FOUND) {
+            return <RepoNotFound owner={owner} repo={repo} />;
+        }
+
+        throw new ServiceErrorException(repoIdOrError);
+    }
+
+    const repoId = repoIdOrError;
 
     const repoInfo = await getRepoInfo(repoId)
     const languageModels = await getConfiguredLanguageModelsInfo()

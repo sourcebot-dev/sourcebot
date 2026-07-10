@@ -103,6 +103,14 @@ export const notFound = (message?: string): ServiceError => {
     }
 }
 
+export const repositoryNotFound = (repository: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.REPOSITORY_NOT_FOUND,
+        message: `Repository "${repository}" was not found`,
+    }
+}
+
 export const userNotFound = (): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,

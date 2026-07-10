@@ -9,6 +9,7 @@ import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
+import { isNotFound } from './errors.js';
 import { Octokit } from '@octokit/rest';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import z from 'zod';
@@ -150,10 +151,19 @@ export class Api {
         }
 
         const octokit = new Octokit();
-        const response = await octokit.rest.repos.get({
-            owner: parsed.data.owner,
-            repo: parsed.data.repo,
-        });
+        let response;
+        try {
+            response = await octokit.rest.repos.get({
+                owner: parsed.data.owner,
+                repo: parsed.data.repo,
+            });
+        } catch (error) {
+            if (isNotFound(error)) {
+                res.status(404).json({ error: 'Repository not found on GitHub' });
+                return;
+            }
+            throw error;
+        }
 
         const record = createGitHubRepoRecord({
             repo: response.data,
