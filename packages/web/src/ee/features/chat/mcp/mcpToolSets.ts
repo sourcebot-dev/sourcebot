@@ -4,7 +4,6 @@ import { createLogger, env } from '@sourcebot/shared';
 import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
-import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
@@ -105,15 +104,19 @@ function getMcpToolFailureReason(error: unknown): string {
     return 'unknown';
 }
 
-function getOAuthScopeHash(oauthScopes: string[]): string {
+// Builds a deterministic, delimiter-safe segment for the tool-list cache key from
+// the requested OAuth scopes. These scopes are not secret; the segment only needs
+// to change the cache key when the granted scope set changes. We base64url-encode
+// the normalized scope list rather than hashing it: it is collision-free, avoids
+// the ':' cache-key delimiter, and keeps a non-security cache-key derivation from
+// being misclassified as password hashing (codeql js/insufficient-password-hash).
+function getOAuthScopeCacheKeySegment(oauthScopes: string[]): string {
     if (oauthScopes.length === 0) {
         return 'none';
     }
 
-    return createHash('sha256')
-        .update(Array.from(new Set(oauthScopes)).sort().join('\0'))
-        .digest('hex')
-        .slice(0, 16);
+    const normalized = Array.from(new Set(oauthScopes)).sort().join('\0');
+    return Buffer.from(normalized, 'utf8').toString('base64url');
 }
 
 /**
@@ -135,7 +138,7 @@ function getMcpListToolsCacheKey(client: McpToolSet): string {
         // list cannot be safely shared across users of the same server.
         client.userId,
         client.serverId,
-        getOAuthScopeHash(client.requestedOAuthScopes),
+        getOAuthScopeCacheKeySegment(client.requestedOAuthScopes),
         client.serverUpdatedAt.getTime(),
     ].join(':');
 }
