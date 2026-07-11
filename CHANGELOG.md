@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- [EE] Derived the MCP tool-list cache-key segment from requested OAuth scopes without a cryptographic hash, resolving a false-positive `js/insufficient-password-hash` CodeQL alert. [#PLACEHOLDER](https://github.com/sourcebot-dev/sourcebot/pull/PLACEHOLDER)
+- [EE] Derived the MCP tool-list cache-key segment from requested OAuth scopes without a cryptographic hash, resolving a false-positive `js/insufficient-password-hash` CodeQL alert. [#1435](https://github.com/sourcebot-dev/sourcebot/pull/1435)
 
 ## [5.1.0] - 2026-07-10
 
