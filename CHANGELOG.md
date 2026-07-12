@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed GitLab connection topic filters (`topics` / `exclude.topics`) being case-sensitive on the project side, so mixed-case GitLab project topics (e.g. `Backend`) now match lowercase config topics. [#1388](https://github.com/sourcebot-dev/sourcebot/issues/1388)
+
 ## [5.1.0] - 2026-07-10
 
 ### Changed
