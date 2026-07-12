@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "build": "yarn generate && tsc",
+        "typecheck": "tsc --noEmit",
         "generate": "tsx tools/generate.ts",
         "watch": "nodemon --watch ../../schemas -e json -x 'yarn build'",
         "postinstall": "yarn build"

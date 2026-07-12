@@ -8,6 +8,7 @@
         "dev:watch": "tsc-watch --preserveWatchOutput --onSuccess \"yarn dev\"",
         "dev": "node ./dist/index.js",
         "build": "tsc",
+        "typecheck": "tsc --noEmit",
         "test": "cross-env SKIP_ENV_VALIDATION=1 vitest --config ./vitest.config.ts"
     },
     "devDependencies": {
