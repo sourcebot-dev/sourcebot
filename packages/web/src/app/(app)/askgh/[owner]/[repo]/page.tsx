@@ -14,6 +14,7 @@ import { hasEntitlement } from "@/lib/entitlements";
 import { ChatEntitlementMessage } from "@/features/chat/components/chatEntitlementMessage";
 import { env } from "@sourcebot/shared";
 import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
+import { getRepos, getSearchContexts } from "@/actions";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -70,9 +71,19 @@ export default async function GitHubRepoPage(props: PageProps) {
     const askCommands = session?.user
         ? await listAgentSkillCommandsOrEmpty()
         : [];
+    const allRepos = await getRepos();
+    const searchContexts = await getSearchContexts();
 
     if (isServiceError(repoInfo)) {
         throw new ServiceErrorException(repoInfo);
+    }
+
+    if (isServiceError(allRepos)) {
+        throw new ServiceErrorException(allRepos);
+    }
+
+    if (isServiceError(searchContexts)) {
+        throw new ServiceErrorException(searchContexts);
     }
 
     return (
@@ -87,6 +98,8 @@ export default async function GitHubRepoPage(props: PageProps) {
                     askCommands={askCommands}
                     isAuthenticated={!!session?.user}
                     maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
+                    repos={allRepos}
+                    searchContexts={searchContexts}
                 />
             </CustomSlateEditor>
         </RepoIndexedGuard>

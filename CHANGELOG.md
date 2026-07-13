@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Enabled additional search scope selection in the Ask GitHub view, allowing users to include other repositories and search contexts alongside the current repository. [#1436](https://github.com/sourcebot-dev/sourcebot/pull/1436)
+
 ## [5.1.0] - 2026-07-10
 
 ### Changed
