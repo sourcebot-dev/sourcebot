@@ -10,9 +10,9 @@ import {
     findSymbolDefinitionsDefinition,
     listTreeDefinition,
 } from "@/features/tools";
-import { ToolContext } from "@/features/tools/types";
-import { ToolUIPart } from "ai";
-import { SBChatMessageToolTypes } from "@/features/chat/types";
+import type { ToolContext } from "@/features/tools/types";
+import type { ToolUIPart } from "ai";
+import type { SBChatMessageToolTypes } from "@/features/chat/types";
 
 export const createTools = (context: ToolContext) => ({
     [readFileDefinition.name]: toVercelAITool(readFileDefinition, context),

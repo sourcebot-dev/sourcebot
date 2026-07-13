@@ -106,7 +106,7 @@ pg_restore -U postgres -d postgres --no-owner ./sourcebot.dump
 docker run \
   -e DATABASE_URL='postgresql://your-user:your-password@your-postgres-host:5432/postgres' \
   # ... your other flags
-  ghcr.io/sourcebot-dev/sourcebot:latest
+  docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
 ```
 </Expandable>
 
@@ -123,7 +123,7 @@ Redis only holds transient job-queue data, so there is nothing to migrate. You j
 docker run \
   -e REDIS_URL='redis://your-redis-host:6379' \
   # ... your other flags
-  ghcr.io/sourcebot-dev/sourcebot:latest
+  docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
 ```
 </Expandable>
 
@@ -164,7 +164,7 @@ docker run \
   -e SOURCEBOT_ENCRYPTION_KEY='<value from .secret>' \
   -e AUTH_SECRET='<value from .authjs-secret>' \
   # ... your other flags
-  ghcr.io/sourcebot-dev/sourcebot:latest
+  docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
 ```
 
 3. Delete the plaintext files from the data volume so the secrets are no longer stored on disk:
@@ -279,7 +279,7 @@ helm upgrade sourcebot sourcebot/sourcebot \
 If you'd rather not upgrade to v5, you can keep using v4 indefinitely by pinning your deployment to the final v4 release:
 
 ```bash
-ghcr.io/sourcebot-dev/sourcebot:v4.17.4
+docker.sourcebot.dev/sourcebot-dev/sourcebot:v4.17.4
 ```
 
 ## Troubleshooting

@@ -66,6 +66,7 @@
                                 "group": "Ask Sourcebot",
                                 "root": "docs/features/ask/ask-sourcebot",
                                 "pages": [
+                                    "docs/features/ask/skills",
                                     "docs/features/ask/connectors",
                                     "docs/features/ask/chat-sharing",
                                     "docs/features/ask/add-model-providers"

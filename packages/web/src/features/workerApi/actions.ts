@@ -1,7 +1,7 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { unexpectedError } from "@/lib/serviceError";
+import { repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
@@ -95,6 +95,9 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                return repositoryNotFound(`${owner}/${repo}`);
+            }
             return unexpectedError('Failed to add GitHub repo');
         }
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-07-10
+
 ### Changed
 - [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
 - Refactored Ask Sourcebot user message text extraction into a shared helper that robustly handles non-text message parts. [#1371](https://github.com/sourcebot-dev/sourcebot/pull/1371)
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
 - Added deployment system resource stats (CPU cores + cgroup quota, host + container memory, disk, load average) to the service ping, so resource issues can be diagnosed more quickly. [#1424](https://github.com/sourcebot-dev/sourcebot/pull/1424)
 - Added a `robots.txt` that disallows crawlers, with an allowlist for link-preview bots so shared links keep their OpenGraph previews. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
+- [EE] Added Ask Sourcebot skills, letting users create, import, share, sync, and auto-invoke reusable chat instructions across personal and workspace scopes. [#1410](https://github.com/sourcebot-dev/sourcebot/pull/1410)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
@@ -38,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
 - [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
 - Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
+- [EE] Fixed Ask connector MCP tools with provider-invalid names failing to run by sanitizing model-facing tool names while preserving raw names in the UI.
 
 ## [5.0.4] - 2026-06-18
 

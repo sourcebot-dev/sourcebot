@@ -102,6 +102,7 @@
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@replit/codemirror-vim": "^6.2.1",
     "@sentry/nextjs": "^10.40.0",
+    "@sentry/profiling-node": "^10.40.0",
     "@shopify/lang-jsonc": "^1.0.0",
     "@sourcebot/codemirror-lang-tcl": "^1.0.13",
     "@sourcebot/db": "workspace:*",
@@ -205,6 +206,7 @@
     "usehooks-ts": "^3.1.0",
     "uuid": "^14.0.0",
     "vscode-icons-js": "^11.6.1",
+    "yaml": "^2.8.3",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.5"
   },
@@ -213,6 +215,7 @@
     "@eslint/eslintrc": "^3",
     "@react-email/ui": "6.1.4",
     "@react-grab/mcp": "^0.1.23",
+    "@tailwindcss/container-queries": "^0.1.1",
     "@tanstack/eslint-plugin-query": "^5.74.7",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.0",

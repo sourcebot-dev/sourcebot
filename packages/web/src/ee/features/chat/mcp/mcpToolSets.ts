@@ -8,8 +8,9 @@ import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
-import { McpServerToolPermission, Prisma } from '@sourcebot/db';
+import { McpServerToolPermission } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
+import { isUniqueConstraintError } from '@/lib/prismaErrors';
 import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
 import { getRedisClient } from '@/lib/redis';
 import {
@@ -21,6 +22,7 @@ import {
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
 const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 60 * 60;
+const MODEL_TOOL_NAME_MAX_LENGTH = 64;
 type ListToolsResult = Awaited<ReturnType<MCPClient['listTools']>>;
 
 class McpToolTimeoutError extends Error {
@@ -49,7 +51,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             },
         });
     } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        if (!isUniqueConstraintError(error)) {
             throw error;
         }
 
@@ -71,6 +73,7 @@ export interface McpToolsResult {
     tools: Record<string, Awaited<ReturnType<MCPClient['tools']>>[string]>;
     failedServers: string[];
     serverFaviconUrls: Record<string, string>;
+    toolDisplayNames: Record<string, string>;
     cleanup: () => Promise<void>;
 }
 
@@ -111,6 +114,16 @@ function getOAuthScopeHash(oauthScopes: string[]): string {
         .update(Array.from(new Set(oauthScopes)).sort().join('\0'))
         .digest('hex')
         .slice(0, 16);
+}
+
+/**
+ * Provider APIs such as OpenAI Responses enforce tight charset and length
+ * limits for tool names. MCP tool names are server-controlled, so normalize the
+ * fully qualified name before exposing it to the model.
+ */
+export function sanitizeMcpToolNameForModel(name: string): string {
+    const sanitized = name.replace(/[^A-Za-z0-9_-]/g, '_') || '_';
+    return sanitized.slice(0, MODEL_TOOL_NAME_MAX_LENGTH);
 }
 
 function getMcpListToolsCacheKey(client: McpToolSet): string {
@@ -182,6 +195,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
     const allTools: McpToolsResult['tools'] = {};
     const failedServers: string[] = [];
     const serverFaviconUrls: Record<string, string> = {};
+    const toolDisplayNames: Record<string, string> = {};
     const mcpClients: MCPClient[] = [];
 
     const connectionTimeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
@@ -258,8 +272,10 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 });
 
                 const originalExecute = tool.execute;
-                const qualifiedName = `${prefix}__${toolName}`;
+                const rawQualifiedName = `${prefix}__${toolName}`;
+                const qualifiedName = sanitizeMcpToolNameForModel(rawQualifiedName);
                 const timeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
+                toolDisplayNames[qualifiedName] = toolName;
 
                 const executeWithTimeout = (async (input: unknown, options: ToolExecutionOptions) => {
                     const startTime = Date.now();
@@ -354,5 +370,5 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
         );
     };
 
-    return { tools: allTools, failedServers, serverFaviconUrls, cleanup };
+    return { tools: allTools, failedServers, serverFaviconUrls, toolDisplayNames, cleanup };
 }

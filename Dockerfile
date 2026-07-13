@@ -61,19 +61,12 @@ ENV NEXT_PUBLIC_LANGFUSE_BASE_URL=$NEXT_PUBLIC_LANGFUSE_BASE_URL
 ARG NEXT_PUBLIC_BUILD_COMMIT_SHA
 ENV NEXT_PUBLIC_BUILD_COMMIT_SHA=$NEXT_PUBLIC_BUILD_COMMIT_SHA
 
-# To upload source maps to Sentry, we need to set the following build-time args.
-# It's important that we don't set these for oss builds, otherwise the Sentry
-# auth token will be exposed.
-# @see : next.config.mjs
 ARG SENTRY_ORG
 ENV SENTRY_ORG=$SENTRY_ORG
 ARG SENTRY_WEBAPP_PROJECT
 ENV SENTRY_WEBAPP_PROJECT=$SENTRY_WEBAPP_PROJECT
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
-# SMUAT = Source Map Upload Auth Token
-ARG SENTRY_SMUAT
-ENV SENTRY_SMUAT=$SENTRY_SMUAT
 # -----------
 
 RUN apk add --no-cache libc6-compat
@@ -92,7 +85,9 @@ COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLang
 RUN yarn workspace @sourcebot/web install
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN yarn workspace @sourcebot/web build
+
+RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+    yarn workspace @sourcebot/web build
 ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
 
@@ -101,16 +96,10 @@ FROM node-alpine AS backend-builder
 ENV SKIP_ENV_VALIDATION=1
 # -----------
 
-# To upload source maps to Sentry, we need to set the following build-time args.
-# It's important that we don't set these for oss builds, otherwise the Sentry
-# auth token will be exposed.
 ARG SENTRY_ORG
 ENV SENTRY_ORG=$SENTRY_ORG
 ARG SENTRY_BACKEND_PROJECT
 ENV SENTRY_BACKEND_PROJECT=$SENTRY_BACKEND_PROJECT
-# SMUAT = Source Map Upload Auth Token
-ARG SENTRY_SMUAT
-ENV SENTRY_SMUAT=$SENTRY_SMUAT
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
 # -----------
@@ -129,11 +118,10 @@ COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLang
 RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
-# Upload source maps to Sentry if we have the necessary build-time args.
-RUN if [ -n "$SENTRY_SMUAT" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$SENTRY_RELEASE" ]; then \
+RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+    if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$SENTRY_RELEASE" ]; then \
     apk add --no-cache curl; \
     curl -sL https://sentry.io/get-cli/ | sh; \
-    sentry-cli login --auth-token $SENTRY_SMUAT; \
     sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $SENTRY_RELEASE ./packages/backend/dist; \
     sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $SENTRY_RELEASE ./packages/backend/dist; \
 fi

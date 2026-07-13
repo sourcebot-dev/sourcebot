@@ -87,7 +87,14 @@ export const getSidebarNavGroups = async () =>
                         {
                             title: "Ask Sourcebot",
                             href: `/settings/accountAskAgent`,
+                            hrefRegex: `/settings/accountAskAgent(/.*)?$`,
                             icon: "bot" as const,
+                        },
+                        {
+                            title: "Skills",
+                            href: `/settings/skills`,
+                            hrefRegex: `/settings/skills(/.*)?$`,
+                            icon: "sparkles" as const,
                         }
                     ] : []),
                 ],

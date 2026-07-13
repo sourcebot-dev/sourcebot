@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { OFFERINGS_DOCS_LINK } from "@/lib/constants"
-import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import Link from "next/link"
 
 export const UpgradeBadge = () => {
@@ -16,20 +15,18 @@ export const UpgradeBadge = () => {
                     Pro
                 </Badge>
             </TooltipTrigger>
-            <TooltipPrimitive.Portal>
-                <TooltipContent side="right" className="font-normal">
-                    This feature requires a subscription.{" "}
-                    <Link
-                        href={OFFERINGS_DOCS_LINK}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-purple-400"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        Learn more
-                    </Link>
-                </TooltipContent>
-            </TooltipPrimitive.Portal>
+            <TooltipContent side="right" className="font-normal">
+                This feature requires a subscription.{" "}
+                <Link
+                    href={OFFERINGS_DOCS_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline text-purple-400"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    Learn more
+                </Link>
+            </TooltipContent>
         </Tooltip>
     )
 }
