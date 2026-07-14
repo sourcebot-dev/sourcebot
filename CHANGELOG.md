@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Pinned `curl`/`libcurl` to `>=8.20.0-r0` in the Docker image to address CVE-2026-7168. [#PR](https://github.com/sourcebot-dev/sourcebot/pull/PR)
+- Pinned `curl`/`libcurl` to `>=8.20.0-r0` in the Docker image to address CVE-2026-7168. [#1444](https://github.com/sourcebot-dev/sourcebot/pull/1444)
 
 ## [5.1.1] - 2026-07-14
 
