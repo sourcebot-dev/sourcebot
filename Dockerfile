@@ -166,7 +166,10 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
+# curl/libcurl are pinned to >=8.20.0-r0 to address CVE-2026-5773 (incorrect SMB
+# connection reuse). Pinning also busts the layer cache so `apk upgrade` re-runs
+# and pulls the patched Alpine packages.
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen "curl>=8.20.0-r0" "libcurl>=8.20.0-r0" perl jq openssl util-linux unzip && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm
