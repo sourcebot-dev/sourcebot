@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Pinned `curl`/`libcurl` to `^8.20.0-r0` in the runner image to address CVE-2026-6429. [#1448](https://github.com/sourcebot-dev/sourcebot/pull/1448)
+
 ## [5.1.1] - 2026-07-14
 
 - Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)
