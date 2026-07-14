@@ -1,17 +1,13 @@
 import * as Sentry from "@sentry/node";
 import { createLogger } from "@sourcebot/shared";
-import { Job, Queue, Worker } from "bullmq";
+import { Job, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 import { JobProducer } from "./jobProducer.js";
-import { CronWorkload, JobDetail, JobManager, QueueCounts, Schedule, Workload } from "./types.js";
+import { DataOf, JobDetail, JobManager, QueueCounts, QueueName, Schedule, Workload } from "./types.js";
 
 const LOG_TAG = 'job-manager';
 const logger = createLogger(LOG_TAG);
-
-const CRON_QUEUE_NAME = 'cron';
-const CRON_KEEP_COMPLETED = 50;
-const CRON_KEEP_FAILED = 200;
 
 const DURATION_UNITS_MS: Record<string, number> = {
     ms: 1,
@@ -49,99 +45,43 @@ export const normalizeJobState = (state: string): JobDetail['state'] => {
 const scheduleToRepeat = (schedule: Schedule) =>
     'pattern' in schedule ? { pattern: schedule.pattern } : { every: parseDuration(schedule.every) };
 
-export function reconcile<TData>(opts: {
-    name: string;
-    schedule: Schedule;
-    target: string;
-    scan: () => Promise<TData[]>;
-}): CronWorkload {
-    return {
-        name: opts.name,
-        schedule: opts.schedule,
-        handler: async ({ trigger }) => {
-            const items = await opts.scan();
-            for (const item of items) {
-                await trigger(opts.target, item);
-            }
-        },
-    };
-}
-
 export class BullMQJobManager implements JobManager {
-    private readonly workloads = new Map<string, Workload<unknown, unknown>>();
-    private readonly cronWorkloads = new Map<string, CronWorkload>();
+    private readonly workloads = new Map<string, Workload<QueueName, unknown>>();
     private readonly workers = new Map<string, Worker>();
     private readonly producer: JobProducer;
-    private cronQueue?: Queue;
-    private cronWorker?: Worker;
     private readonly abortController = new AbortController();
 
     constructor(private readonly connection: Redis) {
         this.producer = new JobProducer(connection);
     }
 
-    register<T>(workload: Workload<T>): void {
+    register<TName extends QueueName>(workload: Workload<TName>): void {
         const name = workload.spec.name;
         if (this.workloads.has(name)) {
             throw new Error(`Workload "${name}" is already registered`);
         }
-        this.workloads.set(name, workload as unknown as Workload<unknown, unknown>);
-    }
-
-    registerCron(cron: CronWorkload): void {
-        if (this.cronWorkloads.has(cron.name)) {
-            throw new Error(`Cron workload "${cron.name}" is already registered`);
-        }
-        this.cronWorkloads.set(cron.name, cron);
+        this.workloads.set(name, workload);
     }
 
     async start(): Promise<void> {
-        if (this.workloads.size === 0 && this.cronWorkloads.size === 0) {
+        if (this.workloads.size === 0) {
             logger.debug('start() called with nothing registered; nothing to do');
             return;
         }
 
         for (const workload of this.workloads.values()) {
-            this.startWorkload(workload);
-        }
-
-        if (this.cronWorkloads.size > 0) {
-            this.cronQueue = new Queue(CRON_QUEUE_NAME, { connection: this.connection });
-            this.cronWorker = new Worker(
-                CRON_QUEUE_NAME,
-                (job) => this.runCron(job.name),
-                { connection: this.connection, concurrency: 1 },
-            );
-            this.cronWorker.on('failed', (job, error) => {
-                logger.error(`Cron "${job?.name}" run failed: ${error.message}`);
-                Sentry.captureException(error);
-            });
-            this.cronWorker.on('error', (error) => {
-                logger.error('Cron worker error:', error);
-            });
-
-            for (const cron of this.cronWorkloads.values()) {
-                await this.cronQueue.upsertJobScheduler(
-                    `cron:${cron.name}`,
-                    scheduleToRepeat(cron.schedule),
-                    {
-                        name: cron.name,
-                        opts: {
-                            removeOnComplete: { count: CRON_KEEP_COMPLETED },
-                            removeOnFail: { count: CRON_KEEP_FAILED },
-                        },
-                    },
-                );
-            }
+            await this.startWorkload(workload);
         }
 
         logger.info(
-            `Started ${this.workloads.size} workload(s) [${[...this.workloads.keys()].join(', ') || '—'}] ` +
-            `and ${this.cronWorkloads.size} cron workload(s) [${[...this.cronWorkloads.keys()].join(', ') || '—'}]`,
+            `Started ${this.workloads.size} workload(s) [${[...this.workloads.keys()].join(', ')}]`,
         );
     }
 
-    async trigger<T>(workloadName: string, data: T): Promise<void> {
+    async trigger<TName extends QueueName>(
+        workloadName: TName,
+        data: DataOf<TName>
+    ): Promise<void> {
         const workload = this.workloads.get(workloadName);
         if (!workload) {
             throw new Error(`Cannot trigger unknown workload "${workloadName}"`);
@@ -212,29 +152,22 @@ export class BullMQJobManager implements JobManager {
     async stop(): Promise<void> {
         this.abortController.abort();
 
-        const workers = [...this.workers.values()];
-        if (this.cronWorker) {
-            workers.push(this.cronWorker);
-        }
-        await Promise.all(workers.map((worker) =>
+        await Promise.all([...this.workers.values()].map((worker) =>
             Promise.race([
                 worker.close(),
                 new Promise((resolve) => setTimeout(resolve, WORKER_STOP_GRACEFUL_TIMEOUT_MS)),
             ]),
         ));
 
-        if (this.cronQueue) {
-            await this.cronQueue.close();
-        }
         await this.producer.close();
 
         logger.info('Job manager stopped');
     }
 
-    private startWorkload(workload: Workload<unknown, unknown>): void {
-        const { spec, concurrency, rateLimit } = workload;
+    private async startWorkload<TName extends QueueName>(workload: Workload<TName>): Promise<void> {
+        const { spec, concurrency, rateLimit, schedule } = workload;
 
-        this.producer.queue(spec.name);
+        const queue = this.producer.queue(spec.name);
 
         const worker = new Worker(
             spec.name,
@@ -246,6 +179,7 @@ export class BullMQJobManager implements JobManager {
                 signal: this.abortController.signal,
                 log: async (message) => { await job.log(message); },
                 updateProgress: (progress) => job.updateProgress(progress),
+                trigger: (target, data) => this.trigger(target, data),
             }),
             {
                 connection: this.connection,
@@ -265,21 +199,30 @@ export class BullMQJobManager implements JobManager {
         });
 
         this.workers.set(spec.name, worker);
-    }
 
-    private async runCron(cronName: string): Promise<void> {
-        const cron = this.cronWorkloads.get(cronName);
-        if (!cron) {
-            logger.warn(`Cron fired for unknown workload "${cronName}"; skipping`);
-            return;
+        if (schedule) {
+            // @note: jobs produced by BullMQ's scheduler bypass the deduplication check that
+            // `Queue.add` goes through, so a dedup key would be silently ignored here. A
+            // scheduled workload gets its overlap protection from `concurrency` instead: the
+            // next tick's job is only created once the current one goes active, so at most one
+            // run is ever queued behind the one in flight.
+            await queue.upsertJobScheduler(
+                `schedule:${spec.name}`,
+                scheduleToRepeat(schedule),
+                {
+                    name: spec.name,
+                    opts: {
+                        attempts: spec.jobOptions.attempts,
+                        removeOnComplete: { count: spec.jobOptions.keep.completed },
+                        removeOnFail: { count: spec.jobOptions.keep.failed },
+                    },
+                },
+            );
         }
-        await cron.handler({
-            trigger: (workload, data) => this.trigger(workload, data),
-        });
     }
 
-    private async onWorkloadJobFailed(
-        workload: Workload<unknown, unknown>,
+    private async onWorkloadJobFailed<TName extends QueueName>(
+        workload: Workload<TName>,
         job: Job | undefined,
         error: Error,
     ): Promise<void> {

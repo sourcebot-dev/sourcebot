@@ -16,7 +16,7 @@ vi.mock('./constants.js', () => ({
     WORKER_STOP_GRACEFUL_TIMEOUT_MS: 5000,
 }));
 
-import { normalizeJobState, parseDuration, reconcile } from './jobManager.js';
+import { normalizeJobState, parseDuration } from './jobManager.js';
 
 describe('parseDuration', () => {
     test.each([
@@ -61,54 +61,3 @@ describe('normalizeJobState', () => {
     });
 });
 
-describe('reconcile', () => {
-    test('produces a cron workload carrying the given name and schedule', () => {
-        const cron = reconcile({
-            name: 'x-sweep',
-            schedule: { every: '5m' },
-            target: 'x',
-            scan: async () => [],
-        });
-        expect(cron.name).toBe('x-sweep');
-        expect(cron.schedule).toEqual({ every: '5m' });
-    });
-
-    test('handler triggers each scanned item into the target, in order', async () => {
-        const triggered: Array<{ workload: string; data: unknown }> = [];
-        const cron = reconcile({
-            name: 'x-sweep',
-            schedule: { pattern: '*/5 * * * *' },
-            target: 'x',
-            scan: async () => [{ id: 'a' }, { id: 'b' }],
-        });
-
-        await cron.handler({
-            trigger: async (workload, data) => {
-                triggered.push({ workload, data });
-            },
-        });
-
-        expect(triggered).toEqual([
-            { workload: 'x', data: { id: 'a' } },
-            { workload: 'x', data: { id: 'b' } },
-        ]);
-    });
-
-    test('handler triggers nothing when scan returns empty', async () => {
-        let calls = 0;
-        const cron = reconcile({
-            name: 'empty-sweep',
-            schedule: { every: '1m' },
-            target: 'x',
-            scan: async () => [],
-        });
-
-        await cron.handler({
-            trigger: async () => {
-                calls += 1;
-            },
-        });
-
-        expect(calls).toBe(0);
-    });
-});

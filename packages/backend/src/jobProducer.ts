@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
 import { Redis } from "ioredis";
-import { QueueSpec } from "./types.js";
+import { DataOf, QueueName, QueueSpec } from "./types.js";
 
 export class JobProducer {
     private readonly queues = new Map<string, Queue>();
@@ -16,9 +16,13 @@ export class JobProducer {
         return queue;
     }
 
-    async enqueue<T>(spec: QueueSpec<T>, data: T): Promise<void> {
+    async enqueue<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        data: DataOf<TName>
+    ): Promise<void> {
+        const dedupKey = spec.dedupKey?.(data);
         await this.queue(spec.name).add(spec.name, data, {
-            deduplication: { id: spec.dedupKey(data) },
+            ...(dedupKey ? { deduplication: { id: dedupKey } } : {}),
             attempts: spec.jobOptions.attempts,
             backoff: { type: spec.jobOptions.backoff.type, delay: spec.jobOptions.backoff.delayMs },
             removeOnComplete: { count: spec.jobOptions.keep.completed },

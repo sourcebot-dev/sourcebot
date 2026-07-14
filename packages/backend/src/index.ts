@@ -2,26 +2,20 @@ import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 import { createLogger, env, getConfigSettings } from "@sourcebot/shared";
-import { hasEntitlement } from "./entitlements.js";
-import { prisma } from "./prisma.js";
 import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
-import { Api } from "./api.js";
-import { AttachmentPruner } from "./attachmentPruner.js";
 import { ConfigManager } from "./configManager.js";
-import { ConnectionManager } from './connectionManager.js';
-import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
-import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
-import { AuditLogPruner } from "./ee/auditLogPruner.js";
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS, SINGLE_TENANT_ORG_ID } from './constants.js';
 import { GithubAppManager } from "./ee/githubAppManager.js";
-import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
+import { hasEntitlement } from "./entitlements.js";
+import { BullMQJobManager } from "./jobManager.js";
 import { shutdownPosthog } from "./posthog.js";
+import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
-import { RepoIndexManager } from "./repoIndexManager.js";
 import { redis } from "./redis.js";
-import { BullMQJobManager, reconcile } from "./jobManager.js";
 import { QueueSpec, Workload } from "./types.js";
+import { connectionWorkload } from "./connectionWorkload.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -52,36 +46,35 @@ if (await hasEntitlement('github-app')) {
     await GithubAppManager.getInstance().init(prisma);
 }
 
-const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
-const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
-const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
-const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
-const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
-const auditLogPruner = new AuditLogPruner(prisma);
-const attachmentPruner = new AttachmentPruner(prisma);
+// const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
+// const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
+// const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
+// const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
+// const auditLogPruner = new AuditLogPruner(prisma);
+// const attachmentPruner = new AttachmentPruner(prisma);
 
-connectionManager.startScheduler();
-await repoIndexManager.startScheduler();
-auditLogPruner.startScheduler();
-attachmentPruner.startScheduler();
+// connectionManager.startScheduler();
+// await repoIndexManager.startScheduler();
+// auditLogPruner.startScheduler();
+// attachmentPruner.startScheduler();
 
-if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
-    logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
-}
-else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
-    if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
-        await repoPermissionSyncer.startScheduler();
-    }
-    await accountPermissionSyncer.startScheduler();
-}
+// if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
+//     logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
+// }
+// else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
+//     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
+//         await repoPermissionSyncer.startScheduler();
+//     }
+//     await accountPermissionSyncer.startScheduler();
+// }
 
-const api = new Api(
-    promClient,
-    prisma,
-    connectionManager,
-    repoIndexManager,
-    accountPermissionSyncer,
-);
+// const api = new Api(
+//     promClient,
+//     prisma,
+//     connectionManager,
+//     repoIndexManager,
+//     accountPermissionSyncer,
+// );
 
 logger.info('Worker started.');
 
@@ -90,45 +83,49 @@ logger.info('Worker started.');
 // (repo-index, connection-sync, permission syncers) are ported onto it in subsequent phases.
 const jobManager = new BullMQJobManager(redis);
 
-
-const demoSpec: QueueSpec<{ id: string }> = {
-    name: 'demo',
-    dedupKey: ({ id }) => `demo:${id}`,
+const cronQueueSpec: QueueSpec<'cron'> = {
+    name: 'cron',
     jobOptions: {
         attempts: 2,
-        backoff: { type: 'fixed', delayMs: 1000 },
-        keep: { completed: 50, failed: 50 },
-    },
-};
+        backoff: { type: 'exponential', delayMs: 5000 },
+        keep: { completed: 50, failed: 50 }
+    }
+}
 
-const demoWorkload: Workload<{ id: string }, { id: string; ranAt: number }> = {
-    spec: demoSpec,
-    concurrency: 2,
-    process: async ({ data: { id }, jobId, attemptsMade }) => {
-        logger.info(`demo: processing "${id}" (job ${jobId}, attempt ${attemptsMade})`);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        if (id === 'gamma') {
-            throw new Error(`demo: simulated failure processing "${id}"`);
-        }
-        return { id, ranAt: Date.now() };
-    },
-    onTerminalFailure: async ({ id }, err) => {
-        logger.warn(`demo: "${id}" failed terminally: ${err.message}`);
-    },
-};
-jobManager.register(demoWorkload);
+const cronWorkload: Workload<'cron'> = {
+    concurrency: 1,
+    schedule: { every: '5s' },
+    spec: cronQueueSpec,
+    process: async ({ jobId, trigger }) => {
+        console.log(`cron ${jobId}`);
 
-// The reconcile sweep for the demo queue, expressed as a cron workload: every 15s it triggers
-// a fixed set into `demo`. Dedup keeps an in-flight item from re-queuing, but a finished one
-// re-enqueues on the next tick, so the loop visibly cycles.
-jobManager.registerCron(reconcile({
-    name: 'demo-sweep',
-    schedule: { every: '15s' },
-    target: 'demo',
-    scan: async () => ['alpha', 'beta', 'gamma'].map((id) => ({ id })),
-}));
+        const thresholdDate = new Date(Date.now() - settings.resyncConnectionIntervalMs);
+        const connections = await prisma.connection.findMany({
+            where: {
+                OR: [
+                    { syncedAt: null },
+                    { syncedAt: { lt: thresholdDate }}
+                ]
+            }
+        });
+
+        await Promise.all(connections.map(async (connection) => {
+            console.log(`Scheduling work for ${connection.id}`);
+            await trigger('connection', {
+                connectionId: connection.id,
+                orgId: SINGLE_TENANT_ORG_ID,
+            })
+        }))
+    }
+}
+
+jobManager.register(cronWorkload);
+jobManager.register(connectionWorkload);
 
 await jobManager.start();
+
+const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
+
 
 const listenToShutdownSignals = () => {
     const signals = SHUTDOWN_SIGNALS;
@@ -144,18 +141,18 @@ const listenToShutdownSignals = () => {
 
             logger.info(`Received ${signal}, cleaning up...`);
 
-            await repoIndexManager.dispose()
-            await connectionManager.dispose()
-            await repoPermissionSyncer.dispose()
-            await accountPermissionSyncer.dispose()
-            await auditLogPruner.dispose()
-            await attachmentPruner.dispose()
+            // await repoIndexManager.dispose()
+            // await connectionManager.dispose()
+            // await repoPermissionSyncer.dispose()
+            // await accountPermissionSyncer.dispose()
+            // await auditLogPruner.dispose()
+            // await attachmentPruner.dispose()
             await configManager.dispose()
             await jobManager.stop();
 
             await prisma.$disconnect();
             await redis.quit();
-            await api.dispose();
+            // await api.dispose();
             await shutdownPosthog();
 
             logger.info('All workers shut down gracefully');

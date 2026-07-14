@@ -1,12 +1,13 @@
-import { Prisma, PrismaClient } from "@sourcebot/db";
+import { Prisma } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { loadConfig } from "@sourcebot/shared";
 import chokidar, { FSWatcher } from 'chokidar';
-import { ConnectionManager } from "./connectionManager.js";
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import isEqual from 'fast-deep-equal';
+import { JobManager } from "./types.js";
+import { prisma } from "./prisma.js";
 
 const logger = createLogger('config-manager');
 
@@ -14,8 +15,7 @@ export class ConfigManager {
     private watcher: FSWatcher;
 
     constructor(
-        private db: PrismaClient,
-        private connectionManager: ConnectionManager,
+        private jobManager: JobManager,
         configPath: string,
     ) {
         this.watcher = chokidar.watch(configPath, {
@@ -46,14 +46,13 @@ export class ConfigManager {
         await syncSearchContexts({
             contexts: config.contexts,
             orgId: SINGLE_TENANT_ORG_ID,
-            db: this.db,
         });
     }
 
     private syncConnections = async (connections?: { [key: string]: ConnectionConfig }) => {
         if (connections) {
             for (const [key, newConnectionConfig] of Object.entries(connections)) {
-                const existingConnection = await this.db.connection.findUnique({
+                const existingConnection = await prisma.connection.findUnique({
                     where: {
                         name_orgId: {
                             name: key,
@@ -73,7 +72,7 @@ export class ConfigManager {
 
                 // Either update the existing connection or create a new one.
                 const connection = existingConnection ?
-                    await this.db.connection.update({
+                    await prisma.connection.update({
                         where: {
                             id: existingConnection.id,
                         },
@@ -84,7 +83,7 @@ export class ConfigManager {
                             enforcePermissionsForPublicRepos,
                         }
                     }) :
-                    await this.db.connection.create({
+                    await prisma.connection.create({
                         data: {
                             name: key,
                             config: newConnectionConfig as unknown as Prisma.InputJsonValue,
@@ -102,13 +101,16 @@ export class ConfigManager {
 
                 if (connectionNeedsSyncing) {
                     logger.debug(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
-                    await this.connectionManager.createJobs([connection]);
+                    await this.jobManager.trigger('connection', {
+                        connectionId: connection.id,
+                        orgId: SINGLE_TENANT_ORG_ID,
+                    })
                 }
             }
         }
 
         // Delete any connections that are no longer in the config.
-        const deletedConnections = await this.db.connection.findMany({
+        const deletedConnections = await prisma.connection.findMany({
             where: {
                 isDeclarative: true,
                 name: {
@@ -120,7 +122,7 @@ export class ConfigManager {
 
         for (const connection of deletedConnections) {
             logger.debug(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
-            await this.db.connection.delete({
+            await prisma.connection.delete({
                 where: {
                     id: connection.id,
                 }
