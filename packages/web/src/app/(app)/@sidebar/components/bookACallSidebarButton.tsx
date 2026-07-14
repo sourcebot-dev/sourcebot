@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Phone } from "lucide-react"
 
-const BOOK_A_CALL_BASE_URL = "https://calendly.com/michael-sourcebot/sourcebot-demo"
+const BOOK_A_CALL_BASE_URL = "https://calendly.com/michael-sourcebot/sourcebot-call"
 
 interface BookACallSidebarButtonProps {
     // When the deployment is the public "ask GitHub" app, attribute bookings

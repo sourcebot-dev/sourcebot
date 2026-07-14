@@ -232,7 +232,7 @@
         "primary": {
             "type": "button",
             "label": "Book a Call",
-            "href": "https://calendly.com/michael-sourcebot/sourcebot-demo?utm_source=docs"
+            "href": "https://calendly.com/michael-sourcebot/sourcebot-call?utm_source=docs"
         }
     },
     "footer": {
