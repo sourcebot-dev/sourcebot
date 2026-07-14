@@ -165,8 +165,12 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # Sourcebot collects anonymous usage data using [PostHog](https://posthog.com/). Uncomment this line to disable.
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
-# Configure dependencies
+# Configure dependencies.
+# `apk upgrade --no-cache` pulls patched versions of all base packages. curl and
+# libcurl are upgraded explicitly to ensure the image includes the fix for
+# CVE-2026-7009 (OCSP stapling certificate validation bypass, fixed in 8.20.0-r0).
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
+    apk upgrade --no-cache curl libcurl && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm

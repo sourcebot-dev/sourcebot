@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `curl`/`libcurl` in the Docker image to `8.20.0-r0` to address CVE-2026-7009. [#1442](https://github.com/sourcebot-dev/sourcebot/pull/1442)
+
 ## [5.1.1] - 2026-07-14
 
 - Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)
