@@ -1,8 +1,9 @@
 import { expect, test, describe, vi, beforeEach, afterEach } from 'vitest';
-import { arraysEqualShallow, fetchWithRetry } from './utils';
-import { isRemotePath } from '@sourcebot/shared';
+import { arraysEqualShallow, fetchWithRetry, getAuthCredentialsForRepo } from './utils';
+import { env, isRemotePath } from '@sourcebot/shared';
 import { Logger } from 'winston';
 import { RequestError } from '@octokit/request-error';
+import type { RepoWithConnections } from './types';
 
 vi.mock('@sentry/node', () => ({
     captureException: vi.fn(),
@@ -14,6 +15,33 @@ const createMockLogger = (): Logger => ({
     info: vi.fn(),
     debug: vi.fn(),
 } as unknown as Logger);
+
+describe('getAuthCredentialsForRepo', () => {
+    const originalAskGithubToken = env.EXPERIMENT_ASK_GH_GITHUB_TOKEN;
+
+    afterEach(() => {
+        env.EXPERIMENT_ASK_GH_GITHUB_TOKEN = originalAskGithubToken;
+    });
+
+    test('uses the Ask GitHub PAT before other GitHub credentials', async () => {
+        env.EXPERIMENT_ASK_GH_GITHUB_TOKEN = 'github-pat-token';
+        const repo = {
+            displayName: 'codemirror/dev',
+            external_codeHostType: 'github',
+            external_codeHostUrl: 'https://github.com',
+            cloneUrl: 'https://github.com/codemirror/dev.git',
+            connections: [],
+        } as RepoWithConnections;
+
+        const credentials = await getAuthCredentialsForRepo(repo);
+
+        expect(credentials).toEqual({
+            hostUrl: 'https://github.com',
+            token: 'github-pat-token',
+            cloneUrlWithToken: 'https://x-access-token:github-pat-token@github.com/codemirror/dev.git',
+        });
+    });
+});
 
 test('should return true for identical arrays', () => {
     expect(arraysEqualShallow([1, 2, 3], [1, 2, 3])).toBe(true);
