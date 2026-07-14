@@ -20,10 +20,10 @@ export function BookACallSidebarButton({ isAskGhEnabled }: BookACallSidebarButto
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Book a Call">
+                <SidebarMenuButton asChild tooltip="Book a call">
                     <a href={href} target="_blank" rel="noopener noreferrer">
                         <Phone className="h-4 w-4" />
-                        <span>Book a Call</span>
+                        <span>Book a call</span>
                     </a>
                 </SidebarMenuButton>
             </SidebarMenuItem>
