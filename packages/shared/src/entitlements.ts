@@ -27,6 +27,14 @@ const ACTIVE_ONLINE_LICENSE_STATUSES: LicenseStatus[] = [
     'past_due',
 ];
 
+const ONLINE_LICENSE_ASSERTION_AUDIENCE = 'sourcebot-online-license';
+const ONLINE_LICENSE_ASSERTION_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+// Compatibility switch for the first release that understands signed online
+// licenses. Set this to false in the enforcement release, after Lighthouse has
+// been returning assertions for at least one full online-license TTL.
+const ALLOW_LEGACY_UNSIGNED_ONLINE_LICENSES = true;
+
 // @WARNING: when adding a new entitlement to this list, make sure
 // lighthouse/lambda/entitlements.ts is also updated && deployed
 // prior to rolling a new Sourcebot version.
@@ -46,6 +54,74 @@ const ALL_ENTITLEMENTS = [
     "scim"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
+
+const onlineLicenseAssertionPayloadSchema = z.object({
+    version: z.literal(1),
+    audience: z.literal(ONLINE_LICENSE_ASSERTION_AUDIENCE),
+    licenseId: z.string().min(1),
+    installId: z.string().min(1),
+    status: z.enum([
+        'active',
+        'trialing',
+        'past_due',
+        'unpaid',
+        'canceled',
+        'incomplete',
+        'incomplete_expired',
+        'paused',
+    ]),
+    entitlements: z.array(z.enum(ALL_ENTITLEMENTS)),
+    seats: z.number().int().nonnegative(),
+    issuedAt: z.string().datetime(),
+    expiresAt: z.string().datetime(),
+}).strict();
+
+export type OnlineLicenseAssertionPayload = z.infer<typeof onlineLicenseAssertionPayloadSchema>;
+
+/**
+ * Verifies and decodes an online-license assertion. The signature covers the
+ * encoded payload itself, avoiding cross-language JSON canonicalization.
+ */
+export const verifyOnlineLicenseAssertion = (assertion: string): OnlineLicenseAssertionPayload | null => {
+    try {
+        const parts = assertion.split('.');
+        if (parts.length !== 2) {
+            return null;
+        }
+
+        const [encodedPayload, signature] = parts;
+        if (!encodedPayload || !signature) {
+            return null;
+        }
+
+        if (!verifySignature(encodedPayload, signature, env.SOURCEBOT_PUBLIC_KEY_PATH)) {
+            logger.error('Online license assertion signature verification failed');
+            return null;
+        }
+
+        const decodedPayload = Buffer.from(encodedPayload, 'base64url').toString('utf8');
+        const payload = onlineLicenseAssertionPayloadSchema.parse(JSON.parse(decodedPayload));
+        const issuedAt = new Date(payload.issuedAt).getTime();
+        const expiresAt = new Date(payload.expiresAt).getTime();
+        const now = Date.now();
+
+        if (
+            payload.installId !== env.SOURCEBOT_INSTALL_ID ||
+            issuedAt > now + ONLINE_LICENSE_ASSERTION_CLOCK_SKEW_MS ||
+            expiresAt <= now ||
+            expiresAt <= issuedAt ||
+            (expiresAt - issuedAt) > STALE_ONLINE_LICENSE_THRESHOLD_MS
+        ) {
+            logger.error('Online license assertion claims are invalid');
+            return null;
+        }
+
+        return payload;
+    } catch (error) {
+        logger.error(`Failed to verify online license assertion: ${error}`);
+        return null;
+    }
+};
 
 const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense | null => {
     try {
@@ -114,7 +190,9 @@ export const STALE_ONLINE_LICENSE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 // so the warning has a chance to fire before entitlements are stripped.
 export const STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS = 48 * 60 * 60 * 1000;
 
-const getValidOnlineLicense = (_license: License | null): License | null => {
+type ValidOnlineLicense = Pick<OnlineLicenseAssertionPayload, 'entitlements' | 'status'>;
+
+const getValidLegacyOnlineLicense = (_license: License | null): ValidOnlineLicense | null => {
     if (
         _license &&
         _license.status &&
@@ -123,7 +201,32 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
         (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS &&
         _license.lastSyncErrorCode !== 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE'
     ) {
-        return _license;
+        return {
+            entitlements: _license.entitlements as Entitlement[],
+            status: _license.status as LicenseStatus,
+        };
+    }
+
+    return null;
+}
+
+const getValidOnlineLicense = (_license: License | null): ValidOnlineLicense | null => {
+    // A present but invalid assertion must never fall back to unsigned columns.
+    if (_license?.licenseAssertion !== null && _license?.licenseAssertion !== undefined) {
+        if (_license.lastSyncErrorCode === 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE') {
+            return null;
+        }
+
+        const assertion = verifyOnlineLicenseAssertion(_license.licenseAssertion);
+        if (assertion && ACTIVE_ONLINE_LICENSE_STATUSES.includes(assertion.status)) {
+            return assertion;
+        }
+
+        return null;
+    }
+
+    if (ALLOW_LEGACY_UNSIGNED_ONLINE_LICENSES) {
+        return getValidLegacyOnlineLicense(_license);
     }
 
     return null;

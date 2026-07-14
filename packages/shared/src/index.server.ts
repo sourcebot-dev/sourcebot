@@ -12,10 +12,12 @@ export {
     getOfflineLicenseMetadata,
     STALE_ONLINE_LICENSE_THRESHOLD_MS,
     STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
+    verifyOnlineLicenseAssertion,
 } from "./entitlements.js";
 export type {
     Entitlement,
     OfflineLicenseMetadata,
+    OnlineLicenseAssertionPayload,
 } from "./entitlements.js";
 export type {
     RepoMetadata,

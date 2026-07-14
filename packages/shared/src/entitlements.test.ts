@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     env: {
         SOURCEBOT_PUBLIC_KEY_PATH: '/tmp/test-key',
         SOURCEBOT_EE_LICENSE_KEY: undefined as string | undefined,
+        SOURCEBOT_INSTALL_ID: 'test-install',
     } as Record<string, string | undefined>,
     verifySignature: vi.fn(() => true),
 }));
@@ -78,10 +79,28 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     yearlyPeakSeats: null,
     lastSyncAt: new Date(),
     lastSyncErrorCode: null,
+    licenseAssertion: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
 });
+
+const onlineAssertion = (overrides: Record<string, unknown> = {}): string => {
+    const payload = {
+        version: 1,
+        audience: 'sourcebot-online-license',
+        licenseId: 'subscription-1',
+        installId: 'test-install',
+        status: 'active',
+        entitlements: ['sso'],
+        seats: 10,
+        issuedAt: new Date(Date.now() - 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        ...overrides,
+    };
+
+    return `${Buffer.from(JSON.stringify(payload)).toString('base64url')}.fake-signature`;
+};
 
 beforeEach(() => {
     mocks.env.SOURCEBOT_EE_LICENSE_KEY = undefined;
@@ -176,6 +195,63 @@ describe('getEntitlements', () => {
 
     test('returns empty when license has no status', () => {
         expect(getEntitlements(makeLicense({ entitlements: ['sso'] }))).toEqual([]);
+    });
+
+    describe('signed online assertions', () => {
+        test('uses entitlements from a valid assertion instead of mutable columns', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['audit'],
+                licenseAssertion: onlineAssertion({ entitlements: ['sso'] }),
+            });
+
+            expect(getEntitlements(license)).toEqual(['sso']);
+        });
+
+        test('does not fall back to mutable columns when the signature is invalid', () => {
+            mocks.verifySignature.mockReturnValue(false);
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['audit'],
+                licenseAssertion: onlineAssertion(),
+            });
+
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('rejects an assertion issued for another installation', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['audit'],
+                licenseAssertion: onlineAssertion({ installId: 'different-install' }),
+            });
+
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('rejects an expired assertion even when lastSyncAt was forged', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['audit'],
+                lastSyncAt: new Date(),
+                licenseAssertion: onlineAssertion({
+                    issuedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+                    expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+                }),
+            });
+
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('rejects active mutable columns when the signed status is canceled', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['audit'],
+                licenseAssertion: onlineAssertion({ status: 'canceled' }),
+            });
+
+            expect(getEntitlements(license)).toEqual([]);
+        });
     });
 
     test('returns all entitlements when offline key is valid', () => {

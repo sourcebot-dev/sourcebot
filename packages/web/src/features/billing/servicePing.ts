@@ -7,7 +7,8 @@ import {
     decryptActivationCode,
     env,
     SOURCEBOT_VERSION,
-    isValidOfflineLicenseActive
+    isValidOfflineLicenseActive,
+    verifyOnlineLicenseAssertion,
 } from "@sourcebot/shared";
 import { client } from "./client";
 import { ServicePingRequest } from "./types";
@@ -127,6 +128,13 @@ export const syncWithLighthouse = async (orgId: number) => {
 
     // If we have a license and Lighthouse returned license data, sync it
     if (license && response.license) {
+        if (response.licenseAssertion && !verifyOnlineLicenseAssertion(response.licenseAssertion)) {
+            // Never persist an assertion we cannot authenticate. In particular,
+            // do not silently write only the legacy fields and create a
+            // signature-downgrade path.
+            throw new Error('Lighthouse returned an invalid online license assertion');
+        }
+
         const {
             entitlements,
             seats,
@@ -174,6 +182,7 @@ export const syncWithLighthouse = async (orgId: number) => {
                 yearlyPeakSeats: yearlyTermStatus?.peakSeats ?? null,
                 lastSyncAt: new Date(),
                 lastSyncErrorCode: null,
+                ...(response.licenseAssertion && { licenseAssertion: response.licenseAssertion }),
             },
         });
 

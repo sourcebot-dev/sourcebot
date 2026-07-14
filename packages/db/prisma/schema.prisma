@@ -375,6 +375,9 @@ model License {
 
   lastSyncAt        DateTime?
   lastSyncErrorCode String?
+  /// Compact, signed online-license assertion returned by Lighthouse.
+  /// Authorization must be derived from this assertion when it is present.
+  licenseAssertion  String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

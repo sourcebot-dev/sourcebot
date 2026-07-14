@@ -102,6 +102,8 @@ export const servicePingResponseSchema = z.object({
         hasPaymentMethod: z.boolean(),
         yearlyTermStatus: yearlyTermStatusSchema.optional(),
     }).optional(),
+    // Optional while older Lighthouse deployments are being upgraded.
+    licenseAssertion: z.string().optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;
 
