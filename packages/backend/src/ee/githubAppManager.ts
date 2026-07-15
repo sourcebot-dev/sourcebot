@@ -1,6 +1,5 @@
 import { App } from "@octokit/app";
 import { getTokenFromConfig } from "@sourcebot/shared";
-import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { GitHubAppConfig } from "@sourcebot/schemas/v3/index.type";
 import { env, loadConfig } from "@sourcebot/shared";
@@ -21,8 +20,8 @@ export class GithubAppManager {
     private static instance: GithubAppManager | null = null;
     private octokitApps: Map<number, App>;
     private installationMap: Map<string, Installation>;
-    private db: PrismaClient | null = null;
     private initialized: boolean = false;
+    private initializationPromise: Promise<void> | null = null;
 
     private constructor() {
         this.octokitApps = new Map<number, App>();
@@ -36,16 +35,33 @@ export class GithubAppManager {
         return GithubAppManager.instance;
     }
 
-    private ensureInitialized(): void {
+    private assertInitialized(): void {
         if (!this.initialized) {
-            throw new Error('GithubAppManager must be initialized before use. Call init() first.');
+            throw new Error('GithubAppManager must be initialized before use. Call ensureInitialized() first.');
         }
     }
 
-    public async init(db: PrismaClient) {
-        this.db = db;
+    public async ensureInitialized(): Promise<void> {
+        if (this.initialized) {
+            return;
+        }
+
+        if (!this.initializationPromise) {
+            this.initializationPromise = this.init().catch((error) => {
+                // Allow a later operation to retry after a transient GitHub or
+                // secret-resolution failure.
+                this.initializationPromise = null;
+                throw error;
+            });
+        }
+
+        await this.initializationPromise;
+    }
+
+    private async init(): Promise<void> {
         const config = await loadConfig(env.CONFIG_PATH);
         if (!config.apps) {
+            this.initialized = true;
             return;
         }
 
@@ -86,12 +102,12 @@ export class GithubAppManager {
                 this.installationMap.set(this.generateMapKey(owner, deploymentHostname), installation);
             }
         }
-        
+
         this.initialized = true;
     }
 
     public async getInstallationToken(owner: string, deploymentHostname: string = GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME): Promise<string> {
-        this.ensureInitialized();
+        this.assertInitialized();
 
         const key = this.generateMapKey(owner, deploymentHostname);
         const installation = this.installationMap.get(key) as Installation | undefined;
