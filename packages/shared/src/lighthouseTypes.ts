@@ -1,4 +1,53 @@
-import { z } from "zod";
+import { z } from 'zod';
+
+// @note: keep these schemas in sync with lighthouse/lambda/routes/*.ts.
+export const ONLINE_LICENSE_ASSERTION_AUDIENCE = 'sourcebot-online-license';
+
+export const yearlyTermStatusSchema = z.object({
+    termStartedAt: z.string().datetime(),
+    termEndsAt: z.string().datetime(),
+    totalQuartersInTerm: z.number().int(),
+    currentQuarterNumber: z.number().int(),
+    currentQuarterStartedAt: z.string().datetime(),
+    currentQuarterEndsAt: z.string().datetime(),
+    committedSeats: z.number().int(),
+    overageSeats: z.number().int(),
+    billableOverageSeats: z.number().int(),
+    peakSeats: z.number().int(),
+});
+export type YearlyTermStatus = z.infer<typeof yearlyTermStatusSchema>;
+
+export const onlineLicenseSnapshotSchema = z.object({
+    entitlements: z.array(z.string()),
+    seats: z.number().int().nonnegative(),
+    status: z.string(),
+    planName: z.string(),
+    unitAmount: z.number().int(),
+    currency: z.string(),
+    interval: z.string(),
+    intervalCount: z.number().int(),
+    nextRenewalAt: z.string().datetime().nullable(),
+    nextRenewalAmount: z.number().int().nullable(),
+    cancelAt: z.string().datetime().nullable(),
+    trialEnd: z.string().datetime().nullable(),
+    hasPaymentMethod: z.boolean(),
+
+    // Yearly-only billing state. Absent for non-yearly subscriptions or when
+    // reconciliation state has not yet been initialized.
+    yearlyTermStatus: yearlyTermStatusSchema.optional(),
+});
+export type OnlineLicenseSnapshot = z.infer<typeof onlineLicenseSnapshotSchema>;
+
+export const onlineLicenseAssertionClaimsSchema = z.object({
+    version: z.literal(1),
+    audience: z.literal(ONLINE_LICENSE_ASSERTION_AUDIENCE),
+    licenseId: z.string().min(1),
+    installId: z.string().min(1),
+    issuedAt: z.string().datetime(),
+    expiresAt: z.string().datetime(),
+    license: onlineLicenseSnapshotSchema,
+});
+export type OnlineLicenseAssertionClaims = z.infer<typeof onlineLicenseAssertionClaimsSchema>;
 
 /**
  * A best-effort snapshot of the host / container resources the deployment is
@@ -43,7 +92,7 @@ export const servicePingRequestSchema = z.object({
     isTelemetryEnabled: z.boolean(),
     isLanguageModelConfigured: z.boolean(),
     activationCode: z.string().optional(),
-    // optional for back-compat with Lighthouse deployments that predate it.
+    // Optional for back-compat with Lighthouse deployments that predate it.
     systemInfo: systemInfoSchema.optional(),
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
@@ -71,38 +120,9 @@ export const claimActivationCodeResponseSchema = z.object({
 });
 export type ClaimActivationCodeResponse = z.infer<typeof claimActivationCodeResponseSchema>;
 
-export const yearlyTermStatusSchema = z.object({
-    termStartedAt: z.string().datetime(),
-    termEndsAt: z.string().datetime(),
-    totalQuartersInTerm: z.number().int(),
-    currentQuarterNumber: z.number().int(),
-    currentQuarterStartedAt: z.string().datetime(),
-    currentQuarterEndsAt: z.string().datetime(),
-    committedSeats: z.number().int(),
-    overageSeats: z.number().int(),
-    billableOverageSeats: z.number().int(),
-    peakSeats: z.number().int(),
-});
-export type YearlyTermStatus = z.infer<typeof yearlyTermStatusSchema>;
-
 export const servicePingResponseSchema = z.object({
-    license: z.object({
-        entitlements: z.string().array(),
-        seats: z.number(),
-        status: z.string(),
-        planName: z.string(),
-        unitAmount: z.number().int(),
-        currency: z.string(),
-        interval: z.string(),
-        intervalCount: z.number().int(),
-        nextRenewalAt: z.string().datetime().nullable(),
-        nextRenewalAmount: z.number().int().nullable(),
-        cancelAt: z.string().datetime().nullable(),
-        trialEnd: z.string().datetime().nullable(),
-        hasPaymentMethod: z.boolean(),
-        yearlyTermStatus: yearlyTermStatusSchema.optional(),
-    }).optional(),
-    // Optional while older Lighthouse deployments are being upgraded.
+    status: z.literal('ok'),
+    license: onlineLicenseSnapshotSchema.optional(),
     licenseAssertion: z.string().optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;

@@ -17,8 +17,8 @@ export {
 export type {
     Entitlement,
     OfflineLicenseMetadata,
-    OnlineLicenseAssertionPayload,
 } from "./entitlements.js";
+export * from './lighthouseTypes.js';
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,

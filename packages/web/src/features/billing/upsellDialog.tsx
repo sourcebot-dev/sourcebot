@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createCheckoutSession } from "@/features/billing/actions";
 import { useHasLicense } from "@/features/billing/hasLicenseProvider";
 import { BillingInterval, PlanComparisonTable } from "@/features/billing/planComparisonTable";
-import { OffersResponse } from "@/features/billing/types";
+import type { OffersResponse } from "@sourcebot/shared/client";
 import { useOffers } from "@/features/billing/useOffers";
 import { useRole } from "@/features/auth/useRole";
 import useCaptureEvent from "@/hooks/useCaptureEvent";

@@ -22,7 +22,7 @@ import {
     ServicePingRequest,
     ServicePingResponse,
     servicePingResponseSchema,
-} from "./types";
+} from "@sourcebot/shared/client";
 import { lighthouseUnreachable, ServiceError } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";

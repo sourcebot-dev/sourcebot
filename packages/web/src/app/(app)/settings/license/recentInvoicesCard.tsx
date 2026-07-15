@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { Invoice } from "@/features/billing/types";
+import type { Invoice } from "@sourcebot/shared/client";
 import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,4 +90,3 @@ function formatDate(isoDate: string): string {
         year: 'numeric',
     });
 }
-

@@ -9,9 +9,9 @@ import {
     SOURCEBOT_VERSION,
     isValidOfflineLicenseActive,
     verifyOnlineLicenseAssertion,
+    type ServicePingRequest,
 } from "@sourcebot/shared";
 import { client } from "./client";
-import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
 import { activeMembershipWhere } from "@/features/membership/utils";
@@ -126,15 +126,24 @@ export const syncWithLighthouse = async (orgId: number) => {
 
     logger.info(`Service ping sent successfully`);
 
+    const licenseAssertion = response.licenseAssertion;
+    const verifiedAssertion = licenseAssertion !== undefined
+        ? verifyOnlineLicenseAssertion(licenseAssertion)
+        : null;
+
+    if (licenseAssertion !== undefined && !verifiedAssertion) {
+        // Never persist an assertion we cannot authenticate. In particular,
+        // do not silently write only the legacy fields and create a
+        // signature-downgrade path.
+        throw new Error('Lighthouse returned an invalid online license assertion');
+    }
+
+    if (licenseAssertion !== undefined && !response.license) {
+        throw new Error('Lighthouse returned an online license assertion without license data');
+    }
+
     // If we have a license and Lighthouse returned license data, sync it
     if (license && response.license) {
-        if (response.licenseAssertion && !verifyOnlineLicenseAssertion(response.licenseAssertion)) {
-            // Never persist an assertion we cannot authenticate. In particular,
-            // do not silently write only the legacy fields and create a
-            // signature-downgrade path.
-            throw new Error('Lighthouse returned an invalid online license assertion');
-        }
-
         const {
             entitlements,
             seats,
@@ -150,7 +159,7 @@ export const syncWithLighthouse = async (orgId: number) => {
             trialEnd,
             hasPaymentMethod,
             yearlyTermStatus,
-        } = response.license;
+        } = verifiedAssertion?.license ?? response.license;
 
         await __unsafePrisma.license.update({
             where: {
@@ -182,7 +191,7 @@ export const syncWithLighthouse = async (orgId: number) => {
                 yearlyPeakSeats: yearlyTermStatus?.peakSeats ?? null,
                 lastSyncAt: new Date(),
                 lastSyncErrorCode: null,
-                ...(response.licenseAssertion && { licenseAssertion: response.licenseAssertion }),
+                ...(licenseAssertion !== undefined && { licenseAssertion }),
             },
         });
 
@@ -191,7 +200,6 @@ export const syncWithLighthouse = async (orgId: number) => {
 };
 
 export const startServicePingCronJob = () => {
-    syncWithLighthouse(SINGLE_TENANT_ORG_ID).catch(() => { /* ignore error */ })
     setInterval(
         () => syncWithLighthouse(SINGLE_TENANT_ORG_ID).catch(() => { /* ignore error */ }),
         SERVICE_PING_INTERVAL_MS
