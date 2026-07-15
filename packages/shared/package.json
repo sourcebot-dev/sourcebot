@@ -23,7 +23,7 @@
         "strip-json-comments": "^5.0.1",
         "triple-beam": "^1.4.1",
         "winston": "^3.15.0",
-        "zod": "^3.25.74"
+        "zod": "^3.25.76"
     },
     "devDependencies": {
         "@types/micromatch": "^4.0.9",
