@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [EE] Fixed worker startup races that could disable GitHub App authentication and permission syncing until restart after an online license refresh. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+
 ## [5.1.1] - 2026-07-14
 
 - Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)
