@@ -363,6 +363,7 @@ const options = {
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
         PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
+        EXPERIMENT_ASK_GH_GITHUB_TOKEN: z.string().optional(),
 
         // Used as the key for AES-256-CBC encryption (@see shared/src/crypto.ts).
         // The key is read as ASCII (1 char = 1 byte), so AES-256's 32-byte key

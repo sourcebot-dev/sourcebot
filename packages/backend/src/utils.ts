@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
-import { getTokenFromConfig } from "@sourcebot/shared";
+import { env, getTokenFromConfig } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
@@ -115,6 +115,23 @@ export const fetchWithRetry = async <T>(
 // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
 export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
+    if (repo.external_codeHostType === 'github' && env.EXPERIMENT_ASK_GH_GITHUB_TOKEN) {
+        logger?.debug(`Using Ask GitHub PAT for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+
+        const token = env.EXPERIMENT_ASK_GH_GITHUB_TOKEN;
+        return {
+            hostUrl: repo.external_codeHostUrl,
+            token,
+            cloneUrlWithToken: createGitCloneUrlWithToken(
+                repo.cloneUrl,
+                {
+                    username: 'x-access-token',
+                    password: token,
+                }
+            ),
+        };
+    }
+
     // If we have github apps configured we assume that we must use them for github service auth
     if (repo.external_codeHostType === 'github' && await hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
         logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
