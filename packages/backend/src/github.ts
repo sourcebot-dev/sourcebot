@@ -116,36 +116,37 @@ export const createOctokitFromToken = async ({ token, url }: { token?: string, u
 }
 
 /**
- * Helper function to get an authenticated Octokit instance using GitHub App if available,
- * otherwise falls back to the provided octokit instance.
+ * Uses GitHub App authentication when an app is configured. App initialization
+ * and token failures are propagated so callers cannot mistake a partial,
+ * unauthenticated response for an authoritative repository list.
  */
-const getOctokitWithGithubApp = async (
+export const getOctokitWithGithubApp = async (
     octokit: Octokit,
     owner: string,
     url: string | undefined,
     context: string
 ): Promise<Octokit> => {
-    if (!await hasEntitlement('github-app') || !GithubAppManager.getInstance().appsConfigured()) {
+    const githubAppManager = GithubAppManager.getInstance();
+    await githubAppManager.ensureInitialized();
+    if (!githubAppManager.appsConfigured()) {
         return octokit;
+    }
+
+    if (!await hasEntitlement('github-app')) {
+        throw new Error(`GitHub App authentication is not currently licensed for ${context}.`);
     }
 
     try {
         const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
-        const token = await GithubAppManager.getInstance().getInstallationToken(owner, hostname);
-        const { octokit: octokitFromToken, isAuthenticated } = await createOctokitFromToken({
+        const token = await githubAppManager.getInstallationToken(owner, hostname);
+        const { octokit: octokitFromToken } = await createOctokitFromToken({
             token,
             url,
         });
-
-        if (isAuthenticated) {
-            return octokitFromToken;
-        } else {
-            logger.error(`Failed to authenticate with GitHub App for ${context}. Falling back to legacy token resolution.`);
-            return octokit;
-        }
+        return octokitFromToken;
     } catch (error) {
-        logger.error(`Error getting GitHub App token for ${context}. Falling back to legacy token resolution.`, error);
-        return octokit;
+        logger.error(`Error getting GitHub App token for ${context}.`, error);
+        throw error;
     }
 }
 

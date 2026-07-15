@@ -3,7 +3,7 @@ import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSo
 import { env, createLogger, getIdentityProviderConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
 import { ensureFreshAccountToken } from "./tokenRefresh.js";
-import { Job, Queue, Worker } from "bullmq";
+import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import {
     createOctokitFromToken,
@@ -26,6 +26,7 @@ const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}
 
 const QUEUE_NAME = 'accountPermissionSyncQueue';
 const POLLING_INTERVAL_MS = 1000;
+const ENTITLEMENT_RETRY_DELAY_MS = 30 * 1000;
 
 type AccountPermissionSyncJob = {
     jobId: string;
@@ -59,13 +60,13 @@ export class AccountPermissionSyncer {
     }
 
     public async startScheduler() {
-        if (!await hasEntitlement('permission-syncing')) {
-            throw new Error('Permission syncing is not supported in current plan.');
-        }
-
         logger.debug('Starting scheduler');
 
         this.interval = setIntervalAsync(async () => {
+            if (!await hasEntitlement('permission-syncing')) {
+                return;
+            }
+
             const thresholdDate = new Date(Date.now() - this.settings.userDrivenPermissionSyncIntervalMs);
 
             const accounts = await this.db.account.findMany({
@@ -168,6 +169,11 @@ export class AccountPermissionSyncer {
     }
 
     private async runJob(job: Job<AccountPermissionSyncJob>) {
+        if (!await hasEntitlement('permission-syncing')) {
+            await job.moveToDelayed(Date.now() + ENTITLEMENT_RETRY_DELAY_MS, job.token);
+            throw new DelayedError('Permission syncing entitlement is not currently available.');
+        }
+
         const id = job.data.jobId;
         const logger = createJobLogger(id);
 

@@ -132,27 +132,35 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
         };
     }
 
-    // If we have github apps configured we assume that we must use them for github service auth
-    if (repo.external_codeHostType === 'github' && await hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
-        logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+    if (repo.external_codeHostType === 'github') {
+        const githubAppManager = GithubAppManager.getInstance();
+        await githubAppManager.ensureInitialized();
 
-        const owner = repo.displayName?.split('/')[0];
-        const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
-        if (!owner || !deploymentHostname) {
-            throw new Error(`Failed to fetch GitHub App for repo ${repo.displayName}:Invalid repo displayName (${repo.displayName}) or deployment hostname (${deploymentHostname})`);
-        }
+        if (githubAppManager.appsConfigured()) {
+            if (!await hasEntitlement('github-app')) {
+                throw new Error(`GitHub App authentication is not currently licensed for repo ${repo.displayName}.`);
+            }
 
-        const token = await GithubAppManager.getInstance().getInstallationToken(owner, deploymentHostname);
-        return {
-            hostUrl: repo.external_codeHostUrl,
-            token,
-            cloneUrlWithToken: createGitCloneUrlWithToken(
-                repo.cloneUrl,
-                {
-                    username: 'x-access-token',
-                    password: token
-                }
-            ),
+            logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+
+            const owner = repo.displayName?.split('/')[0];
+            const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
+            if (!owner || !deploymentHostname) {
+                throw new Error(`Failed to fetch GitHub App for repo ${repo.displayName}:Invalid repo displayName (${repo.displayName}) or deployment hostname (${deploymentHostname})`);
+            }
+
+            const token = await githubAppManager.getInstallationToken(owner, deploymentHostname);
+            return {
+                hostUrl: repo.external_codeHostUrl,
+                token,
+                cloneUrlWithToken: createGitCloneUrlWithToken(
+                    repo.cloneUrl,
+                    {
+                        username: 'x-access-token',
+                        password: token
+                    }
+                ),
+            }
         }
     }
 
