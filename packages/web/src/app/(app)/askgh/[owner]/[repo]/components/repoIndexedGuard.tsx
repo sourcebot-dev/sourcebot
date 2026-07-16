@@ -1,9 +1,10 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ServiceError } from "@/lib/serviceError";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { usePrevious } from "@uidotdev/usehooks";
 import { useEffect } from "react";
 import { useBrowserNotification } from "@/hooks/useBrowserNotification";
@@ -61,8 +62,17 @@ export function RepoIndexedGuard({ initialRepoInfo, children }: Props) {
     }, [previousIsIndexed, repoInfo.isIndexed, repoInfo.displayName, repoInfo.name, repoInfo.imageUrl, showNotification]);
 
     if (isError) {
-        // todo
-        return null;
+        return (
+            <div className="flex min-h-[400px] items-center justify-center p-4">
+                <Alert variant="destructive" className="max-w-lg">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <AlertTitle>Unable to load repository status</AlertTitle>
+                    <AlertDescription>
+                         Please refresh the page or try again shortly.
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
     }
 
     if (!repoInfo.isIndexed) {
