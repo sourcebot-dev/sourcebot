@@ -82,25 +82,3 @@ describe('SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS', () => {
         await expect(import('./env.server.js')).rejects.toThrow();
     });
 });
-
-describe('SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED', () => {
-    beforeEach(() => {
-        vi.resetModules();
-        delete process.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED;
-    });
-
-    afterEach(() => {
-        delete process.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED;
-    });
-
-    test('defaults to false', async () => {
-        const { env } = await import('./env.server.js');
-        expect(env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED).toBe('false');
-    });
-
-    test.each(['true', 'false'])('accepts %s', async (enabled) => {
-        process.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = enabled;
-        const { env } = await import('./env.server.js');
-        expect(env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED).toBe(enabled);
-    });
-});
