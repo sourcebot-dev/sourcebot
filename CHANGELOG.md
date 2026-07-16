@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+
 ## [5.1.2] - 2026-07-16
 
 ### Added
@@ -16,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Verified signed online license assertions before granting paid feature entitlements. [#1442](https://github.com/sourcebot-dev/sourcebot/pull/1442)
 - [EE] Fixed worker startup races that could disable GitHub App authentication and permission syncing until restart after an online license refresh. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
 - [EE] Fixed GitHub connection sync jobs to fail safely when GitHub App authentication is configured without the required entitlement. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
-- [EE] Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
 
 ## [5.1.1] - 2026-07-14
 
