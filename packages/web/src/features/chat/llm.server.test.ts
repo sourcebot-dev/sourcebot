@@ -6,18 +6,32 @@ const mocks = vi.hoisted(() => ({
     },
     getTokenFromConfig: vi.fn(),
     getAuthContext: vi.fn(),
+    isServiceError: vi.fn(),
 }));
 
 vi.mock('@sourcebot/shared', () => mocks);
 vi.mock('server-only', () => ({}));
+vi.mock('@/lib/posthog', () => ({
+    createPostHogClient: vi.fn(),
+    tryGetPostHogDistinctId: vi.fn(),
+}));
+vi.mock('./logger', () => ({
+    logger: {
+        error: vi.fn(),
+        warn: vi.fn(),
+    },
+}));
 vi.mock('@/middleware/withAuth', () => ({
     getAuthContext: mocks.getAuthContext,
+}));
+vi.mock('@/lib/utils', () => ({
+    isServiceError: mocks.isServiceError,
 }));
 
 import {
     resolveLanguageModelHeaders,
     SOURCEBOT_USER_EMAIL_HEADER,
-} from './languageModelHeaders.server';
+} from './llm.server';
 
 const resolveHeadersForUser = (
     email: string,
@@ -33,6 +47,8 @@ describe('resolveLanguageModelHeaders', () => {
         mocks.getTokenFromConfig.mockReset();
         mocks.getAuthContext.mockReset();
         mocks.getAuthContext.mockResolvedValue({ user: undefined });
+        mocks.isServiceError.mockReset();
+        mocks.isServiceError.mockReturnValue(false);
     });
 
     test('does not add the user email header by default', async () => {
@@ -54,12 +70,14 @@ describe('resolveLanguageModelHeaders', () => {
         await expect(resolveLanguageModelHeaders(undefined)).resolves.toBeUndefined();
     });
 
-    test('omits synthetic placeholder emails', async () => {
+    test('omits the user email header when auth context resolution fails', async () => {
+        const authError = { statusCode: 401 };
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
+        mocks.getAuthContext.mockResolvedValue(authError);
+        mocks.isServiceError.mockReturnValue(true);
 
-        await expect(resolveHeadersForUser(
-            'placeholder-internal-user-id@no-email.invalid',
-        )).resolves.toBeUndefined();
+        await expect(resolveLanguageModelHeaders(undefined)).resolves.toBeUndefined();
+        expect(mocks.isServiceError).toHaveBeenCalledWith(authError);
     });
 
     test('preserves configured headers and overrides a case-insensitive email header', async () => {

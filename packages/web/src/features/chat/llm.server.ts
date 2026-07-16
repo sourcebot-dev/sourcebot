@@ -23,7 +23,8 @@ import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { env, getTokenFromConfig } from '@sourcebot/shared';
 import { extractReasoningMiddleware, JSONValue, wrapLanguageModel } from "ai";
 import * as Sentry from "@sentry/nextjs";
-import { resolveLanguageModelHeaders } from './languageModelHeaders.server';
+import { getAuthContext } from '@/middleware/withAuth';
+import { isServiceError } from '@/lib/utils';
 
 // @note: This module resolves a configured language model into an AI SDK
 // provider object. It is intentionally FSL (open source) provider plumbing —
@@ -327,6 +328,42 @@ const extractLanguageModelKeyValuePairs = async (
     }
 
     return resolvedPairs;
+};
+
+export const SOURCEBOT_USER_EMAIL_HEADER = 'X-Sourcebot-User-Email';
+
+export const resolveLanguageModelHeaders = async (
+    configuredHeaders: Record<string, string | Token> | undefined,
+): Promise<Record<string, string> | undefined> => {
+    const headers: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(configuredHeaders ?? {})) {
+        headers[key] = typeof value === 'string'
+            ? value
+            : await getTokenFromConfig(value);
+    }
+
+    const userEmail = await (async () => {
+        if (env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED !== 'true') {
+            return undefined;
+        }
+
+        const authContext = await getAuthContext();
+        return isServiceError(authContext) ? undefined : authContext.user?.email;
+    })();
+    if (userEmail) {
+        // Header names are case-insensitive. Remove any configured variant so
+        // the authenticated user's email is always the authoritative value.
+        for (const key of Object.keys(headers)) {
+            if (key.toLowerCase() === SOURCEBOT_USER_EMAIL_HEADER.toLowerCase()) {
+                delete headers[key];
+            }
+        }
+
+        headers[SOURCEBOT_USER_EMAIL_HEADER] = userEmail.toLowerCase();
+    }
+
+    return Object.keys(headers).length > 0 ? headers : undefined;
 };
 
 type AnthropicThinkingConfig = NonNullable<AnthropicProviderOptions['thinking']>;
