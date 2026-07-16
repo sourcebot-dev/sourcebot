@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.2] - 2026-07-16
+
 ### Added
 - Added an opt-in `SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED` environment variable that sends the authenticated user's lower-cased email to language model providers in the `X-Sourcebot-User-Email` header. [#1455](https://github.com/sourcebot-dev/sourcebot/pull/1455)
 - Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
