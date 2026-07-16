@@ -7,13 +7,11 @@ import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 export const generateChatNameFromMessage = async ({
     message,
     languageModelConfig,
-    userEmail,
 }: {
     message: string,
     languageModelConfig: LanguageModel,
-    userEmail?: string,
 }) => {
-    const { model } = await getAISDKLanguageModelAndOptions(languageModelConfig, userEmail);
+    const { model } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
     const prompt = `Convert this question into a short topic title (max 50 characters).
 

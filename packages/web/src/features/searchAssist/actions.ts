@@ -26,7 +26,7 @@ ${SEARCH_SYNTAX_DESCRIPTION}
 `;
 
 export const translateSearchQuery = async ({ prompt }: { prompt: string }) => sew(() =>
-    withOptionalAuth(async ({ user }) => {
+    withOptionalAuth(async () => {
         const models = await getConfiguredLanguageModels();
 
         if (models.length === 0) {
@@ -37,7 +37,7 @@ export const translateSearchQuery = async ({ prompt }: { prompt: string }) => se
             } satisfies ServiceError;
         }
 
-        const { model } = await getAISDKLanguageModelAndOptions(models[0], user?.email);
+        const { model } = await getAISDKLanguageModelAndOptions(models[0]);
 
         const { object } = await generateObject({
             model,

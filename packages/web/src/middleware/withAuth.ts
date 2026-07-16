@@ -13,6 +13,7 @@ import { activatePendingMembership } from "@/features/membership/membership.serv
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
+import { runWithCurrentUser } from "@/lib/currentUserContext";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -49,7 +50,7 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
         return notAuthenticated();
     }
 
-    return fn({ user, org, role, prisma });
+    return runWithCurrentUser(user, () => fn({ user, org, role, prisma }));
 };
 
 export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, options: AuthOptions = {}) => {
@@ -65,7 +66,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return notAuthenticated();
     }
 
-    return fn(authContext);
+    return runWithCurrentUser(authContext.user, () => fn(authContext));
 };
 
 export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {

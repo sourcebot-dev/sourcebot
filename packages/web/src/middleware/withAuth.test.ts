@@ -9,6 +9,7 @@ import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { userScopedPrismaClientExtension } from '@/prisma';
 import { runWithRequestContext } from '@/lib/requestContext';
+import { getCurrentUser } from '@/lib/currentUserContext';
 
 const TEST_OAUTH_SCOPE = 'read';
 
@@ -481,7 +482,9 @@ describe('getAuthContext', () => {
         prisma.userToOrg.updateMany.mockResolvedValue({ count: 1 });
 
         setMockSession(createMockSession({ user: { id: userId } }));
-        const cb = vi.fn();
+        const cb = vi.fn(async () => {
+            expect(getCurrentUser()).toMatchObject({ id: userId });
+        });
         const result = await withAuth(cb);
 
         expect(result).toBeUndefined();

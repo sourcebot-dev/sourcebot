@@ -32,13 +32,13 @@ import { resolveLanguageModelHeaders } from './languageModelHeaders.server';
 // review agent). The re-licensed Ask logic (prompts, tools, threads, chat
 // name generation) lives in `@/ee/features/chat`.
 
-export const getAISDKLanguageModelAndOptions = async (config: LanguageModel, userEmail?: string): Promise<{
+export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
     model: AISDKLanguageModelV3,
     providerOptions?: Record<string, Record<string, JSONValue>>,
     temperature?: number,
 }> => {
     const { provider, model: modelId } = config;
-    const headers = await resolveLanguageModelHeaders(config.headers, userEmail);
+    const headers = await resolveLanguageModelHeaders(config.headers);
 
     const { model: _model, providerOptions } = await (async (): Promise<{
         model: AISDKLanguageModelV3,

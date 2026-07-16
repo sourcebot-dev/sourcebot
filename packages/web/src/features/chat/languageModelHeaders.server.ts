@@ -2,12 +2,13 @@ import 'server-only';
 
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { env, getTokenFromConfig } from '@sourcebot/shared';
+import { getCurrentUser } from '@/lib/currentUserContext';
 
 export const SOURCEBOT_USER_EMAIL_HEADER = 'X-Sourcebot-User-Email';
+const PLACEHOLDER_EMAIL_PATTERN = /^placeholder-.+@no-email\.invalid$/i;
 
 export const resolveLanguageModelHeaders = async (
     configuredHeaders: Record<string, string | Token> | undefined,
-    userEmail: string | undefined,
 ): Promise<Record<string, string> | undefined> => {
     const headers: Record<string, string> = {};
 
@@ -17,7 +18,12 @@ export const resolveLanguageModelHeaders = async (
             : await getTokenFromConfig(value);
     }
 
-    if (env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED === 'true' && userEmail) {
+    const userEmail = getCurrentUser()?.email;
+    if (
+        env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED === 'true' &&
+        userEmail &&
+        !PLACEHOLDER_EMAIL_PATTERN.test(userEmail)
+    ) {
         // Header names are case-insensitive. Remove any configured variant so
         // the authenticated user's email is always the authoritative value.
         for (const key of Object.keys(headers)) {

@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { UserWithAccounts } from '@sourcebot/db';
+import { runWithCurrentUser } from '@/lib/currentUserContext';
 
 const mocks = vi.hoisted(() => ({
     env: {
@@ -15,6 +17,15 @@ import {
     SOURCEBOT_USER_EMAIL_HEADER,
 } from './languageModelHeaders.server';
 
+const resolveHeadersForUser = (
+    email: string,
+    configuredHeaders?: Parameters<typeof resolveLanguageModelHeaders>[0],
+) =>
+    runWithCurrentUser(
+        { email } as unknown as UserWithAccounts,
+        () => resolveLanguageModelHeaders(configuredHeaders),
+    );
+
 describe('resolveLanguageModelHeaders', () => {
     beforeEach(() => {
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'false';
@@ -22,13 +33,13 @@ describe('resolveLanguageModelHeaders', () => {
     });
 
     test('does not add the user email header by default', async () => {
-        await expect(resolveLanguageModelHeaders(undefined, 'User@Example.com')).resolves.toBeUndefined();
+        await expect(resolveHeadersForUser('User@Example.com')).resolves.toBeUndefined();
     });
 
-    test('adds a lower-cased user email when enabled', async () => {
+    test('adds the current user email in lower case when enabled', async () => {
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
 
-        await expect(resolveLanguageModelHeaders(undefined, 'User@Example.COM')).resolves.toEqual({
+        await expect(resolveHeadersForUser('User@Example.COM')).resolves.toEqual({
             [SOURCEBOT_USER_EMAIL_HEADER]: 'user@example.com',
         });
     });
@@ -36,16 +47,24 @@ describe('resolveLanguageModelHeaders', () => {
     test('omits the user email header for anonymous requests', async () => {
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
 
-        await expect(resolveLanguageModelHeaders(undefined, undefined)).resolves.toBeUndefined();
+        await expect(resolveLanguageModelHeaders(undefined)).resolves.toBeUndefined();
+    });
+
+    test('omits synthetic placeholder emails', async () => {
+        mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
+
+        await expect(resolveHeadersForUser(
+            'placeholder-internal-user-id@no-email.invalid',
+        )).resolves.toBeUndefined();
     });
 
     test('preserves configured headers and overrides a case-insensitive email header', async () => {
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
 
-        await expect(resolveLanguageModelHeaders({
+        await expect(resolveHeadersForUser('Authenticated@Example.com', {
             'x-sourcebot-user-email': 'configured@example.com',
             'X-Custom-Header': 'custom-value',
-        }, 'Authenticated@Example.com')).resolves.toEqual({
+        })).resolves.toEqual({
             'X-Custom-Header': 'custom-value',
             [SOURCEBOT_USER_EMAIL_HEADER]: 'authenticated@example.com',
         });
@@ -55,7 +74,7 @@ describe('resolveLanguageModelHeaders', () => {
         const token = { env: 'CUSTOM_HEADER' };
         mocks.getTokenFromConfig.mockResolvedValue('resolved-value');
 
-        await expect(resolveLanguageModelHeaders({ Authorization: token }, undefined)).resolves.toEqual({
+        await expect(resolveLanguageModelHeaders({ Authorization: token })).resolves.toEqual({
             Authorization: 'resolved-value',
         });
         expect(mocks.getTokenFromConfig).toHaveBeenCalledWith(token);
