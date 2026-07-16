@@ -13,6 +13,7 @@ import { activatePendingMembership } from "@/features/membership/membership.serv
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
+import { setSentryUser } from "@/lib/sentryUser";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -82,6 +83,14 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     }
 
     const user = authResult?.user;
+
+    // Associate the resolved principal with Sentry so request-scoped errors
+    // carry the user's identity, regardless of how they authenticated (session,
+    // OAuth Bearer, or API key). Clears the identity for unauthenticated requests.
+    setSentryUser(
+        user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
 
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
