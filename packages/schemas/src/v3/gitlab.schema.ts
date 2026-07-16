@@ -50,6 +50,15 @@ const schema = {
       ],
       "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
     },
+    "webUrl": {
+      "type": "string",
+      "format": "url",
+      "description": "The base URL used to construct links to repositories in the GitLab web UI. Useful when the API is served from a different host than the one users browse (e.g. `https://api.gitlab.example.com` for `url` and `https://gitlab.example.com` for `webUrl`). Defaults to the value of `url`.",
+      "examples": [
+        "https://gitlab.example.com"
+      ],
+      "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+    },
     "all": {
       "type": "boolean",
       "default": false,
