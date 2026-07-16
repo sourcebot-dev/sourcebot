@@ -80,11 +80,10 @@ describe('resolveLanguageModelHeaders', () => {
         expect(mocks.isServiceError).toHaveBeenCalledWith(authError);
     });
 
-    test('preserves configured headers and overrides a case-insensitive email header', async () => {
+    test('preserves configured headers when adding the user email header', async () => {
         mocks.env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED = 'true';
 
         await expect(resolveHeadersForUser('Authenticated@Example.com', {
-            'x-sourcebot-user-email': 'configured@example.com',
             'X-Custom-Header': 'custom-value',
         })).resolves.toEqual({
             'X-Custom-Header': 'custom-value',

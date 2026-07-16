@@ -346,14 +346,6 @@ export const resolveLanguageModelHeaders = async (
         return isServiceError(authContext) ? undefined : authContext.user?.email;
     })();
     if (userEmail) {
-        // Header names are case-insensitive. Remove any configured variant so
-        // the authenticated user's email is always the authoritative value.
-        for (const key of Object.keys(headers)) {
-            if (key.toLowerCase() === SOURCEBOT_USER_EMAIL_HEADER.toLowerCase()) {
-                delete headers[key];
-            }
-        }
-
         headers[SOURCEBOT_USER_EMAIL_HEADER] = userEmail.toLowerCase();
     }
 
