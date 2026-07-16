@@ -152,6 +152,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
 ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
+# Per-process Node heap caps (MB) for the web/backend processes, consumed by
+# supervisord.conf. entrypoint.sh overrides these at runtime, computing them from
+# the container's memory limit; these defaults (0 = V8 default) are a backstop so
+# supervisord's %(ENV_...)s interpolation resolves even if entrypoint is bypassed.
+ENV WEB_MAX_OLD_SPACE_SIZE=0
+ENV BACKEND_MAX_OLD_SPACE_SIZE=0
 # PAPIK = Project API Key
 # Note that this key does not need to be kept secret, so it's not
 # necessary to use Docker build secrets here.
