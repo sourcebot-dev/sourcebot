@@ -2,7 +2,7 @@ import 'server-only';
 
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { env, getTokenFromConfig } from '@sourcebot/shared';
-import { getCurrentUser } from '@/lib/currentUserContext';
+import { getAuthContext } from '@/middleware/withAuth';
 
 export const SOURCEBOT_USER_EMAIL_HEADER = 'X-Sourcebot-User-Email';
 const PLACEHOLDER_EMAIL_PATTERN = /^placeholder-.+@no-email\.invalid$/i;
@@ -18,9 +18,15 @@ export const resolveLanguageModelHeaders = async (
             : await getTokenFromConfig(value);
     }
 
-    const userEmail = getCurrentUser()?.email;
+    const userEmail = await (async () => {
+        if (env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED !== 'true') {
+            return undefined;
+        }
+
+        const authContext = await getAuthContext();
+        return 'statusCode' in authContext ? undefined : authContext.user?.email;
+    })();
     if (
-        env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED === 'true' &&
         userEmail &&
         !PLACEHOLDER_EMAIL_PATTERN.test(userEmail)
     ) {
