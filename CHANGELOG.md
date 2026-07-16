@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added Ask Sourcebot skills, letting users create, import, share, sync, and auto-invoke reusable chat instructions across personal and workspace scopes. [#1410](https://github.com/sourcebot-dev/sourcebot/pull/1410)
 
 ### Fixed
+- Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
 - [EE] Fixed Ask Sourcebot mermaid diagrams overflowing their container by contain-fitting them to both width and height, and made revealing a diagram from the answer jump it into view instantly to avoid over/undershooting. [#1373](https://github.com/sourcebot-dev/sourcebot/pull/1373)
 - Verified GitHub review webhook deliveries before processing them. [#1378](https://github.com/sourcebot-dev/sourcebot/pull/1378)
