@@ -43,7 +43,11 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
             } satisfies ServiceError;
         }
 
-        const name = await generateChatNameFromMessage({ message, languageModelConfig });
+        const name = await generateChatNameFromMessage({
+            message,
+            languageModelConfig,
+            userEmail: user?.email,
+        });
 
         await prisma.chat.update({
             where: {

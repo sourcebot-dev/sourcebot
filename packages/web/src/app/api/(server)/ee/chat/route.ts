@@ -135,7 +135,10 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 return attachmentError;
             }
 
-            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(
+                languageModelConfig,
+                user?.email,
+            );
 
             // Authoritative, server-side resolution of the model's input
             // modalities. The agent's multimodal content builder and degrade

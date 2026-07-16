@@ -84,7 +84,10 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 languageModelConfig = matchingModel;
             }
 
-            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(
+                languageModelConfig,
+                user?.email,
+            );
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
             const contextWindow = await resolveContextWindow(languageModelConfig);
             const { inputModalities, supportedDocumentTypes } = await resolveModelCapabilities(languageModelConfig);
@@ -211,6 +214,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 generateChatNameFromMessage({
                     message: query,
                     languageModelConfig,
+                    userEmail: user?.email,
                 })
             ]);
 
