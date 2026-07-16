@@ -309,7 +309,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
 const extractLanguageModelKeyValuePairs = async (
     pairs: {
         [k: string]: string | Token;
-    }
+    } | undefined
 ): Promise<Record<string, string>> => {
     const resolvedPairs: Record<string, string> = {};
 
@@ -335,13 +335,7 @@ export const SOURCEBOT_USER_EMAIL_HEADER = 'X-Sourcebot-User-Email';
 export const resolveLanguageModelHeaders = async (
     configuredHeaders: Record<string, string | Token> | undefined,
 ): Promise<Record<string, string> | undefined> => {
-    const headers: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(configuredHeaders ?? {})) {
-        headers[key] = typeof value === 'string'
-            ? value
-            : await getTokenFromConfig(value);
-    }
+    const headers = await extractLanguageModelKeyValuePairs(configuredHeaders);
 
     const userEmail = await (async () => {
         if (env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED !== 'true') {
