@@ -44,6 +44,11 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
         return authContext;
     }
 
+    setSentryUser(
+        authContext.user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
+
     const { user, org, role, prisma } = authContext;
 
     if (!user || !role) {
@@ -58,6 +63,11 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
     if (isServiceError(authContext)) {
         return authContext;
     }
+
+    setSentryUser(
+        authContext.user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
 
     if (
         (!authContext.user || !authContext.role) &&
@@ -83,14 +93,6 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     }
 
     const user = authResult?.user;
-
-    // Associate the resolved principal with Sentry so request-scoped errors
-    // carry the user's identity, regardless of how they authenticated (session,
-    // OAuth Bearer, or API key). Clears the identity for unauthenticated requests.
-    setSentryUser(
-        user ?? null,
-        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
-    );
 
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
