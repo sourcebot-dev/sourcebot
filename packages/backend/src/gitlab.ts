@@ -1,4 +1,4 @@
-import { Gitlab, ProjectSchema } from "@gitbeaker/rest";
+import { Gitlab, GroupSchema, ProjectSchema } from "@gitbeaker/rest";
 import * as Sentry from "@sentry/node";
 import { getTokenFromConfig } from "@sourcebot/shared";
 import { createLogger } from "@sourcebot/shared";
@@ -10,6 +10,100 @@ import { fetchWithRetry, measure } from "./utils.js";
 
 const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
+const GITLAB_PAGE_SIZE = 100;
+
+type GitLabApi = InstanceType<typeof Gitlab>;
+
+type GitLabPaginatedResponse<T> = {
+    data: T[];
+    paginationInfo?: {
+        next: number | null;
+    };
+};
+
+const fetchAllGitLabPages = async <T>(
+    identifier: string,
+    fetchPage: (page: number) => Promise<GitLabPaginatedResponse<T>>,
+): Promise<T[]> => {
+    const items: T[] = [];
+    let page = 1;
+
+    while (true) {
+        const response = await fetchWithRetry(
+            () => fetchPage(page),
+            `${identifier} page ${page}`,
+            logger,
+        );
+
+        items.push(...response.data);
+
+        const nextPage = response.paginationInfo?.next;
+        if (!nextPage) {
+            break;
+        }
+        if (nextPage <= page) {
+            logger.warn(`Stopping pagination for ${identifier}: GitLab returned non-advancing next page ${nextPage} after page ${page}.`);
+            break;
+        }
+
+        page = nextPage;
+    }
+
+    return items;
+};
+
+export const getGitLabProjectsForGroupTree = async (
+    api: GitLabApi,
+    rootGroup: string,
+): Promise<ProjectSchema[]> => {
+    const projectsById = new Map<number, ProjectSchema>();
+    const groupsToVisit: Array<string | number> = [rootGroup];
+    let groupIndex = 0;
+    const visitedGroups = new Set<string>();
+
+    while (groupIndex < groupsToVisit.length) {
+        const group = groupsToVisit[groupIndex++]!;
+        const groupKey = String(group);
+        if (visitedGroups.has(groupKey)) {
+            continue;
+        }
+        visitedGroups.add(groupKey);
+
+        const [projects, subgroups] = await Promise.all([
+            fetchAllGitLabPages<ProjectSchema>(
+                `projects for GitLab group ${groupKey}`,
+                async (page) => api.Groups.allProjects(group, {
+                    perPage: GITLAB_PAGE_SIZE,
+                    page,
+                    pagination: 'offset',
+                    showExpanded: true,
+                    includeSubgroups: false,
+                }) as Promise<GitLabPaginatedResponse<ProjectSchema>>,
+            ),
+            fetchAllGitLabPages<GroupSchema>(
+                `subgroups for GitLab group ${groupKey}`,
+                async (page) => api.Groups.allSubgroups(group, {
+                    perPage: GITLAB_PAGE_SIZE,
+                    page,
+                    pagination: 'offset',
+                    showExpanded: true,
+                }) as Promise<GitLabPaginatedResponse<GroupSchema>>,
+            ),
+        ]);
+
+        for (const project of projects) {
+            projectsById.set(project.id, project);
+        }
+
+        for (const subgroup of subgroups) {
+            groupsToVisit.push(subgroup.full_path ?? subgroup.id);
+        }
+    }
+
+    logger.debug(`Fetched ${projectsById.size} projects across ${visitedGroups.size} GitLab group(s) under ${rootGroup}.`);
+
+    return [...projectsById.values()];
+};
 
 export const createGitLabFromPersonalAccessToken = async ({ token, url }: { token?: string, url?: string }) => {
     const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
@@ -81,11 +175,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
             try {
                 logger.debug(`Fetching project info for group ${group}...`);
                 const { durationMs, data } = await measure(async () => {
-                    const fetchFn = () => api.Groups.allProjects(group, {
-                        perPage: 100,
-                        includeSubgroups: true
-                    });
-                    return fetchWithRetry(fetchFn, `group ${group}`, logger);
+                    return getGitLabProjectsForGroupTree(api, group);
                 });
                 logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
                 return {
