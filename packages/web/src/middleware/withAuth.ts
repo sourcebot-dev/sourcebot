@@ -44,11 +44,6 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
         return authContext;
     }
 
-    setSentryUser(
-        authContext.user ?? null,
-        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
-    );
-
     const { user, org, role, prisma } = authContext;
 
     if (!user || !role) {
@@ -64,11 +59,6 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return authContext;
     }
 
-    setSentryUser(
-        authContext.user ?? null,
-        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
-    );
-
     if (
         (!authContext.user || !authContext.role) &&
         !(await isAnonymousAccessEnabled())
@@ -81,6 +71,12 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
 
 export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {
     const authResult = await getAuthenticatedUser();
+    const user = authResult?.user;
+
+    setSentryUser(
+        user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -91,8 +87,6 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     if (!org) {
         return notFound("Organization not found");
     }
-
-    const user = authResult?.user;
 
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
