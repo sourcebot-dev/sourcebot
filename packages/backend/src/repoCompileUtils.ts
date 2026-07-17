@@ -167,12 +167,13 @@ export const compileGitlabConfig = async (
     const warnings = gitlabReposResult.warnings;
 
     const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/+$/, '');
+    const webUrl = (config.webUrl ?? hostUrl).replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
 
     const repos = gitlabRepos.map((project) => {
-        const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
+        const projectUrl = `${webUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
         cloneUrl.protocol = new URL(hostUrl).protocol;
         const isFork = project.forked_from_project !== undefined;

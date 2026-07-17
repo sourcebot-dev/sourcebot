@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+
+### Fixed
+- Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+
+## [5.1.2] - 2026-07-16
+
+### Added
+- Added an opt-in `SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED` environment variable that sends the authenticated user's lower-cased email to language model providers in the `X-Sourcebot-User-Email` header. [#1455](https://github.com/sourcebot-dev/sourcebot/pull/1455)
+
+### Fixed
+- [EE] Verified signed online license assertions before granting paid feature entitlements. [#1442](https://github.com/sourcebot-dev/sourcebot/pull/1442)
+- [EE] Fixed worker startup races that could disable GitHub App authentication and permission syncing until restart after an online license refresh. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+- [EE] Fixed GitHub connection sync jobs to fail safely when GitHub App authentication is configured without the required entitlement. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+
 ## [5.1.1] - 2026-07-14
 
 - Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)

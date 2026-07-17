@@ -373,6 +373,10 @@ model License {
   yearlyBillableOverageSeats    Int?
   yearlyPeakSeats               Int?
 
+  /// Compact, signed online-license assertion returned by Lighthouse.
+  /// Authorization must be derived from this assertion when it is present.
+  licenseAssertion  String?
+
   lastSyncAt        DateTime?
   lastSyncErrorCode String?
   createdAt         DateTime @default(now())

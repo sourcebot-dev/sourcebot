@@ -60,6 +60,7 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     yearlyPeakSeats: null,
     lastSyncAt: NOW,
     lastSyncErrorCode: null,
+    licenseAssertion: null,
     createdAt: NOW,
     updatedAt: NOW,
     ...overrides,
