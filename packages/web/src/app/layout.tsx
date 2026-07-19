@@ -21,6 +21,7 @@ import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@/lib/entitlements";
 import { IdentityProvidersProvider } from "@/features/auth/identityProvidersProvider";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
+import { SentryUserProvider } from "./sentryUserProvider";
 
 export const metadata: Metadata = {
     metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
@@ -74,6 +75,9 @@ export default async function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
+                    <SentryUserProvider
+                        isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
+                    />
                     <PlanProvider entitlements={entitlements}>
                         <IdentityProvidersProvider providers={identityProviders}>
                             <PostHogProvider
