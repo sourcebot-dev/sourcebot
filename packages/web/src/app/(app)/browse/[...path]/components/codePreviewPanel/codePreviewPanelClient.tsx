@@ -174,12 +174,14 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
 
     return (
         <>
-            <div className="flex flex-row py-1 px-2 items-center justify-between">
-                <PathHeader
-                    path={path}
-                    repo={repo}
-                    revisionName={contentRef}
-                />
+            <div className="flex flex-row py-1 px-2 items-center">
+                <div className="min-w-0 flex-1">
+                    <PathHeader
+                        path={path}
+                        repo={repo}
+                        revisionName={contentRef}
+                    />
+                </div>
 
                 {fileWebUrl && (
 
