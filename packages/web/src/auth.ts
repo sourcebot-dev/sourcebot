@@ -22,6 +22,7 @@ import { getAnonymousId } from '@/lib/anonymousId';
 import { captureEvent } from '@/lib/posthog';
 import { isEmailCodeLoginEnabled, isCredentialsLoginEnabled } from '@sourcebot/shared'
 import { onCreateUser } from './features/membership/onCreateUser';
+import { setSentryUser } from './lib/sentryUser';
 
 export const runtime = 'nodejs';
 
@@ -452,7 +453,12 @@ export const { handlers, signIn, signOut } = nextAuthResult;
  * without re-running the upstream resolver.
  */
 export const auth = cache(async (): Promise<Session | null> => {
-    return nextAuthResult.auth();
+    const session = await nextAuthResult.auth();
+    setSentryUser(
+        session?.user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
+    return session;
 });
 
 /**

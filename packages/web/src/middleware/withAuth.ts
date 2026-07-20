@@ -13,6 +13,7 @@ import { activatePendingMembership } from "@/features/membership/membership.serv
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/utils";
 import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 import { getCurrentRequest } from "@/lib/requestContext";
+import { setSentryUser } from "@/lib/sentryUser";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -70,6 +71,12 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
 
 export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {
     const authResult = await getAuthenticatedUser();
+    const user = authResult?.user;
+
+    setSentryUser(
+        user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -80,8 +87,6 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     if (!org) {
         return notFound("Organization not found");
     }
-
-    const user = authResult?.user;
 
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
