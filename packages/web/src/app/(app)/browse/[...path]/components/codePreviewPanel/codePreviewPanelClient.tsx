@@ -174,7 +174,7 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
 
     return (
         <>
-            <div className="flex flex-row py-1 px-2 items-center">
+            <div className="flex flex-row py-1 px-2 items-center justify-between">
                 <div className="min-w-0 flex-1">
                     <PathHeader
                         path={path}
@@ -183,8 +183,9 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
                     />
                 </div>
 
-                {fileWebUrl && (
-
+                {isFileSourcePending ? (
+                    <Skeleton className="h-6 w-32 mx-2 rounded-md flex-shrink-0" />
+                ) : fileWebUrl ? (
                     <a
                         href={fileWebUrl}
                         target="_blank"
@@ -198,7 +199,7 @@ export const CodePreviewPanelClient = ({ path, repoName, revisionName, previewRe
                         />
                         <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
                     </a>
-                )}
+                ) : null}
             </div>
             <Separator />
             {!previewRef && (
