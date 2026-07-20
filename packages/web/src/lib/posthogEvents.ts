@@ -143,6 +143,7 @@ export type PosthogEventMap = {
     wa_login_with_keycloak: {},
     wa_login_with_microsoft_entra_id: {},
     wa_login_with_jumpcloud: {},
+    wa_login_with_idira: {},
     wa_login_with_magic_link: {},
     wa_login_with_credentials: {},
     //////////////////////////////////////////////////////////////////
