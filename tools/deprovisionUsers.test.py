@@ -28,7 +28,6 @@ class UserDeprovisioningTest(unittest.TestCase):
             "email": "ada@example.com",
             "role": "MEMBER",
             "last_activity_at": self.now - timedelta(days=100),
-            "created_at": self.now - timedelta(days=200),
             "suspended_at": None,
         }
         values.update(overrides)
@@ -53,13 +52,20 @@ class UserDeprovisioningTest(unittest.TestCase):
 
         self.assertEqual([user.id for user in result], ["old"])
 
-    def test_never_active_user_uses_creation_time(self):
-        old = self.make_user(id="old", last_activity_at=None, created_at=self.now - timedelta(days=91))
-        new = self.make_user(id="new", last_activity_at=None, created_at=self.now - timedelta(days=2))
+    def test_user_without_activity_is_skipped_regardless_of_account_age(self):
+        user = MODULE.User.from_json({
+            "id": "pending-member",
+            "name": "Grace Hopper",
+            "email": "grace@example.com",
+            "role": "MEMBER",
+            "lastActivityAt": None,
+            "createdAt": (self.now - timedelta(days=365)).isoformat(),
+            "suspendedAt": None,
+        })
 
-        result = MODULE.find_inactive_users([new, old], self.now - timedelta(days=90))
+        result = MODULE.find_inactive_users([user], self.now - timedelta(days=90))
 
-        self.assertEqual([user.id for user in result], ["old"])
+        self.assertEqual(result, [])
 
     def test_suspended_users_are_skipped(self):
         user = self.make_user(suspended_at=self.now - timedelta(days=2))

@@ -35,7 +35,6 @@ class User:
     email: str
     role: str
     last_activity_at: datetime | None
-    created_at: datetime
     suspended_at: datetime | None
 
     @classmethod
@@ -46,7 +45,6 @@ class User:
             email=require_string(value, "email"),
             role=require_string(value, "role"),
             last_activity_at=parse_optional_datetime(value, "lastActivityAt"),
-            created_at=parse_datetime(require_string(value, "createdAt")),
             suspended_at=parse_optional_datetime(value, "suspendedAt"),
         )
 
@@ -156,14 +154,13 @@ def parse_base_url(value: str) -> str:
 
 
 def find_inactive_users(users: Sequence[User], cutoff: datetime) -> list[User]:
-    candidates = []
+    candidates: list[tuple[datetime, User]] = []
     for user in users:
-        if user.suspended_at is not None:
+        if user.suspended_at is not None or user.last_activity_at is None:
             continue
-        activity_reference = user.last_activity_at or user.created_at
-        if activity_reference < cutoff:
-            candidates.append(user)
-    return sorted(candidates, key=lambda user: user.last_activity_at or user.created_at)
+        if user.last_activity_at < cutoff:
+            candidates.append((user.last_activity_at, user))
+    return [user for _, user in sorted(candidates, key=lambda candidate: candidate[0])]
 
 
 def format_duration(duration: timedelta) -> str:
@@ -182,14 +179,13 @@ def print_users_table(users: Sequence[User], now: datetime) -> None:
     headers = ("Name", "Email", "Role", "Last activity", "Inactive for")
     rows = []
     for user in users:
-        reference = user.last_activity_at or user.created_at
         rows.append(
             (
                 user.name or "—",
                 user.email,
                 user.role,
                 user.last_activity_at.isoformat(timespec="seconds") if user.last_activity_at else "Never",
-                format_duration(now - reference),
+                format_duration(now - user.last_activity_at) if user.last_activity_at else "—",
             )
         )
 
