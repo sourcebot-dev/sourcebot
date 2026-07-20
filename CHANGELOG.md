@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `tar` to `^7.5.16`. [#1338](https://github.com/sourcebot-dev/sourcebot/pull/1338)
 - Upgraded `esbuild` to `^0.28.1`. [#1342](https://github.com/sourcebot-dev/sourcebot/pull/1342)
 - Enabled Next.js version skew protection to fix "Failed to load chunk" errors during rolling deploys. [#1346](https://github.com/sourcebot-dev/sourcebot/pull/1346)
+- Re-indexed repositories whose database state is indexed but whose zoekt shard files are missing on worker startup. [#1350](https://github.com/sourcebot-dev/sourcebot/pull/1350)
 
 ## [5.0.3] - 2026-06-17
 
