@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.3] - 2026-07-20
+
 ### Added
 - [EE] Added Idira SSO support through OpenID Connect. [#1459](https://github.com/sourcebot-dev/sourcebot/pull/1459)
 - Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1458](https://github.com/sourcebot-dev/sourcebot/pull/1458)
