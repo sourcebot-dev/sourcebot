@@ -15,10 +15,10 @@ import { convertLLMOutputToPortableMarkdown } from "@/features/chat/utils";
 import { submitFeedback } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
 import isEqual from "fast-deep-equal/react";
 import { FileSource } from "@/features/chat/types";
+import { LangfuseBrowserClient } from "@langfuse/browser";
 
 interface AnswerCardProps {
     answerText: string;
@@ -28,7 +28,7 @@ interface AnswerCardProps {
     sources: FileSource[];
 }
 
-const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
+const langfuseBrowser = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseBrowserClient({
     publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
     baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
 }) : null;
@@ -90,7 +90,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 messageId,
             });
 
-            langfuseWeb?.score({
+            langfuseBrowser?.score({
                 traceId: traceId,
                 name: 'user_feedback',
                 value: feedbackType === 'like' ? 1 : 0,
