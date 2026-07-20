@@ -601,6 +601,57 @@ A JumpCloud connection can be used for [authentication](/docs/configuration/auth
 </Steps>
 </Accordion>
 
+### Idira
+
+[Idira custom OpenID Connect application documentation](https://docs.cyberark.com/manage/latest/en/content/identity/applications/appscustom/openidaddconfigapp.htm)
+
+An Idira connection can be used for [authentication](/docs/configuration/auth). Sourcebot uses Idira's OpenID Connect support to authenticate users.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Create an OpenID Connect application in Idira">
+        In the Idira Admin Portal, go to **Manage > Identities > Web apps**, add the custom **OpenID Connect** application, and configure its Trust settings.
+
+        When configuring the application:
+        - Add `<sourcebot_url>/api/auth/callback/idira` to the **Authorized Redirect URIs** (ex. https://sourcebot.coolcorp.com/api/auth/callback/idira)
+        - Keep exact redirect URI matching enabled
+        - Grant the users, groups, or roles that should be able to sign in permission to run the application
+
+        From the application's Trust page, note the `CLIENT_ID` and `ISSUER`. Generate a client secret and store it securely. Idira displays the secret only until you confirm that you have saved it.
+    </Step>
+    <Step title="Define environment variables">
+        Provide the client id, secret, and issuer URL to Sourcebot using environment variables. These variables can be named whatever you like
+        (ex. `IDIRA_IDENTITY_PROVIDER_CLIENT_ID`, `IDIRA_IDENTITY_PROVIDER_CLIENT_SECRET`, and `IDIRA_IDENTITY_PROVIDER_ISSUER`).
+    </Step>
+    <Step title="Define the identity provider config">
+        Add the Idira provider to the `identityProviders` object in the [config file](/docs/configuration/config-file):
+
+        ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": {
+                "idira": {
+                    "provider": "idira",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "IDIRA_IDENTITY_PROVIDER_CLIENT_ID"
+                    },
+                    "clientSecret": {
+                        "env": "IDIRA_IDENTITY_PROVIDER_CLIENT_SECRET"
+                    },
+                    "issuer": {
+                        "env": "IDIRA_IDENTITY_PROVIDER_ISSUER"
+                    }
+                }
+            }
+        }
+        ```
+
+        If you use a custom identity provider id instead of `idira`, use that id in the callback URL as described in [multiple identity providers](#configuring-multiple-providers-of-the-same-type).
+    </Step>
+</Steps>
+</Accordion>
+
 ### Google Cloud IAP
 
 [Google Cloud IAP Documentation](https://cloud.google.com/iap/docs)
@@ -688,5 +739,3 @@ Each provider keeps the same fields documented above. The only differences are:
 <Note>
 Each instance needs its own OAuth client (its own `clientId` and `clientSecret`) registered with the matching callback URL.
 </Note>
-
-
