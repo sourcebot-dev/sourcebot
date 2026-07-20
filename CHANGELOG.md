@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+- Prevented long file paths from overflowing the browse file header. [#1465](https://github.com/sourcebot-dev/sourcebot/pull/1465)
 
 ## [5.1.2] - 2026-07-16
 
