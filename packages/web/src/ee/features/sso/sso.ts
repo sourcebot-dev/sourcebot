@@ -199,7 +199,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     }
 
     if (Object.keys(identityProviders).length === 0) {
-        if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
+        if (env.AUTH_EE_GCP_IAP_ENABLED === 'true' && env.AUTH_EE_GCP_IAP_AUDIENCE) {
             providers.push({
                 __provider: createGCPIAPProvider('gcp-iap', env.AUTH_EE_GCP_IAP_AUDIENCE),
                 type: "gcp-iap",
