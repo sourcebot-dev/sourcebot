@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `brace-expansion` to `^1.1.16`/`^2.1.2`/`^5.0.7` to address CVE-2026-13149. [#1471](https://github.com/sourcebot-dev/sourcebot/pull/1471)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
