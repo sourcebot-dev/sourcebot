@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Upgraded `shell-quote` to `^1.10.0` to address CVE-2026-13311. [#1466](https://github.com/sourcebot-dev/sourcebot/pull/1466)
+- Upgraded `shell-quote` to `^1.10.0` to address CVE-2026-13311. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
 
 ## [5.1.3] - 2026-07-20
 
