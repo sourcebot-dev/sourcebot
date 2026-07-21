@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Upgraded `js-yaml` to `^4.3.0`. [#1466](https://github.com/sourcebot-dev/sourcebot/pull/1466)
+- Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
 
 ## [5.1.3] - 2026-07-20
 
