@@ -86,7 +86,7 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
 
     return (
         <ScrollArea
-            className="h-full w-full overflow-auto p-0.5"
+            className="h-full w-full min-w-0 p-0.5"
             ref={scrollAreaRef}
         >
             {renderedTree}
@@ -94,4 +94,3 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
         </ScrollArea>
     )
 }
-
