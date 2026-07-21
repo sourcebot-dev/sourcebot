@@ -278,6 +278,32 @@
             },
             "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
         },
+        "IdiraIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "idira"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Idira'."
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
         "BitbucketServerIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -342,6 +368,9 @@
         },
         {
             "$ref": "#/definitions/JumpCloudIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/IdiraIdentityProviderConfig"
         },
         {
             "$ref": "#/definitions/BitbucketServerIdentityProviderConfig"

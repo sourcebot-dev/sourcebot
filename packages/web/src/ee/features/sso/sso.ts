@@ -162,6 +162,26 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             });
         }
 
+        if (idpConfig.provider === "idira") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                __provider: createIdiraProvider({
+                    id,
+                    clientId,
+                    clientSecret,
+                    issuer,
+                    allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+                }),
+                id,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                issuerUrl: issuer,
+            });
+        }
+
         if (idpConfig.provider === "bitbucket-server") {
             const clientId = await getTokenFromConfig(idpConfig.clientId);
             const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
@@ -402,6 +422,36 @@ const createJumpCloudProvider = (id: string, clientId: string, clientSecret: str
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     } as Provider;
 }
+
+type CreateIdiraProviderOptions = {
+    id: string;
+    clientId: string;
+    clientSecret: string;
+    issuer: string;
+    allowDangerousEmailAccountLinking: boolean;
+};
+
+const createIdiraProvider = ({
+    id,
+    clientId,
+    clientSecret,
+    issuer,
+    allowDangerousEmailAccountLinking,
+}: CreateIdiraProviderOptions): Provider => ({
+    id,
+    name: "Idira",
+    type: "oidc",
+    clientId,
+    clientSecret,
+    issuer,
+    checks: ["pkce", "state"],
+    authorization: {
+        params: {
+            scope: "openid profile email",
+        },
+    },
+    allowDangerousEmailAccountLinking,
+} as Provider);
 
 const createGCPIAPProvider = (id: string, audience: string): Provider => {
     return Credentials({

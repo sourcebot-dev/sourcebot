@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.3] - 2026-07-20
+
 ### Added
-- Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+- [EE] Added Idira SSO support through OpenID Connect. [#1459](https://github.com/sourcebot-dev/sourcebot/pull/1459)
+- Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1458](https://github.com/sourcebot-dev/sourcebot/pull/1458)
 
 ### Fixed
 - Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+- Prevented long file paths from overflowing the browse file header. [#1465](https://github.com/sourcebot-dev/sourcebot/pull/1465)
 
 ## [5.1.2] - 2026-07-16
 
