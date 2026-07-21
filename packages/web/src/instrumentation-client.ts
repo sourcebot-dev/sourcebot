@@ -12,11 +12,10 @@ if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SEN
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN,
         environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-        sampleRate: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === 'development' ? 1.0 : 0.1,
         integrations: [
             Sentry.browserProfilingIntegration(),
         ],
-        tracesSampleRate: 1.0,
+        tracesSampleRate: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === 'development' ? 1.0 : 0.1,
         // Evaluated once per `Sentry.init()`, i.e. once per page load.
         profileSessionSampleRate: 1.0,
         // Profile only while a sampled root span is active, rather than continuously.
