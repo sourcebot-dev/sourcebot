@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { RequestError } from '@octokit/request-error';
 import { GitbeakerRequestError } from '@gitbeaker/requester-utils';
-import { isForbidden, isGone, isUnauthorized } from './errors';
+import { isForbidden, isGitHubRateLimitError, isGone, isUnauthorized } from './errors';
 import { throwOnHttpError } from './bitbucket';
 
 // Helper: invoke the openapi-fetch middleware against a synthetic Response and
@@ -195,6 +195,60 @@ describe('isGone', () => {
             request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
         });
         expect(isGone(err)).toBe(false);
+    });
+});
+
+describe('isGitHubRateLimitError', () => {
+    const createRequestError = (
+        message: string,
+        status: number,
+        headers: Record<string, string> = {},
+    ) => new RequestError(message, status, {
+        response: {
+            headers,
+            status,
+            url: 'https://api.github.com/repos/sourcebot-dev/sourcebot',
+            data: {},
+        },
+        request: {
+            method: 'GET',
+            url: 'https://api.github.com/repos/sourcebot-dev/sourcebot',
+            headers: {},
+        },
+    });
+
+    test('recognizes a 429 response', () => {
+        expect(isGitHubRateLimitError(createRequestError('Too Many Requests', 429))).toBe(true);
+    });
+
+    test('recognizes a primary rate limit response', () => {
+        const error = createRequestError('Forbidden', 403, {
+            'x-ratelimit-remaining': '0',
+        });
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('recognizes a secondary rate limit response with retry-after', () => {
+        const error = createRequestError('Forbidden', 403, {
+            'retry-after': '60',
+        });
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('recognizes a secondary rate limit response by its message', () => {
+        const error = createRequestError('You have exceeded a secondary rate limit.', 403);
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('does not classify an unrelated forbidden response as rate limited', () => {
+        expect(isGitHubRateLimitError(createRequestError('Resource not accessible', 403))).toBe(false);
+    });
+
+    test('does not classify an unrelated server error as rate limited', () => {
+        expect(isGitHubRateLimitError(createRequestError('Rate limit service unavailable', 500))).toBe(false);
     });
 });
 

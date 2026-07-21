@@ -7,6 +7,7 @@ import { getRepoInfo } from "./api";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { RepoIndexedGuard } from "./components/repoIndexedGuard";
 import { RepoNotFound } from "./components/repoNotFound";
+import { GitHubRateLimitExceeded } from "./components/githubRateLimitExceeded";
 import { LandingPage } from "./components/landingPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { auth } from "@/auth";
@@ -58,6 +59,10 @@ export default async function GitHubRepoPage(props: PageProps) {
     if (isServiceError(repoIdOrError)) {
         if (repoIdOrError.errorCode === ErrorCode.REPOSITORY_NOT_FOUND) {
             return <RepoNotFound owner={owner} repo={repo} />;
+        }
+
+        if (repoIdOrError.errorCode === ErrorCode.GITHUB_RATE_LIMITED) {
+            return <GitHubRateLimitExceeded />;
         }
 
         throw new ServiceErrorException(repoIdOrError);
