@@ -10,7 +10,7 @@ import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
-import { isNotFound } from './errors.js';
+import { isGitHubRateLimitError, isNotFound } from './errors.js';
 import { Octokit } from '@octokit/rest';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import z from 'zod';
@@ -156,7 +156,9 @@ export class Api {
             return;
         }
 
-        const octokit = new Octokit();
+        const octokit = new Octokit({
+            auth: env.EXPERIMENT_ASK_GH_GITHUB_TOKEN,
+        });
         let response;
         try {
             response = await octokit.rest.repos.get({
@@ -166,6 +168,11 @@ export class Api {
         } catch (error) {
             if (isNotFound(error)) {
                 res.status(404).json({ error: 'Repository not found on GitHub' });
+                return;
+            }
+            if (isGitHubRateLimitError(error)) {
+                logger.warn(`GitHub API rate limit exceeded while adding ${parsed.data.owner}/${parsed.data.repo}`);
+                res.status(429).json({ error: 'GitHub API rate limit exceeded' });
                 return;
             }
             throw error;
