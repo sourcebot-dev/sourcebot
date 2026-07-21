@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `tar` to `^7.5.20` to address CVE-2026-59873. [#1473](https://github.com/sourcebot-dev/sourcebot/pull/1473)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
