@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
 
+### Fixed
+- Upgraded `fast-uri` to `^3.1.4`. [#PR](https://github.com/sourcebot-dev/sourcebot/pull/PR)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
