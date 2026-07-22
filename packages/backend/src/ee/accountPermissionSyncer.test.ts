@@ -50,7 +50,6 @@ describe('classifyPermissionSyncFailure', () => {
     test.each([
         ['credential_rejected', 'upstream_credential_rejected'],
         ['insufficient_scope', 'upstream_insufficient_scope'],
-        ['permission_endpoint_removed', 'permission_endpoint_removed'],
     ] as const)('fails closed for a classified %s upstream failure', (kind, reason) => {
         expect(classifyPermissionSyncFailure(upstreamError(kind))).toEqual({
             action: 'clear_permissions',

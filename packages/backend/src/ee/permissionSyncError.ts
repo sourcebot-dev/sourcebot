@@ -5,7 +5,6 @@ export type PermissionSyncUpstreamErrorKind =
     | 'credential_rejected'
     | 'insufficient_scope'
     | 'rate_limited'
-    | 'permission_endpoint_removed'
     | 'upstream_unavailable'
     | 'forbidden'
     | 'unknown';
@@ -80,17 +79,6 @@ export const classifyPermissionSyncUpstreamError = (
         return new PermissionSyncUpstreamError(
             `${provider} forbade the permission sync request.`,
             { kind: 'forbidden', provider, operation, status, cause: error },
-        );
-    }
-
-    if (
-        status === 410 &&
-        provider === 'bitbucket-cloud' &&
-        operation === 'list_accessible_repositories'
-    ) {
-        return new PermissionSyncUpstreamError(
-            'The Bitbucket Cloud permission endpoint is no longer available.',
-            { kind: 'permission_endpoint_removed', provider, operation, status, cause: error },
         );
     }
 

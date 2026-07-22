@@ -51,22 +51,12 @@ describe('classifyPermissionSyncUpstreamError', () => {
         ).kind).toBe('rate_limited');
     });
 
-    test('classifies Bitbucket Cloud 410 from the repository-list operation as a removed endpoint', () => {
+    test('does not classify Bitbucket Cloud 410 as a removed permission endpoint', () => {
         const cause = Object.assign(new Error('Gone'), { status: 410 });
 
         expect(classifyPermissionSyncUpstreamError(
             cause,
             'bitbucket-cloud',
-            'list_accessible_repositories',
-        ).kind).toBe('permission_endpoint_removed');
-    });
-
-    test('does not generalize HTTP 410 from another provider to a removed permission endpoint', () => {
-        const cause = Object.assign(new Error('Gone'), { status: 410 });
-
-        expect(classifyPermissionSyncUpstreamError(
-            cause,
-            'github',
             'list_accessible_repositories',
         ).kind).toBe('unknown');
     });

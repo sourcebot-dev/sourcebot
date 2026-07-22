@@ -35,8 +35,7 @@ type AccountPermissionSyncJob = {
 export type PermissionCleanupReason =
     | 'oauth_refresh_token_rejected'
     | 'upstream_credential_rejected'
-    | 'upstream_insufficient_scope'
-    | 'permission_endpoint_removed';
+    | 'upstream_insufficient_scope';
 
 export type PermissionCleanupDecision =
     | {
@@ -51,7 +50,6 @@ const PERMISSION_CLEANUP_REASON_MESSAGES: Record<PermissionCleanupReason, string
     oauth_refresh_token_rejected: 'OAuth refresh token rejection',
     upstream_credential_rejected: 'upstream credential rejection',
     upstream_insufficient_scope: 'insufficient OAuth scope',
-    permission_endpoint_removed: 'permission endpoint removed',
 };
 
 export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanupDecision => {
@@ -70,9 +68,6 @@ export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanup
         }
         if (error.kind === 'insufficient_scope') {
             return { action: 'clear_permissions', reason: 'upstream_insufficient_scope' };
-        }
-        if (error.kind === 'permission_endpoint_removed') {
-            return { action: 'clear_permissions', reason: 'permission_endpoint_removed' };
         }
     }
 
