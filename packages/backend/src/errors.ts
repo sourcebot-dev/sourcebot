@@ -1,28 +1,56 @@
 
+type HttpErrorDetails = {
+    status: number | null;
+    headers?: unknown;
+};
+
 /**
- * Extract an HTTP status code from a thrown error across the libraries used by
- * the code-host clients:
- *   - Octokit RequestError: { status }
- *   - openapi-fetch (Bitbucket Cloud / Server): direct throws with { status }
- *     or errors wrapped via Object.assign(new Error(...), { status })
- *   - gitbeaker (GitLab): { cause: { response: { status } } }
+ * Normalizes HTTP response metadata across the code-host client libraries:
+ *   - Octokit RequestError: { status, response: { headers } }
+ *   - openapi-fetch (Bitbucket Cloud / Server): { status }
+ *   - gitbeaker (GitLab): { cause: { response: { status, headers } } }
  */
-export const getErrorStatus = (err: unknown): number | null => {
-    if (err === null || typeof err !== 'object') {
-        return null;
+const getHttpErrorDetails = (error: unknown): HttpErrorDetails => {
+    if (error === null || typeof error !== 'object') {
+        return { status: null };
     }
 
-    const direct = (err as { status?: unknown }).status;
-    if (typeof direct === 'number') {
-        return direct;
+    const directError = error as {
+        status?: unknown;
+        response?: { status?: unknown; headers?: unknown };
+        cause?: { response?: { status?: unknown; headers?: unknown } };
+    };
+    const directResponse = directError.response;
+    const nestedResponse = directError.cause?.response;
+    const status = [
+        directError.status,
+        directResponse?.status,
+        nestedResponse?.status,
+    ].find((value): value is number => typeof value === 'number') ?? null;
+
+    return {
+        status,
+        headers: directResponse?.headers ?? nestedResponse?.headers,
+    };
+};
+
+export const getErrorStatus = (error: unknown): number | null =>
+    getHttpErrorDetails(error).status;
+
+export const getErrorHeader = (error: unknown, name: string): string | undefined => {
+    const { headers } = getHttpErrorDetails(error);
+
+    if (headers instanceof Headers) {
+        return headers.get(name) ?? undefined;
     }
 
-    const nested = (err as { cause?: { response?: { status?: unknown } } }).cause?.response?.status;
-    if (typeof nested === 'number') {
-        return nested;
+    if (headers !== null && typeof headers === 'object') {
+        const normalizedName = name.toLowerCase();
+        const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === normalizedName);
+        return typeof entry?.[1] === 'string' ? entry[1] : undefined;
     }
 
-    return null;
+    return undefined;
 };
 
 export const isUnauthorized = (err: unknown): boolean => getErrorStatus(err) === 401;

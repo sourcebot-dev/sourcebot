@@ -1,5 +1,5 @@
 import type { IdentityProviderType } from '@sourcebot/shared';
-import { getErrorStatus } from '../errors.js';
+import { getErrorHeader, getErrorStatus } from '../errors.js';
 
 export type PermissionSyncUpstreamErrorKind =
     | 'credential_rejected'
@@ -38,31 +38,10 @@ export class PermissionSyncUpstreamError extends Error {
     }
 }
 
-const getHeader = (error: unknown, name: string): string | undefined => {
-    if (error === null || typeof error !== 'object') {
-        return undefined;
-    }
-
-    const directHeaders = (error as { response?: { headers?: unknown } }).response?.headers;
-    const nestedHeaders = (error as { cause?: { response?: { headers?: unknown } } }).cause?.response?.headers;
-    const headers = directHeaders ?? nestedHeaders;
-
-    if (headers instanceof Headers) {
-        return headers.get(name) ?? undefined;
-    }
-
-    if (headers !== null && typeof headers === 'object') {
-        const value = (headers as Record<string, unknown>)[name.toLowerCase()];
-        return typeof value === 'string' ? value : undefined;
-    }
-
-    return undefined;
-};
-
 const isRateLimited = (error: unknown, status: number | null): boolean =>
     status === 429 ||
-    getHeader(error, 'retry-after') !== undefined ||
-    getHeader(error, 'x-ratelimit-remaining') === '0';
+    getErrorHeader(error, 'retry-after') !== undefined ||
+    getErrorHeader(error, 'x-ratelimit-remaining') === '0';
 
 const isNetworkOrTimeoutError = (error: unknown): boolean => {
     if (!(error instanceof Error)) {
