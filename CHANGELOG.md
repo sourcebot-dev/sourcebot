@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
 
+### Fixed
+- [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
