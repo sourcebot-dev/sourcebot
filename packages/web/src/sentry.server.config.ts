@@ -15,7 +15,7 @@ if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SEN
         integrations: [
             nodeProfilingIntegration(),
         ],
-        tracesSampleRate: 1.0,
+        tracesSampleRate: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === 'development' ? 1.0 : 0.1,
         // Evaluated once per `Sentry.init()`, i.e. once per server process.
         profileSessionSampleRate: 1.0,
         // Profile only while a sampled root span is active, rather than continuously.
