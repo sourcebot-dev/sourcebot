@@ -39,7 +39,47 @@ const OAuthTokenResponseSchema = z.object({
     scope: z.string().optional(),
 });
 
+// @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+const OAuthErrorResponseSchema = z.object({
+    error: z.string(),
+    error_description: z.string().optional(),
+});
 type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
+
+export type TokenRefreshErrorKind =
+    | 'invalid_grant'
+    | 'transient'
+    | 'configuration'
+    | 'invalid_response'
+    | 'local_credential';
+
+type TokenRefreshErrorOptions = {
+    kind: TokenRefreshErrorKind;
+    status?: number;
+    oauthError?: string;
+    errorDescription?: string;
+    cause?: unknown;
+};
+
+export class TokenRefreshError extends Error {
+    public readonly kind: TokenRefreshErrorKind;
+    public readonly status?: number;
+    public readonly oauthError?: string;
+    public readonly errorDescription?: string;
+
+    constructor(message: string, options: TokenRefreshErrorOptions) {
+        super(message, { cause: options.cause });
+        this.name = 'TokenRefreshError';
+        this.kind = options.kind;
+        this.status = options.status;
+        this.oauthError = options.oauthError;
+        this.errorDescription = options.errorDescription;
+    }
+
+    public get isRetryable(): boolean {
+        return this.kind === 'transient';
+    }
+}
 
 type ProviderCredentials = {
     clientId: string;
@@ -48,6 +88,15 @@ type ProviderCredentials = {
 };
 
 const EXPIRY_BUFFER_S = 5 * 60; // 5 minutes
+const TOKEN_REFRESH_TIMEOUT_MS = 15 * 1000;
+const TOKEN_REFRESH_MAX_ATTEMPTS = 3;
+const TOKEN_REFRESH_RETRY_BASE_DELAY_MS = 3 * 1000;
+
+const getErrorMessage = (error: unknown): string =>
+    error instanceof Error ? error.message : String(error);
+
+const wait = async (delayMs: number): Promise<void> =>
+    new Promise(resolve => setTimeout(resolve, delayMs));
 
 /**
  * Ensures the OAuth access token for a given account is fresh.
@@ -65,7 +114,10 @@ export const ensureFreshAccountToken = async (
     db: PrismaClient,
 ): Promise<string> => {
     if (!account.access_token) {
-        throw new Error(`Account ${account.id} (${account.providerId}) has no access token.`);
+        throw new TokenRefreshError(
+            `Account ${account.id} (${account.providerId}) has no access token.`,
+            { kind: 'local_credential' },
+        );
     }
 
     if (!isSupportedProvider(account.providerType)) {
@@ -95,7 +147,7 @@ export const ensureFreshAccountToken = async (
         const message = `Account ${account.id} (${account.providerId}) token is expired and has no refresh token.`;
         logger.error(message);
         await setTokenRefreshError(account.id, message, db);
-        throw new Error(message);
+        throw new TokenRefreshError(message, { kind: 'local_credential' });
     }
 
     const refreshToken = decryptOAuthToken(account.refresh_token);
@@ -103,7 +155,7 @@ export const ensureFreshAccountToken = async (
         const message = `Failed to decrypt refresh token for account ${account.id} (${account.providerId}).`;
         logger.error(message);
         await setTokenRefreshError(account.id, message, db);
-        throw new Error(message);
+        throw new TokenRefreshError(message, { kind: 'local_credential' });
     }
 
     logger.debug(`Refreshing OAuth token for account ${account.id} (${account.providerId})...`);
@@ -112,14 +164,12 @@ export const ensureFreshAccountToken = async (
         account.providerId,
         account.providerType,
         refreshToken
-    );
-
-    if (!refreshResponse) {
-        const message = `OAuth token refresh failed for account ${account.id} (${account.providerId}).`;
-        logger.error(message);
+    ).catch(async (error: unknown) => {
+        const message = getErrorMessage(error);
+        logger.error(`OAuth token refresh failed for account ${account.id} (${account.providerId}): ${message}`);
         await setTokenRefreshError(account.id, message, db);
-        throw new Error(message);
-    }
+        throw error;
+    });
 
     const newExpiresAt = refreshResponse.expires_in
         ? Math.floor(Date.now() / 1000) + refreshResponse.expires_in
@@ -155,13 +205,16 @@ const refreshOAuthToken = async (
     providerId: string,
     providerType: SupportedProviderType,
     refreshToken: string,
-): Promise<OAuthTokenResponse | null> => {
+): Promise<OAuthTokenResponse> => {
+    let credentials: ProviderCredentials;
+
     try {
         const idpConfig = await getIdentityProviderConfig(providerId);
 
         if (!idpConfig) {
-            logger.error(`No provider config found for: ${providerId}`);
-            return null;
+            throw new TokenRefreshError(`No provider config found for: ${providerId}`, {
+                kind: 'configuration',
+            });
         }
 
         const linkedAccountProviderConfig = idpConfig as
@@ -177,24 +230,31 @@ const refreshOAuthToken = async (
             ? linkedAccountProviderConfig.baseUrl
             : undefined;
 
-        const result = await tryRefreshToken(providerType, refreshToken, { clientId, clientSecret, baseUrl });
-        if (result) {
-            return result;
+        credentials = { clientId, clientSecret, baseUrl };
+    } catch (error) {
+        if (error instanceof TokenRefreshError) {
+            throw error;
         }
 
-        logger.error(`Token refresh failed for ${providerId}`);
-        return null;
-    } catch (e) {
-        logger.error(`Error refreshing ${providerType} token:`, e);
-        return null;
+        const wrappedError = new TokenRefreshError(
+            `Unexpected error refreshing ${providerType} token: ${getErrorMessage(error)}`,
+            {
+                kind: 'configuration',
+                cause: error,
+            },
+        );
+        logger.error(wrappedError.message);
+        throw wrappedError;
     }
+
+    return exchangeRefreshToken(providerType, refreshToken, credentials);
 };
 
-const tryRefreshToken = async (
+export const exchangeRefreshToken = async (
     providerType: SupportedProviderType,
     refreshToken: string,
     credentials: ProviderCredentials,
-): Promise<OAuthTokenResponse | null> => {
+): Promise<OAuthTokenResponse> => {
     const { clientId, clientSecret, baseUrl } = credentials;
 
     let url: string;
@@ -216,8 +276,9 @@ const tryRefreshToken = async (
     } else if (providerType === 'bitbucket-cloud') {
         url = 'https://bitbucket.org/site/oauth2/access_token';
     } else {
-        logger.error(`Unsupported provider for token refresh: ${providerType}`);
-        return null;
+        throw new TokenRefreshError(`Unsupported provider for token refresh: ${providerType}`, {
+            kind: 'configuration',
+        });
     }
 
     // Bitbucket requires client credentials via HTTP Basic Auth rather than request body params.
@@ -243,31 +304,143 @@ const tryRefreshToken = async (
         bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
     }
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json',
-            ...(useBasicAuth ? {
-                Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-            } : {}),
-        },
-        body: new URLSearchParams(bodyParams),
-    });
+    let response: Response | undefined;
+    for (let attempt = 1; attempt <= TOKEN_REFRESH_MAX_ATTEMPTS; attempt++) {
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    ...(useBasicAuth ? {
+                        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+                    } : {}),
+                },
+                body: new URLSearchParams(bodyParams),
+                signal: AbortSignal.timeout(TOKEN_REFRESH_TIMEOUT_MS),
+            });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        logger.error(`Failed to refresh ${providerType} token: ${response.status} ${errorText}`);
-        return null;
+            if (!response.ok) {
+                throw await classifyTokenRefreshErrorResponse(response, providerType);
+            }
+
+            break;
+        } catch (error) {
+            const classifiedError = error instanceof TokenRefreshError
+                ? error
+                : classifyTokenRefreshFetchError(error, providerType);
+
+            if (!classifiedError.isRetryable || attempt === TOKEN_REFRESH_MAX_ATTEMPTS) {
+                throw classifiedError;
+            }
+
+            const delayMs = TOKEN_REFRESH_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+            logger.warn(
+                `Transient ${providerType} token refresh failure. Waiting ${delayMs}ms before retry ${attempt}/${TOKEN_REFRESH_MAX_ATTEMPTS}: ${classifiedError.message}`,
+            );
+            await wait(delayMs);
+        }
     }
 
-    const json = await response.json();
+    if (!response) {
+        throw new TokenRefreshError(`${providerType} token refresh produced no response.`, {
+            kind: 'invalid_response',
+        });
+    }
+
+    let json: unknown;
+    try {
+        json = await response.json();
+    } catch (error) {
+        throw new TokenRefreshError(`${providerType} returned a non-JSON token response.`, {
+            kind: 'invalid_response',
+            cause: error,
+        });
+    }
+
     const result = OAuthTokenResponseSchema.safeParse(json);
 
     if (!result.success) {
-        logger.error(`Invalid OAuth token response from ${providerType}:\n${result.error.message}`);
-        return null;
+        throw new TokenRefreshError(`Invalid OAuth token response from ${providerType}: ${result.error.message}`, {
+            kind: 'invalid_response',
+        });
     }
 
     return result.data;
-}
+};
+
+const classifyTokenRefreshFetchError = (
+    error: unknown,
+    providerType: SupportedProviderType,
+): TokenRefreshError => {
+    const errorName = error instanceof Error ? error.name : undefined;
+    const timedOut = errorName === 'TimeoutError' || errorName === 'AbortError';
+
+    return new TokenRefreshError(
+        timedOut
+            ? `${providerType} token refresh timed out.`
+            : `${providerType} token endpoint could not be reached: ${getErrorMessage(error)}`,
+        {
+            kind: 'transient',
+            cause: error,
+        },
+    );
+};
+
+const classifyTokenRefreshErrorResponse = async (
+    response: Response,
+    providerType: SupportedProviderType,
+): Promise<TokenRefreshError> => {
+    let oauthError: string | undefined;
+    let errorDescription: string | undefined;
+
+    try {
+        const responseText = await response.text();
+        const result = OAuthErrorResponseSchema.safeParse(JSON.parse(responseText));
+        if (result.success) {
+            oauthError = result.data.error;
+            errorDescription = result.data.error_description;
+        }
+    } catch {
+        // Non-JSON and malformed OAuth errors are still classified by HTTP status.
+    }
+
+    const details = errorDescription ? `: ${errorDescription}` : '';
+
+    if (oauthError === 'invalid_grant') {
+        return new TokenRefreshError(`${providerType} rejected the OAuth refresh token${details}`, {
+            kind: 'invalid_grant',
+            status: response.status,
+            oauthError,
+            errorDescription,
+        });
+    }
+
+    if (
+        response.status === 408 ||
+        response.status === 429 ||
+        response.status >= 500 ||
+        oauthError === 'server_error' ||
+        oauthError === 'temporarily_unavailable'
+    ) {
+        return new TokenRefreshError(
+            `${providerType} token endpoint is temporarily unavailable (HTTP ${response.status})${details}`,
+            {
+                kind: 'transient',
+                status: response.status,
+                oauthError,
+                errorDescription,
+            },
+        );
+    }
+
+    return new TokenRefreshError(
+        `${providerType} token endpoint rejected the refresh request (HTTP ${response.status})${details}`,
+        {
+            kind: 'configuration',
+            status: response.status,
+            oauthError,
+            errorDescription,
+        },
+    );
+};
