@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
 
 ### Fixed
-- Upgraded `sharp` to `^0.35.3`. [#1476](https://github.com/sourcebot-dev/sourcebot/pull/1476)
+- Upgraded `sharp` to `^0.35.3`. [#1479](https://github.com/sourcebot-dev/sourcebot/pull/1479)
 
 ## [5.1.3] - 2026-07-20
 
