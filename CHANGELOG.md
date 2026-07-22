@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
