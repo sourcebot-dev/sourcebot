@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { classifyPermissionSyncFailure } from './accountPermissionSyncer.js';
+import {
+    PermissionSyncUpstreamError,
+    type PermissionSyncUpstreamErrorKind,
+} from './permissionSyncError.js';
 import { TokenRefreshError, type TokenRefreshErrorKind } from './tokenRefresh.js';
 
 const tokenRefreshError = (
@@ -8,6 +12,14 @@ const tokenRefreshError = (
 ): TokenRefreshError => new TokenRefreshError(`Token refresh failed: ${kind}`, {
     kind,
     status,
+});
+
+const upstreamError = (
+    kind: PermissionSyncUpstreamErrorKind,
+): PermissionSyncUpstreamError => new PermissionSyncUpstreamError(`Permission sync failed: ${kind}`, {
+    kind,
+    provider: 'github',
+    operation: 'list_accessible_repositories',
 });
 
 describe('classifyPermissionSyncFailure', () => {
@@ -36,19 +48,29 @@ describe('classifyPermissionSyncFailure', () => {
     });
 
     test.each([
-        [401, 'http_unauthorized'],
-        [403, 'http_forbidden'],
-        [410, 'http_gone'],
-    ] as const)('preserves fail-closed behavior for an API HTTP %s response', (status, reason) => {
-        const error = Object.assign(new Error(reason), { status });
-        expect(classifyPermissionSyncFailure(error)).toEqual({
+        ['credential_rejected', 'upstream_credential_rejected'],
+        ['insufficient_scope', 'upstream_insufficient_scope'],
+        ['permission_endpoint_removed', 'permission_endpoint_removed'],
+    ] as const)('fails closed for a classified %s upstream failure', (kind, reason) => {
+        expect(classifyPermissionSyncFailure(upstreamError(kind))).toEqual({
             action: 'clear_permissions',
             reason,
         });
     });
 
-    test('keeps permissions for an unrelated API failure', () => {
-        const error = Object.assign(new Error('Internal Server Error'), { status: 500 });
+    test.each([
+        'rate_limited',
+        'upstream_unavailable',
+        'forbidden',
+        'unknown',
+    ] satisfies PermissionSyncUpstreamErrorKind[])('keeps permissions for a classified %s upstream failure', (kind) => {
+        expect(classifyPermissionSyncFailure(upstreamError(kind))).toEqual({
+            action: 'preserve_permissions',
+        });
+    });
+
+    test.each([401, 403, 410])('does not fail closed on an unclassified HTTP %s error', (status) => {
+        const error = Object.assign(new Error(`HTTP ${status}`), { status });
         expect(classifyPermissionSyncFailure(error)).toEqual({
             action: 'preserve_permissions',
         });

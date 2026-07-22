@@ -7,7 +7,7 @@
  *     or errors wrapped via Object.assign(new Error(...), { status })
  *   - gitbeaker (GitLab): { cause: { response: { status } } }
  */
-const getStatus = (err: unknown): number | null => {
+export const getErrorStatus = (err: unknown): number | null => {
     if (err === null || typeof err !== 'object') {
         return null;
     }
@@ -25,7 +25,7 @@ const getStatus = (err: unknown): number | null => {
     return null;
 };
 
-export const isUnauthorized = (err: unknown): boolean => getStatus(err) === 401;
-export const isForbidden = (err: unknown): boolean => getStatus(err) === 403;
-export const isNotFound = (err: unknown): boolean => getStatus(err) === 404;
-export const isGone = (err: unknown): boolean => getStatus(err) === 410;
+export const isUnauthorized = (err: unknown): boolean => getErrorStatus(err) === 401;
+export const isForbidden = (err: unknown): boolean => getErrorStatus(err) === 403;
+export const isNotFound = (err: unknown): boolean => getErrorStatus(err) === 404;
+export const isGone = (err: unknown): boolean => getErrorStatus(err) === 410;
