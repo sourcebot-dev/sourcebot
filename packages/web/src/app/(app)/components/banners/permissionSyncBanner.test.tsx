@@ -56,7 +56,7 @@ afterEach(() => {
 });
 
 describe('PermissionSyncBanner', () => {
-    test('explains that repository access was disabled when reauthentication is required', () => {
+    test('prompts the user to review linked accounts when reauthentication is required', () => {
         renderBanner({
             hasPendingFirstSync: false,
             issues: [{
@@ -65,16 +65,17 @@ describe('PermissionSyncBanner', () => {
                 providerType: 'bitbucket-server',
                 reason: 'REAUTHENTICATION_REQUIRED',
                 occurredAt: '2026-07-22T12:00:00.000Z',
+                isSyncing: false,
             }],
         });
 
         expect(screen.getByText('Repository access from Bitbucket Server needs attention.')).toBeTruthy();
-        expect(screen.getByText(/Private repository access has been disabled until you reconnect/)).toBeTruthy();
+        expect(screen.getByText(/Review your linked accounts to restore access to private repositories/)).toBeTruthy();
         expect(screen.getByRole('link', { name: 'Review linked accounts' }).getAttribute('href'))
             .toBe('/settings/linked-accounts');
     });
 
-    test('provides scope-specific remediation', () => {
+    test('uses the same remediation when additional scope is required', () => {
         renderBanner({
             hasPendingFirstSync: false,
             issues: [{
@@ -83,16 +84,33 @@ describe('PermissionSyncBanner', () => {
                 providerType: 'github',
                 reason: 'INSUFFICIENT_SCOPE',
                 occurredAt: null,
+                isSyncing: false,
             }],
         });
 
-        expect(screen.getByText(/required OAuth scope was not granted/)).toBeTruthy();
-        expect(screen.getByText(/until you reauthorize/)).toBeTruthy();
+        expect(screen.getByText(/Review your linked accounts to restore access to private repositories/)).toBeTruthy();
     });
 
     test('retains the existing initial-sync progress state', () => {
         renderBanner({ hasPendingFirstSync: true, issues: [] });
 
         expect(screen.getByText(/Syncing repository access with Sourcebot/)).toBeTruthy();
+    });
+
+    test('shows syncing while recovering an account with an unresolved issue', () => {
+        renderBanner({
+            hasPendingFirstSync: false,
+            issues: [{
+                accountId: 'account_1',
+                providerId: 'bitbucket-server-corp',
+                providerType: 'bitbucket-server',
+                reason: 'REAUTHENTICATION_REQUIRED',
+                occurredAt: '2026-07-22T12:00:00.000Z',
+                isSyncing: true,
+            }],
+        });
+
+        expect(screen.getByText(/Syncing repository access with Sourcebot/)).toBeTruthy();
+        expect(screen.queryByText(/needs attention/)).toBeNull();
     });
 });

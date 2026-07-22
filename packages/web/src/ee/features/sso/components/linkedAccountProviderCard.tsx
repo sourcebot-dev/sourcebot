@@ -174,7 +174,8 @@ export function LinkedAccountProviderCard({
                                         {reconnectLabel}
                                     </DropdownMenuItem>
                                 )}
-                                {linkedAccount.supportsPermissionSync &&
+                                {!needsAttention &&
+                                    linkedAccount.supportsPermissionSync &&
                                     linkedAccount.accountId && (
                                         <DropdownMenuItem onClick={handleRefreshPermissions}>
                                             <RefreshCw className="h-4 w-4 mr-2" />

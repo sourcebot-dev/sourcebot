@@ -50,7 +50,7 @@ describe('getPermissionSyncStatus', () => {
                 permissionSyncedAt: new Date('2026-07-01T00:00:00Z'),
                 permissionSyncIssue: 'REAUTHENTICATION_REQUIRED',
                 permissionSyncIssueAt: new Date('2026-07-22T12:00:00Z'),
-                permissionSyncJobs: [{ status: 'FAILED' }],
+                permissionSyncJobs: [{ status: 'PENDING' }],
             },
         ]);
         mocks.authContext = {
@@ -66,6 +66,7 @@ describe('getPermissionSyncStatus', () => {
                 providerType: 'bitbucket-server',
                 reason: 'REAUTHENTICATION_REQUIRED',
                 occurredAt: '2026-07-22T12:00:00.000Z',
+                isSyncing: true,
             }],
         });
         expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -92,7 +93,7 @@ describe('getPermissionSyncStatus', () => {
         };
 
         await expect(getPermissionSyncStatus()).resolves.toMatchObject({
-            issues: [{ reason: 'INSUFFICIENT_SCOPE', occurredAt: null }],
+            issues: [{ reason: 'INSUFFICIENT_SCOPE', occurredAt: null, isSyncing: false }],
         });
     });
 });

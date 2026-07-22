@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { LinkedAccount } from '@/ee/features/sso/actions';
 
@@ -25,6 +26,13 @@ vi.mock('@/features/workerApi/actions', () => ({
 
 vi.mock('@/app/api/(client)/client', () => ({
     getAccountSyncStatus: vi.fn(),
+}));
+
+vi.mock('@/components/ui/dropdown-menu', () => ({
+    DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+    DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    DropdownMenuItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock('@/lib/utils', () => ({
@@ -74,7 +82,7 @@ describe('LinkedAccountProviderCard permission sync health', () => {
         expect(screen.queryByText('Needs attention')).toBeNull();
     });
 
-    test('shows reconnect guidance when repository permissions were cleared', () => {
+    test('shows reconnect guidance instead of permission refresh when repository permissions were cleared', () => {
         renderCard({
             ...linkedAccount,
             permissionSyncIssue: 'REAUTHENTICATION_REQUIRED',
@@ -83,6 +91,8 @@ describe('LinkedAccountProviderCard permission sync health', () => {
         expect(screen.getByText('Needs attention')).toBeTruthy();
         expect(screen.getByText('Reconnect this account to restore repository access.')).toBeTruthy();
         expect(screen.queryByText('Connected')).toBeNull();
+        expect(screen.getByText('Reconnect Account')).toBeTruthy();
+        expect(screen.queryByText('Refresh Permissions')).toBeNull();
     });
 
     test('shows scope-specific guidance when the OAuth grant is insufficient', () => {

@@ -17,6 +17,7 @@ export interface PermissionSyncStatusResponse {
         providerType: string;
         reason: AccountPermissionSyncIssue;
         occurredAt: string | null;
+        isSyncing: boolean;
     }>;
 }
 
@@ -75,6 +76,7 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
             providerType: account.providerType,
             reason: account.permissionSyncIssue,
             occurredAt: account.permissionSyncIssueAt?.toISOString() ?? null,
+            isSyncing: account.permissionSyncJobs.some(job => activeStatuses.includes(job.status)),
         }]);
 
         return { hasPendingFirstSync, issues } satisfies PermissionSyncStatusResponse;

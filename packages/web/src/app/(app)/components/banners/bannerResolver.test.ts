@@ -110,6 +110,7 @@ describe('resolveActiveBanner', () => {
                     providerType: 'bitbucket-server',
                     reason: 'REAUTHENTICATION_REQUIRED',
                     occurredAt: NOW.toISOString(),
+                    isSyncing: false,
                 }],
             }));
             expect(result?.id).toBe('permissionSync');
