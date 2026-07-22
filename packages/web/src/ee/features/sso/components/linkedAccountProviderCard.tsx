@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { getAuthProviderInfo, unwrapServiceError } from "@/lib/utils";
+import { cn, getAuthProviderInfo, unwrapServiceError } from "@/lib/utils";
 import { AlertCircle, ArrowUpRight, ChevronDown, RefreshCw, Unlink } from "lucide-react";
 import { ProviderIcon } from "./providerIcon";
 import { LinkedAccount } from "@/ee/features/sso/actions";
@@ -40,6 +40,13 @@ export function LinkedAccountProviderCard({
 
     const providerInfo = getAuthProviderInfo(linkedAccount.providerType);
     const displayName = linkedAccount.displayName ?? providerInfo.displayName;
+    const needsAttention = linkedAccount.permissionSyncIssue !== undefined;
+    const issueDescription = linkedAccount.permissionSyncIssue === 'INSUFFICIENT_SCOPE'
+        ? 'Additional permissions are required to restore repository access.'
+        : 'Reconnect this account to restore repository access.';
+    const reconnectLabel = linkedAccount.permissionSyncIssue === 'INSUFFICIENT_SCOPE'
+        ? 'Reauthorize Account'
+        : 'Reconnect Account';
 
     const { data: syncStatusData } = useQuery({
         queryKey: ["accountSyncStatus", syncJobId],
@@ -86,7 +93,9 @@ export function LinkedAccountProviderCard({
     };
 
     const handleRefreshPermissions = async () => {
-        if (!linkedAccount.accountId) return;
+        if (!linkedAccount.accountId) {
+            return;
+        }
         try {
             const result = await triggerAccountPermissionSync(linkedAccount.accountId);
             if (isServiceError(result)) {
@@ -128,10 +137,10 @@ export function LinkedAccountProviderCard({
                                 {linkedAccount.providerAccountId}
                             </span>
                         )}
-                        {linkedAccount.error && (
-                            <span className="text-xs text-destructive flex items-center gap-1">
+                        {needsAttention && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                 <AlertCircle className="h-3 w-3" />
-                                Token refresh failed — please reconnect
+                                {issueDescription}
                             </span>
                         )}
                     </div>
@@ -142,18 +151,36 @@ export function LinkedAccountProviderCard({
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <LoadingButton variant="ghost" size="sm" loading={isBusy} className="gap-1.5">
-                                    {!isBusy && <span className="h-2 w-2 rounded-full bg-green-500" />}
-                                    {isDisconnecting ? "Disconnecting..." : isSyncing ? "Syncing..." : "Connected"}
+                                    {!isBusy && (
+                                        <span className={cn(
+                                            "h-2 w-2 rounded-full",
+                                            needsAttention ? "bg-amber-500" : "bg-green-500",
+                                        )} />
+                                    )}
+                                    {isDisconnecting
+                                        ? "Disconnecting..."
+                                        : isSyncing
+                                            ? "Syncing..."
+                                            : needsAttention
+                                                ? "Needs attention"
+                                                : "Connected"}
                                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                                 </LoadingButton>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                {linkedAccount.supportsPermissionSync && linkedAccount.accountId && (
-                                    <DropdownMenuItem onClick={handleRefreshPermissions}>
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Refresh Permissions
+                                {needsAttention && (
+                                    <DropdownMenuItem onClick={handleConnect}>
+                                        <ArrowUpRight className="h-4 w-4 mr-2" />
+                                        {reconnectLabel}
                                     </DropdownMenuItem>
                                 )}
+                                {linkedAccount.supportsPermissionSync &&
+                                    linkedAccount.accountId && (
+                                        <DropdownMenuItem onClick={handleRefreshPermissions}>
+                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                            Refresh Permissions
+                                        </DropdownMenuItem>
+                                    )}
                                 <DropdownMenuItem
                                     onClick={handleDisconnect}
                                     className="text-destructive focus:text-destructive"

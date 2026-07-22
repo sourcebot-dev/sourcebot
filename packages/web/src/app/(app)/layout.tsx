@@ -165,6 +165,10 @@ export default async function Layout(props: LayoutProps) {
         permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
             ? permissionSyncStatus.hasPendingFirstSync
             : false;
+    const permissionSyncIssues =
+        permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
+            ? permissionSyncStatus.issues
+            : [];
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense
@@ -198,6 +202,7 @@ export default async function Layout(props: LayoutProps) {
                                                     offlineLicense={offlineLicense}
                                                     hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
                                                     hasPendingFirstSync={hasPendingFirstSync}
+                                                    permissionSyncIssues={permissionSyncIssues}
                                                     currentVersion={SOURCEBOT_VERSION}
                                                     latestVersion={latestVersion}
                                                 />

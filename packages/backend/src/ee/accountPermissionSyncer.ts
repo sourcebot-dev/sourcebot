@@ -1,5 +1,11 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
+import {
+    PrismaClient,
+    AccountPermissionSyncIssue,
+    AccountPermissionSyncJobStatus,
+    Account,
+    PermissionSyncSource,
+} from "@sourcebot/db";
 import { env, createLogger, getIdentityProviderConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
 import { ensureFreshAccountToken, TokenRefreshError } from "./tokenRefresh.js";
@@ -46,10 +52,22 @@ export type PermissionCleanupDecision =
         action: 'preserve_permissions';
     };
 
-const PERMISSION_CLEANUP_REASON_MESSAGES: Record<PermissionCleanupReason, string> = {
-    oauth_refresh_token_rejected: 'OAuth refresh token rejection',
-    upstream_credential_rejected: 'upstream credential rejection',
-    upstream_insufficient_scope: 'insufficient OAuth scope',
+const PERMISSION_CLEANUP_DETAILS: Record<PermissionCleanupReason, {
+    message: string;
+    issue: AccountPermissionSyncIssue;
+}> = {
+    oauth_refresh_token_rejected: {
+        message: 'OAuth refresh token rejection',
+        issue: AccountPermissionSyncIssue.REAUTHENTICATION_REQUIRED,
+    },
+    upstream_credential_rejected: {
+        message: 'upstream credential rejection',
+        issue: AccountPermissionSyncIssue.REAUTHENTICATION_REQUIRED,
+    },
+    upstream_insufficient_scope: {
+        message: 'insufficient OAuth scope',
+        issue: AccountPermissionSyncIssue.INSUFFICIENT_SCOPE,
+    },
 };
 
 export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanupDecision => {
@@ -238,12 +256,21 @@ export class AccountPermissionSyncer {
             const cleanupDecision = classifyPermissionSyncFailure(error);
 
             if (cleanupDecision.action === 'clear_permissions') {
-                const { count } = await this.db.accountToRepoPermission.deleteMany({
-                    where: { accountId: account.id },
-                });
+                const details = PERMISSION_CLEANUP_DETAILS[cleanupDecision.reason];
+                const [{ count }] = await this.db.$transaction([
+                    this.db.accountToRepoPermission.deleteMany({
+                        where: { accountId: account.id },
+                    }),
+                    this.db.account.update({
+                        where: { id: account.id },
+                        data: {
+                            permissionSyncIssue: details.issue,
+                            permissionSyncIssueAt: new Date(),
+                        },
+                    }),
+                ]);
                 const message = error instanceof Error ? error.message : String(error);
-                const reason = PERMISSION_CLEANUP_REASON_MESSAGES[cleanupDecision.reason];
-                logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${reason}: ${message}`);
+                logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${details.message}: ${message}`);
             }
             throw error;
         }
@@ -451,6 +478,8 @@ export class AccountPermissionSyncer {
                 account: {
                     update: {
                         permissionSyncedAt: new Date(),
+                        permissionSyncIssue: null,
+                        permissionSyncIssueAt: null,
                     },
                 },
                 completedAt: new Date(),

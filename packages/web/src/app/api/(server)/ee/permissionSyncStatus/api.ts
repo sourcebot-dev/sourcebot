@@ -4,18 +4,25 @@ import { ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
 import { getEntitlements } from "@/lib/entitlements";
 import { env, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
-import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
+import { AccountPermissionSyncJobStatus, type AccountPermissionSyncIssue } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { sew } from "@/middleware/sew";
 
 export interface PermissionSyncStatusResponse {
     hasPendingFirstSync: boolean;
+    issues: Array<{
+        accountId: string;
+        providerId: string;
+        providerType: string;
+        reason: AccountPermissionSyncIssue;
+        occurredAt: string | null;
+    }>;
 }
 
 /**
- * Returns whether a user has a account that has it's permissions
- * synced for the first time.
+ * Returns initial-sync progress and action-required permission sync issues
+ * for the authenticated user's linked accounts.
  */
 export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusResponse | ServiceError> => sew(async () =>
     withAuth(async ({ prisma, user }) => {
@@ -34,7 +41,13 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
                 userId: user.id,
                 providerType: { in: PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS }
             },
-            include: {
+            select: {
+                id: true,
+                providerId: true,
+                providerType: true,
+                permissionSyncedAt: true,
+                permissionSyncIssue: true,
+                permissionSyncIssueAt: true,
                 permissionSyncJobs: {
                     orderBy: { createdAt: 'desc' },
                     take: 1,
@@ -54,8 +67,16 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
                 // has not yet been scheduled for a new account, we consider
                 // accounts with no permission sync jobs as having a pending first sync.
                 (account.permissionSyncJobs.length === 0 || (account.permissionSyncJobs.length > 0 && activeStatuses.includes(account.permissionSyncJobs[0].status)))
-            )
+            );
 
-        return { hasPendingFirstSync } satisfies PermissionSyncStatusResponse;
+        const issues = accounts.flatMap(account => account.permissionSyncIssue === null ? [] : [{
+            accountId: account.id,
+            providerId: account.providerId,
+            providerType: account.providerType,
+            reason: account.permissionSyncIssue,
+            occurredAt: account.permissionSyncIssueAt?.toISOString() ?? null,
+        }]);
+
+        return { hasPendingFirstSync, issues } satisfies PermissionSyncStatusResponse;
     })
 )
