@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
 - [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
 - [EE] Classified code host permission sync failures by provider context before clearing cached repository permissions. [#1482](https://github.com/sourcebot-dev/sourcebot/pull/1482)
+- [EE] Added action-required warnings and guided recovery when permission syncing clears cached repository access. [#1484](https://github.com/sourcebot-dev/sourcebot/pull/1484)
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
