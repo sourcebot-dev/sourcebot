@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
 
+### Fixed
+- Upgraded `body-parser` to `^2.3.0`/`^1.20.6`. [#1480](https://github.com/sourcebot-dev/sourcebot/pull/1480)
+
 ## [5.1.3] - 2026-07-20
 
 ### Added
