@@ -6,7 +6,7 @@ import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
 import { sew } from "@/middleware/sew";
 
 export interface AccountSyncStatusResponse {
-    isSyncing: boolean;
+    status: AccountPermissionSyncJobStatus;
 }
 
 export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> =>
@@ -20,12 +20,5 @@ export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncSt
 
         if (!job) return notFound();
 
-        const activeStatuses: AccountPermissionSyncJobStatus[] = [
-            AccountPermissionSyncJobStatus.PENDING,
-            AccountPermissionSyncJobStatus.IN_PROGRESS,
-        ];
-
-        const isSyncing = activeStatuses.includes(job.status);
-
-        return { isSyncing } satisfies AccountSyncStatusResponse;
+        return { status: job.status } satisfies AccountSyncStatusResponse;
     }));
