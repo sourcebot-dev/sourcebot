@@ -33,7 +33,7 @@ type AccountPermissionSyncJob = {
 }
 
 export type PermissionCleanupReason =
-    | 'oauth_invalid_grant'
+    | 'oauth_refresh_token_rejected'
     | 'http_unauthorized'
     | 'http_forbidden'
     | 'http_gone';
@@ -48,7 +48,7 @@ export type PermissionCleanupDecision =
     };
 
 const PERMISSION_CLEANUP_REASON_MESSAGES: Record<PermissionCleanupReason, string> = {
-    oauth_invalid_grant: 'OAuth invalid_grant',
+    oauth_refresh_token_rejected: 'OAuth refresh token rejection',
     http_unauthorized: 'HTTP 401 Unauthorized',
     http_forbidden: 'HTTP 403 Forbidden',
     http_gone: 'HTTP 410 Gone',
@@ -56,11 +56,11 @@ const PERMISSION_CLEANUP_REASON_MESSAGES: Record<PermissionCleanupReason, string
 
 export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanupDecision => {
     // Token refresh failures have their own classification. Do not fall through
-    // to the generic HTTP checks because a non-invalid_grant response may also
-    // carry a 401 or 403 status.
+    // to the generic HTTP checks because another token endpoint failure may
+    // also carry a 401 or 403 status.
     if (error instanceof TokenRefreshError) {
-        return error.kind === 'invalid_grant'
-            ? { action: 'clear_permissions', reason: 'oauth_invalid_grant' }
+        return error.kind === 'refresh_token_rejected'
+            ? { action: 'clear_permissions', reason: 'oauth_refresh_token_rejected' }
             : { action: 'preserve_permissions' };
     }
 

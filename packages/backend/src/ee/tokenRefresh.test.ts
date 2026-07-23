@@ -103,7 +103,7 @@ describe('exchangeRefreshToken', () => {
 
         expect(error).toBeInstanceOf(TokenRefreshError);
         expect(error).toMatchObject({
-            kind: 'invalid_grant',
+            kind: 'refresh_token_rejected',
             status: 400,
             oauthError: 'invalid_grant',
             errorDescription: 'The provided refresh_token is invalid',
@@ -139,7 +139,7 @@ describe('exchangeRefreshToken', () => {
 
         expect(error).toBeInstanceOf(TokenRefreshError);
         expect(error).toMatchObject({
-            kind: 'invalid_grant',
+            kind: 'refresh_token_rejected',
             status: 400,
             oauthError: 'invalid_grant',
         });
@@ -150,6 +150,33 @@ describe('exchangeRefreshToken', () => {
                 tokenRefreshErrorMessage: 'bitbucket-server rejected the OAuth refresh token: The provided refresh_token is invalid',
             },
         });
+    });
+
+    test('classifies a GitHub bad_refresh_token payload returned with HTTP 200 as a credential rejection', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+            error: 'bad_refresh_token',
+            error_description: 'The refresh token passed is incorrect or expired.',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const error = await exchangeRefreshToken(
+            'github',
+            'old-refresh-token',
+            credentials,
+        ).catch(error => error);
+
+        expect(error).toBeInstanceOf(TokenRefreshError);
+        expect(error).toMatchObject({
+            kind: 'refresh_token_rejected',
+            status: 200,
+            oauthError: 'bad_refresh_token',
+            errorDescription: 'The refresh token passed is incorrect or expired.',
+            isRetryable: false,
+        });
+        expect(fetchMock).toHaveBeenCalledOnce();
     });
 
     test('retries a transient HTTP 500 response', async () => {
@@ -202,6 +229,29 @@ describe('exchangeRefreshToken', () => {
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
+    test('retries a transient OAuth error payload returned with HTTP 200', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                error: 'server_error',
+                error_description: 'The token service is temporarily unavailable.',
+            }), { status: 200 }))
+            .mockResolvedValueOnce(tokenResponse());
+        vi.stubGlobal('fetch', fetchMock);
+
+        const resultPromise = exchangeRefreshToken(
+            'github',
+            'old-refresh-token',
+            credentials,
+        );
+
+        await vi.advanceTimersByTimeAsync(3000);
+
+        await expect(resultPromise).resolves.toMatchObject({
+            access_token: 'new-access-token',
+        });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     test('retries a transient network error', async () => {
         const fetchMock = vi.fn()
             .mockRejectedValueOnce(new TypeError('fetch failed'))
@@ -222,12 +272,12 @@ describe('exchangeRefreshToken', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    test('does not retry a non-invalid_grant OAuth rejection', async () => {
+    test('does not retry a configuration error payload returned with HTTP 200', async () => {
         const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
             error: 'invalid_client',
             error_description: 'Client authentication failed',
         }), {
-            status: 400,
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
         }));
         vi.stubGlobal('fetch', fetchMock);
@@ -241,7 +291,7 @@ describe('exchangeRefreshToken', () => {
         expect(error).toBeInstanceOf(TokenRefreshError);
         expect(error).toMatchObject({
             kind: 'configuration',
-            status: 400,
+            status: 200,
             oauthError: 'invalid_client',
             isRetryable: false,
         });

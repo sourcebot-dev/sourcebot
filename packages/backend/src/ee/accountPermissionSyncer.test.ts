@@ -11,10 +11,10 @@ const tokenRefreshError = (
 });
 
 describe('classifyPermissionSyncFailure', () => {
-    test('fails closed for invalid_grant', () => {
-        expect(classifyPermissionSyncFailure(tokenRefreshError('invalid_grant', 400))).toEqual({
+    test('fails closed when the refresh token is rejected', () => {
+        expect(classifyPermissionSyncFailure(tokenRefreshError('refresh_token_rejected', 400))).toEqual({
             action: 'clear_permissions',
-            reason: 'oauth_invalid_grant',
+            reason: 'oauth_refresh_token_rejected',
         });
     });
 

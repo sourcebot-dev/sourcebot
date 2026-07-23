@@ -45,9 +45,10 @@ const OAuthErrorResponseSchema = z.object({
     error_description: z.string().optional(),
 });
 type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
+type OAuthErrorResponse = z.infer<typeof OAuthErrorResponseSchema>;
 
 export type TokenRefreshErrorKind =
-    | 'invalid_grant'
+    | 'refresh_token_rejected'
     | 'transient'
     | 'configuration'
     | 'invalid_response'
@@ -304,10 +305,9 @@ export const exchangeRefreshToken = async (
         bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
     }
 
-    let response: Response | undefined;
     for (let attempt = 1; attempt <= TOKEN_REFRESH_MAX_ATTEMPTS; attempt++) {
         try {
-            response = await fetch(url, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -320,11 +320,7 @@ export const exchangeRefreshToken = async (
                 signal: AbortSignal.timeout(TOKEN_REFRESH_TIMEOUT_MS),
             });
 
-            if (!response.ok) {
-                throw await classifyTokenRefreshErrorResponse(response, providerType);
-            }
-
-            break;
+            return await parseTokenRefreshResponse(response, providerType);
         } catch (error) {
             const classifiedError = error instanceof TokenRefreshError
                 ? error
@@ -342,20 +338,41 @@ export const exchangeRefreshToken = async (
         }
     }
 
-    if (!response) {
-        throw new TokenRefreshError(`${providerType} token refresh produced no response.`, {
-            kind: 'invalid_response',
-        });
-    }
+    throw new TokenRefreshError(`${providerType} token refresh produced no response.`, {
+        kind: 'invalid_response',
+    });
+};
 
+const parseTokenRefreshResponse = async (
+    response: Response,
+    providerType: SupportedProviderType,
+): Promise<OAuthTokenResponse> => {
+    const responseText = await response.text();
     let json: unknown;
     try {
-        json = await response.json();
+        json = JSON.parse(responseText);
     } catch (error) {
+        if (!response.ok) {
+            throw classifyTokenRefreshErrorResponse(response.status, providerType);
+        }
+
         throw new TokenRefreshError(`${providerType} returned a non-JSON token response.`, {
             kind: 'invalid_response',
             cause: error,
         });
+    }
+
+    const oauthErrorResult = OAuthErrorResponseSchema.safeParse(json);
+    if (oauthErrorResult.success) {
+        throw classifyTokenRefreshErrorResponse(
+            response.status,
+            providerType,
+            oauthErrorResult.data,
+        );
+    }
+
+    if (!response.ok) {
+        throw classifyTokenRefreshErrorResponse(response.status, providerType);
     }
 
     const result = OAuthTokenResponseSchema.safeParse(json);
@@ -387,47 +404,39 @@ const classifyTokenRefreshFetchError = (
     );
 };
 
-const classifyTokenRefreshErrorResponse = async (
-    response: Response,
+const classifyTokenRefreshErrorResponse = (
+    status: number,
     providerType: SupportedProviderType,
-): Promise<TokenRefreshError> => {
-    let oauthError: string | undefined;
-    let errorDescription: string | undefined;
-
-    try {
-        const responseText = await response.text();
-        const result = OAuthErrorResponseSchema.safeParse(JSON.parse(responseText));
-        if (result.success) {
-            oauthError = result.data.error;
-            errorDescription = result.data.error_description;
-        }
-    } catch {
-        // Non-JSON and malformed OAuth errors are still classified by HTTP status.
-    }
-
+    oauthErrorResponse?: OAuthErrorResponse,
+): TokenRefreshError => {
+    const oauthError = oauthErrorResponse?.error;
+    const errorDescription = oauthErrorResponse?.error_description;
     const details = errorDescription ? `: ${errorDescription}` : '';
+    const isRefreshTokenRejected =
+        oauthError === 'invalid_grant' ||
+        (providerType === 'github' && oauthError === 'bad_refresh_token');
 
-    if (oauthError === 'invalid_grant') {
+    if (isRefreshTokenRejected) {
         return new TokenRefreshError(`${providerType} rejected the OAuth refresh token${details}`, {
-            kind: 'invalid_grant',
-            status: response.status,
+            kind: 'refresh_token_rejected',
+            status,
             oauthError,
             errorDescription,
         });
     }
 
     if (
-        response.status === 408 ||
-        response.status === 429 ||
-        response.status >= 500 ||
+        status === 408 ||
+        status === 429 ||
+        status >= 500 ||
         oauthError === 'server_error' ||
         oauthError === 'temporarily_unavailable'
     ) {
         return new TokenRefreshError(
-            `${providerType} token endpoint is temporarily unavailable (HTTP ${response.status})${details}`,
+            `${providerType} token endpoint is temporarily unavailable (HTTP ${status})${details}`,
             {
                 kind: 'transient',
-                status: response.status,
+                status,
                 oauthError,
                 errorDescription,
             },
@@ -435,10 +444,10 @@ const classifyTokenRefreshErrorResponse = async (
     }
 
     return new TokenRefreshError(
-        `${providerType} token endpoint rejected the refresh request (HTTP ${response.status})${details}`,
+        `${providerType} token endpoint rejected the refresh request (HTTP ${status})${details}`,
         {
             kind: 'configuration',
-            status: response.status,
+            status,
             oauthError,
             errorDescription,
         },
