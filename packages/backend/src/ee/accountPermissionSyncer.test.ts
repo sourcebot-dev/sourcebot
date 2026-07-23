@@ -129,8 +129,8 @@ describe('classifyPermissionSyncFailure', () => {
 });
 
 describe('permission sync issue lifecycle', () => {
-    test('atomically records a reauthentication issue when invalid_grant clears permissions', async () => {
-        const error = tokenRefreshError('invalid_grant', 400);
+    test('atomically records a reauthentication issue when the refresh token is rejected', async () => {
+        const error = tokenRefreshError('refresh_token_rejected', 400);
         const { db, job, syncer } = createSyncerHarness(error);
 
         await expect(syncer.runJob(job)).rejects.toBe(error);
@@ -149,7 +149,7 @@ describe('permission sync issue lifecycle', () => {
     });
 
     test('records an issue when permissions were already cleared by an earlier attempt', async () => {
-        const error = tokenRefreshError('invalid_grant', 400);
+        const error = tokenRefreshError('refresh_token_rejected', 400);
         const { db, job, syncer } = createSyncerHarness(error, 0);
 
         await expect(syncer.runJob(job)).rejects.toBe(error);
