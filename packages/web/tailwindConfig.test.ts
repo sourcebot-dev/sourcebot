@@ -2,6 +2,7 @@ import postcss from "postcss";
 import tailwindcss from "tailwindcss";
 import { describe, expect, test } from "vitest";
 
+import tailwind from "./src/tailwind";
 import tailwindConfig from "./tailwind.config";
 
 const compileUtilities = async (classes: string) => {
@@ -32,6 +33,18 @@ describe("Tailwind theme colors", () => {
         );
         expect(css).toContain(
             "border-color: color-mix(in srgb, var(--border) calc(0.3 * 100%), transparent)",
+        );
+    });
+
+    test("resolves valid opaque colors for runtime consumers", () => {
+        expect(tailwind.theme.colors.background).toBe(
+            "color-mix(in srgb, var(--background) 100%, transparent)",
+        );
+        expect(tailwind.theme.colors.editor.background).toBe(
+            "color-mix(in srgb, var(--editor-background) 100%, transparent)",
+        );
+        expect(JSON.stringify(tailwind.theme.colors)).not.toContain(
+            "<alpha-value>",
         );
     });
 });
