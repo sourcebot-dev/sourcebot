@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
 import { env, createLogger, getIdentityProviderConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
-import { ensureFreshAccountToken } from "./tokenRefresh.js";
+import { ensureFreshAccountToken, TokenRefreshError } from "./tokenRefresh.js";
 import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import {
@@ -32,11 +32,50 @@ type AccountPermissionSyncJob = {
     jobId: string;
 }
 
-class RefreshTokenError extends Error {
-    constructor(message: string) {
-        super(message);
+export type PermissionCleanupReason =
+    | 'oauth_refresh_token_rejected'
+    | 'http_unauthorized'
+    | 'http_forbidden'
+    | 'http_gone';
+
+export type PermissionCleanupDecision =
+    | {
+        action: 'clear_permissions';
+        reason: PermissionCleanupReason;
     }
-}
+    | {
+        action: 'preserve_permissions';
+    };
+
+const PERMISSION_CLEANUP_REASON_MESSAGES: Record<PermissionCleanupReason, string> = {
+    oauth_refresh_token_rejected: 'OAuth refresh token rejection',
+    http_unauthorized: 'HTTP 401 Unauthorized',
+    http_forbidden: 'HTTP 403 Forbidden',
+    http_gone: 'HTTP 410 Gone',
+};
+
+export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanupDecision => {
+    // Token refresh failures have their own classification. Do not fall through
+    // to the generic HTTP checks because another token endpoint failure may
+    // also carry a 401 or 403 status.
+    if (error instanceof TokenRefreshError) {
+        return error.kind === 'refresh_token_rejected'
+            ? { action: 'clear_permissions', reason: 'oauth_refresh_token_rejected' }
+            : { action: 'preserve_permissions' };
+    }
+
+    if (isUnauthorized(error)) {
+        return { action: 'clear_permissions', reason: 'http_unauthorized' };
+    }
+    if (isForbidden(error)) {
+        return { action: 'clear_permissions', reason: 'http_forbidden' };
+    }
+    if (isGone(error)) {
+        return { action: 'clear_permissions', reason: 'http_gone' };
+    }
+
+    return { action: 'preserve_permissions' };
+};
 
 export class AccountPermissionSyncer {
     private queue: Queue<AccountPermissionSyncJob>;
@@ -202,18 +241,14 @@ export class AccountPermissionSyncer {
             // on is gone (e.g. Bitbucket Cloud's CHANGE-2770), clear the
             // account's existing permission rows so the read-side filter stops
             // matching through them.
-            const reason =
-                error instanceof RefreshTokenError ? 'token refresh failure' :
-                isUnauthorized(error) ? 'HTTP 401 Unauthorized' :
-                isForbidden(error) ? 'HTTP 403 Forbidden' :
-                isGone(error) ? 'HTTP 410 Gone' :
-                null;
+            const cleanupDecision = classifyPermissionSyncFailure(error);
 
-            if (reason !== null) {
+            if (cleanupDecision.action === 'clear_permissions') {
                 const { count } = await this.db.accountToRepoPermission.deleteMany({
                     where: { accountId: account.id },
                 });
                 const message = error instanceof Error ? error.message : String(error);
+                const reason = PERMISSION_CLEANUP_REASON_MESSAGES[cleanupDecision.reason];
                 logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${reason}: ${message}`);
             }
             throw error;
@@ -227,20 +262,7 @@ export class AccountPermissionSyncer {
         logger.debug(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
-        //
-        // @note(SOU-1177) re-throwing as a RefreshTokenError here is required to flag to the caller
-        // (runJob) that the account's permissions should be cleared. The side-effect with this
-        // approach is that permissions will be cleared for any error thrown in the
-        // ensureFreshAccountToken path. A better approach would be to look at the response
-        // from the oauth call and determining if the host returned a invalid_grant.
-        //
-        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
-        let accessToken;
-        try {
-            accessToken = await ensureFreshAccountToken(account, this.db);
-        } catch (error) {
-            throw new RefreshTokenError(error instanceof Error ? error.message : 'Failed to refresh token with unknown error.');
-        }
+        const accessToken = await ensureFreshAccountToken(account, this.db);
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
