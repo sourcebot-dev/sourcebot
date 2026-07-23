@@ -15,6 +15,7 @@ import { InvoicePastDueBanner } from "./invoicePastDueBanner";
 import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 import { TrialBanner } from "./trialBanner";
 import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
+import type { PermissionSyncStatusResponse } from "@/app/api/(server)/ee/permissionSyncStatus/api";
 
 // Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
 // constant in `packages/shared/src/entitlements.ts`.
@@ -28,6 +29,7 @@ export interface BannerContext {
     offlineLicense: OfflineLicenseMetadata | null;
     hasPermissionSyncEntitlement: boolean;
     hasPendingFirstSync: boolean;
+    permissionSyncIssues: PermissionSyncStatusResponse['issues'];
     dismissals: Partial<Record<BannerId, string>>;
     today: string;
     now: Date;
@@ -155,14 +157,23 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
         });
     }
 
-    if (ctx.hasPermissionSyncEntitlement && ctx.hasPendingFirstSync) {
+    if (
+        ctx.hasPermissionSyncEntitlement &&
+        (ctx.hasPendingFirstSync || ctx.permissionSyncIssues.length > 0)
+    ) {
         banners.push({
             id: 'permissionSync',
             priority: BannerPriority.PERMISSION_SYNC,
             dismissible: false,
             audience: 'everyone',
             render: (props) => (
-                <PermissionSyncBanner {...props} initialHasPendingFirstSync={true} />
+                <PermissionSyncBanner
+                    {...props}
+                    initialStatus={{
+                        hasPendingFirstSync: ctx.hasPendingFirstSync,
+                        issues: ctx.permissionSyncIssues,
+                    }}
+                />
             ),
         });
     }

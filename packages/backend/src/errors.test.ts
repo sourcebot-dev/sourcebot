@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { RequestError } from '@octokit/request-error';
 import { GitbeakerRequestError } from '@gitbeaker/requester-utils';
-import { isForbidden, isGone, isUnauthorized } from './errors';
+import { getErrorHeader, getErrorStatus, isForbidden, isGone, isUnauthorized } from './errors';
 import { throwOnHttpError } from './bitbucket';
 
 // Helper: invoke the openapi-fetch middleware against a synthetic Response and
@@ -22,6 +22,59 @@ const invokeMiddleware = async (response: Response): Promise<unknown> => {
         return e;
     }
 };
+
+describe('HTTP error metadata', () => {
+    test('reads status and case-insensitive headers from a direct response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            response: {
+                status: 429,
+                headers: {
+                    'Retry-After': '30',
+                },
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(429);
+        expect(getErrorHeader(error, 'retry-after')).toBe('30');
+    });
+
+    test('reads status and native Headers from a nested cause response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            cause: {
+                response: new Response(null, {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Remaining': '0',
+                    },
+                }),
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(429);
+        expect(getErrorHeader(error, 'x-ratelimit-remaining')).toBe('0');
+    });
+
+    test('combines a direct status with headers from the direct response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            status: 403,
+            response: {
+                headers: {
+                    'x-ratelimit-remaining': '0',
+                },
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(403);
+        expect(getErrorHeader(error, 'X-RateLimit-Remaining')).toBe('0');
+    });
+
+    test('returns no metadata for a plain error', () => {
+        const error = new Error('Not an HTTP error');
+
+        expect(getErrorStatus(error)).toBeNull();
+        expect(getErrorHeader(error, 'retry-after')).toBeUndefined();
+    });
+});
 
 describe('isUnauthorized', () => {
     test('Octokit RequestError with status 401', () => {

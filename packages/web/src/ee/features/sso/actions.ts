@@ -4,7 +4,7 @@ import { sew } from "@/middleware/sew";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole } from "@sourcebot/db";
+import { OrgRole, type AccountPermissionSyncIssue } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
 import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfig, getIdentityProviderConfigs } from "@sourcebot/shared";
 import { cookies } from "next/headers";
@@ -22,7 +22,7 @@ export type LinkedAccount = {
     // Present when isLinked = true
     accountId?: string;
     providerAccountId?: string;
-    error?: string;
+    permissionSyncIssue?: AccountPermissionSyncIssue;
     // From config (only meaningful for account_linking providers)
     isAccountLinkingProvider: boolean;
     required: boolean;
@@ -40,7 +40,7 @@ export const getLinkedAccounts = async () => sew(() =>
                     providerType: true,
                     providerId: true,
                     providerAccountId: true,
-                    tokenRefreshErrorMessage: true,
+                    permissionSyncIssue: true,
                 },
             });
 
@@ -62,7 +62,7 @@ export const getLinkedAccounts = async () => sew(() =>
                     isLinked: true,
                     accountId: account.id,
                     providerAccountId: account.providerAccountId,
-                    error: account.tokenRefreshErrorMessage ?? undefined,
+                    permissionSyncIssue: account.permissionSyncIssue ?? undefined,
                     isAccountLinkingProvider: isAccountLinking,
                     required: isAccountLinking ? (providerConfig?.accountLinkingRequired ?? false) : false,
                     supportsPermissionSync: permissionSyncEnabled && doesIdpSupportPermissionSyncing(account.providerType),
@@ -118,4 +118,3 @@ export const skipOptionalProvidersLink = async () => sew(async () => {
     });
     return true;
 });
-
