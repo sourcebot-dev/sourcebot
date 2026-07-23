@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
-- Upgraded `hono` to `^4.12.31`. [#1476](https://github.com/sourcebot-dev/sourcebot/pull/1476)
+- Upgraded `hono` to `^4.12.31`. [#1487](https://github.com/sourcebot-dev/sourcebot/pull/1487)
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
