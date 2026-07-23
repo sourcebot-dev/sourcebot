@@ -1,8 +1,14 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
+import {
+    PrismaClient,
+    AccountPermissionSyncIssue,
+    AccountPermissionSyncJobStatus,
+    Account,
+    PermissionSyncSource,
+} from "@sourcebot/db";
 import { env, createLogger, getIdentityProviderConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
-import { ensureFreshAccountToken } from "./tokenRefresh.js";
+import { ensureFreshAccountToken, TokenRefreshError } from "./tokenRefresh.js";
 import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import {
@@ -18,7 +24,7 @@ import {
 import { createBitbucketCloudClient, createBitbucketServerClient, getReposForAuthenticatedBitbucketCloudUser, getReposForAuthenticatedBitbucketServerUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
-import { isUnauthorized, isForbidden, isGone } from "../errors.js";
+import { PermissionSyncUpstreamError, withPermissionSyncUpstreamError } from "./permissionSyncError.js";
 
 const LOG_TAG = 'user-permission-syncer';
 const logger = createLogger(LOG_TAG);
@@ -32,11 +38,59 @@ type AccountPermissionSyncJob = {
     jobId: string;
 }
 
-class RefreshTokenError extends Error {
-    constructor(message: string) {
-        super(message);
+export type PermissionCleanupReason =
+    | 'oauth_refresh_token_rejected'
+    | 'upstream_credential_rejected'
+    | 'upstream_insufficient_scope';
+
+export type PermissionCleanupDecision =
+    | {
+        action: 'clear_permissions';
+        reason: PermissionCleanupReason;
     }
-}
+    | {
+        action: 'preserve_permissions';
+    };
+
+const PERMISSION_CLEANUP_DETAILS: Record<PermissionCleanupReason, {
+    message: string;
+    issue: AccountPermissionSyncIssue;
+}> = {
+    oauth_refresh_token_rejected: {
+        message: 'OAuth refresh token rejection',
+        issue: AccountPermissionSyncIssue.REAUTHENTICATION_REQUIRED,
+    },
+    upstream_credential_rejected: {
+        message: 'upstream credential rejection',
+        issue: AccountPermissionSyncIssue.REAUTHENTICATION_REQUIRED,
+    },
+    upstream_insufficient_scope: {
+        message: 'insufficient OAuth scope',
+        issue: AccountPermissionSyncIssue.INSUFFICIENT_SCOPE,
+    },
+};
+
+export const classifyPermissionSyncFailure = (error: unknown): PermissionCleanupDecision => {
+    // Token refresh failures have their own classification. Do not fall through
+    // to the generic HTTP checks because another token endpoint failure may
+    // also carry a 401 or 403 status.
+    if (error instanceof TokenRefreshError) {
+        return error.kind === 'refresh_token_rejected'
+            ? { action: 'clear_permissions', reason: 'oauth_refresh_token_rejected' }
+            : { action: 'preserve_permissions' };
+    }
+
+    if (error instanceof PermissionSyncUpstreamError) {
+        if (error.kind === 'credential_rejected') {
+            return { action: 'clear_permissions', reason: 'upstream_credential_rejected' };
+        }
+        if (error.kind === 'insufficient_scope') {
+            return { action: 'clear_permissions', reason: 'upstream_insufficient_scope' };
+        }
+    }
+
+    return { action: 'preserve_permissions' };
+};
 
 export class AccountPermissionSyncer {
     private queue: Queue<AccountPermissionSyncJob>;
@@ -196,25 +250,27 @@ export class AccountPermissionSyncer {
         try {
             await this.syncAccountPermissions(account, logger);
         } catch (error) {
-            // Fail-closed: when the code-host layer signals that the upstream
-            // account is permanently unauthorized (token revoked, user
-            // deprovisioned, OAuth grant dead) or that the endpoint we depend
-            // on is gone (e.g. Bitbucket Cloud's CHANGE-2770), clear the
-            // account's existing permission rows so the read-side filter stops
-            // matching through them.
-            const reason =
-                error instanceof RefreshTokenError ? 'token refresh failure' :
-                isUnauthorized(error) ? 'HTTP 401 Unauthorized' :
-                isForbidden(error) ? 'HTTP 403 Forbidden' :
-                isGone(error) ? 'HTTP 410 Gone' :
-                null;
+            // Clear cached permissions only for classified permanent failures.
+            // Ambiguous HTTP errors and transient upstream failures preserve the
+            // last successful permission state.
+            const cleanupDecision = classifyPermissionSyncFailure(error);
 
-            if (reason !== null) {
-                const { count } = await this.db.accountToRepoPermission.deleteMany({
-                    where: { accountId: account.id },
-                });
+            if (cleanupDecision.action === 'clear_permissions') {
+                const details = PERMISSION_CLEANUP_DETAILS[cleanupDecision.reason];
+                const [{ count }] = await this.db.$transaction([
+                    this.db.accountToRepoPermission.deleteMany({
+                        where: { accountId: account.id },
+                    }),
+                    this.db.account.update({
+                        where: { id: account.id },
+                        data: {
+                            permissionSyncIssue: details.issue,
+                            permissionSyncIssueAt: new Date(),
+                        },
+                    }),
+                ]);
                 const message = error instanceof Error ? error.message : String(error);
-                logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${reason}: ${message}`);
+                logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${details.message}: ${message}`);
             }
             throw error;
         }
@@ -227,20 +283,7 @@ export class AccountPermissionSyncer {
         logger.debug(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
-        //
-        // @note(SOU-1177) re-throwing as a RefreshTokenError here is required to flag to the caller
-        // (runJob) that the account's permissions should be cleared. The side-effect with this
-        // approach is that permissions will be cleared for any error thrown in the
-        // ensureFreshAccountToken path. A better approach would be to look at the response
-        // from the oauth call and determining if the host returned a invalid_grant.
-        //
-        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
-        let accessToken;
-        try {
-            accessToken = await ensureFreshAccountToken(account, this.db);
-        } catch (error) {
-            throw new RefreshTokenError(error instanceof Error ? error.message : 'Failed to refresh token with unknown error.');
-        }
+        const accessToken = await ensureFreshAccountToken(account, this.db);
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
@@ -258,19 +301,34 @@ export class AccountPermissionSyncer {
                     url: idpConfig.baseUrl,
                 });
 
-                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, accessToken);
+                const scopes = await withPermissionSyncUpstreamError(
+                    'github',
+                    'inspect_token_scopes',
+                    () => getGitHubOAuthScopesForAuthenticatedUser(octokit, accessToken),
+                );
 
                 // Token supports scope introspection (classic PAT or OAuth app token)
                 if (scopes !== null) {
                     if (!scopes.includes('repo')) {
-                        throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing. Please re-authorize with GitHub to grant the required scope.`);
+                        throw new PermissionSyncUpstreamError(
+                            `OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing. Please re-authorize with GitHub to grant the required scope.`,
+                            {
+                                kind: 'insufficient_scope',
+                                provider: 'github',
+                                operation: 'inspect_token_scopes',
+                            },
+                        );
                     }
                 }
 
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
-                const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                const githubRepos = await withPermissionSyncUpstreamError(
+                    'github',
+                    'list_accessible_repositories',
+                    () => getReposForAuthenticatedUser(/* visibility = */ 'private', octokit),
+                );
                 const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
 
                 const repos = await this.db.repo.findMany({
@@ -292,9 +350,20 @@ export class AccountPermissionSyncer {
                     url: idpConfig.baseUrl,
                 });
 
-                const scopes = await getGitLabOAuthScopesForAuthenticatedUser(api);
+                const scopes = await withPermissionSyncUpstreamError(
+                    'gitlab',
+                    'inspect_token_scopes',
+                    () => getGitLabOAuthScopesForAuthenticatedUser(api),
+                );
                 if (!scopes.includes('read_api')) {
-                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`);
+                    throw new PermissionSyncUpstreamError(
+                        `OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`,
+                        {
+                            kind: 'insufficient_scope',
+                            provider: 'gitlab',
+                            operation: 'inspect_token_scopes',
+                        },
+                    );
                 }
 
                 // @note: we only care about the private repos since we don't need to build a
@@ -304,7 +373,11 @@ export class AccountPermissionSyncer {
                 // 
                 // @see: packages/web/src/prisma.ts
                 const gitLabProjectIds = (
-                    await getProjectsForAuthenticatedUser('private', api)
+                    await withPermissionSyncUpstreamError(
+                        'gitlab',
+                        'list_accessible_repositories',
+                        () => getProjectsForAuthenticatedUser('private', api),
+                    )
                 ).map(project => project.id.toString());
 
                 const repos = await this.db.repo.findMany({
@@ -324,7 +397,11 @@ export class AccountPermissionSyncer {
                 // @note: we don't pass a user here since we want to use a bearer token
                 // for authentication.
                 const client = createBitbucketCloudClient(/* user = */ undefined, accessToken)
-                const bitbucketRepos = await getReposForAuthenticatedBitbucketCloudUser(client);
+                const bitbucketRepos = await withPermissionSyncUpstreamError(
+                    'bitbucket-cloud',
+                    'list_accessible_repositories',
+                    () => getReposForAuthenticatedBitbucketCloudUser(client),
+                );
                 const bitbucketRepoUuids = bitbucketRepos.map(repo => repo.uuid);
 
                 const repos = await this.db.repo.findMany({
@@ -342,7 +419,11 @@ export class AccountPermissionSyncer {
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (idpConfig.provider === 'bitbucket-server') {
                 const client = createBitbucketServerClient(idpConfig.baseUrl, /* user = */ undefined, accessToken);
-                const serverRepos = await getReposForAuthenticatedBitbucketServerUser(client);
+                const serverRepos = await withPermissionSyncUpstreamError(
+                    'bitbucket-server',
+                    'list_accessible_repositories',
+                    () => getReposForAuthenticatedBitbucketServerUser(client),
+                );
                 const serverRepoIds = serverRepos.map(r => r.id);
 
                 const repos = await this.db.repo.findMany({
@@ -397,6 +478,8 @@ export class AccountPermissionSyncer {
                 account: {
                     update: {
                         permissionSyncedAt: new Date(),
+                        permissionSyncIssue: null,
+                        permissionSyncIssueAt: null,
                     },
                 },
                 completedAt: new Date(),

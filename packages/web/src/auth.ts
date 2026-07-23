@@ -4,7 +4,7 @@ import NextAuth, { DefaultSession, Session, User as AuthJsUser } from "next-auth
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { __unsafePrisma } from "@/prisma";
-import { env, getSMTPConnectionURL } from "@sourcebot/shared";
+import { createLogger, env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -23,8 +23,10 @@ import { captureEvent } from '@/lib/posthog';
 import { isEmailCodeLoginEnabled, isCredentialsLoginEnabled } from '@sourcebot/shared'
 import { onCreateUser } from './features/membership/onCreateUser';
 import { setSentryUser } from './lib/sentryUser';
+import { requestAccountPermissionSync } from './features/workerApi/client.server';
 
 export const runtime = 'nodejs';
+const logger = createLogger('auth');
 
 export type IdentityProvider = {
     /** Provider type (e.g., 'github', 'gitlab') — used to pick icon / display defaults. */
@@ -203,7 +205,7 @@ const nextAuthResult = NextAuth(async () => ({
             ) {
                 const issuerUrl = await getIssuerUrlForProviderId(account.provider);
 
-                await __unsafePrisma.account.update({
+                const updatedAccount = await __unsafePrisma.account.update({
                     where: {
                         providerId_providerAccountId: {
                             providerId: account.provider,
@@ -221,7 +223,21 @@ const nextAuthResult = NextAuth(async () => ({
                         // Clear any token refresh error since the user has successfully re-authenticated.
                         tokenRefreshErrorMessage: null,
                     })
-                })
+                });
+
+                if (
+                    updatedAccount.permissionSyncIssue !== null &&
+                    env.PERMISSION_SYNC_ENABLED === 'true'
+                ) {
+                    try {
+                        if (await hasEntitlement('permission-syncing')) {
+                            await requestAccountPermissionSync(updatedAccount.id);
+                        }
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        logger.error(`Failed to schedule permission sync after reauthentication for account ${updatedAccount.id}: ${message}`);
+                    }
+                }
             }
 
             if (user.id) {
