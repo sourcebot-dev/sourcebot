@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [5.1.4] - 2026-07-24
 
 ### Fixed
+- Applied Tailwind opacity modifiers to CSS-variable theme colors. [#1485](https://github.com/sourcebot-dev/sourcebot/pull/1485)
 - Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
 - [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
 - [EE] Classified code host permission sync failures by provider context before clearing cached repository permissions. [#1482](https://github.com/sourcebot-dev/sourcebot/pull/1482)
