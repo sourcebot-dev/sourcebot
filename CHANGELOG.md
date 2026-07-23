@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+- Vulnerability triage pipeline now auto-closes resolved issues once their vulnerability is no longer reported. [#1501](https://github.com/sourcebot-dev/sourcebot/pull/1501)
 
 ## [5.1.3] - 2026-07-20
 
