@@ -52,18 +52,37 @@ export function LinkedAccountProviderCard({
         queryKey: ["accountSyncStatus", syncJobId],
         queryFn: () => unwrapServiceError(getAccountSyncStatus(syncJobId!)),
         enabled: !!syncJobId,
-        refetchInterval: 1000,
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            return status === 'PENDING' || status === 'IN_PROGRESS' ? 1000 : false;
+        },
     });
 
-    const isSyncing = !!syncJobId && (syncStatusData?.isSyncing ?? true);
+    const syncJobStatus = syncStatusData?.status;
+    const isSyncing = !!syncJobId && (
+        syncJobStatus === undefined ||
+        syncJobStatus === 'PENDING' ||
+        syncJobStatus === 'IN_PROGRESS'
+    );
 
     useEffect(() => {
-        if (syncJobId && syncStatusData !== undefined && !syncStatusData.isSyncing) {
+        if (!syncJobId || syncJobStatus === undefined) {
+            return;
+        }
+
+        if (syncJobStatus === 'COMPLETED') {
             setSyncJobId(null);
             toast({ description: `✅ Permissions refreshed for ${displayName}.` });
             router.refresh();
+        } else if (syncJobStatus === 'FAILED') {
+            setSyncJobId(null);
+            toast({
+                description: `❌ Failed to refresh permissions for ${displayName}. Please try again.`,
+                variant: "destructive",
+            });
+            router.refresh();
         }
-    }, [syncJobId, syncStatusData, displayName, toast, router]);
+    }, [syncJobId, syncJobStatus, displayName, toast, router]);
 
     const handleConnect = () => {
         signIn(linkedAccount.providerId, { redirectTo: callbackUrl ?? window.location.href });

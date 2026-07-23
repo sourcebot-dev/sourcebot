@@ -1,11 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { LinkedAccount } from '@/ee/features/sso/actions';
 
+const mocks = vi.hoisted(() => ({
+    getAccountSyncStatus: vi.fn(),
+    refresh: vi.fn(),
+    toast: vi.fn(),
+    triggerAccountPermissionSync: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
-    useRouter: () => ({ refresh: vi.fn() }),
+    useRouter: () => ({ refresh: mocks.refresh }),
 }));
 
 vi.mock('next-auth/react', () => ({
@@ -13,7 +20,7 @@ vi.mock('next-auth/react', () => ({
 }));
 
 vi.mock('@/components/hooks/use-toast', () => ({
-    useToast: () => ({ toast: vi.fn() }),
+    useToast: () => ({ toast: mocks.toast }),
 }));
 
 vi.mock('@/ee/features/sso/actions', () => ({
@@ -21,18 +28,20 @@ vi.mock('@/ee/features/sso/actions', () => ({
 }));
 
 vi.mock('@/features/workerApi/actions', () => ({
-    triggerAccountPermissionSync: vi.fn(),
+    triggerAccountPermissionSync: mocks.triggerAccountPermissionSync,
 }));
 
 vi.mock('@/app/api/(client)/client', () => ({
-    getAccountSyncStatus: vi.fn(),
+    getAccountSyncStatus: mocks.getAccountSyncStatus,
 }));
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
     DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
     DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    DropdownMenuItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
+        <button onClick={onClick}>{children}</button>
+    ),
 }));
 
 vi.mock('@/lib/utils', () => ({
@@ -74,6 +83,10 @@ afterEach(() => {
     cleanup();
 });
 
+beforeEach(() => {
+    vi.clearAllMocks();
+});
+
 describe('LinkedAccountProviderCard permission sync health', () => {
     test('shows a healthy linked account as connected', () => {
         renderCard(linkedAccount);
@@ -102,5 +115,39 @@ describe('LinkedAccountProviderCard permission sync health', () => {
         });
 
         expect(screen.getByText('Additional permissions are required to restore repository access.')).toBeTruthy();
+    });
+
+    test('shows a success toast only when permission sync completes', async () => {
+        mocks.triggerAccountPermissionSync.mockResolvedValue({ jobId: 'job_1' });
+        mocks.getAccountSyncStatus.mockResolvedValue({ status: 'COMPLETED' });
+        renderCard(linkedAccount);
+
+        fireEvent.click(screen.getByRole('button', { name: /Refresh Permissions/ }));
+
+        await waitFor(() => {
+            expect(mocks.toast).toHaveBeenCalledWith({
+                description: '✅ Permissions refreshed for Bitbucket Server.',
+            });
+        });
+        expect(mocks.refresh).toHaveBeenCalledOnce();
+    });
+
+    test('shows an error toast when permission sync fails', async () => {
+        mocks.triggerAccountPermissionSync.mockResolvedValue({ jobId: 'job_1' });
+        mocks.getAccountSyncStatus.mockResolvedValue({ status: 'FAILED' });
+        renderCard(linkedAccount);
+
+        fireEvent.click(screen.getByRole('button', { name: /Refresh Permissions/ }));
+
+        await waitFor(() => {
+            expect(mocks.toast).toHaveBeenCalledWith({
+                description: '❌ Failed to refresh permissions for Bitbucket Server. Please try again.',
+                variant: 'destructive',
+            });
+        });
+        expect(mocks.toast).not.toHaveBeenCalledWith(expect.objectContaining({
+            description: expect.stringContaining('✅'),
+        }));
+        expect(mocks.refresh).toHaveBeenCalledOnce();
     });
 });
