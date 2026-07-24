@@ -1,0 +1,97 @@
+---
+title: "Health Endpoints"
+description: "Liveness and readiness probes for orchestrators and monitoring systems."
+---
+
+Sourcebot exposes two public health endpoints that follow the standard Kubernetes liveness / readiness split. Both are unauthenticated and return no user data.
+
+## Liveness: `GET /api/health`
+
+Returns `200 OK` with `{ "status": "ok" }` whenever the Next.js process is running and able to handle a request. Does not touch the database, Redis, or Zoekt. Use this for Kubernetes `livenessProbe` or Docker Compose `healthcheck.test`. A failing liveness probe means the process must be restarted.
+
+```bash
+curl -fsS https://sourcebot.example.com/api/health
+# {"status":"ok"}
+```
+
+## Readiness: `GET /api/health/ready`
+
+Returns `200 OK` with `{"status":"ok", "checks":{...}}` when Postgres, Redis, and Zoekt are all reachable. Returns `503 Service Unavailable` with `{"status":"degraded", "checks":{...}}` if any dependency is unreachable. Each check runs in parallel with a 2-second per-check timeout, so the worst-case request time is bounded even when a dependency hangs.
+
+Use this for Kubernetes `readinessProbe` or a load balancer health check. A failing readiness probe means the pod should be removed from the load-balancer rotation but not restarted.
+
+### Response shape
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "postgres": { "status": "ok", "latencyMs": 3 },
+    "redis":    { "status": "ok", "latencyMs": 1 },
+    "zoekt":    { "status": "ok", "latencyMs": 12 }
+  }
+}
+```
+
+When degraded, each failed check carries an `error` field with the underlying message:
+
+```json
+{
+  "status": "degraded",
+  "checks": {
+    "postgres": { "status": "ok",    "latencyMs": 4 },
+    "redis":    { "status": "ok",    "latencyMs": 1 },
+    "zoekt":    { "status": "error", "latencyMs": 2003, "error": "zoekt check timed out after 2000ms" }
+  }
+}
+```
+
+| Check | What it probes |
+|-------|---------------|
+| `postgres` | `SELECT 1` via Prisma |
+| `redis`    | `PING` (rejects non-`PONG` responses) |
+| `zoekt`    | `List` RPC with a 1-second wall-time cap (proves the gRPC channel is alive) |
+
+### Example probes
+
+<Tabs>
+  <Tab title="Docker Compose">
+    ```yaml
+    services:
+      sourcebot:
+        image: sourcebot/sourcebot:latest
+        healthcheck:
+          test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+          interval: 30s
+          timeout: 5s
+          retries: 3
+        # For dependency-aware probes, point the orchestrator at /api/health/ready
+        # instead. Sourcebot's example compose file does this via a sidecar.
+    ```
+  </Tab>
+  <Tab title="Kubernetes">
+    ```yaml
+    livenessProbe:
+      httpGet:
+        path: /api/health
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /api/health/ready
+        port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+The readiness probe hits the database on every call. On large deployments with many pods, a high-frequency probe interval (sub-5s) can produce noticeable background load. A 10s interval with `failureThreshold: 3` is a good starting point.
+</Note>
