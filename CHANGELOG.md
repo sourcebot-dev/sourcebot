@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Removed the legacy workflow that applied release-version labels to individual Linear issues. [#1504](https://github.com/sourcebot-dev/sourcebot/pull/1504)
+
 ## [5.1.4] - 2026-07-24
 
 ### Fixed
