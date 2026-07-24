@@ -1,6 +1,6 @@
 import 'server-only';
 
-import sharp from 'sharp';
+import sharp, { type Metadata } from 'sharp';
 import { ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES, ATTACHMENT_MAX_IMAGE_DIMENSION } from '../constants';
 
 export type AllowedImageMediaType = typeof ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES[number];
@@ -47,7 +47,7 @@ export const validateImageAttachment = async (
         return { ok: false, reason: `Image exceeds the ${Math.round(maxBytes / (1024 * 1024))}MB limit.` };
     }
 
-    let metadata: sharp.Metadata;
+    let metadata: Metadata;
     try {
         // `failOn: 'error'` makes sharp reject truncated/corrupt inputs instead
         // of best-effort decoding them.
