@@ -8,6 +8,47 @@ import { getShardPrefix } from "./utils.js";
 
 const logger = createLogger('zoekt');
 
+// Patterns that indicate ctags/symbol indexing failure in zoekt output
+const CTAGS_ERROR_PATTERNS = [
+    /illegal option/i,
+    /file already closed/i,
+    /ctags.*not found/i,
+    /ctags.*error/i,
+    /universal:ctags.*error/i,
+    /scip:.*error/i,
+];
+
+/**
+ * Detect ctags/symbol indexing failures from zoekt stderr output.
+ * Returns a warning message if ctags failed, or undefined if symbol indexing succeeded.
+ */
+export const detectCtagsFailure = (stderr: string): string | undefined => {
+    const lines = stderr.split('\n').filter(line => line.trim());
+
+    // Check for ctags error patterns
+    const hasCtagsError = lines.some(line =>
+        CTAGS_ERROR_PATTERNS.some(pattern => pattern.test(line))
+    );
+
+    // Check for symbols=0 in the statistics line (indicates no symbols were indexed)
+    const statsLine = lines.find(line => /symbol analysis finished.*symbols=0/.test(line));
+    const hasZeroSymbols = statsLine !== undefined;
+
+    if (hasCtagsError && hasZeroSymbols) {
+        return `ctags symbol indexing failed: ctags reported errors and 0 symbols were indexed. ` +
+            `Symbol search (sym:*) will return no results. ` +
+            `Check that CTAGS_COMMAND points to a Universal Ctags binary.`;
+    }
+
+    if (hasCtagsError) {
+        return `ctags reported errors during symbol indexing. ` +
+            `Symbol search results may be incomplete. ` +
+            `Check that CTAGS_COMMAND points to a Universal Ctags binary.`;
+    }
+
+    return undefined;
+};
+
 export const indexGitRepository = async (repo: Repo, settings: Settings, revisions: string[], signal?: AbortSignal) => {
     const { path: repoPath } = getRepoPath(repo);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
@@ -27,7 +68,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
         repoPath
     ];
 
-    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+    return new Promise<{ stdout: string, stderr: string; ctagsWarning?: string }>((resolve, reject) => {
         execFile('zoekt-git-index', args, { signal }, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
@@ -45,9 +86,16 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
                 });
             }
 
+            // Detect ctags/symbol indexing failures
+            const ctagsWarning = detectCtagsFailure(stderr ?? '');
+            if (ctagsWarning) {
+                logger.warn(`[${repo.name}] ${ctagsWarning}`);
+            }
+
             resolve({
                 stdout,
-                stderr
+                stderr,
+                ctagsWarning,
             });
         })
     });
