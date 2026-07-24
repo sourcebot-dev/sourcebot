@@ -4,7 +4,7 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
@@ -18,6 +18,7 @@ import { captureEvent } from "@/lib/posthog";
 import { createAudit } from "@/ee/features/audit/audit";
 import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
+import { selectConfiguredLanguageModel } from "@/ee/features/mcp/selectConfiguredLanguageModel";
 
 const logger = createLogger('ask-codebase-api');
 
@@ -71,17 +72,14 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             let languageModelConfig = configuredModels[0];
             if (requestedLanguageModel) {
-                const matchingModel = configuredModels.find(
-                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel)
+                const result = selectConfiguredLanguageModel(
+                    configuredModels,
+                    requestedLanguageModel
                 );
-                if (!matchingModel) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`,
-                    } satisfies ServiceError;
+                if (result.error) {
+                    return result.error;
                 }
-                languageModelConfig = matchingModel;
+                languageModelConfig = result.languageModelConfig;
             }
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);

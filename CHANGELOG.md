@@ -82,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
 - Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
 - [EE] Fixed Ask connector MCP tools with provider-invalid names failing to run by sanitizing model-facing tool names while preserving raw names in the UI.
+- [EE] Fixed `ask_codebase` language model selection to match configured models by `provider` and `model`, only requiring `displayName` when multiple configurations share the same pair. [#1414](https://github.com/sourcebot-dev/sourcebot/pull/1414)
+
 
 ## [5.0.4] - 2026-06-18
 
