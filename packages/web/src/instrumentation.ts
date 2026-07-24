@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { registerOTel } from '@vercel/otel';
-import { LangfuseExporter } from 'langfuse-vercel';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 
 export async function register() {
     if (
@@ -8,14 +9,18 @@ export async function register() {
         process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
     ) {
         console.log("Registering Langfuse");
-        registerOTel({
+        const sdk = new NodeSDK({
             serviceName: 'sourcebot',
-            traceExporter: new LangfuseExporter({
-                secretKey: process.env.LANGFUSE_SECRET_KEY,
-                publicKey: process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
-                baseUrl: process.env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
-            }),
+            spanProcessors: [
+                new LangfuseSpanProcessor({
+                    secretKey: process.env.LANGFUSE_SECRET_KEY,
+                    publicKey: process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
+                    baseUrl: process.env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
+                }),
+            ],
         });
+        sdk.start();
+        registerOTel({ serviceName: 'sourcebot' });
     }
 
     if (process.env.NEXT_RUNTIME === 'nodejs') {
