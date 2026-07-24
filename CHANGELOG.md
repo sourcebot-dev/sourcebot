@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `shell-quote` to `^1.10.0`. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
 - Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
 - Fixed multiple CVEs in JavaScript dependencies by upgrading `next-auth`, `@auth/core`, `next`, `postcss`, `sharp`, `linkify-it`, `fast-uri`, `protobufjs`, `body-parser`, `hono`, `@hono/node-server`, and `dompurify` to patched versions, resolving all Yarn audit findings. [#1502](https://github.com/sourcebot-dev/sourcebot/pull/1502)
+- Upgraded the bundled Zoekt gRPC-Go dependency to `v1.82.1`. [#1503](https://github.com/sourcebot-dev/sourcebot/pull/1503)
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
