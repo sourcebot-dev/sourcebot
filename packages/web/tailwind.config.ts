@@ -1,5 +1,8 @@
 import type { Config } from "tailwindcss"
 
+const withOpacity = (variable: `--${string}`) =>
+    `color-mix(in srgb, var(${variable}) calc(<alpha-value> * 100%), transparent)`
+
 const config = {
     darkMode: ["class"],
     content: [
@@ -19,103 +22,103 @@ const config = {
         },
         extend: {
             colors: {
-                border: 'var(--border)',
-                input: 'var(--input)',
-                ring: 'var(--ring)',
-                background: 'var(--background)',
-                backgroundSecondary: 'var(--background-secondary)',
-                foreground: 'var(--foreground)',
+                border: withOpacity('--border'),
+                input: withOpacity('--input'),
+                ring: withOpacity('--ring'),
+                background: withOpacity('--background'),
+                backgroundSecondary: withOpacity('--background-secondary'),
+                foreground: withOpacity('--foreground'),
                 primary: {
-                    DEFAULT: 'var(--primary)',
-                    foreground: 'var(--primary-foreground)'
+                    DEFAULT: withOpacity('--primary'),
+                    foreground: withOpacity('--primary-foreground')
                 },
                 secondary: {
-                    DEFAULT: 'var(--secondary)',
-                    foreground: 'var(--secondary-foreground)'
+                    DEFAULT: withOpacity('--secondary'),
+                    foreground: withOpacity('--secondary-foreground')
                 },
                 destructive: {
-                    DEFAULT: 'var(--destructive)',
-                    foreground: 'var(--destructive-foreground)'
+                    DEFAULT: withOpacity('--destructive'),
+                    foreground: withOpacity('--destructive-foreground')
                 },
                 muted: {
-                    DEFAULT: 'var(--muted)',
-                    foreground: 'var(--muted-foreground)',
-                    accent: 'var(--muted-accent)'
+                    DEFAULT: withOpacity('--muted'),
+                    foreground: withOpacity('--muted-foreground'),
+                    accent: withOpacity('--muted-accent')
                 },
                 accent: {
-                    DEFAULT: 'var(--accent)',
-                    foreground: 'var(--accent-foreground)'
+                    DEFAULT: withOpacity('--accent'),
+                    foreground: withOpacity('--accent-foreground')
                 },
                 popover: {
-                    DEFAULT: 'var(--popover)',
-                    foreground: 'var(--popover-foreground)'
+                    DEFAULT: withOpacity('--popover'),
+                    foreground: withOpacity('--popover-foreground')
                 },
                 card: {
-                    DEFAULT: 'var(--card)',
-                    foreground: 'var(--card-foreground)'
+                    DEFAULT: withOpacity('--card'),
+                    foreground: withOpacity('--card-foreground')
                 },
-                highlight: 'var(--highlight)',
-                link: 'var(--link)',
-                shell: 'var(--shell)',
+                highlight: withOpacity('--highlight'),
+                link: withOpacity('--link'),
+                shell: withOpacity('--shell'),
                 sidebar: {
-                    DEFAULT: 'var(--sidebar-background)',
-                    foreground: 'var(--sidebar-foreground)',
-                    primary: 'var(--sidebar-primary)',
-                    'primary-foreground': 'var(--sidebar-primary-foreground)',
-                    accent: 'var(--sidebar-accent)',
-                    'accent-foreground': 'var(--sidebar-accent-foreground)',
-                    border: 'var(--sidebar-border)',
-                    ring: 'var(--sidebar-ring)'
+                    DEFAULT: withOpacity('--sidebar-background'),
+                    foreground: withOpacity('--sidebar-foreground'),
+                    primary: withOpacity('--sidebar-primary'),
+                    'primary-foreground': withOpacity('--sidebar-primary-foreground'),
+                    accent: withOpacity('--sidebar-accent'),
+                    'accent-foreground': withOpacity('--sidebar-accent-foreground'),
+                    border: withOpacity('--sidebar-border'),
+                    ring: withOpacity('--sidebar-ring')
                 },
-                warning: 'var(--warning)',
-                error: 'var(--error)',
+                warning: withOpacity('--warning'),
+                error: withOpacity('--error'),
                 editor: {
-                    background: 'var(--editor-background)',
-                    foreground: 'var(--editor-foreground)',
-                    caret: 'var(--editor-caret)',
-                    selection: 'var(--editor-selection)',
-                    selectionMatch: 'var(--editor-selection-match)',
-                    gutterBackground: 'var(--editor-gutter-background)',
-                    gutterForeground: 'var(--editor-gutter-foreground)',
+                    background: withOpacity('--editor-background'),
+                    foreground: withOpacity('--editor-foreground'),
+                    caret: withOpacity('--editor-caret'),
+                    selection: withOpacity('--editor-selection'),
+                    selectionMatch: withOpacity('--editor-selection-match'),
+                    gutterBackground: withOpacity('--editor-gutter-background'),
+                    gutterForeground: withOpacity('--editor-gutter-foreground'),
                     gutterBorder: 'var(--editor-gutter-border)',
-                    gutterActiveForeground: 'var(--editor-gutter-active-foreground)',
-                    lineHighlight: 'var(--editor-line-highlight)',
+                    gutterActiveForeground: withOpacity('--editor-gutter-active-foreground'),
+                    lineHighlight: withOpacity('--editor-line-highlight'),
                     tag: {
-                        keyword: 'var(--editor-tag-keyword)',
-                        name: 'var(--editor-tag-name)',
-                        function: 'var(--editor-tag-function)',
-                        label: 'var(--editor-tag-label)',
-                        constant: 'var(--editor-tag-constant)',
-                        definition: 'var(--editor-tag-definition)',
-                        brace: 'var(--editor-tag-brace)',
-                        type: 'var(--editor-tag-type)',
-                        operator: 'var(--editor-tag-operator)',
-                        tag: 'var(--editor-tag-tag)',
-                        'bracket-square': 'var(--editor-tag-bracket-square)',
-                        'bracket-angle': 'var(--editor-tag-bracket-angle)',
-                        attribute: 'var(--editor-tag-attribute)',
-                        string: 'var(--editor-tag-string)',
+                        keyword: withOpacity('--editor-tag-keyword'),
+                        name: withOpacity('--editor-tag-name'),
+                        function: withOpacity('--editor-tag-function'),
+                        label: withOpacity('--editor-tag-label'),
+                        constant: withOpacity('--editor-tag-constant'),
+                        definition: withOpacity('--editor-tag-definition'),
+                        brace: withOpacity('--editor-tag-brace'),
+                        type: withOpacity('--editor-tag-type'),
+                        operator: withOpacity('--editor-tag-operator'),
+                        tag: withOpacity('--editor-tag-tag'),
+                        'bracket-square': withOpacity('--editor-tag-bracket-square'),
+                        'bracket-angle': withOpacity('--editor-tag-bracket-angle'),
+                        attribute: withOpacity('--editor-tag-attribute'),
+                        string: withOpacity('--editor-tag-string'),
                         link: 'var(--editor-tag-link)',
-                        meta: 'var(--editor-tag-meta)',
-                        comment: 'var(--editor-tag-comment)',
+                        meta: withOpacity('--editor-tag-meta'),
+                        comment: withOpacity('--editor-tag-comment'),
                         emphasis: 'var(--editor-tag-emphasis)',
                         heading: 'var(--editor-tag-heading)',
-                        atom: 'var(--editor-tag-atom)',
-                        processing: 'var(--editor-tag-processing)',
-                        separator: 'var(--editor-tag-separator)',
-                        invalid: 'var(--editor-tag-invalid)',
-                        quote: 'var(--editor-tag-quote)',
-                        'annotation-special': 'var(--editor-tag-annotation-special)',
-                        number: 'var(--editor-tag-number)',
-                        regexp: 'var(--editor-tag-regexp)',
-                        'variable-local': 'var(--editor-tag-variable-local)'
+                        atom: withOpacity('--editor-tag-atom'),
+                        processing: withOpacity('--editor-tag-processing'),
+                        separator: withOpacity('--editor-tag-separator'),
+                        invalid: withOpacity('--editor-tag-invalid'),
+                        quote: withOpacity('--editor-tag-quote'),
+                        'annotation-special': withOpacity('--editor-tag-annotation-special'),
+                        number: withOpacity('--editor-tag-number'),
+                        regexp: withOpacity('--editor-tag-regexp'),
+                        'variable-local': withOpacity('--editor-tag-variable-local')
                     }
                 },
                 chat: {
-                    reference: 'var(--chat-reference)',
-                    'reference-hover': 'var(--chat-reference-hover)',
-                    'reference-selected': 'var(--chat-reference-selected)',
-                    'reference-selected-border': 'var(--chat-reference-selected-border)'
+                    reference: withOpacity('--chat-reference'),
+                    'reference-hover': withOpacity('--chat-reference-hover'),
+                    'reference-selected': withOpacity('--chat-reference-selected'),
+                    'reference-selected-border': withOpacity('--chat-reference-selected-border')
                 }
             },
             fontSize: {

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Applied Tailwind opacity modifiers to CSS-variable theme colors. [#1485](https://github.com/sourcebot-dev/sourcebot/pull/1485)
+
 ## [5.1.4] - 2026-07-24
 
 ### Fixed
