@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `brace-expansion` to `^1.1.16`/`^2.1.2`/`^5.0.7` to address CVE-2026-13149. [#1471](https://github.com/sourcebot-dev/sourcebot/pull/1471)
 - Upgraded `shell-quote` to `^1.10.0`. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
 - Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
+- Fixed multiple CVEs in JavaScript dependencies by upgrading `next-auth`, `@auth/core`, `next`, `postcss`, `sharp`, `linkify-it`, `fast-uri`, `protobufjs`, `body-parser`, `hono`, `@hono/node-server`, and `dompurify` to patched versions, resolving all Yarn audit findings.
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
