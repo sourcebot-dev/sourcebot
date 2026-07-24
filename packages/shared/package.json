@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "build": "tsc",
+        "typecheck": "tsc --noEmit",
         "build:watch": "tsc-watch --preserveWatchOutput",
         "postinstall": "yarn build",
         "test": "vitest --config ./vitest.config.ts",

@@ -7,6 +7,7 @@
     "build": "cross-env SKIP_ENV_VALIDATION=1 next build",
     "start": "next start",
     "lint": "cross-env SKIP_ENV_VALIDATION=1 eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "cross-env SKIP_ENV_VALIDATION=1 vitest",
     "openapi:generate": "tsx tools/generateOpenApi.ts",
     "generate:protos": "proto-loader-gen-types --includeComments --longs=Number --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --keepCase --includeDirs=../../vendor/zoekt/grpc/protos --outDir=src/proto zoekt/webserver/v1/webserver.proto zoekt/webserver/v1/query.proto",
