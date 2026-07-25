@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/mcp.so%2Fsourcebot%2Fpackages.svg)](https://mcptoplist.com/server/mcp.so%2Fsourcebot%2Fpackages)
+
 
 <div align="center">
 <picture>
