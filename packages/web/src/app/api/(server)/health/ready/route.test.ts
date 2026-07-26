@@ -35,10 +35,12 @@ vi.mock('@sourcebot/shared', () => ({
     createLogger: () => ({
         debug: vi.fn(),
         info: vi.fn(),
-        warn: vi.fn(),
+        warn: mockLoggerWarn,
         error: vi.fn(),
     }),
 }));
+
+const mockLoggerWarn = vi.fn();
 
 const { GET } = await import('./route');
 
@@ -88,8 +90,9 @@ describe('GET /api/health/ready', () => {
         expect(typeof body.checks.zoekt.latencyMs).toBe('number');
     });
 
-    test('returns 503 with status:degraded and a postgres error when Postgres is unreachable', async () => {
-        mocks.unsafePrisma.$queryRaw.mockRejectedValue(new Error('connection refused'));
+    test('returns 503 with status:degraded and a generic postgres error when Postgres is unreachable', async () => {
+        const internalError = new Error('connection refused: host=db.internal.example.com:5432');
+        mocks.unsafePrisma.$queryRaw.mockRejectedValue(internalError);
 
         const response = await GET(makeRequest());
         const body = await response.json();
@@ -97,13 +100,22 @@ describe('GET /api/health/ready', () => {
         expect(response.status).toBe(503);
         expect(body.status).toBe('degraded');
         expect(body.checks.postgres.status).toBe('error');
-        expect(body.checks.postgres.error).toBe('connection refused');
+        // The public error is generic. The internal message (which
+        // contains the host:port) must not leak.
+        expect(body.checks.postgres.error).toBe('postgres check failed: see server logs');
+        expect(body.checks.postgres.error).not.toContain('db.internal.example.com');
+        expect(body.checks.postgres.errorDetail).toBeUndefined();
         expect(body.checks.redis.status).toBe('ok');
         expect(body.checks.zoekt.status).toBe('ok');
+
+        // The full error detail is preserved on the server-side log call.
+        const warnCall = mockLoggerWarn.mock.calls[mockLoggerWarn.mock.calls.length - 1];
+        expect(JSON.stringify(warnCall)).toContain('db.internal.example.com');
     });
 
-    test('returns 503 with status:degraded and a redis error when Redis ping fails', async () => {
-        mocks.redisPing.mockRejectedValue(new Error('redis down'));
+    test('returns 503 with status:degraded and a generic redis error when Redis ping fails', async () => {
+        const internalError = new Error('redis down: redis://10.0.0.42:6379');
+        mocks.redisPing.mockRejectedValue(internalError);
 
         const response = await GET(makeRequest());
         const body = await response.json();
@@ -112,14 +124,17 @@ describe('GET /api/health/ready', () => {
         expect(body.status).toBe('degraded');
         expect(body.checks.postgres.status).toBe('ok');
         expect(body.checks.redis.status).toBe('error');
-        expect(body.checks.redis.error).toBe('redis down');
+        expect(body.checks.redis.error).toBe('redis check failed: see server logs');
+        expect(body.checks.redis.error).not.toContain('10.0.0.42');
+        expect(body.checks.redis.errorDetail).toBeUndefined();
         expect(body.checks.zoekt.status).toBe('ok');
     });
 
-    test('returns 503 with status:degraded when the Zoekt gRPC call errors', async () => {
+    test('returns 503 with status:degraded and a generic zoekt error when the gRPC call fails', async () => {
+        const internalError = new Error('UNAVAILABLE: zoekt-web-0.zoekt.svc.cluster.local:6070');
         mocks.zoektList.mockImplementation(
-            (_request: unknown, callback: (err: Error | null) => void) => {
-                callback(new Error('UNAVAILABLE: zoekt not reachable'));
+            (_request: unknown, callback: ZoektListCallback) => {
+                callback(internalError);
             },
         );
 
@@ -129,7 +144,9 @@ describe('GET /api/health/ready', () => {
         expect(response.status).toBe(503);
         expect(body.status).toBe('degraded');
         expect(body.checks.zoekt.status).toBe('error');
-        expect(body.checks.zoekt.error).toContain('UNAVAILABLE');
+        expect(body.checks.zoekt.error).toBe('zoekt check failed: see server logs');
+        expect(body.checks.zoekt.error).not.toContain('cluster.local');
+        expect(body.checks.zoekt.errorDetail).toBeUndefined();
         expect(body.checks.postgres.status).toBe('ok');
         expect(body.checks.redis.status).toBe('ok');
     });
@@ -143,7 +160,9 @@ describe('GET /api/health/ready', () => {
         expect(response.status).toBe(503);
         expect(body.status).toBe('degraded');
         expect(body.checks.redis.status).toBe('error');
-        expect(body.checks.redis.error).toContain('unexpected ping response');
+        // "unexpected ping response" is the internal message; the public
+        // path should not include it.
+        expect(body.checks.redis.error).toBe('redis check failed: see server logs');
     });
 
     test('runs all three checks in parallel (Promise.all)', async () => {
@@ -237,7 +256,7 @@ describe('GET /api/health/ready', () => {
         expect(response.status).toBe(503);
         expect(body.status).toBe('degraded');
         expect(body.checks.zoekt.status).toBe('error');
-        expect(body.checks.zoekt.error).toContain('no response');
+        expect(body.checks.zoekt.error).toBe('zoekt check failed: see server logs');
         expect(body.checks.postgres.status).toBe('ok');
         expect(body.checks.redis.status).toBe('ok');
     });

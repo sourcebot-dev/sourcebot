@@ -18,7 +18,14 @@ type CheckStatus = 'ok' | 'error' | 'empty';
 type CheckResult = {
     status: CheckStatus;
     latencyMs: number;
+    /** Client-safe error description. Optional; present when status !== 'ok'. */
     error?: string;
+    /**
+     * Server-side error detail. Never sent over the wire: the public
+     * `error` field is the only one that ends up in the JSON response.
+     * Logged by the GET handler when the overall probe is degraded.
+     */
+    errorDetail?: string;
 };
 type ReadinessResponse = {
     status: 'ok' | 'degraded';
@@ -72,6 +79,13 @@ const withTimeout = async <T>(
     }
 };
 
+// The readiness route is unauthenticated and may be reachable at a public
+// URL, so per-check error strings returned to the caller are intentionally
+// generic. The full `err` is preserved on the `CheckResult` (under
+// `errorDetail`) and logged server-side; the public `error` field carries
+// only the check label and a hint about the failure mode.
+const PUBLIC_ERROR = (label: string, detail: string) => `${label} check failed: ${detail}`;
+
 const checkPostgres = async (): Promise<CheckResult> => {
     const start = Date.now();
     try {
@@ -83,7 +97,8 @@ const checkPostgres = async (): Promise<CheckResult> => {
         return {
             status: 'error',
             latencyMs: Date.now() - start,
-            error: err instanceof Error ? err.message : String(err),
+            error: PUBLIC_ERROR('postgres', 'see server logs'),
+            errorDetail: err instanceof Error ? err.message : String(err),
         };
     }
 };
@@ -103,7 +118,8 @@ const checkRedis = async (): Promise<CheckResult> => {
         return {
             status: 'error',
             latencyMs: Date.now() - start,
-            error: err instanceof Error ? err.message : String(err),
+            error: PUBLIC_ERROR('redis', 'see server logs'),
+            errorDetail: err instanceof Error ? err.message : String(err),
         };
     }
 };
@@ -163,7 +179,8 @@ const checkZoekt = async (strict: boolean): Promise<CheckResult> => {
         return {
             status: 'error',
             latencyMs: Date.now() - start,
-            error: err instanceof Error ? err.message : String(err),
+            error: PUBLIC_ERROR('zoekt', 'see server logs'),
+            errorDetail: err instanceof Error ? err.message : String(err),
         };
     }
 };
@@ -189,17 +206,28 @@ export const GET = apiHandler(async (request: NextRequest) => {
         checkZoekt(strict),
     ]);
 
-    const checks = { postgres, redis, zoekt };
+    // `errorDetail` is server-side only and must never reach the response
+    // body. The full per-check result (including `errorDetail`) is what
+    // the logger emits; the public response uses the stripped view.
+    const stripDetail = ({ errorDetail: _errorDetail, ...publicCheck }: CheckResult) => publicCheck;
+    const publicChecks = {
+        postgres: stripDetail(postgres),
+        redis: stripDetail(redis),
+        zoekt: stripDetail(zoekt),
+    };
     const healthy = postgres.status === 'ok' && redis.status === 'ok' && zoekt.status === 'ok';
 
     if (!healthy) {
-        logger.warn('readiness check failed', { checks, strict });
+        logger.warn('readiness check failed', {
+            checks: { postgres, redis, zoekt },
+            strict,
+        });
     }
 
     const body: ReadinessResponse = {
         status: healthy ? 'ok' : 'degraded',
         strict,
-        checks,
+        checks: publicChecks,
     };
     return Response.json(body, { status: healthy ? 200 : 503 });
 }, { track: false });
