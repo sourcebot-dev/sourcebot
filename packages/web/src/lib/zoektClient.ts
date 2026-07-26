@@ -41,14 +41,22 @@ const buildClient = async (): Promise<ZoektClient> => {
     });
 
     const proto = grpc.loadPackageDefinition(packageDefinition) as unknown as {
-        zoekt: { webserver: { v1: { WebserverService: new (address: string, credentials: unknown) => ZoektClient } } };
+        zoekt: { webserver: { v1: { WebserverService: new (address: string, credentials: unknown, options?: Record<string, unknown>) => ZoektClient } } };
     };
 
     const zoektUrl = new URL(shared.env.ZOEKT_WEBSERVER_URL);
     const grpcAddress = `${zoektUrl.hostname}:${zoektUrl.port}`;
+    // Match the channel options used by `zoektSearcher` so a healthy Zoekt
+    // instance with a large repo catalog does not fail the probe just
+    // because the default 4MB gRPC receive cap is smaller than the
+    // response.
     return new proto.zoekt.webserver.v1.WebserverService(
         grpcAddress,
         grpc.credentials.createInsecure(),
+        {
+            'grpc.max_receive_message_length': 500 * 1024 * 1024, // 500MB
+            'grpc.max_send_message_length': 500 * 1024 * 1024,    // 500MB
+        },
     );
 };
 
