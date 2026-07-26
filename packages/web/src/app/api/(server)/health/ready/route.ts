@@ -126,8 +126,16 @@ const checkZoekt = async (strict: boolean): Promise<CheckResult> => {
                 // `SearchOptions` field and does not apply to `List`
                 // (`ListOptions` only carries `field`).
                 client.List({}, (err, result) => {
+                    // `zoektSearch` rejects when the callback fires with
+                    // no error but no response either (see
+                    // `features/search/zoektSearcher.ts`). Do the same
+                    // here: a missing result would otherwise throw on
+                    // `response.repos` and surface as a generic `error`
+                    // instead of the intended `empty` strict-mode status.
                     if (err) {
                         reject(err);
+                    } else if (!result) {
+                        reject(new Error('zoekt List RPC returned no response'));
                     } else {
                         resolve(result);
                     }

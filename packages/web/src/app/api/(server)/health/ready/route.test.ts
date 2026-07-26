@@ -218,6 +218,30 @@ describe('GET /api/health/ready', () => {
         expect(mocks.zoektList).toHaveBeenCalledWith({}, expect.any(Function));
     });
 
+    test('reports zoekt.status:"error" (not a thrown exception) when the gRPC callback fires with no response', async () => {
+        // Regression guard: a malformed gRPC response can fire the callback
+        // with `err === null` and `result === undefined`. Without the
+        // `!result` check the route would throw on `response.repos` and
+        // surface the failure as a generic Node unhandled-rejection path
+        // instead of the controlled `error` status. `zoektSearch` applies
+        // the same `error || !response` guard.
+        mocks.zoektList.mockImplementation(
+            (_request: unknown, callback: ZoektListCallback) => {
+                callback(null, undefined);
+            },
+        );
+
+        const response = await GET(makeRequest());
+        const body = await response.json();
+
+        expect(response.status).toBe(503);
+        expect(body.status).toBe('degraded');
+        expect(body.checks.zoekt.status).toBe('error');
+        expect(body.checks.zoekt.error).toContain('no response');
+        expect(body.checks.postgres.status).toBe('ok');
+        expect(body.checks.redis.status).toBe('ok');
+    });
+
     describe('?strict=true', () => {
         test('returns 200 with status:ok and strict:true when Zoekt has at least one indexed repo', async () => {
             mocks.zoektList.mockImplementation(
