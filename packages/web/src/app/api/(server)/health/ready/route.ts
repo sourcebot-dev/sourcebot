@@ -26,14 +26,19 @@ type ReadinessResponse = {
     };
 };
 
-// Wraps a check function in a per-check timeout. When the timeout fires
-// first, the check resolves as an error result; the underlying promise is
-// allowed to settle in the background (its result is discarded).
+// Runs `check()` and rejects if it has not settled after `timeoutMs`. When the
+// timeout fires, the underlying check promise may still resolve or reject
+// later; the no-op `.catch` below attaches to that promise so a late
+// rejection does not surface as an unhandled-promise-rejection in the Node
+// process while the readiness request has already moved on.
 const withTimeout = async <T>(
     label: string,
     check: () => Promise<T>,
     timeoutMs: number,
 ): Promise<T> => {
+    const checkPromise = check();
+    checkPromise.catch(() => { /* swallowed: see comment above */ });
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
@@ -41,7 +46,7 @@ const withTimeout = async <T>(
         }, timeoutMs);
     });
     try {
-        return await Promise.race([check(), timeout]);
+        return await Promise.race([checkPromise, timeout]);
     } finally {
         if (timer) {
             clearTimeout(timer);
@@ -88,8 +93,10 @@ const checkRedis = async (): Promise<CheckResult> => {
 const checkZoekt = async (): Promise<CheckResult> => {
     const start = Date.now();
     try {
-        const client = await loadZoektClient();
         await withTimeout('zoekt', async () => {
+            // Build the client inside the timeout so a first-call init stall
+            // (e.g., vendored proto load) is also bounded.
+            const client = await loadZoektClient();
             await new Promise<void>((resolve, reject) => {
                 // An empty List with a 1s wall-time cap is the smallest request
                 // that exercises the gRPC channel end-to-end. It returns an
