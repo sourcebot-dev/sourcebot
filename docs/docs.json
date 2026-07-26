@@ -217,7 +217,6 @@
                         "icon": "server",
                         "pages": [
                             "GET /api/version",
-                            "GET /api/health",
                             "docs/api-reference/health"
                         ]
                     }
