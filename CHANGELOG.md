@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added a `GET /api/health/ready` endpoint that returns per-dependency health (Postgres, Redis, Zoekt) for use as a Kubernetes `readinessProbe` or load-balancer health check. The existing `GET /api/health` endpoint is unchanged and remains the liveness probe. [#1507](https://github.com/sourcebot-dev/sourcebot/pull/1507)
+- Added a `?strict=true` query parameter to `GET /api/health/ready`. When set, the endpoint reports `503 / status: "degraded"` and `zoekt.status: "empty"` if the Zoekt shard set contains no indexed repositories, distinguishing "Zoekt is unreachable" from "Zoekt is up but the instance is not yet useful" for orchestrators. Default behavior is unchanged. [#1511](https://github.com/sourcebot-dev/sourcebot/issues/1511)
 
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
