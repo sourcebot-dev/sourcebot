@@ -10,7 +10,7 @@ export type ZoektClient = {
     List: (request: ZoektListRequest, callback: (err: Error | null) => void) => void;
 };
 
-let cachedClient: ZoektClient | undefined;
+let clientPromise: Promise<ZoektClient> | null = null;
 
 const buildClient = async (): Promise<ZoektClient> => {
     const [grpc, protoLoader, nodePath, shared] = await Promise.all([
@@ -44,15 +44,17 @@ const buildClient = async (): Promise<ZoektClient> => {
     );
 };
 
-// Returns a connected client, building it on first use. Only successful
-// builds are cached: a transient init failure does not poison subsequent
-// readiness probes, so the next call can retry.
-export const loadZoektClient = async (): Promise<ZoektClient> => {
-    if (cachedClient) {
-        return cachedClient;
+// Returns a connected client, building it on first use. Concurrent callers
+// share the same in-flight build (no duplicated gRPC/proto init on a cold
+// process). Only successful builds are cached: a transient init failure
+// does not poison subsequent readiness probes, so the next call can retry.
+export const loadZoektClient = (): Promise<ZoektClient> => {
+    if (!clientPromise) {
+        clientPromise = buildClient().catch((err) => {
+            clientPromise = null;
+            throw err;
+        });
     }
-    const client = await buildClient();
-    cachedClient = client;
-    return client;
+    return clientPromise;
 };
 
