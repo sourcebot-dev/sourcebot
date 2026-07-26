@@ -20,11 +20,40 @@ Returns `200 OK` with `{"status":"ok", "checks":{...}}` when Postgres, Redis, an
 
 Use this for Kubernetes `readinessProbe` or a load balancer health check. A failing readiness probe means the pod should be removed from the load-balancer rotation but not restarted.
 
+### Strict mode
+
+Add `?strict=true` to require the Zoekt shard set to be non-empty as well. The default mode only confirms the dependencies are reachable; strict mode confirms the instance can actually serve a search that returns results. A freshly-started instance, or one whose connection sync has silently failed, returns `503` until at least one repository is indexed.
+
+```bash
+curl -fsS 'https://sourcebot.example.com/api/health/ready?strict=true' | jq .status
+# "ok"     — Postgres, Redis, AND Zoekt (with at least one indexed repo) are healthy
+# "degraded" — something failed, see `checks` for which
+```
+
+The response always includes a top-level `strict` field so the operator can confirm the mode that was applied:
+
+```json
+{
+  "status": "degraded",
+  "strict": true,
+  "checks": {
+    "postgres": { "status": "ok",    "latencyMs": 3 },
+    "redis":    { "status": "ok",    "latencyMs": 1 },
+    "zoekt":    { "status": "empty", "latencyMs": 18, "error": "no repositories indexed (strict mode)" }
+  }
+}
+```
+
+The Zoekt check distinguishes the two failure modes in its `status` field:
+- `error` — the gRPC call itself failed (Zoekt unreachable, timeout, etc.).
+- `empty` — strict mode is on and the shard set is empty. The dependency is healthy; the instance is just not yet useful.
+
 ### Response shape
 
 ```json
 {
   "status": "ok",
+  "strict": false,
   "checks": {
     "postgres": { "status": "ok", "latencyMs": 3 },
     "redis":    { "status": "ok", "latencyMs": 1 },
@@ -38,6 +67,7 @@ When degraded, each failed check carries an `error` field with the underlying me
 ```json
 {
   "status": "degraded",
+  "strict": false,
   "checks": {
     "postgres": { "status": "ok",    "latencyMs": 4 },
     "redis":    { "status": "ok",    "latencyMs": 1 },
@@ -88,6 +118,9 @@ When degraded, each failed check carries an `error` field with the underlying me
       timeoutSeconds: 5
       successThreshold: 1
       failureThreshold: 3
+    # For deployments that should not receive traffic until the shard set
+    # is non-empty, switch to the strict readiness probe:
+    #   path: /api/health/ready?strict=true
     ```
   </Tab>
 </Tabs>
