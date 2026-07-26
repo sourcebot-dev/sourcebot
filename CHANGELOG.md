@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added a `lint:fix` script to auto-fix ESLint issues across workspaces. [#XXXX](https://github.com/sourcebot-dev/sourcebot/pull/XXXX)
+
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
 
