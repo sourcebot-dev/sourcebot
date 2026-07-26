@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added a `GET /api/health/ready` endpoint that returns per-dependency health (Postgres, Redis, Zoekt) for use as a Kubernetes `readinessProbe` or load-balancer health check. The existing `GET /api/health` endpoint is unchanged and remains the liveness probe. [#1506](https://github.com/sourcebot-dev/sourcebot/issues/1506)
+- Added a `GET /api/health/ready` endpoint that returns per-dependency health (Postgres, Redis, Zoekt) for use as a Kubernetes `readinessProbe` or load-balancer health check. The existing `GET /api/health` endpoint is unchanged and remains the liveness probe. [#1507](https://github.com/sourcebot-dev/sourcebot/pull/1507)
 
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
