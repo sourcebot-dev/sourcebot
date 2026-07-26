@@ -149,4 +149,37 @@ describe('GET /api/health/ready', () => {
         // Generous upper bound to avoid flakes; serial would be ~3x delay.
         expect(elapsed).toBeLessThan(delay * 2.5);
     });
+
+    test('does not surface check rejections as unhandled promise rejections', async () => {
+        // The check rejects synchronously (well within the 2s timeout). The
+        // no-op `.catch` attached in `withTimeout` must absorb that
+        // rejection so the Node process does not log an
+        // unhandled-promise-rejection warning while the readiness request
+        // has already moved on.
+        const checkRejection = new Error('check rejected');
+        const unhandled: unknown[] = [];
+        const onUnhandled = (err: unknown) => { unhandled.push(err); };
+        process.on('unhandledRejection', onUnhandled);
+
+        try {
+            mocks.unsafePrisma.$queryRaw.mockRejectedValue(checkRejection);
+            mocks.redisPing.mockResolvedValue('PONG');
+            mocks.zoektList.mockImplementation(
+                (_request: unknown, callback: (err: Error | null) => void) => {
+                    callback(null);
+                },
+            );
+
+            const response = await GET();
+            const body = await response.json();
+
+            expect(response.status).toBe(503);
+            expect(body.checks.postgres.status).toBe('error');
+            // Give the rejection microtask a chance to fire and propagate.
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(unhandled).not.toContain(checkRejection);
+        } finally {
+            process.off('unhandledRejection', onUnhandled);
+        }
+    });
 });
