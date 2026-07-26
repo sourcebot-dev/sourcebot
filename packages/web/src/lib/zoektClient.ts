@@ -6,8 +6,16 @@ export type ZoektListRequest = {
     opts?: { max_wall_time?: { seconds: number; nanos: number } };
 };
 
+// Loose summary of the `List` response. The full gRPC type is much wider
+// (see `proto/zoekt/webserver/v1/ListResponse.ts`); we only need the bits
+// the readiness probe inspects, so callers can mock it with a small object.
+export type ZoektListResponse = {
+    repos?: unknown[];
+    repos_map?: Record<number, unknown>;
+};
+
 export type ZoektClient = {
-    List: (request: ZoektListRequest, callback: (err: Error | null) => void) => void;
+    List: (request: ZoektListRequest, callback: (err: Error | null, result: ZoektListResponse) => void) => void;
 };
 
 let cachedClient: ZoektClient | undefined;

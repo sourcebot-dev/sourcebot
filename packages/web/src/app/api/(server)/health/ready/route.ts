@@ -1,9 +1,12 @@
 import { createLogger } from '@sourcebot/shared';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 
 import { apiHandler } from '@/lib/apiHandler';
 import { __unsafePrisma } from '@/prisma';
 import { getRedisClient } from '@/lib/redis';
-import { loadZoektClient } from '@/lib/zoektClient';
+import { queryParamsSchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
+import { loadZoektClient, ZoektListResponse } from '@/lib/zoektClient';
 
 // Per-check timeout. The three checks run in parallel, so the worst-case
 // request time is bounded by this value even when one dependency hangs.
@@ -11,7 +14,7 @@ const READINESS_TIMEOUT_MS = 2000;
 
 const logger = createLogger('health-ready');
 
-type CheckStatus = 'ok' | 'error';
+type CheckStatus = 'ok' | 'error' | 'empty';
 type CheckResult = {
     status: CheckStatus;
     latencyMs: number;
@@ -19,12 +22,29 @@ type CheckResult = {
 };
 type ReadinessResponse = {
     status: 'ok' | 'degraded';
+    strict: boolean;
     checks: {
         postgres: CheckResult;
         redis: CheckResult;
         zoekt: CheckResult;
     };
 };
+
+const queryParamsSchema = z.object({
+    // `z.coerce.boolean()` is a footgun here: it just calls `Boolean(value)`
+    // under the hood, which would treat the string `"false"` as truthy.
+    // Instead, accept only the two literal strings we mean to support and
+    // transform to the matching boolean. Anything else (including absent)
+    // either defaults to false or surfaces as a 400.
+    strict: z
+        .string()
+        .optional()
+        .refine(
+            (v) => v === undefined || v === 'true' || v === 'false',
+            { message: 'strict must be "true" or "false"' },
+        )
+        .transform((v) => v === 'true'),
+});
 
 // Runs `check()` and rejects if it has not settled after `timeoutMs`. When the
 // timeout fires, the underlying check promise may still resolve or reject
@@ -90,30 +110,52 @@ const checkRedis = async (): Promise<CheckResult> => {
     }
 };
 
-const checkZoekt = async (): Promise<CheckResult> => {
+const checkZoekt = async (strict: boolean): Promise<CheckResult> => {
     const start = Date.now();
     try {
-        await withTimeout('zoekt', async () => {
+        // The List response is captured so the strict path can decide
+        // whether the empty-shard case is acceptable or not.
+        const response = await withTimeout('zoekt', async () => {
             // Build the client inside the timeout so a first-call init stall
             // (e.g., vendored proto load) is also bounded.
             const client = await loadZoektClient();
-            await new Promise<void>((resolve, reject) => {
-                // Empty `List` is the smallest request that exercises the gRPC
-                // channel end-to-end. It returns an empty result, not an error,
-                // even when no repos are indexed. The 2s client-side
-                // `READINESS_TIMEOUT_MS` is the only timeout that actually
-                // bounds the call: `max_wall_time` is a `SearchOptions` field
-                // and does not apply to `List` (`ListOptions` only carries
-                // `field`).
-                client.List({}, (err) => {
+            return await new Promise<ZoektListResponse>((resolve, reject) => {
+                // Empty `List` is the smallest request that exercises the
+                // gRPC channel end-to-end. It returns an empty result, not
+                // an error, even when no repos are indexed. The 2s
+                // client-side `READINESS_TIMEOUT_MS` is the only timeout
+                // that actually bounds the call: `max_wall_time` is a
+                // `SearchOptions` field and does not apply to `List`
+                // (`ListOptions` only carries `field`).
+                client.List({}, (err, result) => {
                     if (err) {
                         reject(err);
                     } else {
-                        resolve();
+                        resolve(result);
                     }
                 });
             });
         }, READINESS_TIMEOUT_MS);
+
+        if (strict) {
+            // "Empty" means neither `repos` (Field = RepoListFieldRepos) nor
+            // `repos_map` (Field = RepoListFieldReposMap) carries any
+            // entries. Both arrays/objects are always returned by the gRPC
+            // stub, so the only thing we have to defend against is
+            // unexpected `undefined` (e.g. a stub mismatch).
+            const repos = Array.isArray(response.repos) ? response.repos : [];
+            const reposMap = response.repos_map && typeof response.repos_map === 'object'
+                ? response.repos_map
+                : {};
+            if (repos.length === 0 && Object.keys(reposMap).length === 0) {
+                return {
+                    status: 'empty',
+                    latencyMs: Date.now() - start,
+                    error: 'no repositories indexed (strict mode)',
+                };
+            }
+        }
+
         return { status: 'ok', latencyMs: Date.now() - start };
     } catch (err) {
         return {
@@ -125,22 +167,36 @@ const checkZoekt = async (): Promise<CheckResult> => {
 };
 
 // eslint-disable-next-line authz/require-auth-wrapper -- public readiness probe, no user data returned
-export const GET = apiHandler(async () => {
+export const GET = apiHandler(async (request: NextRequest) => {
+    const rawParams = {
+        strict: request.nextUrl.searchParams.get('strict') ?? undefined,
+    };
+    const parsed = queryParamsSchema.safeParse(rawParams);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            queryParamsSchemaValidationError(parsed.error)
+        );
+    }
+
+    const { strict } = parsed.data;
+
     const [postgres, redis, zoekt] = await Promise.all([
         checkPostgres(),
         checkRedis(),
-        checkZoekt(),
+        checkZoekt(strict),
     ]);
 
     const checks = { postgres, redis, zoekt };
     const healthy = postgres.status === 'ok' && redis.status === 'ok' && zoekt.status === 'ok';
 
     if (!healthy) {
-        logger.warn('readiness check failed', { checks });
+        logger.warn('readiness check failed', { checks, strict });
     }
 
     const body: ReadinessResponse = {
         status: healthy ? 'ok' : 'degraded',
+        strict,
         checks,
     };
     return Response.json(body, { status: healthy ? 200 : 503 });
