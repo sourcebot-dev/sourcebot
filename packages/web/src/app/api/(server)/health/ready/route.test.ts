@@ -182,4 +182,18 @@ describe('GET /api/health/ready', () => {
             process.off('unhandledRejection', onUnhandled);
         }
     });
+
+    test('issues the Zoekt List RPC with empty options (max_wall_time is a SearchOptions field, not ListOptions)', async () => {
+        // Regression guard: the earlier draft of the Zoekt probe passed
+        // `{ opts: { max_wall_time: ... } }` to the `List` RPC. That field
+        // belongs to `SearchOptions` and is silently ignored by `List`
+        // (whose `ListOptions` only carries `field`). The 2s client-side
+        // timeout is the only thing that actually bounds the call. The
+        // probe must therefore issue the smallest valid request, which is
+        // an empty options object.
+        const response = await GET();
+        expect(response.status).toBe(200);
+        expect(mocks.zoektList).toHaveBeenCalledTimes(1);
+        expect(mocks.zoektList).toHaveBeenCalledWith({}, expect.any(Function));
+    });
 });

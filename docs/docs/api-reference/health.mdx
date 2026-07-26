@@ -50,7 +50,7 @@ When degraded, each failed check carries an `error` field with the underlying me
 |-------|---------------|
 | `postgres` | `SELECT 1` via Prisma |
 | `redis`    | `PING` (rejects non-`PONG` responses) |
-| `zoekt`    | `List` RPC with a 1-second wall-time cap (proves the gRPC channel is alive) |
+| `zoekt`    | Empty `List` RPC (proves the gRPC channel is alive; bounded by the 2s per-check timeout) |
 
 ### Example probes
 

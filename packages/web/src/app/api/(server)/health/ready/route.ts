@@ -98,19 +98,20 @@ const checkZoekt = async (): Promise<CheckResult> => {
             // (e.g., vendored proto load) is also bounded.
             const client = await loadZoektClient();
             await new Promise<void>((resolve, reject) => {
-                // An empty List with a 1s wall-time cap is the smallest request
-                // that exercises the gRPC channel end-to-end. It returns an
-                // empty result, not an error, even when no repos are indexed.
-                client.List(
-                    { opts: { max_wall_time: { seconds: 1, nanos: 0 } } },
-                    (err) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve();
-                        }
-                    },
-                );
+                // Empty `List` is the smallest request that exercises the gRPC
+                // channel end-to-end. It returns an empty result, not an error,
+                // even when no repos are indexed. The 2s client-side
+                // `READINESS_TIMEOUT_MS` is the only timeout that actually
+                // bounds the call: `max_wall_time` is a `SearchOptions` field
+                // and does not apply to `List` (`ListOptions` only carries
+                // `field`).
+                client.List({}, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
         }, READINESS_TIMEOUT_MS);
         return { status: 'ok', latencyMs: Date.now() - start };
