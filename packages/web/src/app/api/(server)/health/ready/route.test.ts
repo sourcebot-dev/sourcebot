@@ -50,9 +50,16 @@ const makeRequest = (search: Record<string, string> = {}): NextRequest => {
     return new NextRequest(url);
 };
 
-// Default Zoekt response: a single indexed repo. Tests that need a different
-// shape override the mock in their own `beforeEach` / `mockImplementationOnce`.
+// Default Zoekt response: a single indexed repo. Tests that need a
+// different shape override the mock implementation locally.
 const defaultZoektResponse = { repos: [{}] };
+
+// gRPC callback shape: (err, response) => void. Pulled out so the seven
+// `mocks.zoektList.mockImplementation(...)` blocks below stay short.
+type ZoektListCallback = (
+    err: Error | null,
+    response?: { repos?: unknown[]; repos_map?: Record<number, unknown> },
+) => void;
 
 describe('GET /api/health/ready', () => {
     beforeEach(() => {
@@ -60,7 +67,7 @@ describe('GET /api/health/ready', () => {
         mocks.unsafePrisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
         mocks.redisPing.mockResolvedValue('PONG');
         mocks.zoektList.mockImplementation(
-            (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+            (_request: unknown, callback: ZoektListCallback) => {
                 callback(null, defaultZoektResponse);
             },
         );
@@ -148,7 +155,7 @@ describe('GET /api/health/ready', () => {
             () => new Promise((resolve) => setTimeout(() => resolve('PONG'), delay)),
         );
         mocks.zoektList.mockImplementation(
-            (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+            (_request: unknown, callback: ZoektListCallback) => {
                 setTimeout(() => callback(null, defaultZoektResponse), delay);
             },
         );
@@ -179,7 +186,7 @@ describe('GET /api/health/ready', () => {
             mocks.unsafePrisma.$queryRaw.mockRejectedValue(checkRejection);
             mocks.redisPing.mockResolvedValue('PONG');
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, defaultZoektResponse);
                 },
             );
@@ -214,7 +221,7 @@ describe('GET /api/health/ready', () => {
     describe('?strict=true', () => {
         test('returns 200 with status:ok and strict:true when Zoekt has at least one indexed repo', async () => {
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos: [{ repository: { name: 'foo' } }] });
                 },
             );
@@ -230,7 +237,7 @@ describe('GET /api/health/ready', () => {
 
         test('returns 503 with status:degraded and zoekt.status:"empty" when Zoekt has no indexed repos', async () => {
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos: [] });
                 },
             );
@@ -252,7 +259,7 @@ describe('GET /api/health/ready', () => {
             // when `ListOptions.Field = RepoListFieldReposMap`. Empty
             // `repos_map` should also be treated as empty in strict mode.
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos_map: {} });
                 },
             );
@@ -266,7 +273,7 @@ describe('GET /api/health/ready', () => {
 
         test('returns 200 in strict mode when repos_map is non-empty', async () => {
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos_map: { 1: { repository: { name: 'bar' } } } });
                 },
             );
@@ -285,7 +292,7 @@ describe('GET /api/health/ready', () => {
             // empty Zoekt shard set as a failure. Operators who do not opt
             // in to strict mode should see the same response as before.
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos: [] });
                 },
             );
@@ -301,7 +308,7 @@ describe('GET /api/health/ready', () => {
 
         test('treats an absent strict parameter as strict:false', async () => {
             mocks.zoektList.mockImplementation(
-                (_request: unknown, callback: (err: Error | null, response?: { repos?: unknown[]; repos_map?: Record<number, unknown> }) => void) => {
+                (_request: unknown, callback: ZoektListCallback) => {
                     callback(null, { repos: [] });
                 },
             );

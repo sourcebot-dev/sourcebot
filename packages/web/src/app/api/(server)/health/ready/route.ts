@@ -31,11 +31,9 @@ type ReadinessResponse = {
 };
 
 const queryParamsSchema = z.object({
-    // `z.coerce.boolean()` is a footgun here: it just calls `Boolean(value)`
-    // under the hood, which would treat the string `"false"` as truthy.
-    // Instead, accept only the two literal strings we mean to support and
-    // transform to the matching boolean. Anything else (including absent)
-    // either defaults to false or surfaces as a 400.
+    // `z.coerce.boolean()` is a footgun: it just calls `Boolean(value)` and
+    // would treat the string `"false"` as truthy. Accept only the two
+    // literal strings we mean to support and transform to a boolean.
     strict: z
         .string()
         .optional()
@@ -114,7 +112,7 @@ const checkZoekt = async (strict: boolean): Promise<CheckResult> => {
     const start = Date.now();
     try {
         // The List response is captured so the strict path can decide
-        // whether the empty-shard case is acceptable or not.
+        // whether the empty-shard case is acceptable.
         const response = await withTimeout('zoekt', async () => {
             // Build the client inside the timeout so a first-call init stall
             // (e.g., vendored proto load) is also bounded.
@@ -138,15 +136,11 @@ const checkZoekt = async (strict: boolean): Promise<CheckResult> => {
         }, READINESS_TIMEOUT_MS);
 
         if (strict) {
-            // "Empty" means neither `repos` (Field = RepoListFieldRepos) nor
-            // `repos_map` (Field = RepoListFieldReposMap) carries any
-            // entries. Both arrays/objects are always returned by the gRPC
-            // stub, so the only thing we have to defend against is
-            // unexpected `undefined` (e.g. a stub mismatch).
-            const repos = Array.isArray(response.repos) ? response.repos : [];
-            const reposMap = response.repos_map && typeof response.repos_map === 'object'
-                ? response.repos_map
-                : {};
+            // Check both `repos` (Field = RepoListFieldRepos) and
+            // `repos_map` (Field = RepoListFieldReposMap) so the result is
+            // correct regardless of which field the server populates.
+            const repos = response.repos ?? [];
+            const reposMap = response.repos_map ?? {};
             if (repos.length === 0 && Object.keys(reposMap).length === 0) {
                 return {
                     status: 'empty',

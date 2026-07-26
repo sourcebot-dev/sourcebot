@@ -26,8 +26,8 @@ Add `?strict=true` to require the Zoekt shard set to be non-empty as well. The d
 
 ```bash
 curl -fsS 'https://sourcebot.example.com/api/health/ready?strict=true' | jq .status
-# "ok"     — Postgres, Redis, AND Zoekt (with at least one indexed repo) are healthy
-# "degraded" — something failed, see `checks` for which
+# "ok"       Postgres, Redis, and Zoekt (with at least one indexed repo) are healthy
+# "degraded" Something failed, see `checks` for which
 ```
 
 The response always includes a top-level `strict` field so the operator can confirm the mode that was applied:
@@ -45,8 +45,8 @@ The response always includes a top-level `strict` field so the operator can conf
 ```
 
 The Zoekt check distinguishes the two failure modes in its `status` field:
-- `error` — the gRPC call itself failed (Zoekt unreachable, timeout, etc.).
-- `empty` — strict mode is on and the shard set is empty. The dependency is healthy; the instance is just not yet useful.
+- `error`. The gRPC call itself failed (Zoekt unreachable, timeout, etc.).
+- `empty`. Strict mode is on and the shard set is empty. The dependency is healthy; the instance is just not yet useful.
 
 ### Response shape
 
