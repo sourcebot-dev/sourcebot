@@ -10,10 +10,12 @@ export type ZoektClient = {
     List: (request: ZoektListRequest, callback: (err: Error | null) => void) => void;
 };
 
-// Hard ceiling on the first-use Zoekt build. Must stay well under the
-// 2-second readiness deadline so the per-check withTimeout timers can
-// still fire and a hung init cannot leave clientPromise pending forever.
-const ZOEKT_BUILD_TIMEOUT_MS = 1500;
+// Hard ceiling on the first-use Zoekt build. Stays under 1s so the
+// per-check withTimeout (2s route budget) always has time to run the
+// gRPC List probe after the client is built. A hung init cannot leave
+// clientPromise pending forever either — the catch in loadZoektClient
+// clears the cached promise on the timeout.
+const ZOEKT_BUILD_TIMEOUT_MS = 800;
 
 let clientPromise: Promise<ZoektClient> | null = null;
 
@@ -55,6 +57,12 @@ const buildClient = async (): Promise<ZoektClient> => {
     // Race the build against a hard timeout. If the build hangs (a slow
     // dynamic import or proto load) the timeout wins and the catch in
     // loadZoektClient clears the cached promise so the next call retries.
+    //
+    // The build promise itself is deliberately NOT cancellable, so when the
+    // timeout wins the race the underlying work continues in the background
+    // until the imports and proto load complete. Attach a no-op .catch so
+    // a late rejection from the orphaned build does not surface as an
+    // unhandled promise rejection in Node.
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(
@@ -62,8 +70,9 @@ const buildClient = async (): Promise<ZoektClient> => {
             ZOEKT_BUILD_TIMEOUT_MS,
         );
     });
+    const orphaned = build().catch(() => {});
     try {
-        return await Promise.race([build(), timeout]);
+        return await Promise.race([orphaned, timeout]);
     } finally {
         if (timer) {
             clearTimeout(timer);
