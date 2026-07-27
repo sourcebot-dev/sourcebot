@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `GET /api/health` now also returns the Sourcebot version, process start timestamp, uptime in seconds, Node.js process facts (pid, version, platform, arch) and the timestamp the process started. The existing `status: "ok"` field is preserved so existing Kubernetes `livenessProbe` configurations and scripts keep working unchanged. The response shape in the public OpenAPI doc (`PublicHealthResponse`) has been updated to match.
+- `GET /api/health` now returns the Sourcebot version, process start timestamp, uptime in seconds, and Node.js process facts (pid, version, platform, arch) on top of the existing `status: "ok"` field, so operators can verify the running build and detect restarts from a single curl. [#1514](https://github.com/sourcebot-dev/sourcebot/pull/1514)
 
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
