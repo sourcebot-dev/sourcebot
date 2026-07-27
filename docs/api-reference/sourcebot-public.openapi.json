@@ -531,10 +531,50 @@
             "enum": [
               "ok"
             ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uptime": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pid": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "node": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string"
+              },
+              "arch": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "platform",
+              "arch"
+            ]
           }
         },
         "required": [
-          "status"
+          "status",
+          "version",
+          "startedAt",
+          "uptime",
+          "pid",
+          "node"
         ]
       },
       "PublicFileSourceResponse": {

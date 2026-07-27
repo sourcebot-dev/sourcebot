@@ -62,6 +62,15 @@ export const publicListCommitAuthorsResponseSchema = z.array(publicCommitAuthorS
 
 export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),
+    version: z.string(),
+    startedAt: z.string().datetime(),
+    uptime: z.number().int().nonnegative(),
+    pid: z.number().int().positive(),
+    node: z.object({
+        version: z.string(),
+        platform: z.string(),
+        arch: z.string(),
+    }),
 }).openapi('PublicHealthResponse');
 
 // EE: User Management
