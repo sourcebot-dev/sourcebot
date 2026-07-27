@@ -7,9 +7,19 @@ if [[ -z "${LINEAR_API_KEY:-}" ]]; then
 fi
 
 payload=$(cat)
-attempts="${LINEAR_GRAPHQL_ATTEMPTS:-4}"
+configured_attempts="${LINEAR_GRAPHQL_ATTEMPTS:-4}"
 retry_delay="${LINEAR_GRAPHQL_RETRY_DELAY_SECONDS:-2}"
 endpoint="${LINEAR_GRAPHQL_ENDPOINT:-https://api.linear.app/graphql}"
+is_mutation=$(jq -r '(.query // "") | test("^\\s*mutation(?:\\s|\\(|\\{)")' <<<"$payload")
+
+# Retrying a mutation after an ambiguous transport failure can replay a write
+# that Linear already committed. Queries are safe to retry; mutations fail
+# visibly after one attempt and rely on the workflow's reconciliation pass.
+if [[ "$is_mutation" == "true" ]]; then
+  attempts=1
+else
+  attempts="$configured_attempts"
+fi
 
 for ((attempt = 1; attempt <= attempts; attempt++)); do
   response_file=$(mktemp)
