@@ -47,17 +47,22 @@ describe('GET /api/health', () => {
     });
 
     test('exposes a parseable ISO 8601 startedAt in the past', async () => {
-        const now = Date.now();
+        const wallClockNow = Date.now();
         const response = await GET(makeRequest());
         const body = await response.json();
 
         const startedAtMs = Date.parse(body.startedAt);
         expect(Number.isNaN(startedAtMs)).toBe(false);
-        // `startedAt` is captured at module load, which happens during
-        // the import at the top of this file. It must be in the past
-        // and reasonably recent (sanity-bounds to "not 1970").
-        expect(startedAtMs).toBeLessThanOrEqual(now);
-        expect(startedAtMs).toBeGreaterThan(now - 60 * 60 * 1000);
+        // `startedAt` is derived from process boot via `process.uptime()`,
+        // not module-load wall time. It must be in the past and
+        // consistent with the process-uptime clock; the consistency
+        // window is enforced by the dedicated test below.
+        expect(startedAtMs).toBeLessThanOrEqual(wallClockNow);
+        // Sanity: process started sometime in the last 30 days. A
+        // 30-day window is wide enough to not be flaky on long-lived
+        // CI workers but tight enough to fail on a literal "1970"
+        // start time.
+        expect(startedAtMs).toBeGreaterThan(wallClockNow - 30 * 24 * 60 * 60 * 1000);
     });
 
     test('exposes a non-negative integer uptime', async () => {
