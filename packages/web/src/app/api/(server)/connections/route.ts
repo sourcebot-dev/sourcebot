@@ -49,7 +49,9 @@ export const GET = apiHandler(async (request: NextRequest) => {
         perPage,
         totalCount,
     });
-    if (linkHeader) headers.set('Link', linkHeader);
+    if (linkHeader) {
+        headers.set('Link', linkHeader);
+    }
 
     return new Response(JSON.stringify({ connections: data }), {
         status: 200,
