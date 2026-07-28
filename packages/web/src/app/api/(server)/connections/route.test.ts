@@ -105,7 +105,11 @@ const { GET } = await import('./route');
 
 // The Prisma mock is shaped to drive the four query paths the route
 // uses: listConnections.findMany, listConnections.count,
-// connectionSyncJob.groupBy, plus the relations via `include`.
+// connectionSyncJob.groupBy, plus the relations via `include`. The
+// mock includes a populated `config` field on every row so the
+// "config is not in the response" regression test can actually
+// detect a future change that accidentally spreads raw Prisma rows
+// into the response shape.
 const buildPrismaMock = (opts: {
     connections: Array<{
         id: number;
@@ -135,6 +139,12 @@ const buildPrismaMock = (opts: {
         syncedAt: c.syncedAt,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
+        // The config is the actual JSON the user stored (e.g.
+        // { token: { env: 'GH_TOKEN' } }) for declarative connections.
+        // It must never appear in the public response. We include it
+        // here so the regression test below is meaningful: a future
+        // change that spreads raw Prisma rows will leak this field.
+        config: { token: { env: 'SOURCEBOT_TEST_TOKEN' } },
         _count: { repos: c.repoCount, syncJobs: c.latestJob ? 1 : 0 },
         syncJobs: c.latestJob ? [c.latestJob] : [],
     })));
