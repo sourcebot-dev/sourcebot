@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `GET /api/connections` returns a paginated, auth-gated list of code-host connections in the org with per-connection sync state (last sync timestamp, latest job status, in-flight job count, repo count) so operators can monitor connection health from a script and pipe into Prometheus / Datadog / Grafana / Slack alerts. [#1516](https://github.com/sourcebot-dev/sourcebot/issues/1516)
+
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
 
