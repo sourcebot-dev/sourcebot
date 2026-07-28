@@ -26,6 +26,8 @@ import {
     publicListCommitsResponseSchema,
     publicListReposQueryParamsSchema,
     publicListReposResponseSchema,
+    publicListConnectionsQueryParamsSchema,
+    publicListConnectionsResponseSchema,
     publicSearchRequestSchema,
     publicSearchResponseSchema,
     publicServiceErrorSchema,
@@ -198,6 +200,37 @@ export function createPublicOpenApiDocument(version: string) {
                 description: 'Service is healthy.',
                 content: jsonContent(publicHealthResponseSchema),
             },
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/connections',
+        operationId: 'listConnections',
+        tags: [systemTag.name],
+        summary: 'List code-host connections',
+        description: 'Returns a paginated list of code-host connections in the org, with per-connection sync state (last sync timestamp, latest job status, in-flight job count, repo count). Auth-gated. The connection `config` is never returned (it carries tokens).',
+        request: {
+            query: publicListConnectionsQueryParamsSchema,
+        },
+        responses: {
+            200: {
+                description: 'Paginated connection list.',
+                headers: {
+                    'X-Total-Count': {
+                        description: 'Total number of connections matching the query across all pages.',
+                        schema: { type: 'integer', example: 5 },
+                    },
+                    Link: {
+                        description: 'Pagination links formatted per RFC 8288. Includes `rel="next"`, `rel="prev"`, `rel="first"`, and `rel="last"` when applicable.',
+                        schema: { type: 'string' },
+                    },
+                },
+                content: jsonContent(publicListConnectionsResponseSchema),
+            },
+            400: errorJson('Invalid query parameters.'),
+            401: errorJson('Not authenticated.'),
+            500: errorJson('Unexpected connection listing failure.'),
         },
     });
 

@@ -64,6 +64,45 @@ export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),
 }).openapi('PublicHealthResponse');
 
+export const publicListConnectionsQueryParamsSchema = z.object({
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+}).openapi('PublicListConnectionsQuery');
+
+export const publicConnectionLatestJobSchema = z.object({
+    id: z.string(),
+    status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']),
+    createdAt: z.string().datetime(),
+    completedAt: z.string().datetime().nullable(),
+    errorMessage: z.string().nullable(),
+}).openapi('PublicConnectionLatestJob');
+
+export const publicConnectionSummarySchema = z.object({
+    id: z.number().int().positive(),
+    name: z.string(),
+    connectionType: z.enum([
+        'github',
+        'gitlab',
+        'gitea',
+        'gerrit',
+        'bitbucket-server',
+        'bitbucket-cloud',
+        'generic-git-host',
+        'azuredevops',
+    ]),
+    isDeclarative: z.boolean(),
+    syncedAt: z.string().datetime().nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    repoCount: z.number().int().nonnegative(),
+    inFlightJobCount: z.number().int().nonnegative(),
+    latestJob: publicConnectionLatestJobSchema.nullable(),
+}).openapi('PublicConnectionSummary');
+
+export const publicListConnectionsResponseSchema = z.object({
+    connections: z.array(publicConnectionSummarySchema),
+}).openapi('PublicListConnectionsResponse');
+
 // EE: User Management
 export const publicEeUserSchema = z.object({
     id: z.string(),
