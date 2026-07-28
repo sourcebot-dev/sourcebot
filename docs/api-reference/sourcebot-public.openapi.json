@@ -537,6 +537,123 @@
           "status"
         ]
       },
+      "PublicConnectionLatestJob": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "createdAt",
+          "completedAt",
+          "errorMessage"
+        ]
+      },
+      "PublicConnectionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "connectionType": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab",
+              "gitea",
+              "gerrit",
+              "bitbucket-server",
+              "bitbucket-cloud",
+              "generic-git-host",
+              "azuredevops"
+            ]
+          },
+          "isDeclarative": {
+            "type": "boolean"
+          },
+          "syncedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "repoCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "inFlightJobCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "latestJob": {
+            "$ref": "#/components/schemas/PublicConnectionLatestJob"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "connectionType",
+          "isDeclarative",
+          "syncedAt",
+          "createdAt",
+          "updatedAt",
+          "repoCount",
+          "inFlightJobCount",
+          "latestJob"
+        ]
+      },
+      "PublicListConnectionsResponse": {
+        "type": "object",
+        "properties": {
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicConnectionSummary"
+            }
+          }
+        },
+        "required": [
+          "connections"
+        ]
+      },
       "PublicFileSourceResponse": {
         "type": "object",
         "properties": {
@@ -1472,6 +1589,98 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connections": {
+      "get": {
+        "operationId": "listConnections",
+        "tags": [
+          "System"
+        ],
+        "summary": "List code-host connections",
+        "description": "Returns a paginated list of code-host connections in the org, with per-connection sync state (last sync timestamp, latest job status, in-flight job count, repo count). Auth-gated. The connection `config` is never returned (it carries tokens).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "perPage",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated connection list.",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of connections matching the query across all pages.",
+                "schema": {
+                  "type": "integer",
+                  "example": 5
+                }
+              },
+              "Link": {
+                "description": "Pagination links formatted per RFC 8288. Includes `rel=\"next\"`, `rel=\"prev\"`, `rel=\"first\"`, and `rel=\"last\"` when applicable.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListConnectionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected connection listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
                 }
               }
             }
