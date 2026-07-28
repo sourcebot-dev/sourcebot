@@ -1,11 +1,18 @@
 import { Redis } from 'ioredis';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Workload } from './types.js';
+import { ProcessContext, Workload } from './types.js';
 
 const mocks = vi.hoisted(() => ({
     enqueue: vi.fn(),
     producerClose: vi.fn(),
     workerClose: vi.fn(),
+    jobLogger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        flush: vi.fn(),
+    },
     workers: [] as Array<{
         processor: (job: unknown) => Promise<unknown>;
         handlers: Map<string, (...args: unknown[]) => void>;
@@ -23,7 +30,8 @@ vi.mock('@sourcebot/shared', () => ({
         error: vi.fn(),
         debug: vi.fn(),
     })),
-    BullMQJobProducer: class {
+    createBullMQJobLogger: vi.fn(() => mocks.jobLogger),
+    BullMQClient: class {
         enqueue = mocks.enqueue;
         close = mocks.producerClose;
         queue = vi.fn(() => ({
@@ -66,6 +74,7 @@ const createWorkload = (
             attempts: 2,
             backoff: { type: 'exponential', delayMs: 5000 },
             keep: { completed: 50, failed: 50 },
+            keepLogs: 500,
         },
     },
     concurrency: 2,
@@ -90,7 +99,7 @@ describe('BullMQJobManager lifecycle', () => {
         mocks.enqueue.mockResolvedValue('job-1');
     });
 
-    test('delegates enqueueing to BullMQJobProducer and returns its job id', async () => {
+    test('delegates enqueueing to BullMQClient and returns its job id', async () => {
         const manager = new BullMQJobManager({} as Redis);
         const workload = createWorkload();
         manager.register(workload);
@@ -124,6 +133,25 @@ describe('BullMQJobManager lifecycle', () => {
             expect.objectContaining({ data, jobId: 'job-1', maxAttempts: 2 }),
             { repoCount: 3 },
         );
+        expect(mocks.jobLogger.flush).toHaveBeenCalled();
+    });
+
+    test('provides the structured job logger to the workload processor', async () => {
+        const process = vi.fn(async (context: ProcessContext<'connection'>) => {
+            context.logger.info('Processing connection');
+            return { repoCount: 3 };
+        });
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload({ process }));
+        await manager.start();
+
+        await mocks.workers[0].processor({ ...job, attemptsMade: 0 });
+
+        expect(process).toHaveBeenCalledWith(expect.objectContaining({
+            logger: mocks.jobLogger,
+        }));
+        expect(mocks.jobLogger.info).toHaveBeenCalledWith('Processing connection');
+        expect(mocks.jobLogger.flush).toHaveBeenCalled();
     });
 
     test('reports lifecycle metadata after terminal failure', async () => {
@@ -137,12 +165,12 @@ describe('BullMQJobManager lifecycle', () => {
         mocks.workers[0].handlers.get('failed')?.(job, error);
 
         await vi.waitFor(() => {
-            expect(onTerminalFailure).toHaveBeenCalledWith({
+            expect(onTerminalFailure).toHaveBeenCalledWith(expect.objectContaining({
                 data,
                 jobId: 'job-1',
                 attemptsMade: 2,
                 maxAttempts: 2,
-            }, error);
+            }), error);
         });
     });
 });

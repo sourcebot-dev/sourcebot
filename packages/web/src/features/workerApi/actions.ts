@@ -4,10 +4,10 @@ import { sew } from "@/middleware/sew";
 import { notFound, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { ConnectionSyncJobStatus, OrgRole } from "@sourcebot/db";
+import { OrgRole } from "@sourcebot/db";
 import { CONNECTION_QUEUE, env } from "@sourcebot/shared";
 import z from "zod";
-import { getJobProducer } from "@/lib/jobProducer";
+import { getBullMQClient } from "@/lib/bullmqClient";
 
 const WORKER_API_URL = env.WORKER_API_URL;
 
@@ -29,12 +29,51 @@ export const syncConnection = async (connectionId: number) => sew(() =>
                 return notFound('Connection not found');
             }
 
-            const jobId = await getJobProducer().enqueue(CONNECTION_QUEUE, {
+            const jobId = await getBullMQClient().enqueue(CONNECTION_QUEUE, {
                 connectionId: connection.id,
                 orgId: connection.orgId,
             });
 
             return { jobId };
+        })
+    )
+);
+
+export const getConnectionSyncJobLogs = async (
+    connectionId: number,
+    jobId: string,
+    start = 0,
+) => sew(() =>
+    withAuth(({ org, prisma, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const connection = await prisma.connection.findUnique({
+                where: {
+                    id: connectionId,
+                    orgId: org.id,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (!connection) {
+                return notFound('Connection not found');
+            }
+
+            const client = getBullMQClient();
+            const job = await client.getJob(CONNECTION_QUEUE, jobId);
+            if (
+                !job ||
+                job.data.connectionId !== connection.id ||
+                job.data.orgId !== org.id
+            ) {
+                return notFound('Connection sync job not found');
+            }
+
+            return client.getJobLogs(CONNECTION_QUEUE, jobId, {
+                start: Number.isInteger(start) && start >= 0 ? start : 0,
+                ascending: true,
+            });
         })
     )
 );

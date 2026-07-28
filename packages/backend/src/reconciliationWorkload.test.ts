@@ -8,6 +8,7 @@ vi.mock('@sourcebot/shared', () => ({
             attempts: 2,
             backoff: { type: 'exponential', delayMs: 5000 },
             keep: { completed: 50, failed: 50 },
+            keepLogs: 500,
         },
     },
     createLogger: vi.fn(() => ({
@@ -67,7 +68,13 @@ describe('reconciliationWorkload', () => {
             attemptsMade: 0,
             maxAttempts: 2,
             signal: new AbortController().signal,
-            log: vi.fn(),
+            logger: {
+                debug: vi.fn(),
+                info: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn(),
+                flush: vi.fn(),
+            },
             updateProgress: vi.fn(),
             trigger,
         });

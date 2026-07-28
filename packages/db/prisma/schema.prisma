@@ -10,15 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ConnectionSyncStatus {
-  SYNC_NEEDED
-  IN_SYNC_QUEUE
-  SYNCING
-  SYNCED
-  SYNCED_WITH_WARNINGS
-  FAILED
-}
-
 enum ChatVisibility {
   PRIVATE
   PUBLIC
@@ -181,9 +172,9 @@ model Connection {
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType ConnectionType
 
-  syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
+  latestSyncJobId    String?
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -206,27 +197,6 @@ model Connection {
   orgId Int
 
   @@unique([name, orgId])
-}
-
-enum ConnectionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model ConnectionSyncJob {
-  id          String                      @id @default(cuid())
-  status      ConnectionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  warningMessages String[]
-  errorMessage String?
-
-  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  connectionId Int
 }
 
 model RepoToConnection {

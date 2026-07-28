@@ -103,5 +103,24 @@ export {
     RECONCILIATION_QUEUE,
 } from "./queue.js";
 export {
-    BullMQJobProducer,
-} from "./jobProducer.js";
+    BullMQClient,
+} from "./bullmqClient.js";
+export type {
+    WorkloadJob,
+    WorkloadJobStatus,
+} from "./bullmqClient.js";
+export {
+    createBullMQJobLogger,
+    DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    parseJobLogEntry,
+    readBullMQJobLogs,
+} from "./jobLogger.js";
+export type {
+    GetJobLogsOptions,
+    JobLogEntry,
+    JobLogFields,
+    JobLogLevel,
+    JobLogger,
+    JobLogs,
+    JobLogSink,
+} from "./jobLogger.js";

@@ -1,13 +1,10 @@
 import { Workload } from "./types.js";
 import { prisma } from "./prisma.js";
-import { ConnectionSyncJobStatus } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
-import { CONNECTION_QUEUE, createLogger, env, loadConfig } from "@sourcebot/shared";
+import { CONNECTION_QUEUE, env, loadConfig } from "@sourcebot/shared";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import * as Sentry from "@sentry/node";
-
-const logger = createLogger('connection-workflow');
 
 export const connectionWorkload: Workload<'connection'> = {
     queueSpec: CONNECTION_QUEUE,
@@ -17,9 +14,13 @@ export const connectionWorkload: Workload<'connection'> = {
             connectionId,
             orgId
         },
-        jobId,
+        logger,
         signal,
     }) => {
+        logger.info(`Syncing connection ${connectionId}`, {
+            connectionId,
+            orgId,
+        });
         const connection = await prisma.connection.findUniqueOrThrow({
             where: {
                 id: connectionId
@@ -28,41 +29,17 @@ export const connectionWorkload: Workload<'connection'> = {
 
         const config = connection.config as unknown as ConnectionConfig;
 
-        const result = await (async () => {
-            switch (config.type) {
-                case 'github': {
-                    return await compileGithubConfig(config, connectionId, signal);
-                }
-                case 'gitlab': {
-                    return await compileGitlabConfig(config, connectionId);
-                }
-                case 'gitea': {
-                    return await compileGiteaConfig(config, connectionId);
-                }
-                case 'gerrit': {
-                    return await compileGerritConfig(config, connectionId);
-                }
-                case 'bitbucket': {
-                    return await compileBitbucketConfig(config, connectionId);
-                }
-                case 'azuredevops': {
-                    return await compileAzureDevOpsConfig(config, connectionId);
-                }
-                case 'git': {
-                    return await compileGenericGitHostConfig(config, connectionId);
-                }
-            }
-        })();
+        const result = await discoverConnectionRepositories({
+            config,
+            connectionId,
+            signal,
+        });
 
-        let { repoData, warnings } = result;
+        let { repoData } = result;
 
-        await prisma.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                warningMessages: warnings,
-            },
+        logger.info(`Discovered ${repoData.length} repositories`, {
+            connectionId,
+            repositoryCount: repoData.length,
         });
 
         // Filter out any duplicates by external_id and external_codeHostUrl.
@@ -91,7 +68,11 @@ export const connectionWorkload: Workload<'connection'> = {
                 }
             });
             const deleteDuration = performance.now() - deleteStart;
-            logger.debug(`Deleted all RepoToConnection records for connection ${connection.name} (id: ${connectionId}) in ${deleteDuration}ms`);
+            logger.debug(`Deleted existing repository associations`, {
+                connectionId,
+                connectionName: connection.name,
+                durationMs: deleteDuration,
+            });
 
             const totalUpsertStart = performance.now();
             for (const repo of repoData) {
@@ -108,10 +89,19 @@ export const connectionWorkload: Workload<'connection'> = {
                     create: repo,
                 })
                 const upsertDuration = performance.now() - upsertStart;
-                logger.debug(`Upserted repo ${repo.displayName} (id: ${repo.external_id}) in ${upsertDuration}ms`);
+                logger.debug(`Upserted repository ${repo.displayName}`, {
+                    connectionId,
+                    externalId: repo.external_id,
+                    durationMs: upsertDuration,
+                });
             }
             const totalUpsertDuration = performance.now() - totalUpsertStart;
-            logger.debug(`Upserted ${repoData.length} repos for connection ${connection.name} (id: ${connectionId}) in ${totalUpsertDuration}ms`);
+            logger.info(`Stored ${repoData.length} repositories`, {
+                connectionId,
+                connectionName: connection.name,
+                repositoryCount: repoData.length,
+                durationMs: totalUpsertDuration,
+            });
         }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
 
         await prisma.connection.update({
@@ -133,50 +123,46 @@ export const connectionWorkload: Workload<'connection'> = {
                 contexts: config.contexts,
             });
         } catch (err) {
-            logger.error(`Failed to sync search contexts for connection ${connectionId}: ${err}`);
+            logger.error(`Failed to sync search contexts for connection ${connectionId}`, err);
             Sentry.captureException(err);
         }
-    },
-    onStarted: async ({ data, jobId }) => {
-        await prisma.connectionSyncJob.createMany({
-            data: [{
-                id: jobId,
-                connectionId: data.connectionId,
-                status: ConnectionSyncJobStatus.IN_PROGRESS,
-                warningMessages: [],
-            }],
-            skipDuplicates: true,
-        });
-        await prisma.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: ConnectionSyncJobStatus.IN_PROGRESS,
-            },
-        });
-    },
-    onCompleted: async ({ jobId }) => {
-        await prisma.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: ConnectionSyncJobStatus.COMPLETED,
-                completedAt: new Date(),
-            },
-        });
-    },
-    onTerminalFailure: async ({ jobId }, error) => {
-        await prisma.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: ConnectionSyncJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: error.message,
-            },
+
+        logger.info(`Connection ${connectionId} sync finished`, {
+            connectionId,
         });
     }
 }
+
+const discoverConnectionRepositories = async ({
+    config,
+    connectionId,
+    signal,
+}: {
+    config: ConnectionConfig;
+    connectionId: number;
+    signal: AbortSignal;
+}) => {
+    switch (config.type) {
+        case 'github': {
+            return compileGithubConfig(config, connectionId, signal);
+        }
+        case 'gitlab': {
+            return compileGitlabConfig(config, connectionId);
+        }
+        case 'gitea': {
+            return compileGiteaConfig(config, connectionId);
+        }
+        case 'gerrit': {
+            return compileGerritConfig(config, connectionId);
+        }
+        case 'bitbucket': {
+            return compileBitbucketConfig(config, connectionId);
+        }
+        case 'azuredevops': {
+            return compileAzureDevOpsConfig(config, connectionId);
+        }
+        case 'git': {
+            return compileGenericGitHostConfig(config, connectionId);
+        }
+    }
+};

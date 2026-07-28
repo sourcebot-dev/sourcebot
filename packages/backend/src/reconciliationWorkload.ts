@@ -1,8 +1,6 @@
 import { PrismaClient } from "@sourcebot/db";
-import { createLogger, RECONCILIATION_QUEUE } from "@sourcebot/shared";
+import { RECONCILIATION_QUEUE } from "@sourcebot/shared";
 import { Settings, Workload } from "./types.js";
-
-const logger = createLogger('reconciliation-workload');
 
 interface ReconciliationWorkloadDependencies {
     db: PrismaClient;
@@ -16,7 +14,7 @@ export const createReconciliationWorkload = ({
     concurrency: 1,
     schedule: { every: '15m' },
     queueSpec: RECONCILIATION_QUEUE,
-    process: async ({ trigger }) => {
+    process: async ({ logger, trigger }) => {
         const thresholdDate = new Date(Date.now() - settings.resyncConnectionIntervalMs);
         const connections = await db.connection.findMany({
             where: {

@@ -1,4 +1,7 @@
 
+import { PrismaClient } from "@sourcebot/db";
+import { DEFAULT_JOB_LOGS_MAX_ENTRIES } from "./jobLogger.js";
+
 export type QueueName = keyof QueueRegistry;
 export type DataOf<TName extends QueueName> = QueueRegistry[TName];
 type EmptyJobData = Record<string, never>;
@@ -16,7 +19,22 @@ export const CONNECTION_QUEUE: QueueSpec<'connection'> = {
     jobOptions: {
         attempts: 2,
         backoff: { type: 'exponential', delayMs: 5000 },
-        keep: { completed: 50, failed: 50 }
+        keep: { completed: 50, failed: 50 },
+        keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    },
+    onEnqueued: async ({
+        prisma,
+        data: { connectionId },
+        jobId
+    }) => {
+        await prisma.connection.update({
+            where: {
+                id: connectionId
+            },
+            data: {
+                latestSyncJobId: jobId
+            }
+        });
     },
     dedupKey: (data) => `connection:${data.connectionId}`,
 }
@@ -28,6 +46,7 @@ export const RECONCILIATION_QUEUE: QueueSpec<'reconciliation'> = {
         attempts: 2,
         backoff: { type: 'exponential', delayMs: 5000 },
         keep: { completed: 50, failed: 50 },
+        keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
     },
 };
 
@@ -38,6 +57,7 @@ export interface QueueSpec<TName extends QueueName> {
         attempts: number;
         backoff: { type: 'fixed' | 'exponential'; delayMs: number };
         keep: { completed: number; failed: number };
+        keepLogs: number;
     };
     onEnqueued?(ctx: JobLifecycleContext<TName>): Promise<void>;
 }
@@ -47,4 +67,5 @@ export interface JobLifecycleContext<TName extends QueueName> {
     jobId: string;
     attemptsMade: number;
     maxAttempts: number;
+    prisma: PrismaClient;
 }

@@ -1,7 +1,7 @@
 import { Connection, Repo, RepoToConnection } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
-import { DataOf, JobLifecycleContext, QueueName, QueueSpec } from "@sourcebot/shared";
+import { DataOf, JobLifecycleContext, JobLogger, QueueName, QueueSpec } from "@sourcebot/shared";
 
 export type Settings = Required<SettingsSchema>;
 
@@ -26,7 +26,7 @@ export type RepoAuthCredentials = {
 
 export interface ProcessContext<TName extends QueueName> extends JobLifecycleContext<TName> {
     signal: AbortSignal;
-    log(message: string): Promise<void>;
+    logger: JobLogger;
     updateProgress(progress: number | object): Promise<void>;
     trigger<T extends QueueName>(workload: T, data: DataOf<T>): Promise<string>;
 }

@@ -1,9 +1,10 @@
 import * as Sentry from "@sentry/node";
-import { BullMQJobProducer, createLogger, DataOf, JobLifecycleContext, QueueName } from "@sourcebot/shared";
+import { BullMQClient, createBullMQJobLogger, createLogger, DataOf, JobLifecycleContext, QueueName } from "@sourcebot/shared";
 import { Job, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 import { JobDetail, JobManager, Schedule, Workload } from "./types.js";
+import { prisma } from "./prisma.js";
 
 const LOG_TAG = 'job-manager';
 const logger = createLogger(LOG_TAG);
@@ -47,11 +48,11 @@ const scheduleToRepeat = (schedule: Schedule) =>
 export class BullMQJobManager implements JobManager {
     private readonly workloads = new Map<string, Workload<QueueName, unknown>>();
     private readonly workers = new Map<string, Worker>();
-    private readonly producer: BullMQJobProducer;
+    private readonly bullmqClient: BullMQClient;
     private readonly abortController = new AbortController();
 
     constructor(private readonly connection: Redis) {
-        this.producer = new BullMQJobProducer(connection);
+        this.bullmqClient = new BullMQClient(connection, prisma);
     }
 
     register<TName extends QueueName>(workload: Workload<TName>): void {
@@ -85,7 +86,7 @@ export class BullMQJobManager implements JobManager {
         if (!workload) {
             throw new Error(`Cannot trigger unknown workload "${workloadName}"`);
         }
-        return this.producer.enqueue(workload.queueSpec, data);
+        return this.bullmqClient.enqueue(workload.queueSpec, data);
     }
 
     async stop(): Promise<void> {
@@ -98,7 +99,7 @@ export class BullMQJobManager implements JobManager {
             ]),
         ));
 
-        await this.producer.close();
+        await this.bullmqClient.close();
 
         logger.info('Job manager stopped');
     }
@@ -106,21 +107,35 @@ export class BullMQJobManager implements JobManager {
     private async startWorkload<TName extends QueueName>(workload: Workload<TName>): Promise<void> {
         const { queueSpec: spec, concurrency, rateLimit, schedule } = workload;
 
-        const queue = this.producer.queue(spec.name);
+        const queue = this.bullmqClient.getQueue(spec);
 
         const worker = new Worker(
             spec.name,
             async (job) => {
+                const jobLogger = createBullMQJobLogger(
+                    job,
+                    `${LOG_TAG}:${spec.name}:job:${job.id ?? 'unknown'}`,
+                );
                 const lifecycleContext = this.jobLifecycleContext<TName>(job);
-                await workload.onStarted?.(lifecycleContext);
+                jobLogger.info(`Started workload "${spec.name}"`);
 
-                return workload.process({
-                    ...lifecycleContext,
-                    signal: this.abortController.signal,
-                    log: async (message) => { await job.log(message); },
-                    updateProgress: (progress) => job.updateProgress(progress),
-                    trigger: (target, data) => this.trigger(target, data),
-                });
+                try {
+                    await workload.onStarted?.(lifecycleContext);
+                    const result = await workload.process({
+                        ...lifecycleContext,
+                        signal: this.abortController.signal,
+                        logger: jobLogger,
+                        updateProgress: (progress) => job.updateProgress(progress),
+                        trigger: (target, data) => this.trigger(target, data),
+                    });
+                    jobLogger.info(`Completed workload "${spec.name}"`);
+                    return result;
+                } catch (error) {
+                    jobLogger.error(`Workload "${spec.name}" attempt failed`, error);
+                    throw error;
+                } finally {
+                    await jobLogger.flush();
+                }
             },
             {
                 connection: this.connection,
@@ -159,6 +174,7 @@ export class BullMQJobManager implements JobManager {
                         attempts: spec.jobOptions.attempts,
                         removeOnComplete: { count: spec.jobOptions.keep.completed },
                         removeOnFail: { count: spec.jobOptions.keep.failed },
+                        keepLogs: spec.jobOptions.keepLogs,
                     },
                 },
             );
@@ -208,6 +224,7 @@ export class BullMQJobManager implements JobManager {
             jobId: job.id ?? '',
             attemptsMade: job.attemptsMade,
             maxAttempts: job.opts.attempts ?? 1,
+            prisma,
         };
     }
 }
