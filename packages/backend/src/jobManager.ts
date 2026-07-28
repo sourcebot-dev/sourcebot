@@ -1,10 +1,9 @@
 import * as Sentry from "@sentry/node";
-import { createLogger } from "@sourcebot/shared";
+import { BullMQJobProducer, createLogger, DataOf, JobLifecycleContext, QueueName } from "@sourcebot/shared";
 import { Job, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
-import { JobProducer } from "./jobProducer.js";
-import { DataOf, JobDetail, JobManager, QueueCounts, QueueName, Schedule, Workload } from "./types.js";
+import { JobDetail, JobManager, Schedule, Workload } from "./types.js";
 
 const LOG_TAG = 'job-manager';
 const logger = createLogger(LOG_TAG);
@@ -48,15 +47,15 @@ const scheduleToRepeat = (schedule: Schedule) =>
 export class BullMQJobManager implements JobManager {
     private readonly workloads = new Map<string, Workload<QueueName, unknown>>();
     private readonly workers = new Map<string, Worker>();
-    private readonly producer: JobProducer;
+    private readonly producer: BullMQJobProducer;
     private readonly abortController = new AbortController();
 
     constructor(private readonly connection: Redis) {
-        this.producer = new JobProducer(connection);
+        this.producer = new BullMQJobProducer(connection);
     }
 
     register<TName extends QueueName>(workload: Workload<TName>): void {
-        const name = workload.spec.name;
+        const name = workload.queueSpec.name;
         if (this.workloads.has(name)) {
             throw new Error(`Workload "${name}" is already registered`);
         }
@@ -81,72 +80,12 @@ export class BullMQJobManager implements JobManager {
     async trigger<TName extends QueueName>(
         workloadName: TName,
         data: DataOf<TName>
-    ): Promise<void> {
-        const workload = this.workloads.get(workloadName);
+    ): Promise<string> {
+        const workload = this.workloads.get(workloadName) as Workload<TName> | undefined;
         if (!workload) {
             throw new Error(`Cannot trigger unknown workload "${workloadName}"`);
         }
-        await this.producer.enqueue(workload.spec, data);
-    }
-
-    async status(workloadName: string): Promise<QueueCounts> {
-        this.requireRegistered(workloadName);
-        const counts = await this.producer.queue(workloadName).getJobCounts(
-            'waiting',
-            'active',
-            'delayed',
-            'completed',
-            'failed',
-            'paused',
-            'prioritized',
-            'waiting-children',
-        );
-        return {
-            waiting: counts.waiting ?? 0,
-            active: counts.active ?? 0,
-            delayed: counts.delayed ?? 0,
-            completed: counts.completed ?? 0,
-            failed: counts.failed ?? 0,
-            paused: counts.paused ?? 0,
-            prioritized: counts.prioritized ?? 0,
-            'waiting-children': counts['waiting-children'] ?? 0,
-        };
-    }
-
-    async jobDetail(workloadName: string, jobId: string): Promise<JobDetail | null> {
-        this.requireRegistered(workloadName);
-        const queue = this.producer.queue(workloadName);
-        const job = await queue.getJob(jobId);
-        if (!job) {
-            return null;
-        }
-
-        const [state, jobLogs] = await Promise.all([
-            job.getState(),
-            queue.getJobLogs(jobId),
-        ]);
-
-        const enqueuedAt = job.timestamp;
-        const startedAt = job.processedOn ?? null;
-        const finishedAt = job.finishedOn ?? null;
-
-        return {
-            id: job.id ?? jobId,
-            name: job.name,
-            state: normalizeJobState(state),
-            data: job.data,
-            attemptsMade: job.attemptsMade,
-            maxAttempts: job.opts.attempts ?? 1,
-            result: job.returnvalue ?? null,
-            failedReason: job.failedReason ?? null,
-            stacktrace: job.stacktrace ?? [],
-            logs: jobLogs.logs,
-            enqueuedAt,
-            startedAt,
-            finishedAt,
-            waitMs: startedAt !== null ? startedAt - enqueuedAt : null,
-            runMs: startedAt !== null && finishedAt !== null ? finishedAt - startedAt : null,
-        };
+        return this.producer.enqueue(workload.queueSpec, data);
     }
 
     async stop(): Promise<void> {
@@ -165,22 +104,24 @@ export class BullMQJobManager implements JobManager {
     }
 
     private async startWorkload<TName extends QueueName>(workload: Workload<TName>): Promise<void> {
-        const { spec, concurrency, rateLimit, schedule } = workload;
+        const { queueSpec: spec, concurrency, rateLimit, schedule } = workload;
 
         const queue = this.producer.queue(spec.name);
 
         const worker = new Worker(
             spec.name,
-            (job) => workload.process({
-                data: job.data,
-                jobId: job.id ?? '',
-                attemptsMade: job.attemptsMade,
-                maxAttempts: job.opts.attempts ?? 1,
-                signal: this.abortController.signal,
-                log: async (message) => { await job.log(message); },
-                updateProgress: (progress) => job.updateProgress(progress),
-                trigger: (target, data) => this.trigger(target, data),
-            }),
+            async (job) => {
+                const lifecycleContext = this.jobLifecycleContext<TName>(job);
+                await workload.onStarted?.(lifecycleContext);
+
+                return workload.process({
+                    ...lifecycleContext,
+                    signal: this.abortController.signal,
+                    log: async (message) => { await job.log(message); },
+                    updateProgress: (progress) => job.updateProgress(progress),
+                    trigger: (target, data) => this.trigger(target, data),
+                });
+            },
             {
                 connection: this.connection,
                 concurrency,
@@ -193,6 +134,9 @@ export class BullMQJobManager implements JobManager {
 
         worker.on('failed', (job, error) => {
             void this.onWorkloadJobFailed(workload, job, error);
+        });
+        worker.on('completed', (job, result) => {
+            void this.onWorkloadJobCompleted(workload, job, result);
         });
         worker.on('error', (error) => {
             logger.error(`Worker "${spec.name}" error:`, error);
@@ -232,21 +176,38 @@ export class BullMQJobManager implements JobManager {
         const maxAttempts = job.opts.attempts ?? 1;
         const isTerminal = job.attemptsMade >= maxAttempts;
         if (!isTerminal) {
-            logger.warn(`Workload "${workload.spec.name}" job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts}; will retry: ${error.message}`);
+            logger.warn(`Workload "${workload.queueSpec.name}" job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts}; will retry: ${error.message}`);
             return;
         }
-        logger.error(`Workload "${workload.spec.name}" job ${job.id} failed terminally after ${job.attemptsMade} attempt(s): ${error.message}`);
+        logger.error(`Workload "${workload.queueSpec.name}" job ${job.id} failed terminally after ${job.attemptsMade} attempt(s): ${error.message}`);
+
         try {
-            await workload.onTerminalFailure?.(job.data, error);
+            await workload.onTerminalFailure?.(this.jobLifecycleContext<TName>(job), error);
         } catch (hookError) {
             Sentry.captureException(hookError);
-            logger.error(`onTerminalFailure for workload "${workload.spec.name}" threw:`, hookError);
+            logger.error(`onTerminalFailure for workload "${workload.queueSpec.name}" threw:`, hookError);
         }
     }
 
-    private requireRegistered(workloadName: string): void {
-        if (!this.workloads.has(workloadName)) {
-            throw new Error(`Workload "${workloadName}" is not registered`);
+    private async onWorkloadJobCompleted<TName extends QueueName, TResult>(
+        workload: Workload<TName, TResult>,
+        job: Job,
+        result: TResult,
+    ): Promise<void> {
+        try {
+            await workload.onCompleted?.(this.jobLifecycleContext<TName>(job), result);
+        } catch (hookError) {
+            Sentry.captureException(hookError);
+            logger.error(`onCompleted for workload "${workload.queueSpec.name}" threw:`, hookError);
         }
+    }
+
+    private jobLifecycleContext<TName extends QueueName>(job: Job): JobLifecycleContext<TName> {
+        return {
+            data: job.data,
+            jobId: job.id ?? '',
+            attemptsMade: job.attemptsMade,
+            maxAttempts: job.opts.attempts ?? 1,
+        };
     }
 }

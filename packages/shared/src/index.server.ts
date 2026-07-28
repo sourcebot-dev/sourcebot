@@ -92,3 +92,16 @@ export {
     compareVersions,
 } from "./versionUtils.js";
 export type { Version } from "./versionUtils.js";
+export type {
+    QueueName,
+    JobLifecycleContext,
+    DataOf,
+    QueueSpec,
+} from "./queue.js"
+export {
+    CONNECTION_QUEUE,
+    RECONCILIATION_QUEUE,
+} from "./queue.js";
+export {
+    BullMQJobProducer,
+} from "./jobProducer.js";

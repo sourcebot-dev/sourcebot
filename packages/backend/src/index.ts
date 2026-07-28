@@ -6,15 +6,15 @@ import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { ConfigManager } from "./configManager.js";
-import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS, SINGLE_TENANT_ORG_ID } from './constants.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { hasEntitlement } from "./entitlements.js";
 import { BullMQJobManager } from "./jobManager.js";
 import { shutdownPosthog } from "./posthog.js";
 import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
+import { createReconciliationWorkload } from "./reconciliationWorkload.js";
 import { redis } from "./redis.js";
-import { QueueSpec, Workload } from "./types.js";
 import { connectionWorkload } from "./connectionWorkload.js";
 
 const logger = createLogger('backend-entrypoint');
@@ -83,43 +83,12 @@ logger.info('Worker started.');
 // (repo-index, connection-sync, permission syncers) are ported onto it in subsequent phases.
 const jobManager = new BullMQJobManager(redis);
 
-const cronQueueSpec: QueueSpec<'cron'> = {
-    name: 'cron',
-    jobOptions: {
-        attempts: 2,
-        backoff: { type: 'exponential', delayMs: 5000 },
-        keep: { completed: 50, failed: 50 }
-    }
-}
+const reconciliationWorkload = createReconciliationWorkload({
+    db: prisma,
+    settings,
+});
 
-const cronWorkload: Workload<'cron'> = {
-    concurrency: 1,
-    schedule: { every: '5s' },
-    spec: cronQueueSpec,
-    process: async ({ jobId, trigger }) => {
-        console.log(`cron ${jobId}`);
-
-        const thresholdDate = new Date(Date.now() - settings.resyncConnectionIntervalMs);
-        const connections = await prisma.connection.findMany({
-            where: {
-                OR: [
-                    { syncedAt: null },
-                    { syncedAt: { lt: thresholdDate }}
-                ]
-            }
-        });
-
-        await Promise.all(connections.map(async (connection) => {
-            console.log(`Scheduling work for ${connection.id}`);
-            await trigger('connection', {
-                connectionId: connection.id,
-                orgId: SINGLE_TENANT_ORG_ID,
-            })
-        }))
-    }
-}
-
-jobManager.register(cronWorkload);
+jobManager.register(reconciliationWorkload);
 jobManager.register(connectionWorkload);
 
 await jobManager.start();

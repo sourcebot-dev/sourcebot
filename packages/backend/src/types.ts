@@ -1,6 +1,7 @@
 import { Connection, Repo, RepoToConnection } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
+import { DataOf, JobLifecycleContext, QueueName, QueueSpec } from "@sourcebot/shared";
 
 export type Settings = Required<SettingsSchema>;
 
@@ -14,52 +15,20 @@ export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 export type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection })[] };
 
-
 export type RepoAuthCredentials = {
     hostUrl?: string;
     token: string;
     cloneUrlWithToken?: string;
     authHeader?: string;
-    /** The connection that configured the
-     * credentials for this repo.
-     */
     connectionConfig?: ConnectionConfig;
 }
 
-export interface QueueRegistry {
-    'connection': {
-        connectionId: number,
-        orgId: number
-    },
-    'cron': {}
-}
 
-export type QueueName = keyof QueueRegistry;
-export type DataOf<TName extends QueueName> = QueueRegistry[TName];
-
-export interface ProcessContext<TName extends QueueName> {
-    data: DataOf<TName>;
-    jobId: string;
-    attemptsMade: number;
-    maxAttempts: number;
+export interface ProcessContext<TName extends QueueName> extends JobLifecycleContext<TName> {
     signal: AbortSignal;
     log(message: string): Promise<void>;
     updateProgress(progress: number | object): Promise<void>;
-    trigger<T extends QueueName>(workload: T, data: DataOf<T>): Promise<void>;
-}
-
-/**
- * A QueueSpec defines the specification for a queue, including
- * it's name, deduplication key, and settings.
- */
-export interface QueueSpec<TName extends QueueName> {
-    name: TName;
-    dedupKey?(data: DataOf<TName>): string;
-    jobOptions: {
-        attempts: number;
-        backoff: { type: 'fixed' | 'exponential'; delayMs: number };
-        keep: { completed: number; failed: number };
-    };
+    trigger<T extends QueueName>(workload: T, data: DataOf<T>): Promise<string>;
 }
 
 export type Schedule = { every: string } | { pattern: string };
@@ -75,7 +44,7 @@ export type Schedule = { every: string } | { pattern: string };
  * triggers it onto other workloads' queues.
  */
 export interface Workload<TName extends QueueName, TResult = unknown> {
-    spec: QueueSpec<TName>;
+    queueSpec: QueueSpec<TName>;
     concurrency: number;
     /**
      * If set, the JobManager enqueues a job on this cadence rather than waiting for someone to
@@ -84,7 +53,12 @@ export interface Workload<TName extends QueueName, TResult = unknown> {
     schedule?: Schedule;
     rateLimit?: { max: number; per: string };
     process(ctx: ProcessContext<TName>): Promise<TResult>;
-    onTerminalFailure?(data: DataOf<TName>, err: Error): Promise<void>;
+    /** Called before `process` on every attempt. */
+    onStarted?(ctx: JobLifecycleContext<TName>): Promise<void>;
+    /** Called after BullMQ marks the job as completed. */
+    onCompleted?(ctx: JobLifecycleContext<TName>, result: TResult): Promise<void>;
+    /** Called after BullMQ exhausts all attempts and marks the job as failed. */
+    onTerminalFailure?(ctx: JobLifecycleContext<TName>, err: Error): Promise<void>;
 }
 
 export interface JobManager {
@@ -96,10 +70,7 @@ export interface JobManager {
     trigger<TName extends QueueName>(
         workload: TName,
         data: DataOf<TName>
-    ): Promise<void>;
-
-    status(workload: string): Promise<QueueCounts>;
-    jobDetail(workload: string, jobId: string): Promise<JobDetail | null>;
+    ): Promise<string>;
 }
 
 

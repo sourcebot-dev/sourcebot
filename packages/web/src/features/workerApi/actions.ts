@@ -1,37 +1,40 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { repositoryNotFound, unexpectedError } from "@/lib/serviceError";
+import { notFound, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole } from "@sourcebot/db";
-import { env } from "@sourcebot/shared";
+import { ConnectionSyncJobStatus, OrgRole } from "@sourcebot/db";
+import { CONNECTION_QUEUE, env } from "@sourcebot/shared";
 import z from "zod";
+import { getJobProducer } from "@/lib/jobProducer";
 
 const WORKER_API_URL = env.WORKER_API_URL;
 
 export const syncConnection = async (connectionId: number) => sew(() =>
-    withAuth(({ role }) =>
+    withAuth(({ org, prisma, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    connectionId
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
+            const connection = await prisma.connection.findUnique({
+                where: {
+                    id: connectionId,
+                    orgId: org.id,
+                },
+                select: {
+                    id: true,
+                    orgId: true,
                 },
             });
 
-            if (!response.ok) {
-                return unexpectedError('Failed to sync connection');
+            if (!connection) {
+                return notFound('Connection not found');
             }
 
-            const data = await response.json();
-            const schema = z.object({
-                jobId: z.string(),
+            const jobId = await getJobProducer().enqueue(CONNECTION_QUEUE, {
+                connectionId: connection.id,
+                orgId: connection.orgId,
             });
-            return schema.parse(data);
+
+            return { jobId };
         })
     )
 );

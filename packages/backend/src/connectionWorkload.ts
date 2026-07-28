@@ -1,33 +1,23 @@
-import { QueueSpec, Workload } from "./types.js";
+import { Workload } from "./types.js";
 import { prisma } from "./prisma.js";
+import { ConnectionSyncJobStatus } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
-import { createLogger, env, loadConfig } from "@sourcebot/shared";
+import { CONNECTION_QUEUE, createLogger, env, loadConfig } from "@sourcebot/shared";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import * as Sentry from "@sentry/node";
 
-
-const connectionQueueSpec: QueueSpec<'connection'> = {
-    name: 'connection',
-    jobOptions: {
-        attempts: 2,
-        backoff: { type: 'exponential', delayMs: 5000 },
-        keep: { completed: 50, failed: 50 }
-    },
-    dedupKey: (data) => `connection:${data.connectionId}`
-}
-
-// @todo
 const logger = createLogger('connection-workflow');
 
 export const connectionWorkload: Workload<'connection'> = {
-    spec: connectionQueueSpec,
+    queueSpec: CONNECTION_QUEUE,
     concurrency: 2,
     process: async ({
         data: {
             connectionId,
             orgId
         },
+        jobId,
         signal,
     }) => {
         const connection = await prisma.connection.findUniqueOrThrow({
@@ -64,7 +54,16 @@ export const connectionWorkload: Workload<'connection'> = {
             }
         })();
 
-        let { repoData } = result;
+        let { repoData, warnings } = result;
+
+        await prisma.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                warningMessages: warnings,
+            },
+        });
 
         // Filter out any duplicates by external_id and external_codeHostUrl.
         repoData = repoData.filter((repo, index, self) => {
@@ -137,5 +136,47 @@ export const connectionWorkload: Workload<'connection'> = {
             logger.error(`Failed to sync search contexts for connection ${connectionId}: ${err}`);
             Sentry.captureException(err);
         }
+    },
+    onStarted: async ({ data, jobId }) => {
+        await prisma.connectionSyncJob.createMany({
+            data: [{
+                id: jobId,
+                connectionId: data.connectionId,
+                status: ConnectionSyncJobStatus.IN_PROGRESS,
+                warningMessages: [],
+            }],
+            skipDuplicates: true,
+        });
+        await prisma.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                status: ConnectionSyncJobStatus.IN_PROGRESS,
+            },
+        });
+    },
+    onCompleted: async ({ jobId }) => {
+        await prisma.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                status: ConnectionSyncJobStatus.COMPLETED,
+                completedAt: new Date(),
+            },
+        });
+    },
+    onTerminalFailure: async ({ jobId }, error) => {
+        await prisma.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                status: ConnectionSyncJobStatus.FAILED,
+                completedAt: new Date(),
+                errorMessage: error.message,
+            },
+        });
     }
 }
