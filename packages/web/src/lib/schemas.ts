@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CodeHostType } from "@sourcebot/db";
+import { CodeHostType, ConnectionSyncJobStatus, ConnectionType } from "@sourcebot/db";
 
 export const repositoryQuerySchema = z.object({
     codeHostType: z.nativeEnum(CodeHostType),
@@ -41,3 +41,31 @@ export const listReposQueryParamsSchema = z.object({
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();
+
+export const listConnectionsQueryParamsSchema = z.object({
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const connectionSummarySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    connectionType: z.nativeEnum(ConnectionType),
+    isDeclarative: z.boolean(),
+    syncedAt: z.coerce.date().nullable(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
+    repoCount: z.number().int().nonnegative(),
+    inFlightJobCount: z.number().int().nonnegative(),
+    latestJob: z.object({
+        id: z.string(),
+        status: z.nativeEnum(ConnectionSyncJobStatus),
+        createdAt: z.coerce.date(),
+        completedAt: z.coerce.date().nullable(),
+        errorMessage: z.string().nullable(),
+    }).nullable(),
+});
+
+export const listConnectionsResponseSchema = z.object({
+    connections: z.array(connectionSummarySchema),
+});
