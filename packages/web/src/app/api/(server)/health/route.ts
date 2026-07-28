@@ -35,6 +35,13 @@ type HealthResponse = {
     };
 };
 
+// In Next.JS 14, GET methods with no params are cached by default at build
+// time. The /api/health response carries live process fields (uptime,
+// pid, startedAt) that must reflect the running server, so opt out of
+// the build-time cache. Same pattern as /api/version.
+// @see: https://nextjs.org/docs/14/app/building-your-application/routing/route-handlers#caching
+export const dynamic = "force-dynamic";
+
 // eslint-disable-next-line authz/require-auth-wrapper -- public liveness probe, no user data returned
 export const GET = apiHandler(async (_request: NextRequest): Promise<Response> => {
     logger.debug('health check');
