@@ -654,6 +654,87 @@
           "connections"
         ]
       },
+      "PublicConnectionJob": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "warningMessages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "createdAt",
+          "completedAt",
+          "durationMs",
+          "errorMessage",
+          "warningMessages"
+        ]
+      },
+      "PublicGetConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "connection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicConnectionSummary"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "latestJob": {
+                    "$ref": "#/components/schemas/PublicConnectionJob"
+                  }
+                }
+              }
+            ]
+          },
+          "recentJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicConnectionJob"
+            }
+          }
+        },
+        "required": [
+          "connection",
+          "recentJobs"
+        ]
+      },
       "PublicFileSourceResponse": {
         "type": "object",
         "properties": {
@@ -1677,6 +1758,92 @@
           },
           "500": {
             "description": "Unexpected connection listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connections/{id}": {
+      "get": {
+        "operationId": "getConnection",
+        "tags": [
+          "System"
+        ],
+        "summary": "Get a single code-host connection",
+        "description": "Returns one connection in the org by id, plus its most recent sync jobs (default 10, max 50 via `?jobLimit=`) and the count of in-flight jobs. The connection `config` is never returned (it carries tokens). Cross-org access returns 404 (not 403) to avoid leaking the existence of connections in other orgs.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 50,
+              "default": 10
+            },
+            "required": false,
+            "name": "jobLimit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The connection, its latest job, and recent sync jobs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGetConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid `id` or `jobLimit` query parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found in the org.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected connection read failure.",
             "content": {
               "application/json": {
                 "schema": {

@@ -28,6 +28,8 @@ import {
     publicListReposResponseSchema,
     publicListConnectionsQueryParamsSchema,
     publicListConnectionsResponseSchema,
+    publicGetConnectionQueryParamsSchema,
+    publicGetConnectionResponseSchema,
     publicSearchRequestSchema,
     publicSearchResponseSchema,
     publicServiceErrorSchema,
@@ -231,6 +233,31 @@ export function createPublicOpenApiDocument(version: string) {
             400: errorJson('Invalid query parameters.'),
             401: errorJson('Not authenticated.'),
             500: errorJson('Unexpected connection listing failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/connections/{id}',
+        operationId: 'getConnection',
+        tags: [systemTag.name],
+        summary: 'Get a single code-host connection',
+        description: 'Returns one connection in the org by id, plus its most recent sync jobs (default 10, max 50 via `?jobLimit=`) and the count of in-flight jobs. The connection `config` is never returned (it carries tokens). Cross-org access returns 404 (not 403) to avoid leaking the existence of connections in other orgs.',
+        request: {
+            params: z.object({
+                id: z.coerce.number().int().positive(),
+            }),
+            query: publicGetConnectionQueryParamsSchema,
+        },
+        responses: {
+            200: {
+                description: 'The connection, its latest job, and recent sync jobs.',
+                content: jsonContent(publicGetConnectionResponseSchema),
+            },
+            400: errorJson('Invalid `id` or `jobLimit` query parameter.'),
+            401: errorJson('Not authenticated.'),
+            404: errorJson('Connection not found in the org.'),
+            500: errorJson('Unexpected connection read failure.'),
         },
     });
 

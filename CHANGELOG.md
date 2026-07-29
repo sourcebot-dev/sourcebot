@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `GET /api/connections` returns a paginated, auth-gated list of code-host connections in the org with per-connection sync state (last sync timestamp, latest job status, in-flight job count, repo count) so operators can monitor connection health from a script and pipe into Prometheus / Datadog / Grafana / Slack alerts. [#1517](https://github.com/sourcebot-dev/sourcebot/pull/1517)
+- `GET /api/connections/{id}` returns one connection in the org by id with its latest sync job, the count of in-flight jobs, and the most recent jobs (default 10, max 50 via `?jobLimit=`); the connection `config` is never returned. [#1518](https://github.com/sourcebot-dev/sourcebot/pull/1518)
 
 ### Fixed
 - Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)

@@ -103,6 +103,27 @@ export const publicListConnectionsResponseSchema = z.object({
     connections: z.array(publicConnectionSummarySchema),
 }).openapi('PublicListConnectionsResponse');
 
+export const publicGetConnectionQueryParamsSchema = z.object({
+    jobLimit: z.coerce.number().int().positive().max(50).default(10),
+}).openapi('PublicGetConnectionQuery');
+
+export const publicConnectionJobSchema = z.object({
+    id: z.string(),
+    status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']),
+    createdAt: z.string().datetime(),
+    completedAt: z.string().datetime().nullable(),
+    durationMs: z.number().int().nonnegative().nullable(),
+    errorMessage: z.string().nullable(),
+    warningMessages: z.array(z.string()),
+}).openapi('PublicConnectionJob');
+
+export const publicGetConnectionResponseSchema = z.object({
+    connection: publicConnectionSummarySchema.extend({
+        latestJob: publicConnectionJobSchema.nullable(),
+    }),
+    recentJobs: z.array(publicConnectionJobSchema),
+}).openapi('PublicGetConnectionResponse');
+
 // EE: User Management
 export const publicEeUserSchema = z.object({
     id: z.string(),

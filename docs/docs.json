@@ -218,7 +218,8 @@
                         "pages": [
                             "GET /api/version",
                             "GET /api/health",
-                            "GET /api/connections"
+                            "GET /api/connections",
+                            "GET /api/connections/{id}"
                         ]
                     }
                 ]
