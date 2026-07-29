@@ -299,7 +299,7 @@ describe('GET /api/connections/:id', () => {
         ]);
     });
 
-    test('respects the jobLimit query parameter', async () => {
+    test('forwards jobLimit to Prisma as the findMany `take`', async () => {
         const createdAt = new Date('2026-07-25T13:59:30.000Z');
         const completedAt = fakeCompletedAt(createdAt);
         const jobs: JobFixture[] = Array.from({ length: 5 }, (_, i) => ({
@@ -331,10 +331,15 @@ describe('GET /api/connections/:id', () => {
         );
         const body = await response.json();
 
-        // The action passes the jobLimit to Prisma's `take`; the mock
-        // returns whatever we set, so we assert the request body shape
-        // (recentJobs length) matches what we provided (5). The route
-        // itself doesn't truncate.
+        // The mock returns whatever the test sets; the meaningful
+        // assertion is that the action passed the parsed jobLimit
+        // through to the recent-jobs findMany.
+        const prisma = mocks.authContext?.prisma as {
+            connectionSyncJob: { findMany: ReturnType<typeof vi.fn> };
+        };
+        expect(prisma.connectionSyncJob.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ take: 2, orderBy: { createdAt: 'desc' } }),
+        );
         expect(body.recentJobs).toHaveLength(5);
     });
 

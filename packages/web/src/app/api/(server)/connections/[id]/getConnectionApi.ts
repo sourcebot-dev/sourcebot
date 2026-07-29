@@ -9,6 +9,30 @@ export interface GetConnectionParams {
     jobLimit: number;
 }
 
+// Shape a single sync-job row the way the public OpenAPI exposes it:
+// an explicit `durationMs` derived from createdAt/completedAt so callers
+// don't have to compute it client-side, plus the warning list and
+// error verbatim. Used for both the embedded `latestJob` and each
+// element of `recentJobs`.
+const toConnectionJob = (job: {
+    id: string;
+    status: ConnectionSyncJobStatus;
+    createdAt: Date;
+    completedAt: Date | null;
+    errorMessage: string | null;
+    warningMessages: string[];
+}) => ({
+    id: job.id,
+    status: job.status,
+    createdAt: job.createdAt,
+    completedAt: job.completedAt,
+    durationMs: job.completedAt
+        ? job.completedAt.getTime() - job.createdAt.getTime()
+        : null,
+    errorMessage: job.errorMessage,
+    warningMessages: job.warningMessages,
+});
+
 export const getConnection = async (
     { id, jobLimit }: GetConnectionParams,
 ) => sew(() =>
@@ -45,9 +69,6 @@ export const getConnection = async (
             }),
         ]);
 
-        const inFlightJobCount = inFlightRows[0]?._count._all ?? 0;
-        const latestJob = recentJobs[0] ?? null;
-
         return {
             data: {
                 connection: {
@@ -59,32 +80,10 @@ export const getConnection = async (
                     createdAt: connection.createdAt,
                     updatedAt: connection.updatedAt,
                     repoCount: connection._count?.repos ?? 0,
-                    inFlightJobCount,
-                    latestJob: latestJob
-                        ? {
-                            id: latestJob.id,
-                            status: latestJob.status,
-                            createdAt: latestJob.createdAt,
-                            completedAt: latestJob.completedAt,
-                            durationMs: latestJob.completedAt
-                                ? latestJob.completedAt.getTime() - latestJob.createdAt.getTime()
-                                : null,
-                            errorMessage: latestJob.errorMessage,
-                            warningMessages: latestJob.warningMessages,
-                        }
-                        : null,
+                    inFlightJobCount: inFlightRows[0]?._count._all ?? 0,
+                    latestJob: recentJobs[0] ? toConnectionJob(recentJobs[0]) : null,
                 },
-                recentJobs: recentJobs.map((job) => ({
-                    id: job.id,
-                    status: job.status,
-                    createdAt: job.createdAt,
-                    completedAt: job.completedAt,
-                    durationMs: job.completedAt
-                        ? job.completedAt.getTime() - job.createdAt.getTime()
-                        : null,
-                    errorMessage: job.errorMessage,
-                    warningMessages: job.warningMessages,
-                })),
+                recentJobs: recentJobs.map(toConnectionJob),
             },
         };
     }),
