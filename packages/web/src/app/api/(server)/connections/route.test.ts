@@ -208,6 +208,20 @@ describe('GET /api/connections', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
+        // The action must pass the org id to both Prisma queries so
+        // cross-org rows are filtered at the query level. The mock
+        // returns its fixture regardless of args, so a future change
+        // that drops `orgId: org.id` from the where clause would
+        // still pass the response-shape assertions above.
+        const prisma = mocks.authContext?.prisma as {
+            connection: { findMany: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn> };
+        };
+        expect(prisma.connection.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { orgId: 1 } }),
+        );
+        expect(prisma.connection.count).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { orgId: 1 } }),
+        );
         expect(body.connections).toHaveLength(1);
         expect(body.connections[0]).toEqual({
             id: 1,
