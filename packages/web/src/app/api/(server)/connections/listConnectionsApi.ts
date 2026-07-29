@@ -25,7 +25,6 @@ export const listConnections = async (
                     _count: {
                         select: {
                             repos: true,
-                            syncJobs: true,
                         },
                     },
                     syncJobs: {
