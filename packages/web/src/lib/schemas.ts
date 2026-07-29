@@ -69,3 +69,26 @@ export const connectionSummarySchema = z.object({
 export const listConnectionsResponseSchema = z.object({
     connections: z.array(connectionSummarySchema),
 });
+
+export const getConnectionQueryParamsSchema = z.object({
+    jobLimit: z.coerce.number().int().positive().max(50).default(10),
+});
+
+export const connectionJobSchema = z.object({
+    id: z.string(),
+    status: z.nativeEnum(ConnectionSyncJobStatus),
+    createdAt: z.coerce.date(),
+    completedAt: z.coerce.date().nullable(),
+    durationMs: z.number().int().nonnegative().nullable(),
+    errorMessage: z.string().nullable(),
+    warningMessages: z.array(z.string()),
+});
+
+export const getConnectionResponseSchema = z.object({
+    connection: connectionSummarySchema.omit({
+        latestJob: true,
+    }).extend({
+        latestJob: connectionJobSchema.nullable(),
+    }),
+    recentJobs: z.array(connectionJobSchema),
+});
