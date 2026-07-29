@@ -216,6 +216,18 @@ describe('GET /api/connections/:id', () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
+        // The action must pass the org id to Prisma so cross-org rows
+        // are filtered at the query level (the 404 path test above
+        // already exercises the not-found branch; this asserts the
+        // happy path also scopes the query).
+        const prisma = mocks.authContext?.prisma as {
+            connection: { findFirst: ReturnType<typeof vi.fn> };
+        };
+        expect(prisma.connection.findFirst).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 1, orgId: 1 },
+            }),
+        );
         expect(body.connection).toEqual({
             id: 1,
             name: 'github-public',
@@ -420,5 +432,19 @@ describe('GET /api/connections/:id', () => {
         setAuth(null);
         const response = await GET(makeRequest('42'), { params: Promise.resolve({ id: '42' }) });
         expect(response.status).toBe(404);
+
+        // Beyond the response code, assert that the action actually
+        // passed the org id to Prisma. A future change that drops
+        // `orgId: org.id` from the `where` clause would still pass the
+        // 404 assertion (because the mock returns null regardless of
+        // args) but would expose cross-org data in production.
+        const prisma = mocks.authContext?.prisma as {
+            connection: { findFirst: ReturnType<typeof vi.fn> };
+        };
+        expect(prisma.connection.findFirst).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 42, orgId: 1 },
+            }),
+        );
     });
 });

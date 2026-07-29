@@ -682,7 +682,8 @@
           "durationMs": {
             "type": "integer",
             "nullable": true,
-            "minimum": 0
+            "minimum": 0,
+            "description": "Elapsed time from job enqueue to completion, in milliseconds. Includes queue wait time as well as execution time, not sync execution alone. Null while the job is still running."
           },
           "errorMessage": {
             "type": "string",
@@ -709,18 +710,68 @@
         "type": "object",
         "properties": {
           "connection": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PublicConnectionSummary"
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true
               },
-              {
-                "type": "object",
-                "properties": {
-                  "latestJob": {
-                    "$ref": "#/components/schemas/PublicConnectionJob"
-                  }
-                }
+              "name": {
+                "type": "string"
+              },
+              "connectionType": {
+                "type": "string",
+                "enum": [
+                  "github",
+                  "gitlab",
+                  "gitea",
+                  "gerrit",
+                  "bitbucket-server",
+                  "bitbucket-cloud",
+                  "generic-git-host",
+                  "azuredevops"
+                ]
+              },
+              "isDeclarative": {
+                "type": "boolean"
+              },
+              "syncedAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "repoCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "inFlightJobCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "latestJob": {
+                "$ref": "#/components/schemas/PublicConnectionJob"
               }
+            },
+            "required": [
+              "id",
+              "name",
+              "connectionType",
+              "isDeclarative",
+              "syncedAt",
+              "createdAt",
+              "updatedAt",
+              "repoCount",
+              "inFlightJobCount",
+              "latestJob"
             ]
           },
           "recentJobs": {
@@ -1794,9 +1845,11 @@
               "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 50,
-              "default": 10
+              "default": 10,
+              "description": "Maximum number of recent sync jobs to return. Defaults to 10, max 50."
             },
             "required": false,
+            "description": "Maximum number of recent sync jobs to return. Defaults to 10, max 50.",
             "name": "jobLimit",
             "in": "query"
           }

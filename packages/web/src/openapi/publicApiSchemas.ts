@@ -104,7 +104,7 @@ export const publicListConnectionsResponseSchema = z.object({
 }).openapi('PublicListConnectionsResponse');
 
 export const publicGetConnectionQueryParamsSchema = z.object({
-    jobLimit: z.coerce.number().int().positive().max(50).default(10),
+    jobLimit: z.coerce.number().int().positive().max(50).default(10).describe('Maximum number of recent sync jobs to return. Defaults to 10, max 50.'),
 }).openapi('PublicGetConnectionQuery');
 
 export const publicConnectionJobSchema = z.object({
@@ -112,13 +112,15 @@ export const publicConnectionJobSchema = z.object({
     status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']),
     createdAt: z.string().datetime(),
     completedAt: z.string().datetime().nullable(),
-    durationMs: z.number().int().nonnegative().nullable(),
+    durationMs: z.number().int().nonnegative().nullable().describe('Elapsed time from job enqueue to completion, in milliseconds. Includes queue wait time as well as execution time, not sync execution alone. Null while the job is still running.'),
     errorMessage: z.string().nullable(),
     warningMessages: z.array(z.string()),
 }).openapi('PublicConnectionJob');
 
 export const publicGetConnectionResponseSchema = z.object({
-    connection: publicConnectionSummarySchema.extend({
+    connection: publicConnectionSummarySchema.omit({
+        latestJob: true,
+    }).extend({
         latestJob: publicConnectionJobSchema.nullable(),
     }),
     recentJobs: z.array(publicConnectionJobSchema),

@@ -47,6 +47,20 @@ export const listConnectionsQueryParamsSchema = z.object({
     perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
+// The full sync-job row used by the detail endpoint. The list endpoint's
+// `connectionSummarySchema.latestJob` is a strict subset of this (no
+// `durationMs`, no `warningMessages`); it's derived via `.omit(...)` below
+// to keep the two shapes from drifting.
+export const connectionJobSchema = z.object({
+    id: z.string(),
+    status: z.nativeEnum(ConnectionSyncJobStatus),
+    createdAt: z.coerce.date(),
+    completedAt: z.coerce.date().nullable(),
+    durationMs: z.number().int().nonnegative().nullable(),
+    errorMessage: z.string().nullable(),
+    warningMessages: z.array(z.string()),
+});
+
 export const connectionSummarySchema = z.object({
     id: z.number(),
     name: z.string(),
@@ -57,12 +71,9 @@ export const connectionSummarySchema = z.object({
     updatedAt: z.coerce.date(),
     repoCount: z.number().int().nonnegative(),
     inFlightJobCount: z.number().int().nonnegative(),
-    latestJob: z.object({
-        id: z.string(),
-        status: z.nativeEnum(ConnectionSyncJobStatus),
-        createdAt: z.coerce.date(),
-        completedAt: z.coerce.date().nullable(),
-        errorMessage: z.string().nullable(),
+    latestJob: connectionJobSchema.omit({
+        durationMs: true,
+        warningMessages: true,
     }).nullable(),
 });
 
@@ -72,16 +83,6 @@ export const listConnectionsResponseSchema = z.object({
 
 export const getConnectionQueryParamsSchema = z.object({
     jobLimit: z.coerce.number().int().positive().max(50).default(10),
-});
-
-export const connectionJobSchema = z.object({
-    id: z.string(),
-    status: z.nativeEnum(ConnectionSyncJobStatus),
-    createdAt: z.coerce.date(),
-    completedAt: z.coerce.date().nullable(),
-    durationMs: z.number().int().nonnegative().nullable(),
-    errorMessage: z.string().nullable(),
-    warningMessages: z.array(z.string()),
 });
 
 export const getConnectionResponseSchema = z.object({
