@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Vulnerability triage now keeps Linear issues synchronized with current security findings.
 
+### Fixed
+- Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+
 ## [5.1.4] - 2026-07-24
 
 ### Fixed
