@@ -12,6 +12,10 @@ interface QueueRegistry {
         orgId: number
     },
     'reconciliation': EmptyJobData,
+    'repo-index': {
+        repoId: number,
+        type: 'INDEX' | 'CLEANUP',
+    },
 }
 
 export const CONNECTION_QUEUE: QueueSpec<'connection'> = {
@@ -48,6 +52,31 @@ export const RECONCILIATION_QUEUE: QueueSpec<'reconciliation'> = {
         keep: { completed: 50, failed: 50 },
         keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
     },
+};
+
+export const REPO_INDEX_QUEUE: QueueSpec<'repo-index'> = {
+    name: 'repo-index',
+    jobOptions: {
+        attempts: 2,
+        backoff: { type: 'exponential', delayMs: 5000 },
+        keep: { completed: 50, failed: 50 },
+        keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    },
+    onEnqueued: async ({
+        prisma,
+        data: { repoId },
+        jobId,
+    }) => {
+        await prisma.repo.update({
+            where: {
+                id: repoId,
+            },
+            data: {
+                latestIndexingJobId: jobId,
+            },
+        });
+    },
+    dedupKey: (data) => `repo:${data.repoId}`,
 };
 
 export interface QueueSpec<TName extends QueueName> {

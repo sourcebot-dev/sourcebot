@@ -65,10 +65,10 @@ model Repo {
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
-  jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
+  latestIndexingJobId   String?
+
   indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
-  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
   pushedAt           DateTime? /// The timestamp of the most recent commit across all branches.
 
   external_id           String /// The id of the repo in the external service
@@ -84,35 +84,6 @@ model Repo {
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
   @@index([indexedAt])
-}
-
-enum RepoIndexingJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-enum RepoIndexingJobType {
-  INDEX
-  CLEANUP
-}
-
-model RepoIndexingJob {
-  id          String                      @id @default(cuid())
-  type        RepoIndexingJobType
-  status      RepoIndexingJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
-
-  errorMessage String?
-
-  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  repoId Int
-
-  @@index([repoId, type, status])
 }
 
 enum RepoPermissionSyncJobStatus {

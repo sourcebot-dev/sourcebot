@@ -16,6 +16,8 @@ import { PromClient } from './promClient.js';
 import { createReconciliationWorkload } from "./reconciliationWorkload.js";
 import { redis } from "./redis.js";
 import { connectionWorkload } from "./connectionWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
+import { Api } from "./api.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -38,7 +40,6 @@ try {
     process.exit(1);
 }
 
-const promClient = new PromClient();
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
 
@@ -46,51 +47,27 @@ if (await hasEntitlement('github-app')) {
     await GithubAppManager.getInstance().init(prisma);
 }
 
-// const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
-// const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
-// const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
-// const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
-// const auditLogPruner = new AuditLogPruner(prisma);
-// const attachmentPruner = new AttachmentPruner(prisma);
-
-// connectionManager.startScheduler();
-// await repoIndexManager.startScheduler();
-// auditLogPruner.startScheduler();
-// attachmentPruner.startScheduler();
-
-// if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
-//     logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
-// }
-// else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
-//     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
-//         await repoPermissionSyncer.startScheduler();
-//     }
-//     await accountPermissionSyncer.startScheduler();
-// }
-
-// const api = new Api(
-//     promClient,
-//     prisma,
-//     connectionManager,
-//     repoIndexManager,
-//     accountPermissionSyncer,
-// );
+const promClient = new PromClient();
+const api = new Api(promClient);
 
 logger.info('Worker started.');
 
-// Background jobs run through the JobManager (BullMQ/Redis as the source of truth). Phase 0
-// wires the framework here in place of the old per-manager pollers; the real workloads
-// (repo-index, connection-sync, permission syncers) are ported onto it in subsequent phases.
 const jobManager = new BullMQJobManager(redis);
 
 const reconciliationWorkload = createReconciliationWorkload({
     db: prisma,
     settings,
 });
+const repoIndexWorkload = createRepoIndexWorkload({
+    db: prisma,
+    settings,
+});
 
 jobManager.register(reconciliationWorkload);
 jobManager.register(connectionWorkload);
+jobManager.register(repoIndexWorkload);
 
+await cleanupOrphanedRepoResources(prisma);
 await jobManager.start();
 
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
@@ -110,18 +87,12 @@ const listenToShutdownSignals = () => {
 
             logger.info(`Received ${signal}, cleaning up...`);
 
-            // await repoIndexManager.dispose()
-            // await connectionManager.dispose()
-            // await repoPermissionSyncer.dispose()
-            // await accountPermissionSyncer.dispose()
-            // await auditLogPruner.dispose()
-            // await attachmentPruner.dispose()
             await configManager.dispose()
             await jobManager.stop();
 
             await prisma.$disconnect();
             await redis.quit();
-            // await api.dispose();
+            await api.dispose();
             await shutdownPosthog();
 
             logger.info('All workers shut down gracefully');

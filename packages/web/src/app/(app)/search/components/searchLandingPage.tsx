@@ -5,7 +5,7 @@ import { SyntaxReferenceGuideHint } from "../../components/syntaxReferenceGuideH
 import Link from "next/link"
 import { SearchBar } from "../../components/searchBar"
 import { SearchModeSelector } from "../../components/searchModeSelector"
-import { getRepos, getReposStats } from "@/actions"
+import { getRepos } from "@/actions"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { isServiceError } from "@/lib/utils"
 
@@ -25,10 +25,7 @@ export const SearchLandingPage = async ({
         take: 10,
     });
 
-    const repoStats = await getReposStats();
-
     if (isServiceError(carouselRepos)) throw new ServiceErrorException(carouselRepos);
-    if (isServiceError(repoStats)) throw new ServiceErrorException(repoStats);
 
     return (
         <div className="flex flex-col items-center overflow-hidden">
@@ -55,7 +52,8 @@ export const SearchLandingPage = async ({
 
                 <div className="mt-8">
                     <RepositoryCarousel
-                        numberOfReposWithIndex={repoStats.numberOfReposWithIndex}
+                        // @nocheckin
+                        numberOfReposWithIndex={0}
                         displayRepos={carouselRepos}
                     />
                 </div>

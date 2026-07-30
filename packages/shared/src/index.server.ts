@@ -19,13 +19,11 @@ export type {
 } from "./entitlements.js";
 export type {
     RepoMetadata,
-    RepoIndexingJobMetadata,
     IdentityProviderType,
     LicenseStatus,
 } from "./types.js";
 export {
     repoMetadataSchema,
-    repoIndexingJobMetadataSchema,
 } from "./types.js";
 export {
     base64Decode,
@@ -101,6 +99,7 @@ export type {
 export {
     CONNECTION_QUEUE,
     RECONCILIATION_QUEUE,
+    REPO_INDEX_QUEUE,
 } from "./queue.js";
 export {
     BullMQClient,

@@ -2,6 +2,7 @@ import type { Redis } from 'ioredis';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { QueueSpec } from './queue.js';
 import { DEFAULT_JOB_LOGS_MAX_ENTRIES } from './jobLogger.js';
+import { REPO_INDEX_QUEUE } from './queue.js';
 
 const queueMocks = vi.hoisted(() => ({
     add: vi.fn(),
@@ -94,6 +95,39 @@ describe('BullMQClient', () => {
 
         expect(result).toBe('existing-job');
         expect(onEnqueued).not.toHaveBeenCalled();
+    });
+
+    test('stores the latest repo indexing job id when enqueueing a repo job', async () => {
+        const repoUpdate = vi.fn();
+        const client = new BullMQClient(redis, {
+            repo: {
+                update: repoUpdate,
+            },
+        } as unknown as PrismaClient);
+
+        const result = await client.enqueue(REPO_INDEX_QUEUE, {
+            repoId: 42,
+            type: 'INDEX',
+        });
+
+        expect(queueMocks.add).toHaveBeenCalledWith(
+            'repo-index',
+            {
+                repoId: 42,
+                type: 'INDEX',
+            },
+            expect.objectContaining({
+                deduplication: { id: 'repo:42' },
+            }),
+        );
+        expect(repoUpdate).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+            },
+            data: {
+                latestIndexingJobId: result,
+            },
+        });
     });
 
     test.each([
