@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Continued syncing valid GitHub organizations when the GitHub App is not installed for another configured organization. [#1522](https://github.com/sourcebot-dev/sourcebot/pull/1522)
 
 ## [5.1.4] - 2026-07-24
 
