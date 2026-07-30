@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { OrgRole } from '@sourcebot/db';
 
@@ -94,7 +94,6 @@ beforeEach(() => {
 
 // Restore the original fetch when the suite finishes so other test
 // files are not affected.
-import { afterAll } from 'vitest';
 afterAll(() => {
     globalThis.fetch = originalFetch;
 });

@@ -11,28 +11,31 @@ import { requestAccountPermissionSync } from "./client.server";
 
 const WORKER_API_URL = env.WORKER_API_URL;
 
+// Single point of contact for the worker: POST /api/sync-connection
+// and parse the { jobId } response. Returns either the parsed
+// { jobId } or a ServiceError if the worker is unreachable or
+// returns a non-ok response. Both syncConnection (UI) and
+// triggerConnectionSync (public API) go through this helper.
+const callWorkerSyncConnection = async (connectionId: number) => {
+    const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
+        method: 'POST',
+        body: JSON.stringify({ connectionId }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+        return unexpectedError('Failed to sync connection');
+    }
+
+    const data = await response.json();
+    const schema = z.object({ jobId: z.string() });
+    return schema.parse(data);
+};
+
 export const syncConnection = async (connectionId: number) => sew(() =>
     withAuth(({ role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    connectionId
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                return unexpectedError('Failed to sync connection');
-            }
-
-            const data = await response.json();
-            const schema = z.object({
-                jobId: z.string(),
-            });
-            return schema.parse(data);
+            return callWorkerSyncConnection(connectionId);
         })
     )
 );
@@ -52,19 +55,7 @@ export const triggerConnectionSync = async (connectionId: number) => sew(() =>
                 return notFound(`Connection ${connectionId} not found in org.`);
             }
 
-            const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
-                method: 'POST',
-                body: JSON.stringify({ connectionId }),
-                headers: { 'Content-Type': 'application/json' },
-            });
-
-            if (!response.ok) {
-                return unexpectedError('Failed to sync connection');
-            }
-
-            const data = await response.json();
-            const schema = z.object({ jobId: z.string() });
-            return schema.parse(data);
+            return callWorkerSyncConnection(connectionId);
         })
     )
 );
