@@ -9,7 +9,7 @@ import { hasEntitlement } from "./entitlements.js";
 import micromatch from "micromatch";
 import pLimit from "p-limit";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
-import { GithubAppManager } from "./ee/githubAppManager.js";
+import { GithubAppInstallationNotFoundError, GithubAppManager } from "./ee/githubAppManager.js";
 import { fetchWithRetry, measure } from "./utils.js";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
@@ -145,6 +145,10 @@ export const getOctokitWithGithubApp = async (
         });
         return octokitFromToken;
     } catch (error) {
+        if (error instanceof GithubAppInstallationNotFoundError) {
+            throw error;
+        }
+
         logger.error(`Error getting GitHub App token for ${context}.`, error);
         throw error;
     }
@@ -403,6 +407,15 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
                 data
             };
         } catch (error) {
+            if (error instanceof GithubAppInstallationNotFoundError) {
+                const warning = error.message;
+                logger.warn(warning);
+                return {
+                    type: 'warning' as const,
+                    warning
+                };
+            }
+
             Sentry.captureException(error);
             logger.error(`Failed to fetch repositories for org ${org}.`, error);
 

@@ -16,6 +16,13 @@ type Installation = {
     };
 };
 
+export class GithubAppInstallationNotFoundError extends Error {
+    constructor(owner: string, deploymentHostname: string) {
+        super(`GitHub App installation not found for ${deploymentHostname}/${owner}`);
+        this.name = 'GithubAppInstallationNotFoundError';
+    }
+}
+
 export class GithubAppManager {
     private static instance: GithubAppManager | null = null;
     private octokitApps: Map<number, App>;
@@ -112,7 +119,7 @@ export class GithubAppManager {
         const key = this.generateMapKey(owner, deploymentHostname);
         const installation = this.installationMap.get(key) as Installation | undefined;
         if (!installation) {
-            throw new Error(`GitHub App Installation not found for ${key}`);
+            throw new GithubAppInstallationNotFoundError(owner, deploymentHostname);
         }
 
         const octokitApp = this.octokitApps.get(installation.appId) as App;

@@ -1,4 +1,3 @@
-import type { Octokit } from '@octokit/rest';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -6,6 +5,49 @@ const mocks = vi.hoisted(() => ({
     ensureInitialized: vi.fn(),
     getInstallationToken: vi.fn(),
     hasEntitlement: vi.fn(),
+    logger: {
+        debug: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+    },
+    GithubAppInstallationNotFoundError: class GithubAppInstallationNotFoundError extends Error {
+        constructor(owner: string, deploymentHostname: string) {
+            super(`GitHub App installation not found for ${deploymentHostname}/${owner}`);
+            this.name = 'GithubAppInstallationNotFoundError';
+        }
+    },
+}));
+
+vi.mock('@octokit/rest', () => ({
+    Octokit: class {
+        public paginate = {
+            iterator: async function* (_request: unknown, options: { org: string }) {
+                yield {
+                    data: [{
+                        clone_url: `https://github.com/${options.org}/repo.git`,
+                        full_name: `${options.org}/repo`,
+                        id: 1,
+                        name: 'repo',
+                        owner: {
+                            avatar_url: '',
+                            login: options.org,
+                        },
+                    }],
+                };
+            },
+        };
+
+        public repos = {
+            listForOrg: vi.fn(),
+        };
+
+        public rest = {
+            users: {
+                getAuthenticated: vi.fn(),
+            },
+        };
+    },
 }));
 
 vi.mock('@sentry/node', () => ({
@@ -13,12 +55,7 @@ vi.mock('@sentry/node', () => ({
 }));
 
 vi.mock('@sourcebot/shared', () => ({
-    createLogger: vi.fn(() => ({
-        debug: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-    })),
+    createLogger: vi.fn(() => mocks.logger),
     env: {
         FALLBACK_GITHUB_CLOUD_TOKEN: undefined,
     },
@@ -30,6 +67,7 @@ vi.mock('./entitlements.js', () => ({
 }));
 
 vi.mock('./ee/githubAppManager.js', () => ({
+    GithubAppInstallationNotFoundError: mocks.GithubAppInstallationNotFoundError,
     GithubAppManager: {
         getInstance: () => ({
             appsConfigured: mocks.appsConfigured,
@@ -39,7 +77,8 @@ vi.mock('./ee/githubAppManager.js', () => ({
     },
 }));
 
-import { getOctokitWithGithubApp } from './github.js';
+import type { Octokit } from '@octokit/rest';
+import { getGitHubReposFromConfig, getOctokitWithGithubApp } from './github.js';
 
 describe('getOctokitWithGithubApp', () => {
     beforeEach(() => {
@@ -47,6 +86,10 @@ describe('getOctokitWithGithubApp', () => {
         mocks.ensureInitialized.mockReset().mockResolvedValue(undefined);
         mocks.getInstallationToken.mockReset().mockResolvedValue('installation-token');
         mocks.hasEntitlement.mockReset();
+        mocks.logger.debug.mockReset();
+        mocks.logger.error.mockReset();
+        mocks.logger.info.mockReset();
+        mocks.logger.warn.mockReset();
     });
 
     test('fails safely, then uses the GitHub App when the entitlement appears after startup', async () => {
@@ -100,5 +143,29 @@ describe('getOctokitWithGithubApp', () => {
             undefined,
             'org example',
         )).rejects.toBe(error);
+    });
+
+    test('warns and continues when the GitHub App is not installed for one organization', async () => {
+        mocks.hasEntitlement.mockResolvedValue(true);
+        mocks.getInstallationToken.mockImplementation(async (owner: string) => {
+            if (owner === 'invalid-org') {
+                throw new mocks.GithubAppInstallationNotFoundError(owner, 'github.com');
+            }
+            return 'installation-token';
+        });
+
+        const result = await getGitHubReposFromConfig({
+            type: 'github',
+            orgs: ['valid-org', 'invalid-org'],
+        }, new AbortController().signal);
+
+        expect(result.repos.map(repo => repo.full_name)).toEqual(['valid-org/repo']);
+        expect(result.warnings).toEqual([
+            'GitHub App installation not found for github.com/invalid-org',
+        ]);
+        expect(mocks.logger.warn).toHaveBeenCalledWith(
+            'GitHub App installation not found for github.com/invalid-org',
+        );
+        expect(mocks.logger.error).not.toHaveBeenCalled();
     });
 });
