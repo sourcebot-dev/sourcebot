@@ -64,6 +64,10 @@ export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),
 }).openapi('PublicHealthResponse');
 
+export const publicSyncConnectionResponseSchema = z.object({
+    jobId: z.string().describe('The id of the new ConnectionSyncJob row. Poll the connection detail endpoint to see when the job transitions from PENDING/IN_PROGRESS to COMPLETED/FAILED.'),
+}).openapi('PublicSyncConnectionResponse');
+
 // EE: User Management
 export const publicEeUserSchema = z.object({
     id: z.string(),

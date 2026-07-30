@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `POST /api/connections/{id}/sync` enqueues a new `ConnectionSyncJob` for a connection in the caller's org; the caller must be an OWNER, cross-org access returns 404, and the response is `{ jobId }` so on-call scripts can force a re-sync without going through the web UI. [#1520](https://github.com/sourcebot-dev/sourcebot/pull/1520)
+
 ### Fixed
 - Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { repositoryNotFound, unexpectedError } from "@/lib/serviceError";
+import { notFound, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
@@ -32,6 +32,38 @@ export const syncConnection = async (connectionId: number) => sew(() =>
             const schema = z.object({
                 jobId: z.string(),
             });
+            return schema.parse(data);
+        })
+    )
+);
+
+// Public-API variant: scopes the lookup to the caller's org before
+// delegating to the worker, so an OWNER cannot trigger a sync on a
+// connection that lives in a different org just by guessing the id.
+// Used by POST /api/connections/{id}/sync.
+export const triggerConnectionSync = async (connectionId: number) => sew(() =>
+    withAuth(({ prisma, org, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const connection = await prisma.connection.findFirst({
+                where: { id: connectionId, orgId: org.id },
+                select: { id: true },
+            });
+            if (!connection) {
+                return notFound(`Connection ${connectionId} not found in org.`);
+            }
+
+            const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
+                method: 'POST',
+                body: JSON.stringify({ connectionId }),
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (!response.ok) {
+                return unexpectedError('Failed to sync connection');
+            }
+
+            const data = await response.json();
+            const schema = z.object({ jobId: z.string() });
             return schema.parse(data);
         })
     )

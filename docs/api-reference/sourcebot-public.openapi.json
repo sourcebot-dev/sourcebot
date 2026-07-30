@@ -537,6 +537,18 @@
           "status"
         ]
       },
+      "PublicSyncConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "The id of the new ConnectionSyncJob row. Poll the connection detail endpoint to see when the job transitions from PENDING/IN_PROGRESS to COMPLETED/FAILED."
+          }
+        },
+        "required": [
+          "jobId"
+        ]
+      },
       "PublicFileSourceResponse": {
         "type": "object",
         "properties": {
@@ -1472,6 +1484,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connections/{id}/sync": {
+      "post": {
+        "operationId": "triggerConnectionSync",
+        "tags": [
+          "System"
+        ],
+        "summary": "Trigger a connection sync",
+        "description": "Enqueues a new ConnectionSyncJob row for the connection in the caller's org. The job runs asynchronously; the response returns the new job id. The caller must be an OWNER in the org. Cross-org access returns 404 (not 403) to avoid leaking the existence of connections in other orgs.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sync job enqueued. Poll `GET /api/connections/{id}` to see the job progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSyncConnectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid `id` path parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an OWNER in the org.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found in the org.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Worker is unreachable or returned an unexpected response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
                 }
               }
             }

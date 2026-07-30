@@ -217,7 +217,8 @@
                         "icon": "server",
                         "pages": [
                             "GET /api/version",
-                            "GET /api/health"
+                            "GET /api/health",
+                            "POST /api/connections/{id}/sync"
                         ]
                     }
                 ]

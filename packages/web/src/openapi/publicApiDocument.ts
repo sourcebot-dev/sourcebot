@@ -18,6 +18,7 @@ import {
     publicGetDiffResponseSchema,
     publicGetTreeRequestSchema,
     publicHealthResponseSchema,
+    publicSyncConnectionResponseSchema,
     publicCommitDetailSchema,
     publicGetCommitQuerySchema,
     publicListCommitAuthorsQuerySchema,
@@ -198,6 +199,31 @@ export function createPublicOpenApiDocument(version: string) {
                 description: 'Service is healthy.',
                 content: jsonContent(publicHealthResponseSchema),
             },
+        },
+    });
+
+    registry.registerPath({
+        method: 'post',
+        path: '/api/connections/{id}/sync',
+        operationId: 'triggerConnectionSync',
+        tags: [systemTag.name],
+        summary: 'Trigger a connection sync',
+        description: "Enqueues a new ConnectionSyncJob row for the connection in the caller's org. The job runs asynchronously; the response returns the new job id. The caller must be an OWNER in the org. Cross-org access returns 404 (not 403) to avoid leaking the existence of connections in other orgs.",
+        request: {
+            params: z.object({
+                id: z.coerce.number().int().positive(),
+            }),
+        },
+        responses: {
+            202: {
+                description: 'Sync job enqueued. Poll `GET /api/connections/{id}` to see the job progress.',
+                content: jsonContent(publicSyncConnectionResponseSchema),
+            },
+            400: errorJson('Invalid `id` path parameter.'),
+            401: errorJson('Not authenticated.'),
+            403: errorJson('Caller is not an OWNER in the org.'),
+            404: errorJson('Connection not found in the org.'),
+            500: errorJson('Worker is unreachable or returned an unexpected response.'),
         },
     });
 
