@@ -5,7 +5,7 @@ import { env } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
 import { DelayedError, Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
+import { createOctokit, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
 import { createBitbucketCloudClient, createBitbucketServerClient, getExplicitUserPermissionsForCloudRepo, getUserPermissionsForServerRepo } from "../bitbucket.js";
 import { repoMetadataSchema } from "@sourcebot/shared";
@@ -209,7 +209,7 @@ export class RepoPermissionSyncer {
         }> => {
             if (repo.external_codeHostType === 'github') {
                 const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : true;
-                const { octokit } = await createOctokitFromToken({
+                const { octokit } = await createOctokit({
                     token: credentials.token,
                     url: isGitHubCloud ? undefined : credentials.hostUrl,
                 });

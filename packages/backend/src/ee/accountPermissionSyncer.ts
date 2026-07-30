@@ -12,7 +12,7 @@ import { ensureFreshAccountToken, TokenRefreshError } from "./tokenRefresh.js";
 import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import {
-    createOctokitFromToken,
+    createOctokit,
     getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
     getReposForAuthenticatedUser,
 } from "../github.js";
@@ -296,7 +296,7 @@ export class AccountPermissionSyncer {
             }
 
             if (idpConfig.provider === 'github') {
-                const { octokit } = await createOctokitFromToken({
+                const { octokit } = await createOctokit({
                     token: accessToken,
                     url: idpConfig.baseUrl,
                 });

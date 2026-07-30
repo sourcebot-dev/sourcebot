@@ -17,10 +17,15 @@ const mocks = vi.hoisted(() => ({
             this.name = 'GithubAppInstallationNotFoundError';
         }
     },
+    octokitOptions: [] as Array<{ auth?: string, baseUrl?: string }>,
 }));
 
 vi.mock('@octokit/rest', () => ({
     Octokit: class {
+        constructor(options: { auth?: string, baseUrl?: string }) {
+            mocks.octokitOptions.push(options);
+        }
+
         public paginate = {
             iterator: async function* (_request: unknown, options: { org: string }) {
                 yield {
@@ -77,10 +82,9 @@ vi.mock('./ee/githubAppManager.js', () => ({
     },
 }));
 
-import type { Octokit } from '@octokit/rest';
-import { getGitHubReposFromConfig, getOctokitWithGithubApp } from './github.js';
+import { createOctokit, getGitHubReposFromConfig } from './github.js';
 
-describe('getOctokitWithGithubApp', () => {
+describe('createOctokit', () => {
     beforeEach(() => {
         mocks.appsConfigured.mockReset().mockReturnValue(true);
         mocks.ensureInitialized.mockReset().mockResolvedValue(undefined);
@@ -90,45 +94,48 @@ describe('getOctokitWithGithubApp', () => {
         mocks.logger.error.mockReset();
         mocks.logger.info.mockReset();
         mocks.logger.warn.mockReset();
+        mocks.octokitOptions.length = 0;
     });
 
     test('fails safely, then uses the GitHub App when the entitlement appears after startup', async () => {
-        const fallbackOctokit = {} as Octokit;
         mocks.hasEntitlement
             .mockResolvedValueOnce(false)
             .mockResolvedValueOnce(true);
 
-        await expect(getOctokitWithGithubApp(
-            fallbackOctokit,
-            'example',
-            undefined,
-            'org example',
-        )).rejects.toThrow('GitHub App authentication is not currently licensed for org example.');
+        await expect(createOctokit({
+            token: 'legacy-token',
+            owner: 'example',
+            context: 'org example',
+        })).rejects.toThrow('GitHub App authentication is not currently licensed for org example.');
 
-        const entitledOctokit = await getOctokitWithGithubApp(
-            fallbackOctokit,
-            'example',
-            undefined,
-            'org example',
-        );
+        const result = await createOctokit({
+            token: 'legacy-token',
+            owner: 'example',
+            context: 'org example',
+        });
 
         expect(mocks.ensureInitialized).toHaveBeenCalledTimes(2);
         expect(mocks.getInstallationToken).toHaveBeenCalledWith('example', 'github.com');
-        expect(entitledOctokit).not.toBe(fallbackOctokit);
+        expect(result.isAuthenticated).toBe(true);
+        expect(mocks.octokitOptions).toEqual([{
+            auth: 'installation-token',
+        }]);
     });
 
-    test('uses legacy authentication when no GitHub App is configured', async () => {
-        const fallbackOctokit = {} as Octokit;
+    test('falls back to token authentication when no GitHub App is configured', async () => {
         mocks.appsConfigured.mockReturnValue(false);
         mocks.hasEntitlement.mockResolvedValue(false);
 
-        await expect(getOctokitWithGithubApp(
-            fallbackOctokit,
-            'example',
-            undefined,
-            'org example',
-        )).resolves.toBe(fallbackOctokit);
+        const result = await createOctokit({
+            token: 'legacy-token',
+            owner: 'example',
+            context: 'org example',
+        });
 
+        expect(result.isAuthenticated).toBe(true);
+        expect(mocks.octokitOptions).toEqual([{
+            auth: 'legacy-token',
+        }]);
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
     });
 
@@ -137,12 +144,12 @@ describe('getOctokitWithGithubApp', () => {
         mocks.hasEntitlement.mockResolvedValue(true);
         mocks.getInstallationToken.mockRejectedValue(error);
 
-        await expect(getOctokitWithGithubApp(
-            {} as Octokit,
-            'example',
-            undefined,
-            'org example',
-        )).rejects.toBe(error);
+        await expect(createOctokit({
+            token: 'legacy-token',
+            owner: 'example',
+            context: 'org example',
+        })).rejects.toBe(error);
+        expect(mocks.octokitOptions).toEqual([]);
     });
 
     test('warns and continues when the GitHub App is not installed for one organization', async () => {

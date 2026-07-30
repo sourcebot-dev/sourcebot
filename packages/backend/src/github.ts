@@ -100,10 +100,49 @@ const isHttpError = (error: unknown, status: number): boolean => {
         && error.status === status;
 }
 
-export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
+/**
+ * Creates an Octokit client using a GitHub App installation when one is
+ * configured for the requested owner, or falls back to the provided token.
+ */
+export const createOctokit = async ({
+    token,
+    url,
+    owner,
+    context,
+}: {
+    token?: string,
+    url?: string,
+    owner?: string,
+    context?: string,
+}): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
+    let resolvedToken = token;
+
+    if (owner) {
+        const githubAppManager = GithubAppManager.getInstance();
+        await githubAppManager.ensureInitialized();
+
+        if (githubAppManager.appsConfigured()) {
+            if (!await hasEntitlement('github-app')) {
+                throw new Error(`GitHub App authentication is not currently licensed for ${context ?? owner}.`);
+            }
+
+            try {
+                const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
+                resolvedToken = await githubAppManager.getInstallationToken(owner, hostname);
+            } catch (error) {
+                if (error instanceof GithubAppInstallationNotFoundError) {
+                    throw error;
+                }
+
+                logger.error(`Error getting GitHub App token for ${context ?? owner}.`, error);
+                throw error;
+            }
+        }
+    }
+
     const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : true;
     const octokit = new Octokit({
-        auth: token,
+        auth: resolvedToken,
         ...(url && !isGitHubCloud ? {
             baseUrl: `${url}/api/v3`
         } : {}),
@@ -111,47 +150,8 @@ export const createOctokitFromToken = async ({ token, url }: { token?: string, u
 
     return {
         octokit,
-        isAuthenticated: !!token,
+        isAuthenticated: !!resolvedToken,
     };
-}
-
-/**
- * Uses GitHub App authentication when an app is configured. App initialization
- * and token failures are propagated so callers cannot mistake a partial,
- * unauthenticated response for an authoritative repository list.
- */
-export const getOctokitWithGithubApp = async (
-    octokit: Octokit,
-    owner: string,
-    url: string | undefined,
-    context: string
-): Promise<Octokit> => {
-    const githubAppManager = GithubAppManager.getInstance();
-    await githubAppManager.ensureInitialized();
-    if (!githubAppManager.appsConfigured()) {
-        return octokit;
-    }
-
-    if (!await hasEntitlement('github-app')) {
-        throw new Error(`GitHub App authentication is not currently licensed for ${context}.`);
-    }
-
-    try {
-        const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
-        const token = await githubAppManager.getInstallationToken(owner, hostname);
-        const { octokit: octokitFromToken } = await createOctokitFromToken({
-            token,
-            url,
-        });
-        return octokitFromToken;
-    } catch (error) {
-        if (error instanceof GithubAppInstallationNotFoundError) {
-            throw error;
-        }
-
-        logger.error(`Error getting GitHub App token for ${context}.`, error);
-        throw error;
-    }
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
@@ -165,7 +165,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, s
             env.FALLBACK_GITHUB_CLOUD_TOKEN :
             undefined;
 
-    const { octokit, isAuthenticated } = await createOctokitFromToken({
+    const { octokit, isAuthenticated } = await createOctokit({
         token,
         url: config.url,
     });
@@ -185,19 +185,19 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, s
     let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { repos, warnings } = await getReposForOrgs(config.orgs, octokit, signal, config.url);
+        const { repos, warnings } = await getReposForOrgs(config.orgs, token, signal, config.url);
         allRepos = allRepos.concat(repos);
         allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.repos) {
-        const { repos, warnings } = await getRepos(config.repos, octokit, signal, config.url);
+        const { repos, warnings } = await getRepos(config.repos, token, signal, config.url);
         allRepos = allRepos.concat(repos);
         allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.users) {
-        const { repos, warnings } = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
+        const { repos, warnings } = await getReposOwnedByUsers(config.users, token, signal, config.url);
         allRepos = allRepos.concat(repos);
         allWarnings = allWarnings.concat(warnings);
     }
@@ -295,12 +295,17 @@ export const getOAuthScopesForAuthenticatedUser = async (octokit: Octokit, token
     }
 }
 
-const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
+const getReposOwnedByUsers = async (users: string[], token: string | undefined, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(users.map((user) => githubQueryLimit(async () => {
         try {
             logger.debug(`Fetching repository info for user ${user}...`);
 
-            const octokitToUse = await getOctokitWithGithubApp(octokit, user, url, `user ${user}`);
+            const { octokit } = await createOctokit({
+                token,
+                url,
+                owner: user,
+                context: `user ${user}`,
+            });
             const { durationMs, data } = await measure(async () => {
                 const fetchFn = async () => {
                     let query = `user:${user}`;
@@ -317,7 +322,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
                     // signal.aborted between pages. paginate() only passes the signal to
                     // individual fetch requests but doesn't check abort state between pages.
                     const allRepos: OctokitRepository[] = [];
-                    const iterator = octokitToUse.paginate.iterator(octokitToUse.rest.search.repos, {
+                    const iterator = octokit.paginate.iterator(octokit.rest.search.repos, {
                         q: query,
                         per_page: 100,
                         request: {
@@ -368,19 +373,24 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
     };
 }
 
-const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
+const getReposForOrgs = async (orgs: string[], token: string | undefined, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(orgs.map((org) => githubQueryLimit(async () => {
         try {
             logger.debug(`Fetching repository info for org ${org}...`);
 
-            const octokitToUse = await getOctokitWithGithubApp(octokit, org, url, `org ${org}`);
+            const { octokit } = await createOctokit({
+                token,
+                url,
+                owner: org,
+                context: `org ${org}`,
+            });
             const { durationMs, data } = await measure(async () => {
                 // @note: We use paginate.iterator() instead of paginate() to check
                 // signal.aborted between pages. paginate() only passes the signal to
                 // individual fetch requests but doesn't check abort state between pages.
                 const fetchFn = async () => {
                     const allRepos: OctokitRepository[] = [];
-                    const iterator = octokitToUse.paginate.iterator(octokitToUse.repos.listForOrg, {
+                    const iterator = octokit.paginate.iterator(octokit.repos.listForOrg, {
                         org: org,
                         per_page: 100,
                         request: {
@@ -440,15 +450,20 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
     };
 }
 
-const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
+const getRepos = async (repoList: string[], token: string | undefined, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(repoList.map((repo) => githubQueryLimit(async () => {
         try {
             const [owner, repoName] = repo.split('/');
             logger.debug(`Fetching repository info for ${repo}...`);
 
-            const octokitToUse = await getOctokitWithGithubApp(octokit, owner, url, `repo ${repo}`);
+            const { octokit } = await createOctokit({
+                token,
+                url,
+                owner,
+                context: `repo ${repo}`,
+            });
             const { durationMs, data: result } = await measure(async () => {
-                const fetchFn = () => octokitToUse.repos.get({
+                const fetchFn = () => octokit.repos.get({
                     owner,
                     repo: repoName,
                     request: {
