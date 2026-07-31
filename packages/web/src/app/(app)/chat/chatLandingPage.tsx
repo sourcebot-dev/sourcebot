@@ -1,4 +1,4 @@
-import { getRepos, getSearchContexts } from "@/actions";
+import { getRepos, getReposStats, getSearchContexts } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
@@ -35,6 +35,8 @@ export async function ChatLandingPage() {
         take: 10,
     });
 
+    const repoStats = await getReposStats();
+
     if (isServiceError(allRepos)) {
         throw new ServiceErrorException(allRepos);
     }
@@ -45,6 +47,10 @@ export async function ChatLandingPage() {
 
     if (isServiceError(carouselRepos)) {
         throw new ServiceErrorException(carouselRepos);
+    }
+
+    if (isServiceError(repoStats)) {
+        throw new ServiceErrorException(repoStats);
     }
 
     const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
@@ -78,8 +84,7 @@ export async function ChatLandingPage() {
 
                     <div className="mt-8">
                         <RepositoryCarousel
-                            // @nocheckin
-                            numberOfReposWithIndex={0}
+                            numberOfReposWithIndex={repoStats.numberOfReposWithIndex}
                             displayRepos={carouselRepos}
                         />
                     </div>

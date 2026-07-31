@@ -123,7 +123,6 @@ export class BullMQJobManager implements JobManager {
                     `${LOG_TAG}:${spec.name}:job:${job.id ?? 'unknown'}`,
                 );
                 const lifecycleContext = this.jobLifecycleContext<TName>(job);
-                jobLogger.debug(`Started workload "${spec.name}"`);
 
                 try {
                     await workload.onStarted?.(lifecycleContext);
@@ -134,7 +133,6 @@ export class BullMQJobManager implements JobManager {
                         updateProgress: (progress) => job.updateProgress(progress),
                         trigger: (target, data) => this.trigger(target, data),
                     });
-                    jobLogger.debug(`Completed workload "${spec.name}"`);
                     return result;
                 } catch (error) {
                     jobLogger.error(`Workload "${spec.name}" attempt failed`, error);

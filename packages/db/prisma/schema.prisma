@@ -10,6 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ConnectionSyncStatus {
+  SYNC_NEEDED
+  IN_SYNC_QUEUE
+  SYNCING
+  SYNCED
+  SYNCED_WITH_WARNINGS
+  FAILED
+}
+
 enum ChatVisibility {
   PRIVATE
   PUBLIC
@@ -65,10 +74,10 @@ model Repo {
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
 
+  jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
-  latestIndexingJobId   String?
-
   indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
   pushedAt           DateTime? /// The timestamp of the most recent commit across all branches.
 
   external_id           String /// The id of the repo in the external service
@@ -84,6 +93,35 @@ model Repo {
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
   @@index([indexedAt])
+}
+
+enum RepoIndexingJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum RepoIndexingJobType {
+  INDEX
+  CLEANUP
+}
+
+model RepoIndexingJob {
+  id          String                      @id @default(cuid())
+  type        RepoIndexingJobType
+  status      RepoIndexingJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  @@index([repoId, type, status])
 }
 
 enum RepoPermissionSyncJobStatus {
@@ -143,9 +181,9 @@ model Connection {
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType ConnectionType
 
+  syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
-  latestSyncJobId    String?
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -168,6 +206,27 @@ model Connection {
   orgId Int
 
   @@unique([name, orgId])
+}
+
+enum ConnectionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ConnectionSyncJob {
+  id          String                      @id @default(cuid())
+  status      ConnectionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  warningMessages String[]
+  errorMessage String?
+
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId Int
 }
 
 model RepoToConnection {

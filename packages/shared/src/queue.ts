@@ -26,20 +26,6 @@ export const CONNECTION_QUEUE: QueueSpec<'connection'> = {
         keep: { completed: 50, failed: 50 },
         keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
     },
-    onEnqueued: async ({
-        prisma,
-        data: { connectionId },
-        jobId
-    }) => {
-        await prisma.connection.update({
-            where: {
-                id: connectionId
-            },
-            data: {
-                latestSyncJobId: jobId
-            }
-        });
-    },
     dedupKey: (data) => `connection:${data.connectionId}`,
 }
 
@@ -61,20 +47,6 @@ export const REPO_INDEX_QUEUE: QueueSpec<'repo-index'> = {
         backoff: { type: 'exponential', delayMs: 5000 },
         keep: { completed: 50, failed: 50 },
         keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
-    },
-    onEnqueued: async ({
-        prisma,
-        data: { repoId },
-        jobId,
-    }) => {
-        await prisma.repo.update({
-            where: {
-                id: repoId,
-            },
-            data: {
-                latestIndexingJobId: jobId,
-            },
-        });
     },
     dedupKey: (data) => `repo:${data.repoId}`,
 };

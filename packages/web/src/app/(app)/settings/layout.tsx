@@ -3,6 +3,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
+import { getConnectionStats } from "@/actions";
 import { getOrgAccountRequests } from "@/features/membership/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
@@ -47,6 +48,10 @@ export const getSidebarNavGroups = async () =>
             numJoinRequests = requests.length;
         }
 
+        const connectionStats = await getConnectionStats();
+        if (isServiceError(connectionStats)) {
+            throw new ServiceErrorException(connectionStats);
+        }
         const hasAskEntitlement = await hasEntitlement("ask");
 
         const groups: NavGroup[] = [
@@ -114,6 +119,8 @@ export const getSidebarNavGroups = async () =>
                     {
                         title: "Connections",
                         href: `/settings/connections`,
+                        hrefRegex: `/settings/connections(/[^/]+)?$`,
+                        isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
                         icon: "plug" as const,
                     },
                     {
