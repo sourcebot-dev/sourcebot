@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { PrismaClient } from '@sourcebot/db';
 
 const mocks = vi.hoisted(() => ({
     connectionFindUniqueOrThrow: vi.fn(),
     connectionUpdate: vi.fn(),
+    connectionSyncJobUpsert: vi.fn(),
+    connectionSyncJobUpdate: vi.fn(),
     transactionConnectionUpdate: vi.fn(),
     transactionRepoUpsert: vi.fn(),
     compileGithubConfig: vi.fn(),
@@ -16,7 +19,7 @@ vi.mock('@sentry/node', () => ({
 
 vi.mock('@sourcebot/shared', () => ({
     CONNECTION_QUEUE: {
-        name: 'connection',
+        name: 'connection-sync',
         dedupKey: ({ connectionId }: { connectionId: number }) => `connection:${connectionId}`,
         jobOptions: {
             attempts: 2,
@@ -36,23 +39,6 @@ vi.mock('@sourcebot/shared', () => ({
     loadConfig: mocks.loadConfig,
 }));
 
-vi.mock('./prisma.js', () => ({
-    prisma: {
-        connection: {
-            findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
-            update: mocks.connectionUpdate,
-        },
-        $transaction: vi.fn(async (callback) => callback({
-            connection: {
-                update: mocks.transactionConnectionUpdate,
-            },
-            repo: {
-                upsert: mocks.transactionRepoUpsert,
-            },
-        })),
-    },
-}));
-
 vi.mock('./repoCompileUtils.js', () => ({
     compileAzureDevOpsConfig: vi.fn(),
     compileBitbucketConfig: vi.fn(),
@@ -67,7 +53,35 @@ vi.mock('./ee/syncSearchContexts.js', () => ({
     syncSearchContexts: mocks.syncSearchContexts,
 }));
 
-import { connectionWorkload } from './connectionWorkload.js';
+import { createConnectionWorkload } from './connectionWorkload.js';
+
+const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback({
+    connection: {
+        update: mocks.transactionConnectionUpdate,
+    },
+    repo: {
+        upsert: mocks.transactionRepoUpsert,
+    },
+}));
+
+const db = {
+    connection: {
+        findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
+        update: mocks.connectionUpdate,
+    },
+    connectionSyncJob: {
+        upsert: mocks.connectionSyncJobUpsert,
+        update: mocks.connectionSyncJobUpdate,
+    },
+    $transaction: transaction,
+} as unknown as PrismaClient;
+
+const connectionWorkload = createConnectionWorkload({
+    db,
+    settings: {
+        maxConnectionSyncJobConcurrency: 2,
+    } as never,
+});
 
 const data = {
     connectionId: 42,
@@ -79,6 +93,7 @@ const lifecycleContext = {
     jobId: 'job-1',
     attemptsMade: 0,
     maxAttempts: 2,
+    prisma: db,
 };
 
 describe('connectionWorkload', () => {
@@ -86,11 +101,65 @@ describe('connectionWorkload', () => {
         vi.clearAllMocks();
     });
 
-    test('does not declare database-backed lifecycle hooks', () => {
-        expect(connectionWorkload.queueSpec.onEnqueued).toBeUndefined();
-        expect(connectionWorkload.onStarted).toBeUndefined();
-        expect(connectionWorkload.onCompleted).toBeUndefined();
-        expect(connectionWorkload.onTerminalFailure).toBeUndefined();
+    test('declares database-backed lifecycle hooks', () => {
+        expect(connectionWorkload.onStarted).toBeTypeOf('function');
+        expect(connectionWorkload.onCompleted).toBeTypeOf('function');
+        expect(connectionWorkload.onTerminalFailure).toBeTypeOf('function');
+    });
+
+    test('marks the connection sync job as in progress when started', async () => {
+        await connectionWorkload.onStarted?.(lifecycleContext);
+
+        expect(mocks.connectionSyncJobUpsert).toHaveBeenCalledWith({
+            where: {
+                id: 'job-1',
+            },
+            update: {
+                status: 'IN_PROGRESS',
+                completedAt: null,
+                errorMessage: null,
+                warningMessages: [],
+            },
+            create: {
+                id: 'job-1',
+                connectionId: 42,
+                status: 'IN_PROGRESS',
+                warningMessages: [],
+            },
+        });
+    });
+
+    test('marks the connection sync job as completed', async () => {
+        await connectionWorkload.onCompleted?.(lifecycleContext, undefined);
+
+        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
+            where: {
+                id: 'job-1',
+            },
+            data: {
+                status: 'COMPLETED',
+                completedAt: expect.any(Date),
+                errorMessage: null,
+            },
+        });
+    });
+
+    test('marks the connection sync job as failed after terminal failure', async () => {
+        await connectionWorkload.onTerminalFailure?.(
+            lifecycleContext,
+            new Error('Connection credentials expired'),
+        );
+
+        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
+            where: {
+                id: 'job-1',
+            },
+            data: {
+                status: 'FAILED',
+                completedAt: expect.any(Date),
+                errorMessage: 'Connection credentials expired',
+            },
+        });
     });
 
     test('discovers repositories using the connection provider', async () => {
@@ -136,6 +205,14 @@ describe('connectionWorkload', () => {
             },
         );
         expect(updateProgress).not.toHaveBeenCalled();
+        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
+            where: {
+                id: 'job-1',
+            },
+            data: {
+                warningMessages: ['Repository was archived'],
+            },
+        });
         expect(result).toBeUndefined();
     });
 });

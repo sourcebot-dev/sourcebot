@@ -101,7 +101,7 @@ export class ConfigManager {
 
                 if (connectionNeedsSyncing) {
                     logger.debug(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
-                    await this.jobManager.trigger('connection', {
+                    await this.jobManager.trigger('connection-sync', {
                         connectionId: connection.id,
                         orgId: SINGLE_TENANT_ORG_ID,
                     })

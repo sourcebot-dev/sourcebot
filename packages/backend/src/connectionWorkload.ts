@@ -4,7 +4,7 @@ import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHost
 import { CONNECTION_QUEUE, env, loadConfig } from "@sourcebot/shared";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import * as Sentry from "@sentry/node";
-import { PrismaClient } from "@sourcebot/db";
+import { ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
 
 interface Props {
     db: PrismaClient,
@@ -14,7 +14,7 @@ interface Props {
 export const createConnectionWorkload = ({
     db,
     settings
-}: Props): Workload<'connection'> => ({
+}: Props): Workload<'connection-sync'> => ({
     queueSpec: CONNECTION_QUEUE,
     concurrency: settings.maxConnectionSyncJobConcurrency,
     process: async ({
@@ -24,6 +24,7 @@ export const createConnectionWorkload = ({
         },
         logger,
         signal,
+        jobId,
     }) => {
         logger.info(`Syncing connection ${connectionId}`, {
             connectionId,
@@ -43,7 +44,16 @@ export const createConnectionWorkload = ({
             signal,
         });
 
-        let { repoData } = result;
+        let { repoData, warnings } = result;
+
+        await db.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                warningMessages: warnings,
+            },
+        });
 
         logger.info(`Discovered ${repoData.length} repositories`, {
             connectionId,
@@ -138,8 +148,51 @@ export const createConnectionWorkload = ({
         logger.info(`Connection ${connectionId} sync finished`, {
             connectionId,
         });
-    }
-})
+    },
+    onStarted: async ({ data: { connectionId }, jobId }) => {
+        await db.connectionSyncJob.upsert({
+            where: {
+                id: jobId,
+            },
+            update: {
+                status: ConnectionSyncJobStatus.IN_PROGRESS,
+                completedAt: null,
+                errorMessage: null,
+                warningMessages: [],
+            },
+            create: {
+                id: jobId,
+                connectionId,
+                status: ConnectionSyncJobStatus.IN_PROGRESS,
+                warningMessages: [],
+            },
+        });
+    },
+    onCompleted: async ({ jobId }) => {
+        await db.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                status: ConnectionSyncJobStatus.COMPLETED,
+                completedAt: new Date(),
+                errorMessage: null,
+            },
+        });
+    },
+    onTerminalFailure: async ({ jobId }, error) => {
+        await db.connectionSyncJob.update({
+            where: {
+                id: jobId,
+            },
+            data: {
+                status: ConnectionSyncJobStatus.FAILED,
+                completedAt: new Date(),
+                errorMessage: error.message,
+            },
+        });
+    },
+});
 
 const discoverConnectionRepositories = async ({
     config,

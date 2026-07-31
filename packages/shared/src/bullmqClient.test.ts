@@ -2,7 +2,7 @@ import type { Redis } from 'ioredis';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { QueueSpec } from './queue.js';
 import { DEFAULT_JOB_LOGS_MAX_ENTRIES } from './jobLogger.js';
-import { REPO_INDEX_QUEUE } from './queue.js';
+import { CONNECTION_QUEUE, REPO_INDEX_QUEUE } from './queue.js';
 
 const queueMocks = vi.hoisted(() => ({
     add: vi.fn(),
@@ -32,8 +32,8 @@ vi.mock('bullmq', () => ({
 import { BullMQClient } from './bullmqClient.js';
 import { PrismaClient } from '@sourcebot/db';
 
-const connectionSpec: QueueSpec<'connection'> = {
-    name: 'connection',
+const connectionSpec: QueueSpec<'connection-sync'> = {
+    name: 'connection-sync',
     dedupKey: ({ connectionId }) => `connection:${connectionId}`,
     jobOptions: {
         attempts: 2,
@@ -61,7 +61,7 @@ describe('BullMQClient', () => {
 
         expect(result).toEqual(expect.any(String));
         expect(queueMocks.add).toHaveBeenCalledWith(
-            'connection',
+            'connection-sync',
             data,
             expect.objectContaining({
                 jobId: result,
@@ -97,11 +97,35 @@ describe('BullMQClient', () => {
         expect(onEnqueued).not.toHaveBeenCalled();
     });
 
-    test('stores the latest repo indexing job id when enqueueing a repo job', async () => {
-        const repoUpdate = vi.fn();
+    test('upserts a pending connection sync job when enqueueing a connection sync', async () => {
+        const connectionSyncJobUpsert = vi.fn();
         const client = new BullMQClient(redis, {
-            repo: {
-                update: repoUpdate,
+            connectionSyncJob: {
+                upsert: connectionSyncJobUpsert,
+            },
+        } as unknown as PrismaClient);
+
+        const result = await client.enqueue(CONNECTION_QUEUE, data);
+
+        expect(connectionSyncJobUpsert).toHaveBeenCalledWith({
+            where: {
+                id: result,
+            },
+            update: {},
+            create: {
+                id: result,
+                connectionId: 42,
+                status: 'PENDING',
+                warningMessages: [],
+            },
+        });
+    });
+
+    test('upserts a pending repo indexing job when enqueueing with repo-level deduplication', async () => {
+        const repoIndexingJobUpsert = vi.fn();
+        const client = new BullMQClient(redis, {
+            repoIndexingJob: {
+                upsert: repoIndexingJobUpsert,
             },
         } as unknown as PrismaClient);
 
@@ -120,12 +144,16 @@ describe('BullMQClient', () => {
                 deduplication: { id: 'repo:42' },
             }),
         );
-        expect(repoUpdate).toHaveBeenCalledWith({
+        expect(repoIndexingJobUpsert).toHaveBeenCalledWith({
             where: {
-                id: 42,
+                id: result,
             },
-            data: {
-                latestIndexingJobId: result,
+            update: {},
+            create: {
+                id: result,
+                repoId: 42,
+                type: 'INDEX',
+                status: 'PENDING',
             },
         });
     });

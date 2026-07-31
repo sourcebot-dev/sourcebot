@@ -13,7 +13,7 @@ import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { createReconciliationWorkload } from "./reconciliationWorkload.js";
 import { redis } from "./redis.js";
-import { connectionWorkload, createConnectionWorkload } from "./connectionWorkload.js";
+import { createConnectionWorkload } from "./connectionWorkload.js";
 import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 

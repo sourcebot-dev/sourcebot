@@ -111,10 +111,10 @@ describe('normalizeJobState', () => {
 });
 
 const createWorkload = (
-    overrides: Partial<Workload<'connection', { repoCount: number }>> = {},
-): Workload<'connection', { repoCount: number }> => ({
+    overrides: Partial<Workload<'connection-sync', { repoCount: number }>> = {},
+): Workload<'connection-sync', { repoCount: number }> => ({
     queueSpec: {
-        name: 'connection',
+        name: 'connection-sync',
         dedupKey: ({ connectionId }) => `connection:${connectionId}`,
         jobOptions: {
             attempts: 2,
@@ -150,7 +150,7 @@ describe('BullMQJobManager lifecycle', () => {
         const workload = createWorkload();
         manager.register(workload);
 
-        const result = await manager.trigger('connection', data);
+        const result = await manager.trigger('connection-sync', data);
 
         expect(result).toBe('job-1');
         expect(mocks.enqueue).toHaveBeenCalledWith(workload.queueSpec, data);
@@ -183,7 +183,7 @@ describe('BullMQJobManager lifecycle', () => {
     });
 
     test('provides the structured job logger to the workload processor', async () => {
-        const process = vi.fn(async (context: ProcessContext<'connection'>) => {
+        const process = vi.fn(async (context: ProcessContext<'connection-sync'>) => {
             context.logger.info('Processing connection');
             return { repoCount: 3 };
         });

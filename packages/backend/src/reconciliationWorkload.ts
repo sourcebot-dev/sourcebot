@@ -31,7 +31,7 @@ export const createReconciliationWorkload = ({
 
         await Promise.all(connections.map(async (connection) => {
             logger.debug(`Scheduling connection sync for connection ${connection.id}`);
-            await trigger('connection', {
+            await trigger('connection-sync', {
                 connectionId: connection.id,
                 orgId: connection.orgId,
             });

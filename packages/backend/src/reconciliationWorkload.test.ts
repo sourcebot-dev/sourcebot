@@ -53,14 +53,14 @@ describe('reconciliationWorkload', () => {
         vi.useRealTimers();
     });
 
-    test('runs every 15 minutes on the reconciliation queue', () => {
+    test('runs every 10 seconds on the reconciliation queue', () => {
         const workload = createReconciliationWorkload({
             db,
             settings,
         });
 
         expect(workload.queueSpec.name).toBe('reconciliation');
-        expect(workload.schedule).toEqual({ every: '15m' });
+        expect(workload.schedule).toEqual({ every: '10s' });
         expect(workload.concurrency).toBe(1);
     });
 
@@ -100,11 +100,11 @@ describe('reconciliationWorkload', () => {
             },
         });
         expect(trigger).toHaveBeenCalledTimes(2);
-        expect(trigger).toHaveBeenCalledWith('connection', {
+        expect(trigger).toHaveBeenCalledWith('connection-sync', {
             connectionId: 42,
             orgId: 1,
         });
-        expect(trigger).toHaveBeenCalledWith('connection', {
+        expect(trigger).toHaveBeenCalledWith('connection-sync', {
             connectionId: 84,
             orgId: 2,
         });

@@ -1,4 +1,4 @@
-import { PrismaClient, Repo } from "@sourcebot/db";
+import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger, getRepoPath, JobLogSink, getRepoIdFromPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
@@ -80,6 +80,84 @@ export const createRepoIndexWorkload = ({
                 });
             }
         }
+    },
+    onStarted: async ({ data: { repoId, type }, jobId }) => {
+        await db.$transaction(async (tx) => {
+            await tx.repoIndexingJob.upsert({
+                where: {
+                    id: jobId,
+                },
+                update: {
+                    status: RepoIndexingJobStatus.IN_PROGRESS,
+                    completedAt: null,
+                    errorMessage: null,
+                },
+                create: {
+                    id: jobId,
+                    repoId,
+                    type: RepoIndexingJobType[type],
+                    status: RepoIndexingJobStatus.IN_PROGRESS,
+                },
+            });
+            await tx.repo.update({
+                where: {
+                    id: repoId,
+                },
+                data: {
+                    latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
+                },
+            });
+        });
+    },
+    onCompleted: async ({ data: { repoId, type }, jobId }) => {
+        // A successful cleanup deletes the Repo in `process`, which cascades to its
+        // RepoIndexingJob records. There is no row left to mark as completed.
+        if (type === RepoIndexingJobType.CLEANUP) {
+            return;
+        }
+
+        await db.$transaction(async (tx) => {
+            await tx.repoIndexingJob.update({
+                where: {
+                    id: jobId,
+                },
+                data: {
+                    status: RepoIndexingJobStatus.COMPLETED,
+                    completedAt: new Date(),
+                    errorMessage: null,
+                },
+            });
+            await tx.repo.update({
+                where: {
+                    id: repoId,
+                },
+                data: {
+                    latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
+                },
+            });
+        });
+    },
+    onTerminalFailure: async ({ data: { repoId }, jobId }, error) => {
+        await db.$transaction(async (tx) => {
+            await tx.repoIndexingJob.update({
+                where: {
+                    id: jobId,
+                },
+                data: {
+                    status: RepoIndexingJobStatus.FAILED,
+                    completedAt: new Date(),
+                    errorMessage: error.message,
+                },
+            });
+            await tx.repo.update({
+                where: {
+                    id: repoId,
+                },
+                data: {
+                    latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
+                },
+            });
+        });
     },
 });
 

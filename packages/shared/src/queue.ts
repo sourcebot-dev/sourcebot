@@ -1,5 +1,5 @@
 
-import { PrismaClient } from "@sourcebot/db";
+import { ConnectionSyncJobStatus, PrismaClient, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { DEFAULT_JOB_LOGS_MAX_ENTRIES } from "./jobLogger.js";
 
 export type QueueName = keyof QueueRegistry;
@@ -7,28 +7,16 @@ export type DataOf<TName extends QueueName> = QueueRegistry[TName];
 type EmptyJobData = Record<string, never>;
 
 interface QueueRegistry {
-    'connection': {
+    'reconciliation': EmptyJobData,
+    'connection-sync': {
         connectionId: number,
         orgId: number
     },
-    'reconciliation': EmptyJobData,
     'repo-index': {
         repoId: number,
         type: 'INDEX' | 'CLEANUP',
     },
 }
-
-export const CONNECTION_QUEUE: QueueSpec<'connection'> = {
-    name: 'connection',
-    jobOptions: {
-        attempts: 2,
-        backoff: { type: 'exponential', delayMs: 5000 },
-        keep: { completed: 50, failed: 50 },
-        keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
-    },
-    dedupKey: (data) => `connection:${data.connectionId}`,
-}
-
 
 export const RECONCILIATION_QUEUE: QueueSpec<'reconciliation'> = {
     name: 'reconciliation',
@@ -40,6 +28,31 @@ export const RECONCILIATION_QUEUE: QueueSpec<'reconciliation'> = {
     },
 };
 
+export const CONNECTION_QUEUE: QueueSpec<'connection-sync'> = {
+    name: 'connection-sync',
+    jobOptions: {
+        attempts: 2,
+        backoff: { type: 'exponential', delayMs: 5000 },
+        keep: { completed: 50, failed: 50 },
+        keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    },
+    dedupKey: (data) => `connection:${data.connectionId}`,
+    onEnqueued: async ({ prisma, data: { connectionId }, jobId }) => {
+        await prisma.connectionSyncJob.upsert({
+            where: {
+                id: jobId,
+            },
+            update: {},
+            create: {
+                id: jobId,
+                connectionId,
+                status: ConnectionSyncJobStatus.PENDING,
+                warningMessages: [],
+            },
+        });
+    }
+};
+
 export const REPO_INDEX_QUEUE: QueueSpec<'repo-index'> = {
     name: 'repo-index',
     jobOptions: {
@@ -49,6 +62,20 @@ export const REPO_INDEX_QUEUE: QueueSpec<'repo-index'> = {
         keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
     },
     dedupKey: (data) => `repo:${data.repoId}`,
+    onEnqueued: async ({ prisma, data: { repoId, type }, jobId }) => {
+        await prisma.repoIndexingJob.upsert({
+            where: {
+                id: jobId,
+            },
+            update: {},
+            create: {
+                id: jobId,
+                repoId,
+                type: RepoIndexingJobType[type],
+                status: RepoIndexingJobStatus.PENDING,
+            },
+        });
+    },
 };
 
 export interface QueueSpec<TName extends QueueName> {
