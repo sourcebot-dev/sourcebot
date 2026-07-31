@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
-import { getTokenFromConfig, JobLogSink } from "@sourcebot/shared";
+import { env, getTokenFromConfig, JobLogSink } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
@@ -115,17 +115,10 @@ export const fetchWithRetry = async <T>(
 // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
 export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: JobLogSink): Promise<RepoAuthCredentials | undefined> => {
-    // If we have github apps configured we assume that we must use them for github service auth
-    if (repo.external_codeHostType === 'github' && await hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
-        logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+    if (repo.external_codeHostType === 'github' && env.EXPERIMENT_ASK_GH_GITHUB_TOKEN) {
+        logger?.debug(`Using Ask GitHub PAT for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
 
-        const owner = repo.displayName?.split('/')[0];
-        const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
-        if (!owner || !deploymentHostname) {
-            throw new Error(`Failed to fetch GitHub App for repo ${repo.displayName}:Invalid repo displayName (${repo.displayName}) or deployment hostname (${deploymentHostname})`);
-        }
-
-        const token = await GithubAppManager.getInstance().getInstallationToken(owner, deploymentHostname);
+        const token = env.EXPERIMENT_ASK_GH_GITHUB_TOKEN;
         return {
             hostUrl: repo.external_codeHostUrl,
             token,
@@ -133,9 +126,43 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 repo.cloneUrl,
                 {
                     username: 'x-access-token',
-                    password: token
+                    password: token,
                 }
             ),
+        };
+    }
+
+    if (repo.external_codeHostType === 'github') {
+        const githubAppManager = GithubAppManager.getInstance();
+        await githubAppManager.ensureInitialized();
+
+        if (githubAppManager.appsConfigured()) {
+            if (!await hasEntitlement('github-app')) {
+                throw new Error(`GitHub App authentication is not currently licensed for repo ${repo.displayName}.`);
+            }
+
+            logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
+
+            const owner = repo.displayName?.split('/')[0];
+            const deploymentHostname = new URL(repo.external_codeHostUrl).hostname;
+            if (!owner || !deploymentHostname) {
+                throw new Error(`Failed to fetch GitHub App for repo ${repo.displayName}:Invalid repo displayName (${repo.displayName}) or deployment hostname (${deploymentHostname})`);
+            }
+
+            const token = await githubAppManager.getInstallationToken(owner, deploymentHostname);
+            if (token) {
+                return {
+                    hostUrl: repo.external_codeHostUrl,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            username: 'x-access-token',
+                            password: token
+                        }
+                    ),
+                }
+            }
         }
     }
 

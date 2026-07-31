@@ -72,7 +72,7 @@ type PendingConnectorServer = {
 };
 
 const scrollableConnectorDialogContentClassName = "flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden";
-const scrollableConnectorDialogBodyClassName = "min-h-0 overflow-y-auto py-4 pr-1";
+const scrollableConnectorDialogBodyClassName = "min-h-0 overflow-y-auto px-1 py-4";
 
 interface OAuthScopesInputProps {
     discoveredOAuthScopes: string[];

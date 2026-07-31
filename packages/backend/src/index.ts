@@ -7,8 +7,6 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { ConfigManager } from "./configManager.js";
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
-import { GithubAppManager } from "./ee/githubAppManager.js";
-import { hasEntitlement } from "./entitlements.js";
 import { BullMQJobManager } from "./jobManager.js";
 import { shutdownPosthog } from "./posthog.js";
 import { prisma } from "./prisma.js";
@@ -42,10 +40,6 @@ try {
 
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
-
-if (await hasEntitlement('github-app')) {
-    await GithubAppManager.getInstance().init(prisma);
-}
 
 const promClient = new PromClient();
 

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.5] - 2026-07-31
+
+### Fixed
+- Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
+- Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Fixed GitHub connection syncs failing when a configured organization does not have the GitHub App installed by falling back to legacy authentication for that organization. [#1523](https://github.com/sourcebot-dev/sourcebot/pull/1523)
+
+## [5.1.4] - 2026-07-24
+
+### Fixed
+- Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
+- [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
+- [EE] Classified code host permission sync failures by provider context before clearing cached repository permissions. [#1482](https://github.com/sourcebot-dev/sourcebot/pull/1482)
+- [EE] Added action-required warnings and guided recovery when permission syncing clears cached repository access. [#1484](https://github.com/sourcebot-dev/sourcebot/pull/1484)
+- Upgraded `brace-expansion` to `^1.1.16`/`^2.1.2`/`^5.0.7` to address CVE-2026-13149. [#1471](https://github.com/sourcebot-dev/sourcebot/pull/1471)
+- Upgraded `shell-quote` to `^1.10.0`. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
+- Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
+- Fixed multiple CVEs in JavaScript dependencies by upgrading `next-auth`, `@auth/core`, `next`, `postcss`, `sharp`, `linkify-it`, `fast-uri`, `protobufjs`, `body-parser`, `hono`, `@hono/node-server`, and `dompurify` to patched versions, resolving all Yarn audit findings. [#1502](https://github.com/sourcebot-dev/sourcebot/pull/1502)
+- Upgraded the bundled Zoekt gRPC-Go dependency to `v1.82.1`. [#1503](https://github.com/sourcebot-dev/sourcebot/pull/1503)
+
+### Changed
+- Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+
+## [5.1.3] - 2026-07-20
+
+### Added
+- [EE] Added Idira SSO support through OpenID Connect. [#1459](https://github.com/sourcebot-dev/sourcebot/pull/1459)
+- Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1458](https://github.com/sourcebot-dev/sourcebot/pull/1458)
+
+### Fixed
+- Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+- Prevented long file paths from overflowing the browse file header. [#1465](https://github.com/sourcebot-dev/sourcebot/pull/1465)
+
+## [5.1.2] - 2026-07-16
+
+### Added
+- Added an opt-in `SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED` environment variable that sends the authenticated user's lower-cased email to language model providers in the `X-Sourcebot-User-Email` header. [#1455](https://github.com/sourcebot-dev/sourcebot/pull/1455)
+
+### Fixed
+- [EE] Verified signed online license assertions before granting paid feature entitlements. [#1442](https://github.com/sourcebot-dev/sourcebot/pull/1442)
+- [EE] Fixed worker startup races that could disable GitHub App authentication and permission syncing until restart after an online license refresh. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+- [EE] Fixed GitHub connection sync jobs to fail safely when GitHub App authentication is configured without the required entitlement. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+
+## [5.1.1] - 2026-07-14
+
+- Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)
+
 ## [5.1.0] - 2026-07-10
 
 ### Changed

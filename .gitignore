@@ -160,6 +160,10 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/yarn,node
 
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
 .claude
 .sourcebot
 /bin

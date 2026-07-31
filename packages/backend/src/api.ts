@@ -3,10 +3,11 @@ import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter.js';
 import { ExpressAdapter } from '@bull-board/express';
 import { Queue } from 'bullmq';
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
 import { PromClient } from './promClient.js';
+import * as Sentry from "@sentry/node";
 
 const logger = createLogger('api');
 
@@ -34,6 +35,11 @@ export class Api {
             res.set('Content-Type', promClient.registry.contentType);
             const metrics = await promClient.registry.metrics();
             res.end(metrics);
+        });
+
+        app.use((error: unknown, _req: Request, _res: Response, next: NextFunction) => {
+            Sentry.captureException(error);
+            next(error);
         });
 
         this.server = app.listen(PORT, () => {
