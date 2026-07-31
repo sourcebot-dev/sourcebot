@@ -31,12 +31,19 @@ interface NavProps {
     isSettingsNotificationVisible?: boolean;
     isSignedIn?: boolean;
     homeView: HomeView;
+    /**
+     * Whether the current user is an OWNER in the org. The per-item
+     * "Upgrade" badge is only meaningful for owners — a MEMBER cannot
+     * act on the upgrade flow, so we hide the badge unless this is true.
+     */
+    isOwner?: boolean;
 }
 
 export function Nav({
     isSettingsNotificationVisible,
     isSignedIn,
-    homeView
+    homeView,
+    isOwner = false,
 }: NavProps) {
     const pathname = usePathname();
     const entitlements = useEntitlements();
@@ -121,6 +128,7 @@ export function Nav({
                     (item.key === "settings" && isSettingsNotificationVisible);
 
                 const showUpgradeBadge =
+                    isOwner &&
                     (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement));
 
                 return (

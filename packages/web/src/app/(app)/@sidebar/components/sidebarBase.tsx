@@ -60,9 +60,16 @@ interface SidebarBaseProps {
     children: ReactNode;
     isValidLicenseActive: boolean;
     isAskGhEnabled: boolean;
+    /**
+     * Whether the current user is an OWNER in the org. The "Upgrade" CTA
+     * in the sidebar footer is only meaningful for owners — a MEMBER
+     * (or an unauthenticated visitor) cannot act on it, so we hide it
+     * unless this is true.
+     */
+    isOwner?: boolean;
 }
 
-export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive, isAskGhEnabled }: SidebarBaseProps) {
+export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive, isAskGhEnabled, isOwner = false }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const isMobile = useIsMobile();
@@ -114,7 +121,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
                     {children}
                 </SidebarContent>
                 <SidebarFooter className="border-t border-sidebar-border">
-                    {!isValidLicenseActive && <UpgradeButton />}
+                    {isOwner && !isValidLicenseActive && <UpgradeButton />}
                     {
                         (collapsible !== "none" && !isMobile) &&
                         <CollapseSidebarButton />

@@ -59,11 +59,13 @@ export async function DefaultSidebar() {
             collapsible="icon"
             isValidLicenseActive={licenseActive}
             isAskGhEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
+            isOwner={isOwner}
             headerContent={
                 <Nav
                     isSettingsNotificationVisible={isSettingsNotificationVisible}
                     isSignedIn={!!session}
                     homeView={homeView}
+                    isOwner={isOwner}
                 />
             }
         >

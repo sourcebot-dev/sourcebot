@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The "Upgrade to Pro" button in the sidebar footer and the per-item "Upgrade" badges in the default and settings sidebars are now hidden for users who are not an OWNER in the org, since those prompts are only meaningful for the billing decision-maker. [#1524](https://github.com/sourcebot-dev/sourcebot/pull/1524)
+
 ## [5.1.5] - 2026-07-31
 
 ### Fixed
