@@ -12,7 +12,7 @@ export const createReconciliationWorkload = ({
     settings,
 }: ReconciliationWorkloadDependencies): Workload<'reconciliation'> => ({
     concurrency: 1,
-    schedule: { every: '15m' },
+    schedule: { every: '10s' },
     queueSpec: RECONCILIATION_QUEUE,
     process: async ({ logger, trigger }) => {
         const connectionThreshold = new Date(Date.now() - settings.resyncConnectionIntervalMs);

@@ -48,7 +48,6 @@ if (await hasEntitlement('github-app')) {
 }
 
 const promClient = new PromClient();
-const api = new Api(promClient);
 
 logger.info('Worker started.');
 
@@ -66,6 +65,8 @@ const repoIndexWorkload = createRepoIndexWorkload({
 jobManager.register(reconciliationWorkload);
 jobManager.register(connectionWorkload);
 jobManager.register(repoIndexWorkload);
+
+const api = new Api(promClient, jobManager.getQueues());
 
 await cleanupOrphanedRepoResources(prisma);
 await jobManager.start();

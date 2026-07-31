@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { BullMQClient, createBullMQJobLogger, createLogger, DataOf, JobLifecycleContext, QueueName } from "@sourcebot/shared";
-import { Job, Worker } from "bullmq";
+import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 import { JobDetail, JobManager, Schedule, Workload } from "./types.js";
@@ -63,6 +63,12 @@ export class BullMQJobManager implements JobManager {
         this.workloads.set(name, workload);
     }
 
+    getQueues(): Queue[] {
+        return [...this.workloads.values()].map((workload) =>
+            this.bullmqClient.getQueue(workload.queueSpec),
+        );
+    }
+
     async start(): Promise<void> {
         if (this.workloads.size === 0) {
             logger.debug('start() called with nothing registered; nothing to do');
@@ -117,7 +123,7 @@ export class BullMQJobManager implements JobManager {
                     `${LOG_TAG}:${spec.name}:job:${job.id ?? 'unknown'}`,
                 );
                 const lifecycleContext = this.jobLifecycleContext<TName>(job);
-                jobLogger.info(`Started workload "${spec.name}"`);
+                jobLogger.debug(`Started workload "${spec.name}"`);
 
                 try {
                     await workload.onStarted?.(lifecycleContext);
@@ -128,7 +134,7 @@ export class BullMQJobManager implements JobManager {
                         updateProgress: (progress) => job.updateProgress(progress),
                         trigger: (target, data) => this.trigger(target, data),
                     });
-                    jobLogger.info(`Completed workload "${spec.name}"`);
+                    jobLogger.debug(`Completed workload "${spec.name}"`);
                     return result;
                 } catch (error) {
                     jobLogger.error(`Workload "${spec.name}" attempt failed`, error);

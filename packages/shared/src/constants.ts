@@ -23,9 +23,9 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     resyncConnectionIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     resyncConnectionPollingIntervalMs: 1000 * 1, // 1 second
     reindexRepoPollingIntervalMs: 1000 * 1, // 1 second
-    maxConnectionSyncJobConcurrency: 8,
-    maxRepoIndexingJobConcurrency: 8,
-    maxRepoGarbageCollectionJobConcurrency: 8,
+    maxConnectionSyncJobConcurrency: 2,
+    maxRepoIndexingJobConcurrency: 2,
+    maxRepoGarbageCollectionJobConcurrency: 2,
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
     enablePublicAccess: false, // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
@@ -33,8 +33,8 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     experiment_repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours (deprecated)
     experiment_userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours (deprecated)
-    maxAccountPermissionSyncJobConcurrency: 8,
-    maxRepoPermissionSyncJobConcurrency: 8,
+    maxAccountPermissionSyncJobConcurrency: 2,
+    maxRepoPermissionSyncJobConcurrency: 2,
 }
 
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [

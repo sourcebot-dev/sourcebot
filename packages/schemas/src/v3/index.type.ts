@@ -110,15 +110,16 @@ export interface Settings {
   reindexRepoPollingIntervalMs?: number;
   /**
    * @deprecated
-   * The number of connection sync jobs to run concurrently. Defaults to 8.
+   * The number of connection sync jobs to run concurrently. Defaults to 2.
    */
   maxConnectionSyncJobConcurrency?: number;
   /**
-   * The number of repo indexing jobs to run concurrently. Defaults to 8.
+   * The number of repo indexing jobs to run concurrently. Defaults to 2.
    */
   maxRepoIndexingJobConcurrency?: number;
   /**
-   * The number of repo GC jobs to run concurrently. Defaults to 8.
+   * @deprecated
+   * The number of repo GC jobs to run concurrently. Defaults to 2.
    */
   maxRepoGarbageCollectionJobConcurrency?: number;
   /**
@@ -153,11 +154,11 @@ export interface Settings {
    */
   experiment_userDrivenPermissionSyncIntervalMs?: number;
   /**
-   * The number of account permission sync jobs to run concurrently. Defaults to 8.
+   * The number of account permission sync jobs to run concurrently. Defaults to 2.
    */
   maxAccountPermissionSyncJobConcurrency?: number;
   /**
-   * The number of repo permission sync jobs to run concurrently. Defaults to 8.
+   * The number of repo permission sync jobs to run concurrently. Defaults to 2.
    */
   maxRepoPermissionSyncJobConcurrency?: number;
 }
