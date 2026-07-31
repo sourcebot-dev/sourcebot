@@ -13,7 +13,7 @@ import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 const LOG_TAG = 'repo-index-workload';
 const logger = createLogger(LOG_TAG);
 
-interface RepoIndexWorkloadDependencies {
+interface Props {
     db: PrismaClient;
     settings: Settings;
 }
@@ -21,7 +21,7 @@ interface RepoIndexWorkloadDependencies {
 export const createRepoIndexWorkload = ({
     db,
     settings,
-}: RepoIndexWorkloadDependencies): Workload<'repo-index'> => ({
+}: Props): Workload<'repo-index'> => ({
     queueSpec: REPO_INDEX_QUEUE,
     concurrency: settings.maxRepoIndexingJobConcurrency,
     process: async ({ data, logger: jobLogger, signal }) => {

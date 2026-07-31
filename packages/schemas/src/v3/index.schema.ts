@@ -42,8 +42,7 @@ const schema = {
         "maxConnectionSyncJobConcurrency": {
           "type": "number",
           "description": "The number of connection sync jobs to run concurrently. Defaults to 2.",
-          "minimum": 1,
-          "deprecated": true
+          "minimum": 1
         },
         "maxRepoIndexingJobConcurrency": {
           "type": "number",
@@ -229,8 +228,7 @@ const schema = {
         "maxConnectionSyncJobConcurrency": {
           "type": "number",
           "description": "The number of connection sync jobs to run concurrently. Defaults to 2.",
-          "minimum": 1,
-          "deprecated": true
+          "minimum": 1
         },
         "maxRepoIndexingJobConcurrency": {
           "type": "number",

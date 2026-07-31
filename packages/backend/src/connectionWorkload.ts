@@ -1,14 +1,22 @@
-import { Workload } from "./types.js";
-import { prisma } from "./prisma.js";
+import { Settings, Workload } from "./types.js";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
 import { CONNECTION_QUEUE, env, loadConfig } from "@sourcebot/shared";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import * as Sentry from "@sentry/node";
+import { PrismaClient } from "@sourcebot/db";
 
-export const connectionWorkload: Workload<'connection'> = {
+interface Props {
+    db: PrismaClient,
+    settings: Settings;
+}
+
+export const createConnectionWorkload = ({
+    db,
+    settings
+}: Props): Workload<'connection'> => ({
     queueSpec: CONNECTION_QUEUE,
-    concurrency: 2,
+    concurrency: settings.maxConnectionSyncJobConcurrency,
     process: async ({
         data: {
             connectionId,
@@ -21,7 +29,7 @@ export const connectionWorkload: Workload<'connection'> = {
             connectionId,
             orgId,
         });
-        const connection = await prisma.connection.findUniqueOrThrow({
+        const connection = await db.connection.findUniqueOrThrow({
             where: {
                 id: connectionId
             }
@@ -55,7 +63,7 @@ export const connectionWorkload: Workload<'connection'> = {
         // captured by the connection's config (e.g., it was deleted, marked archived, etc.), it won't
         // appear in the repoData array above, and so the RepoToConnection record won't be re-created.
         // Repos that have no RepoToConnection records are considered orphaned and can be deleted.
-        await prisma.$transaction(async (tx) => {
+        await db.$transaction(async (tx) => {
             const deleteStart = performance.now();
             await tx.connection.update({
                 where: {
@@ -104,7 +112,7 @@ export const connectionWorkload: Workload<'connection'> = {
             });
         }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
 
-        await prisma.connection.update({
+        await db.connection.update({
             where: {
                 id: connectionId,
             },
@@ -131,7 +139,7 @@ export const connectionWorkload: Workload<'connection'> = {
             connectionId,
         });
     }
-}
+})
 
 const discoverConnectionRepositories = async ({
     config,

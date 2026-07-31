@@ -13,7 +13,7 @@ import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { createReconciliationWorkload } from "./reconciliationWorkload.js";
 import { redis } from "./redis.js";
-import { connectionWorkload } from "./connectionWorkload.js";
+import { connectionWorkload, createConnectionWorkload } from "./connectionWorkload.js";
 import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 
@@ -48,6 +48,10 @@ logger.info('Worker started.');
 const jobManager = new BullMQJobManager(redis);
 
 const reconciliationWorkload = createReconciliationWorkload({
+    db: prisma,
+    settings,
+});
+const connectionWorkload = createConnectionWorkload({
     db: prisma,
     settings,
 });

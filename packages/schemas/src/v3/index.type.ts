@@ -110,7 +110,6 @@ export interface Settings {
    */
   reindexRepoPollingIntervalMs?: number;
   /**
-   * @deprecated
    * The number of connection sync jobs to run concurrently. Defaults to 2.
    */
   maxConnectionSyncJobConcurrency?: number;
