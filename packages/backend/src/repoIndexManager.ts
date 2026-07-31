@@ -614,6 +614,10 @@ export class RepoIndexManager {
                     where: { id: jobData.repoId },
                 });
 
+                // The repo no longer exists, so drop its time series from the metrics
+                // registry rather than retaining them for the lifetime of the process.
+                this.promClient.removeRepoMetrics(repo.name);
+
                 logger.debug(`Completed cleanup job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
 
