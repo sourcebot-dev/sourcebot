@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
 - Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Fixed GitHub connection syncs failing when a configured organization does not have the GitHub App installed by falling back to legacy authentication for that organization. [#1523](https://github.com/sourcebot-dev/sourcebot/pull/1523)
 
 ## [5.1.4] - 2026-07-24
 
