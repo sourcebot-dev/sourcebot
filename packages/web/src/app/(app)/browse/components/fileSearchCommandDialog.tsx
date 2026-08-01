@@ -35,7 +35,16 @@ export const FileSearchCommandDialog = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
 
-    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
+    // Scope the recents to the (repo, revision) tuple so a switch
+    // branches doesn't carry over suggestions from another revision
+    // that may not exist on the current one. The 'HEAD' default
+    // matches the file-fetch fallback on the next line so the
+    // recents key and the file list key agree on the "no revision
+    // in URL" case. Issue #1387.
+    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(
+        `recentlyOpenedFiles-${repoName}-${revisionName ?? 'HEAD'}`,
+        [],
+    );
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
