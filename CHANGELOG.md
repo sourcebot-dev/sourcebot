@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- The search results panel now distinguishes "the raw search returned no results" from "the active filters excluded everything" when the post-filter list is empty. The latter shows a "No results match the active filters." message with a "Clear filters" button that removes the `repos` and `langs` URL query params. [#1532](https://github.com/sourcebot-dev/sourcebot/pull/1532)
 
 ## [5.1.5] - 2026-07-31
 
