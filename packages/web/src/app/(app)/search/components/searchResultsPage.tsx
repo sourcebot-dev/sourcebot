@@ -22,7 +22,7 @@ import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
 import { Session } from "next-auth";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ImperativePanelHandle } from "react-resizable-panels";
@@ -32,6 +32,8 @@ import { useStreamedSearch } from "../useStreamedSearch";
 import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
+import { useGetSelectedFromQuery } from "./filterPanel/useGetSelectedFromQuery";
+import { LANGUAGES_QUERY_PARAM, REPOS_QUERY_PARAM } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
 
 interface SearchResultsPageProps {
@@ -236,6 +238,32 @@ const PanelGroup = ({
     const filterPanelRef = useRef<ImperativePanelHandle>(null);
     const searchResultsPanelRef = useRef<SearchResultsPanelHandle>(null);
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
+    const pathname = usePathname();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { getSelectedFromQuery } = useGetSelectedFromQuery();
+
+    // True iff the user has at least one repo or language filter
+    // applied. When the post-filter results are empty, this is what
+    // distinguishes "the query matched nothing" from "the filters
+    // excluded everything". See issue #1532.
+    const hasActiveFilters = useMemo(() => {
+        return getSelectedFromQuery(REPOS_QUERY_PARAM).size > 0
+            || getSelectedFromQuery(LANGUAGES_QUERY_PARAM).size > 0;
+    }, [getSelectedFromQuery, searchParams]);
+
+    const onClearFilters = useCallback(() => {
+        // Preserve every other URL param (the search query, regex
+        // toggle, etc.) and drop only the repo/language filter params.
+        // The next render re-derives `filteredFileMatches` from the
+        // now-empty filter set, so the panel re-renders with all raw
+        // matches visible.
+        const next = new URLSearchParams(searchParams.toString());
+        next.delete(REPOS_QUERY_PARAM);
+        next.delete(LANGUAGES_QUERY_PARAM);
+        const qs = next.toString();
+        router.replace(qs.length > 0 ? `${pathname}?${qs}` : pathname);
+    }, [pathname, router, searchParams]);
 
     const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
 
@@ -383,6 +411,24 @@ const PanelGroup = ({
                             <div className="flex flex-col items-center justify-center h-full gap-2">
                                 <RefreshCwIcon className="h-6 w-6 animate-spin" />
                                 <p className="font-semibold text-center">Searching...</p>
+                            </div>
+                        ) : fileMatches.length > 0 && hasActiveFilters ? (
+                            // The raw search returned matches but the
+                            // active repo/language filters excluded all
+                            // of them. The user can't tell the two "no
+                            // results" cases apart without a hint, and
+                            // the filter panel is collapsed by default.
+                            // The "Clear filters" button removes the
+                            // `repos` and `langs` URL params; the next
+                            // render re-derives `filteredFileMatches`
+                            // from the now-empty filter set, so the
+                            // panel re-renders with all raw matches.
+                            // Issue #1532.
+                            <div className="flex flex-col items-center justify-center h-full gap-3">
+                                <p className="text-sm text-muted-foreground">No results match the active filters.</p>
+                                <Button variant="outline" size="sm" onClick={onClearFilters}>
+                                    Clear filters
+                                </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full">
