@@ -26,15 +26,21 @@ const wrap = (ui: React.ReactNode) => (
 );
 
 describe('PureTreePreviewPanel empty state (issue #1530)', () => {
-    test('renders the "This directory is empty" message when the items array is empty', () => {
+    test('renders an honest empty-state message when the items array is empty', () => {
         // The empty-state message is rendered inside the same
         // ScrollArea as the items, so a real "directory" sub-path
         // (path != '') still shows the path header above the panel
-        // and the "This directory is empty." copy below. The
-        // PureTree component doesn't know about the path; the caller
-        // decides whether to render the full panel (path != '') or
-        // the full-panel "This repository is empty" copy (path == '').
+        // and the empty-state copy below. The PureTree component
+        // doesn't know about the path; the caller decides whether
+        // to render the full panel (path != '') or the full-panel
+        // "This repository is empty" copy (path == '').
+        //
+        // We can't tell from `[]` alone whether the directory is
+        // empty or the path doesn't exist in this revision
+        // (git ls-tree returns empty output for both cases), so the
+        // message is intentionally ambiguous. Bugbot finding on PR
+        // #1531.
         render(wrap(<PureTreePreviewPanel items={[]} />));
-        expect(screen.getByText('This directory is empty.')).toBeTruthy();
+        expect(screen.getByText('This path has no contents in this revision.')).toBeTruthy();
     });
 });

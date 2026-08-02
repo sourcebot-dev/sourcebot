@@ -21,8 +21,14 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
             ref={scrollAreaRef}
         >
             {items.length === 0 ? (
+                // We can't tell from `[]` alone whether the directory
+                // is empty or the path doesn't exist in this revision
+                // (git ls-tree returns empty output for both cases). The
+                // message is intentionally ambiguous — the user can
+                // verify the path by looking at the repo on the code
+                // host. Bugbot finding on PR #1531.
                 <div className="p-4 text-sm text-muted-foreground">
-                    This directory is empty.
+                    This path has no contents in this revision.
                 </div>
             ) : (
                 items.map((item) => (

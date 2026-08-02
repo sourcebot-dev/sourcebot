@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
-- The browse file-tree panel now shows a clear "This repository is empty." (root) or "This directory is empty." (sub-path) message when the folder contents are empty, and a dedicated "Repository not found." message for 404s, instead of the generic "Error loading tree preview" or a blank scroll area. [#1530](https://github.com/sourcebot-dev/sourcebot/pull/1530)
+- The browse file-tree panel now shows a clear "This repository is empty." (root) or "This path has no contents in this revision." (sub-path) message when the folder contents are empty, and a dedicated "Repository not found." message for 404s, instead of the generic "Error loading tree preview" or a blank scroll area. The sub-path message is intentionally ambiguous because `git ls-tree` returns empty output for both empty directories and paths that don't exist in the tree, so we can't tell the cases apart at this layer. [#1530](https://github.com/sourcebot-dev/sourcebot/pull/1530)
 
 ## [5.1.5] - 2026-07-31
 
