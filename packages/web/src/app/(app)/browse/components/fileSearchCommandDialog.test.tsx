@@ -90,7 +90,7 @@ describe('FileSearchCommandDialog recents key (issue #1387)', () => {
         mockParams.repoName = 'github.com/foo/bar';
         mockParams.revisionName = 'main';
         const key = renderWithParams();
-        expect(key).toBe('recentlyOpenedFiles-github.com/foo/bar-main');
+        expect(key).toBe('recentlyOpenedFiles::["github.com/foo/bar","main"]');
     });
 
     test('uses the HEAD fallback for the "no revision in URL" case', () => {
@@ -100,7 +100,7 @@ describe('FileSearchCommandDialog recents key (issue #1387)', () => {
         mockParams.repoName = 'github.com/foo/bar';
         mockParams.revisionName = undefined;
         const key = renderWithParams();
-        expect(key).toBe('recentlyOpenedFiles-github.com/foo/bar-HEAD');
+        expect(key).toBe('recentlyOpenedFiles::["github.com/foo/bar","HEAD"]');
     });
 
     test('produces a different key for a different revision in the same repo', () => {
@@ -115,8 +115,24 @@ describe('FileSearchCommandDialog recents key (issue #1387)', () => {
         mockParams.revisionName = 'feature/foo';
         const keyFeature = renderWithParams();
 
-        expect(keyMain).toBe('recentlyOpenedFiles-github.com/foo/bar-main');
-        expect(keyFeature).toBe('recentlyOpenedFiles-github.com/foo/bar-feature/foo');
+        expect(keyMain).toBe('recentlyOpenedFiles::["github.com/foo/bar","main"]');
+        expect(keyFeature).toBe('recentlyOpenedFiles::["github.com/foo/bar","feature/foo"]');
         expect(keyMain).not.toBe(keyFeature);
+    });
+
+    test('does not collide for tuples whose naive-dash concatenation would be ambiguous', () => {
+        // CodeRabbit finding: a naive `<repoName>-<revisionName>` format
+        // collides for tuples like (`foo-bar`, `baz`) vs (`foo`, `bar-baz`).
+        // The JSON-encoded format is collision-free by construction, so
+        // this test asserts that two such tuples produce different keys.
+        mockParams.repoName = 'foo-bar';
+        mockParams.revisionName = 'baz';
+        const keyA = renderWithParams();
+
+        mockParams.repoName = 'foo';
+        mockParams.revisionName = 'bar-baz';
+        const keyB = renderWithParams();
+
+        expect(keyA).not.toBe(keyB);
     });
 });

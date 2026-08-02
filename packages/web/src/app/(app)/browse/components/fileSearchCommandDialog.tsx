@@ -40,9 +40,11 @@ export const FileSearchCommandDialog = () => {
     // that may not exist on the current one. The 'HEAD' default
     // matches the file-fetch fallback on the next line so the
     // recents key and the file list key agree on the "no revision
-    // in URL" case. Issue #1387.
+    // in URL" case. The components are JSON-encoded to avoid
+    // boundary ambiguity (e.g. `foo-bar` + `baz` vs `foo` + `bar-baz`
+    // would otherwise produce the same key). Issue #1387.
     const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(
-        `recentlyOpenedFiles-${repoName}-${revisionName ?? 'HEAD'}`,
+        `recentlyOpenedFiles::${JSON.stringify([repoName, revisionName ?? 'HEAD'])}`,
         [],
     );
 

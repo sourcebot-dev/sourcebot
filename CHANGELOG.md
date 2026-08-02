@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
-- The browse file-search dialog's recently-opened files are now scoped to the `(repo, revision)` tuple, so switching branches in the same repo no longer carries over suggestions from a different revision that may not exist on the current one. [#1387](https://github.com/sourcebot-dev/sourcebot/issues/1387)
+- The browse file-search dialog's recently-opened files are now scoped to the `(repo, revision)` tuple, so switching branches in the same repo no longer carries over suggestions from a different revision that may not exist on the current one. [#1529](https://github.com/sourcebot-dev/sourcebot/pull/1529)
 
 ## [5.1.5] - 2026-07-31
 
