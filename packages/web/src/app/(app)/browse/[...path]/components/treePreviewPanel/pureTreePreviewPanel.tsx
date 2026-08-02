@@ -20,22 +20,28 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
             className="flex flex-col p-0.5"
             ref={scrollAreaRef}
         >
-            {items.map((item) => (
-                <FileTreeItemComponent
-                    key={item.path}
-                    node={item}
-                    isActive={false}
-                    depth={0}
-                    isCollapseChevronVisible={false}
-                    parentRef={scrollAreaRef}
-                    href={getBrowsePath({
-                        repoName,
-                        revisionName,
-                        path: item.path,
-                        pathType: item.type === 'tree' ? 'tree' : 'blob',
-                    })}
-                />
-            ))}
+            {items.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">
+                    This directory is empty.
+                </div>
+            ) : (
+                items.map((item) => (
+                    <FileTreeItemComponent
+                        key={item.path}
+                        node={item}
+                        isActive={false}
+                        depth={0}
+                        isCollapseChevronVisible={false}
+                        parentRef={scrollAreaRef}
+                        href={getBrowsePath({
+                            repoName,
+                            revisionName,
+                            path: item.path,
+                            pathType: item.type === 'tree' ? 'tree' : 'blob',
+                        })}
+                    />
+                ))
+            )}
         </ScrollArea>
     )
 }

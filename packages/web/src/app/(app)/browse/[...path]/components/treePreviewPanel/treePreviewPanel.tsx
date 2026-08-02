@@ -12,6 +12,14 @@ export const TreePreviewPanel = async ({ path, repoName, revisionName }: TreePre
     const repoInfoResponse = await getRepoInfoByName(repoName);
 
     if (isServiceError(repoInfoResponse)) {
+        // A 404 means the user hit a typo in a repo name (or a config
+        // that's no longer indexed). A different status code is an
+        // actual system error. Showing the same generic message for
+        // both confuses users — the typo case looks like a sync
+        // problem. See issue #1530.
+        if (repoInfoResponse.errorCode === 'NOT_FOUND') {
+            return <div>Repository not found.</div>;
+        }
         return <div>Error loading tree preview</div>
     }
 

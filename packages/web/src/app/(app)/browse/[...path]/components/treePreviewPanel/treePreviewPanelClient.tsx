@@ -39,6 +39,22 @@ export const TreePreviewPanelClient = ({ path, repoName, revisionName, repo }: T
         return <div>Error loading tree preview</div>
     }
 
+    // Distinguish "the repository has no files" from "this sub-directory
+    // has no files" at the root path. The latter is handled inside
+    // `PureTreePreviewPanel` with a "This directory is empty." copy;
+    // the former is a stronger message and avoids rendering a path
+    // header for a non-existent root. See issue #1530.
+    if (folderContentsResponse.length === 0 && path === '') {
+        return (
+            <div className="flex flex-col w-full min-h-full items-center justify-center gap-2 p-6 text-muted-foreground">
+                <p className="text-sm font-medium">This repository is empty.</p>
+                <p className="text-xs">
+                    Once a commit lands on the default branch, its files will appear here.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="flex flex-row py-1 px-2 items-center justify-between">
