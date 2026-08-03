@@ -1,19 +1,28 @@
-import { Connection, Repo, RepoToConnection } from "@sourcebot/db";
+import {
+    Connection,
+    PrismaClient,
+    Repo,
+    RepoToConnection,
+} from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
-import { DataOf, JobLifecycleContext, JobLogger, QueueName, QueueSpec } from "@sourcebot/shared";
+import { DataOf, JobLogSink, QueueName, QueueSpec } from "@sourcebot/shared";
 
 export type Settings = Required<SettingsSchema>;
 
 // @see : https://stackoverflow.com/a/61132308
-export type DeepPartial<T> = T extends object ? {
-    [P in keyof T]?: DeepPartial<T[P]>;
-} : T;
+export type DeepPartial<T> = T extends object
+    ? {
+          [P in keyof T]?: DeepPartial<T[P]>;
+      }
+    : T;
 
 // @see: https://stackoverflow.com/a/69328045
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
-export type RepoWithConnections = Repo & { connections: (RepoToConnection & { connection: Connection })[] };
+export type RepoWithConnections = Repo & {
+    connections: (RepoToConnection & { connection: Connection })[];
+};
 
 export type RepoAuthCredentials = {
     hostUrl?: string;
@@ -21,12 +30,20 @@ export type RepoAuthCredentials = {
     cloneUrlWithToken?: string;
     authHeader?: string;
     connectionConfig?: ConnectionConfig;
+};
+
+export interface JobLifecycleContext<TName extends QueueName> {
+    data: DataOf<TName>;
+    jobId: string;
+    attemptsMade: number;
+    maxAttempts: number;
+    prisma: PrismaClient;
+    logger: JobLogSink;
 }
 
-
-export interface ProcessContext<TName extends QueueName> extends JobLifecycleContext<TName> {
+export interface ProcessContext<TName extends QueueName>
+    extends JobLifecycleContext<TName> {
     signal: AbortSignal;
-    logger: JobLogger;
     updateProgress(progress: number | object): Promise<void>;
     trigger<T extends QueueName>(workload: T, data: DataOf<T>): Promise<string>;
 }
@@ -56,9 +73,15 @@ export interface Workload<TName extends QueueName, TResult = unknown> {
     /** Called before `process` on every attempt. */
     onStarted?(ctx: JobLifecycleContext<TName>): Promise<void>;
     /** Called after BullMQ marks the job as completed. */
-    onCompleted?(ctx: JobLifecycleContext<TName>, result: TResult): Promise<void>;
+    onCompleted?(
+        ctx: JobLifecycleContext<TName>,
+        result: TResult,
+    ): Promise<void>;
     /** Called after BullMQ exhausts all attempts and marks the job as failed. */
-    onTerminalFailure?(ctx: JobLifecycleContext<TName>, err: Error): Promise<void>;
+    onTerminalFailure?(
+        ctx: JobLifecycleContext<TName>,
+        err: Error,
+    ): Promise<void>;
 }
 
 export interface JobManager {
@@ -69,11 +92,9 @@ export interface JobManager {
 
     trigger<TName extends QueueName>(
         workload: TName,
-        data: DataOf<TName>
+        data: DataOf<TName>,
     ): Promise<string>;
 }
-
-
 
 export interface QueueCounts {
     waiting: number;
@@ -83,13 +104,20 @@ export interface QueueCounts {
     failed: number;
     paused: number;
     prioritized?: number;
-    'waiting-children'?: number;
+    "waiting-children"?: number;
 }
 
 export interface JobDetail<TData = unknown, TResult = unknown> {
     id: string;
     name: string;
-    state: 'waiting' | 'active' | 'delayed' | 'completed' | 'failed' | 'paused' | 'unknown';
+    state:
+        | "waiting"
+        | "active"
+        | "delayed"
+        | "completed"
+        | "failed"
+        | "paused"
+        | "unknown";
     data: TData;
     attemptsMade: number;
     maxAttempts: number;

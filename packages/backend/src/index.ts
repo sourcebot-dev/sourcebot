@@ -16,6 +16,8 @@ import { redis } from "./redis.js";
 import { createConnectionWorkload } from "./connectionWorkload.js";
 import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
+import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
+import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -59,10 +61,20 @@ const repoIndexWorkload = createRepoIndexWorkload({
     db: prisma,
     settings,
 });
+const accountPermissionSyncWorkload = createAccountPermissionSyncWorkload({
+    db: prisma,
+    settings,
+});
+const repoPermissionSyncWorkload = createRepoPermissionSyncWorkload({
+    db: prisma,
+    settings,
+});
 
 jobManager.register(reconciliationWorkload);
 jobManager.register(connectionWorkload);
 jobManager.register(repoIndexWorkload);
+jobManager.register(accountPermissionSyncWorkload);
+jobManager.register(repoPermissionSyncWorkload);
 
 const api = new Api(promClient, jobManager.getQueues());
 

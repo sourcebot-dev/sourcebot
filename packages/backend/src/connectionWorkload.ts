@@ -11,10 +11,15 @@ interface Props {
     settings: Settings;
 }
 
+interface ConnectionSyncResult {
+    reposToCleanup: { id: number; name: string }[];
+    reposToIndex: { id: number; name: string }[];
+}
+
 export const createConnectionWorkload = ({
     db,
     settings
-}: Props): Workload<'connection-sync'> => ({
+}: Props): Workload<'connection-sync', ConnectionSyncResult> => ({
     queueSpec: CONNECTION_QUEUE,
     concurrency: settings.maxConnectionSyncJobConcurrency,
     process: async ({
@@ -25,6 +30,7 @@ export const createConnectionWorkload = ({
         logger,
         signal,
         jobId,
+        trigger,
     }) => {
         logger.info(`Syncing connection ${connectionId}`, {
             connectionId,
@@ -68,59 +74,107 @@ export const createConnectionWorkload = ({
             );
         })
 
-        // @note: to handle orphaned Repos we delete all RepoToConnection records for this connection,
-        // and then recreate them when we upsert the repos. For example, if a repo is no-longer
-        // captured by the connection's config (e.g., it was deleted, marked archived, etc.), it won't
-        // appear in the repoData array above, and so the RepoToConnection record won't be re-created.
-        // Repos that have no RepoToConnection records are considered orphaned and can be deleted.
-        await db.$transaction(async (tx) => {
-            const deleteStart = performance.now();
-            await tx.connection.update({
-                where: {
-                    id: connectionId,
-                },
-                data: {
-                    repos: {
-                        deleteMany: {}
-                    }
-                }
-            });
-            const deleteDuration = performance.now() - deleteStart;
-            logger.debug(`Deleted existing repository associations`, {
-                connectionId,
-                connectionName: connection.name,
-                durationMs: deleteDuration,
-            });
-
-            const totalUpsertStart = performance.now();
-            for (const repo of repoData) {
-                const upsertStart = performance.now();
-                await tx.repo.upsert({
-                    where: {
-                        external_id_external_codeHostUrl_orgId: {
-                            external_id: repo.external_id,
-                            external_codeHostUrl: repo.external_codeHostUrl,
-                            orgId: orgId,
-                        }
+        const previouslyAssociatedRepos = await db.repo.findMany({
+            where: {
+                connections: {
+                    some: {
+                        connectionId,
                     },
-                    update: repo,
-                    create: repo,
-                })
-                const upsertDuration = performance.now() - upsertStart;
-                logger.debug(`Upserted repository ${repo.displayName}`, {
+                },
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        const upsertedRepos: { id: number; name: string; indexedAt: Date | null }[] = [];
+
+        for (const repo of repoData) {
+            const upsertedRepo = await db.repo.upsert({
+                where: {
+                    external_id_external_codeHostUrl_orgId: {
+                        external_id: repo.external_id,
+                        external_codeHostUrl: repo.external_codeHostUrl,
+                        orgId: orgId,
+                    }
+                },
+                update: {
+                    ...repo,
+                    connections: {
+                        createMany: {
+                            data: {
+                                connectionId,
+                            },
+                            skipDuplicates: true,
+                        },
+                    },
+                },
+                create: repo,
+                select: {
+                    id: true,
+                    name: true,
+                    indexedAt: true,
+                },
+            })
+            upsertedRepos.push(upsertedRepo);
+        }
+
+        const currentRepoIds = new Set(upsertedRepos.map(({ id }) => id));
+        const staleRepoIds = previouslyAssociatedRepos
+            .map(({ id }) => id)
+            .filter((id) => !currentRepoIds.has(id));
+
+        if (staleRepoIds.length > 0) {
+            await db.repoToConnection.deleteMany({
+                where: {
                     connectionId,
-                    externalId: repo.external_id,
-                    durationMs: upsertDuration,
-                });
-            }
-            const totalUpsertDuration = performance.now() - totalUpsertStart;
-            logger.info(`Stored ${repoData.length} repositories`, {
-                connectionId,
-                connectionName: connection.name,
-                repositoryCount: repoData.length,
-                durationMs: totalUpsertDuration,
+                    repoId: {
+                        in: staleRepoIds,
+                    },
+                },
             });
-        }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
+        }
+
+        const reposToCleanup = staleRepoIds.length > 0
+            ? await db.repo.findMany({
+                where: {
+                    id: {
+                        in: staleRepoIds,
+                    },
+                    connections: {
+                        none: {},
+                    },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                },
+            })
+            : [];
+
+        const reposToIndex = upsertedRepos
+            .filter(({ indexedAt }) => indexedAt === null)
+            .map(({ id, name }) => ({ id, name }));
+
+        await Promise.all(reposToCleanup.map(({ id }) =>
+            trigger('repo-index', {
+                repoId: id,
+                type: 'CLEANUP',
+            })
+        ));
+
+        await Promise.all(reposToIndex.map(({ id }) =>
+            trigger('repo-index', {
+                repoId: id,
+                type: 'INDEX',
+            })
+        ));
+
+        logger.info(`Stored ${repoData.length} repositories`, {
+            connectionId,
+            connectionName: connection.name,
+            repositoryCount: repoData.length,
+        });
 
         await db.connection.update({
             where: {
@@ -148,6 +202,11 @@ export const createConnectionWorkload = ({
         logger.info(`Connection ${connectionId} sync finished`, {
             connectionId,
         });
+
+        return {
+            reposToCleanup,
+            reposToIndex,
+        };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
         await db.connectionSyncJob.upsert({

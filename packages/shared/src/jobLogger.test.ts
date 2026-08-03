@@ -71,6 +71,25 @@ describe("createBullMQJobLogger", () => {
         await expect(logger.flush()).resolves.toBeUndefined();
         expect(mocks.applicationError).toHaveBeenCalled();
     });
+
+    test("uses the supplied attempt for post-processing lifecycle logs", async () => {
+        const log = vi.fn().mockResolvedValue(1);
+        const logger = createBullMQJobLogger(
+            {
+                id: "job-1",
+                name: "connection",
+                queueName: "connection",
+                attemptsMade: 2,
+                log,
+            },
+            { attempt: 2 },
+        );
+
+        logger.info("Completed");
+        await logger.flush();
+
+        expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({ attempt: 2 });
+    });
 });
 
 describe("readBullMQJobLogs", () => {

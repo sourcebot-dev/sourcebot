@@ -41,17 +41,17 @@ const schema = {
         },
         "maxConnectionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of connection sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of connection sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoIndexingJobConcurrency": {
           "type": "number",
-          "description": "The number of repo indexing jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo indexing jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoGarbageCollectionJobConcurrency": {
           "type": "number",
-          "description": "The number of repo GC jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
           "minimum": 1,
           "deprecated": true
         },
@@ -95,12 +95,12 @@ const schema = {
         },
         "maxAccountPermissionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of account permission sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of account permission sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoPermissionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         }
       },
@@ -227,17 +227,17 @@ const schema = {
         },
         "maxConnectionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of connection sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of connection sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoIndexingJobConcurrency": {
           "type": "number",
-          "description": "The number of repo indexing jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo indexing jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoGarbageCollectionJobConcurrency": {
           "type": "number",
-          "description": "The number of repo GC jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
           "minimum": 1,
           "deprecated": true
         },
@@ -281,12 +281,12 @@ const schema = {
         },
         "maxAccountPermissionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of account permission sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of account permission sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         },
         "maxRepoPermissionSyncJobConcurrency": {
           "type": "number",
-          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 2.",
+          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         }
       },

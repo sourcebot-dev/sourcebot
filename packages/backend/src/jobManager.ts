@@ -1,12 +1,25 @@
 import * as Sentry from "@sentry/node";
-import { BullMQClient, createBullMQJobLogger, createLogger, DataOf, JobLifecycleContext, QueueName } from "@sourcebot/shared";
+import {
+    BullMQClient,
+    createBullMQJobLogger,
+    createLogger,
+    DataOf,
+    JobLogSink,
+    QueueName,
+} from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
-import { JobDetail, JobManager, Schedule, Workload } from "./types.js";
+import {
+    JobDetail,
+    JobManager,
+    Schedule,
+    JobLifecycleContext,
+    Workload,
+} from "./types.js";
 import { prisma } from "./prisma.js";
 
-const LOG_TAG = 'job-manager';
+const LOG_TAG = "job-manager";
 const logger = createLogger(LOG_TAG);
 
 const DURATION_UNITS_MS: Record<string, number> = {
@@ -20,39 +33,46 @@ const DURATION_UNITS_MS: Record<string, number> = {
 export const parseDuration = (value: string): number => {
     const match = /^(\d+)(ms|s|m|h|d)$/.exec(value.trim());
     if (!match) {
-        throw new Error(`Invalid duration "${value}". Expected e.g. "500ms", "30s", "5m", "6h", "1d".`);
+        throw new Error(
+            `Invalid duration "${value}". Expected e.g. "500ms", "30s", "5m", "6h", "1d".`,
+        );
     }
     return Number(match[1]) * DURATION_UNITS_MS[match[2]];
 };
 
-export const normalizeJobState = (state: string): JobDetail['state'] => {
+export const normalizeJobState = (state: string): JobDetail["state"] => {
     switch (state) {
-        case 'waiting':
-        case 'active':
-        case 'delayed':
-        case 'completed':
-        case 'failed':
-        case 'paused':
+        case "waiting":
+        case "active":
+        case "delayed":
+        case "completed":
+        case "failed":
+        case "paused":
             return state;
-        case 'prioritized':
-        case 'waiting-children':
-            return 'waiting';
+        case "prioritized":
+        case "waiting-children":
+            return "waiting";
         default:
-            return 'unknown';
+            return "unknown";
     }
 };
 
 const scheduleToRepeat = (schedule: Schedule) =>
-    'pattern' in schedule ? { pattern: schedule.pattern } : { every: parseDuration(schedule.every) };
+    "pattern" in schedule
+        ? { pattern: schedule.pattern }
+        : { every: parseDuration(schedule.every) };
 
 export class BullMQJobManager implements JobManager {
-    private readonly workloads = new Map<string, Workload<QueueName, unknown>>();
+    private readonly workloads = new Map<
+        string,
+        Workload<QueueName, unknown>
+    >();
     private readonly workers = new Map<string, Worker>();
     private readonly bullmqClient: BullMQClient;
     private readonly abortController = new AbortController();
 
     constructor(private readonly connection: Redis) {
-        this.bullmqClient = new BullMQClient(connection, prisma);
+        this.bullmqClient = new BullMQClient(connection);
     }
 
     register<TName extends QueueName>(workload: Workload<TName>): void {
@@ -71,7 +91,9 @@ export class BullMQJobManager implements JobManager {
 
     async start(): Promise<void> {
         if (this.workloads.size === 0) {
-            logger.debug('start() called with nothing registered; nothing to do');
+            logger.debug(
+                "start() called with nothing registered; nothing to do",
+            );
             return;
         }
 
@@ -80,17 +102,21 @@ export class BullMQJobManager implements JobManager {
         }
 
         logger.info(
-            `Started ${this.workloads.size} workload(s) [${[...this.workloads.keys()].join(', ')}]`,
+            `Started ${this.workloads.size} workload(s) [${[...this.workloads.keys()].join(", ")}]`,
         );
     }
 
     async trigger<TName extends QueueName>(
         workloadName: TName,
-        data: DataOf<TName>
+        data: DataOf<TName>,
     ): Promise<string> {
-        const workload = this.workloads.get(workloadName) as Workload<TName> | undefined;
+        const workload = this.workloads.get(workloadName) as
+            | Workload<TName>
+            | undefined;
         if (!workload) {
-            throw new Error(`Cannot trigger unknown workload "${workloadName}"`);
+            throw new Error(
+                `Cannot trigger unknown workload "${workloadName}"`,
+            );
         }
         return this.bullmqClient.enqueue(workload.queueSpec, data);
     }
@@ -98,19 +124,25 @@ export class BullMQJobManager implements JobManager {
     async stop(): Promise<void> {
         this.abortController.abort();
 
-        await Promise.all([...this.workers.values()].map((worker) =>
-            Promise.race([
-                worker.close(),
-                new Promise((resolve) => setTimeout(resolve, WORKER_STOP_GRACEFUL_TIMEOUT_MS)),
-            ]),
-        ));
+        await Promise.all(
+            [...this.workers.values()].map((worker) =>
+                Promise.race([
+                    worker.close(),
+                    new Promise((resolve) =>
+                        setTimeout(resolve, WORKER_STOP_GRACEFUL_TIMEOUT_MS),
+                    ),
+                ]),
+            ),
+        );
 
         await this.bullmqClient.close();
 
-        logger.info('Job manager stopped');
+        logger.info("Job manager stopped");
     }
 
-    private async startWorkload<TName extends QueueName>(workload: Workload<TName>): Promise<void> {
+    private async startWorkload<TName extends QueueName>(
+        workload: Workload<TName>,
+    ): Promise<void> {
         const { queueSpec: spec, concurrency, rateLimit, schedule } = workload;
 
         const queue = this.bullmqClient.getQueue(spec);
@@ -118,24 +150,29 @@ export class BullMQJobManager implements JobManager {
         const worker = new Worker(
             spec.name,
             async (job) => {
-                const jobLogger = createBullMQJobLogger(
+                const jobLogger = createBullMQJobLogger(job, {
+                    label: `${LOG_TAG}:${spec.name}:job:${job.id ?? "unknown"}`,
+                });
+                const lifecycleContext = this.jobLifecycleContext<TName>(
                     job,
-                    `${LOG_TAG}:${spec.name}:job:${job.id ?? 'unknown'}`,
+                    jobLogger,
                 );
-                const lifecycleContext = this.jobLifecycleContext<TName>(job);
 
                 try {
                     await workload.onStarted?.(lifecycleContext);
                     const result = await workload.process({
                         ...lifecycleContext,
                         signal: this.abortController.signal,
-                        logger: jobLogger,
-                        updateProgress: (progress) => job.updateProgress(progress),
+                        updateProgress: (progress) =>
+                            job.updateProgress(progress),
                         trigger: (target, data) => this.trigger(target, data),
                     });
                     return result;
                 } catch (error) {
-                    jobLogger.error(`Workload "${spec.name}" attempt failed`, error);
+                    jobLogger.error(
+                        `Workload "${spec.name}" attempt failed`,
+                        error,
+                    );
                     throw error;
                 } finally {
                     await jobLogger.flush();
@@ -146,18 +183,23 @@ export class BullMQJobManager implements JobManager {
                 concurrency,
                 maxStalledCount: 1,
                 ...(rateLimit
-                    ? { limiter: { max: rateLimit.max, duration: parseDuration(rateLimit.per) } }
+                    ? {
+                          limiter: {
+                              max: rateLimit.max,
+                              duration: parseDuration(rateLimit.per),
+                          },
+                      }
                     : {}),
             },
         );
 
-        worker.on('failed', (job, error) => {
+        worker.on("failed", (job, error) => {
             void this.onWorkloadJobFailed(workload, job, error);
         });
-        worker.on('completed', (job, result) => {
+        worker.on("completed", (job, result) => {
             void this.onWorkloadJobCompleted(workload, job, result);
         });
-        worker.on('error', (error) => {
+        worker.on("error", (error) => {
             logger.error(`Worker "${spec.name}" error:`, error);
         });
 
@@ -176,7 +218,9 @@ export class BullMQJobManager implements JobManager {
                     name: spec.name,
                     opts: {
                         attempts: spec.jobOptions.attempts,
-                        removeOnComplete: { count: spec.jobOptions.keep.completed },
+                        removeOnComplete: {
+                            count: spec.jobOptions.keep.completed,
+                        },
                         removeOnFail: { count: spec.jobOptions.keep.failed },
                         keepLogs: spec.jobOptions.keepLogs,
                     },
@@ -196,16 +240,36 @@ export class BullMQJobManager implements JobManager {
         const maxAttempts = job.opts.attempts ?? 1;
         const isTerminal = job.attemptsMade >= maxAttempts;
         if (!isTerminal) {
-            logger.warn(`Workload "${workload.queueSpec.name}" job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts}; will retry: ${error.message}`);
+            logger.warn(
+                `Workload "${workload.queueSpec.name}" job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts}; will retry: ${error.message}`,
+            );
             return;
         }
-        logger.error(`Workload "${workload.queueSpec.name}" job ${job.id} failed terminally after ${job.attemptsMade} attempt(s): ${error.message}`);
+        logger.error(
+            `Workload "${workload.queueSpec.name}" job ${job.id} failed terminally after ${job.attemptsMade} attempt(s): ${error.message}`,
+        );
 
+        const jobLogger = createBullMQJobLogger(job, {
+            label: `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`,
+            attempt: Math.max(job.attemptsMade, 1),
+        });
         try {
-            await workload.onTerminalFailure?.(this.jobLifecycleContext<TName>(job), error);
+            await workload.onTerminalFailure?.(
+                this.jobLifecycleContext<TName>(job, jobLogger),
+                error,
+            );
         } catch (hookError) {
             Sentry.captureException(hookError);
-            logger.error(`onTerminalFailure for workload "${workload.queueSpec.name}" threw:`, hookError);
+            jobLogger.error(
+                `onTerminalFailure for workload "${workload.queueSpec.name}" threw`,
+                hookError,
+            );
+            logger.error(
+                `onTerminalFailure for workload "${workload.queueSpec.name}" threw:`,
+                hookError,
+            );
+        } finally {
+            await jobLogger.flush();
         }
     }
 
@@ -214,21 +278,41 @@ export class BullMQJobManager implements JobManager {
         job: Job,
         result: TResult,
     ): Promise<void> {
+        const jobLogger = createBullMQJobLogger(job, {
+            label: `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`,
+            attempt: Math.max(job.attemptsMade, 1),
+        });
         try {
-            await workload.onCompleted?.(this.jobLifecycleContext<TName>(job), result);
+            await workload.onCompleted?.(
+                this.jobLifecycleContext<TName>(job, jobLogger),
+                result,
+            );
         } catch (hookError) {
             Sentry.captureException(hookError);
-            logger.error(`onCompleted for workload "${workload.queueSpec.name}" threw:`, hookError);
+            jobLogger.error(
+                `onCompleted for workload "${workload.queueSpec.name}" threw`,
+                hookError,
+            );
+            logger.error(
+                `onCompleted for workload "${workload.queueSpec.name}" threw:`,
+                hookError,
+            );
+        } finally {
+            await jobLogger.flush();
         }
     }
 
-    private jobLifecycleContext<TName extends QueueName>(job: Job): JobLifecycleContext<TName> {
+    private jobLifecycleContext<TName extends QueueName>(
+        job: Job,
+        logger: JobLogSink,
+    ): JobLifecycleContext<TName> {
         return {
             data: job.data,
-            jobId: job.id ?? '',
+            jobId: job.id ?? "",
             attemptsMade: job.attemptsMade,
             maxAttempts: job.opts.attempts ?? 1,
             prisma,
+            logger,
         };
     }
 }

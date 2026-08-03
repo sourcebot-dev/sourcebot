@@ -1,14 +1,9 @@
-import * as Sentry from "@sentry/node";
 import { Queue } from "bullmq";
 import { randomUUID } from "crypto";
 import { Redis } from "ioredis";
-import { createLogger } from "./logger.js";
 import { DataOf, QueueName, QueueSpec } from "./queue.js";
-import { PrismaClient } from "@sourcebot/db";
 import { readBullMQJobLogs } from "./jobLogger.js";
 import type { GetJobLogsOptions, JobLogs } from "./jobLogger.js";
-
-const logger = createLogger('job-producer');
 
 export type WorkloadJobStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
 
@@ -52,7 +47,6 @@ export class BullMQClient {
 
     constructor(
         private readonly connection: Redis,
-        private readonly prisma: PrismaClient,
     ) {}
 
     getQueue<TName extends QueueName>(spec: QueueSpec<TName>): WorkloadQueue<TName> {
@@ -115,22 +109,6 @@ export class BullMQClient {
 
         if (!job.id) {
             throw new Error(`BullMQ did not return an id for workload "${spec.name}"`);
-        }
-
-        const isEnqueued = job.id === requestedJobId;
-        if (isEnqueued && spec.onEnqueued) {
-            try {
-                await spec.onEnqueued({
-                    data,
-                    jobId: job.id,
-                    attemptsMade: 0,
-                    maxAttempts: spec.jobOptions.attempts,
-                    prisma: this.prisma,
-                });
-            } catch (error) {
-                Sentry.captureException(error);
-                logger.error(`onEnqueued for workload "${spec.name}" threw:`, error);
-            }
         }
 
         return job.id;

@@ -37,11 +37,15 @@ export interface JobLogs {
     count: number;
 }
 
-type BullMQLogJob = Pick<Job, "id" | "name" | "queueName" | "attemptsMade" | "log">;
+type BullMQLogJob = Pick<
+    Job,
+    "id" | "name" | "queueName" | "attemptsMade" | "log"
+>;
 type JobLogQueue = Pick<Queue, "getJobLogs">;
 
 const JOB_LOG_LEVELS = new Set<JobLogLevel>(["debug", "info", "warn", "error"]);
-const SENSITIVE_FIELD_NAME = /authorization|cookie|credential|password|private.?key|secret|token/i;
+const SENSITIVE_FIELD_NAME =
+    /authorization|cookie|credential|password|private.?key|secret|token/i;
 const MAX_FIELD_DEPTH = 6;
 
 const sanitizeValue = (
@@ -104,7 +108,11 @@ const sanitizeFields = (fields: unknown): JobLogFields | undefined => {
     }
 
     const sanitized = sanitizeValue(fields, new WeakSet(), 0);
-    if (sanitized !== null && typeof sanitized === "object" && !Array.isArray(sanitized)) {
+    if (
+        sanitized !== null &&
+        typeof sanitized === "object" &&
+        !Array.isArray(sanitized)
+    ) {
         return sanitized as JobLogFields;
     }
     return { value: sanitized };
@@ -163,12 +171,22 @@ export const readBullMQJobLogs = async (
 
 export const createBullMQJobLogger = (
     job: BullMQLogJob,
-    label = `${job.queueName}:job:${job.id ?? "unknown"}`,
+    options: {
+        label?: string;
+        attempt?: number;
+    } = {},
 ): JobLogger => {
+    const label =
+        options.label ?? `${job.queueName}:job:${job.id ?? "unknown"}`;
+    const attempt = options.attempt ?? job.attemptsMade + 1;
     const applicationLogger = createLogger(label);
     const pendingWrites = new Set<Promise<void>>();
 
-    const write = (level: JobLogLevel, message: string, rawFields?: unknown): void => {
+    const write = (
+        level: JobLogLevel,
+        message: string,
+        rawFields?: unknown,
+    ): void => {
         const fields = sanitizeFields(rawFields);
         applicationLogger.log(level, message, fields);
 
@@ -177,10 +195,11 @@ export const createBullMQJobLogger = (
             timestamp: new Date().toISOString(),
             level,
             message,
-            attempt: job.attemptsMade + 1,
+            attempt,
             ...(fields ? { fields } : {}),
         };
-        const pendingWrite = job.log(JSON.stringify(entry))
+        const pendingWrite = job
+            .log(JSON.stringify(entry))
             .then(() => undefined)
             .catch((error: unknown) => {
                 applicationLogger.error(
