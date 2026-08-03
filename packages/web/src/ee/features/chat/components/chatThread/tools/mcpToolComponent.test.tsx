@@ -86,7 +86,7 @@ const createReconnectState = (overrides: Partial<McpReconnectState> = {}): McpRe
 });
 
 describe('McpToolComponent reconnect recovery UI', () => {
-    test('shows the concise reconnect message and an enabled Reconnect action once the response settles', () => {
+    test('keeps the concise authentication error in details without duplicating the banner action', () => {
         const contextValue = createReconnectContext(createReconnectState());
 
         render(
@@ -96,71 +96,7 @@ describe('McpToolComponent reconnect recovery UI', () => {
         );
 
         expect(screen.getByText('Linear needs to be reconnected.')).toBeTruthy();
-        const button = screen.getByRole('button', { name: 'Reconnect Linear' }) as HTMLButtonElement;
-        expect(button.disabled).toBe(false);
-
-        fireEvent.click(button);
-        expect(contextValue.reconnect).toHaveBeenCalledWith('server-1');
-    });
-
-    test('keeps Reconnect disabled while the assistant response has not settled', () => {
-        const contextValue = createReconnectContext(createReconnectState(), { isReconnectAllowed: false });
-
-        render(
-            <McpReconnectContext.Provider value={contextValue}>
-                <McpToolComponent part={createErrorPart()} />
-            </McpReconnectContext.Provider>
-        );
-
-        const button = screen.getByRole('button', { name: 'Reconnect Linear' }) as HTMLButtonElement;
-        expect(button.disabled).toBe(true);
-    });
-
-    test('shows a loading state while OAuth is starting', () => {
-        const contextValue = createReconnectContext(createReconnectState({ status: 'reconnecting' }));
-
-        render(
-            <McpReconnectContext.Provider value={contextValue}>
-                <McpToolComponent part={createErrorPart()} />
-            </McpReconnectContext.Provider>
-        );
-
-        const button = screen.getByRole('button', { name: /Reconnecting/ }) as HTMLButtonElement;
-        expect(button.disabled).toBe(true);
-    });
-
-    test('shows Reconnected and Continue after a successful reconnect', () => {
-        const contextValue = createReconnectContext(
-            createReconnectState({ status: 'reconnected' }),
-            { isContinueAllowed: true },
-        );
-
-        render(
-            <McpReconnectContext.Provider value={contextValue}>
-                <McpToolComponent part={createErrorPart()} />
-            </McpReconnectContext.Provider>
-        );
-
-        expect(screen.getByText('Reconnected')).toBeTruthy();
-        const button = screen.getByRole('button', { name: 'Continue' });
-        fireEvent.click(button);
-        expect(contextValue.continueAfterReconnect).toHaveBeenCalledWith('server-1');
-    });
-
-    test('hides Continue when it is not allowed (e.g. multiple failed connectors)', () => {
-        const contextValue = createReconnectContext(
-            createReconnectState({ status: 'reconnected' }),
-            { isContinueAllowed: false },
-        );
-
-        render(
-            <McpReconnectContext.Provider value={contextValue}>
-                <McpToolComponent part={createErrorPart()} />
-            </McpReconnectContext.Provider>
-        );
-
-        expect(screen.getByText('Reconnected')).toBeTruthy();
-        expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Reconnect Linear' })).toBeNull();
     });
 
     test('keeps the technical error inside the expandable details section', () => {

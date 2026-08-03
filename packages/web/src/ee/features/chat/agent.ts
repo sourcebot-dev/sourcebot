@@ -401,7 +401,7 @@ export const createMessageStream = async ({
                 },
                 onMcpAuthRequired: (failure) => {
                     // Transient: consumed live by the client to surface the
-                    // inline reconnect UI, never folded into persisted parts.
+                    // connector reconnect UI, never folded into persisted parts.
                     writer.write({
                         type: 'data-mcp-auth-required',
                         data: failure,

@@ -5,9 +5,10 @@ import { createContext, useContext } from 'react';
 export type McpReconnectStatus = 'authentication-required' | 'reconnecting' | 'reconnected';
 
 // Client-only reconnect state for a connector that failed authentication in
-// the current assistant response. `toolCallId` is the first failed tool call,
-// so the inline recovery UI renders on the correct tool result. This state
-// intentionally does not survive an unrelated reload.
+// the current assistant response. `toolCallId` identifies the first failed
+// tool call so its technical status can be decorated while the recovery
+// action remains visible in the thread-level banner. This state intentionally
+// does not survive an unrelated reload.
 export interface McpReconnectState {
     serverId: string;
     serverName: string;

@@ -31,6 +31,7 @@ import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfigur
 import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
 import { McpReconnectContext } from '../../mcpReconnectContext';
 import { McpAuthRequiredData, useMcpReconnectController } from './useMcpReconnectController';
+import { McpReconnectBanner } from './mcpReconnectBanner';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
@@ -442,6 +443,7 @@ export const ChatThread = ({
                 isVisible={isFailedMcpBannerVisible}
                 onClose={() => setIsFailedMcpBannerVisible(false)}
             />
+            <McpReconnectBanner />
 
             <div className="relative h-full w-full p-4 overflow-hidden min-h-0">
                 <div
