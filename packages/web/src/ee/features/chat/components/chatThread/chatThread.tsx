@@ -29,6 +29,8 @@ import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
 import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
+import { McpReconnectContext } from '../../mcpReconnectContext';
+import { McpAuthRequiredData, useMcpReconnectController } from './useMcpReconnectController';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
@@ -153,6 +155,11 @@ export const ChatThread = ({
         disabledMcpServerIds: disabledMcpRef.current,
     }), []);
 
+    // The reconnect controller is created after useChat (it needs the chat's
+    // messages and status), so transient auth-required events received in
+    // onData are forwarded to it through a ref.
+    const onMcpAuthRequiredRef = useRef<((data: McpAuthRequiredData) => void) | null>(null);
+
     // Transport with dynamic body, resolved on every request, including auto-resends
     // triggered by sendAutomaticallyWhen after tool approval.
     // eslint-disable-next-line react-hooks/refs -- DefaultChatTransport stores the body callback and invokes it during requests, not during render.
@@ -202,6 +209,9 @@ export const ChatThread = ({
                     return [...prev, dataPart.data.serverName];
                 });
                 setIsFailedMcpBannerVisible(true);
+            }
+            if (dataPart.type === 'data-mcp-auth-required') {
+                onMcpAuthRequiredRef.current?.(dataPart.data);
             }
         }
     });
@@ -275,6 +285,23 @@ export const ChatThread = ({
         enabled: shouldGuardNavigation,
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
+
+    const {
+        contextValue: mcpReconnectContextValue,
+        onAuthRequired: onMcpAuthRequired,
+    } = useMcpReconnectController({
+        status,
+        messages,
+        isTurnInProgress,
+        addToolApprovalResponse,
+        sendMessage,
+        selectedSearchScopes,
+        disabledMcpServerIds,
+    });
+
+    useEffect(() => {
+        onMcpAuthRequiredRef.current = onMcpAuthRequired;
+    }, [onMcpAuthRequired]);
 
     // When the chat is finished, refresh the page to update the chat history.
     const prevStatus = usePrevious(status);
@@ -395,6 +422,7 @@ export const ChatThread = ({
 
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
+        <McpReconnectContext.Provider value={mcpReconnectContextValue}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
         <McpToolNameContext.Provider value={mcpToolNameMap}>
         <ChatPaneDropzone
@@ -547,6 +575,7 @@ export const ChatThread = ({
         </ChatPaneDropzone>
         </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
+        </McpReconnectContext.Provider>
         </ToolApprovalProvider>
     );
 }

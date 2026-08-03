@@ -12,6 +12,7 @@ export const SET_CHAT_STATE_SESSION_STORAGE_KEY = 'setChatState';
 export const PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY = 'pendingChatSubmission';
 export const DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY = 'disabledMcpServerIds';
 export const MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY = 'mcpOAuthDraft';
+export const MCP_RECONNECT_SESSION_STORAGE_KEY = 'mcpReconnectPending';
 
 // Single upper bound on the total attachment text submitted per turn (text is
 // inlined and re-emitted every turn). ~256KB ≈ 65-85K tokens: enough for a few

@@ -3,10 +3,12 @@
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
+import { getMcpReconnectStateForToolCall, McpReconnectState, useMcpReconnect } from "@/ee/features/chat/mcpReconnectContext";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DynamicToolUIPart } from "ai";
-import { CheckCircle, ChevronDown, XCircle } from "lucide-react";
+import { CheckCircle, ChevronDown, Loader2, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { JsonHighlighter, unescapeJsonStrings } from "./jsonHighlighter";
 import { ToolTokenBadge } from "./toolTokenBadge";
@@ -55,6 +57,11 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
     const display = getMcpToolDisplayParts(part.toolName, rawToolNames);
     const faviconUrl = display.serverName ? iconMap[display.serverName] : undefined;
 
+    const reconnectContext = useMcpReconnect();
+    const reconnectState = reconnectContext && part.state === 'output-error'
+        ? getMcpReconnectStateForToolCall(reconnectContext.reconnectStates, part.toolCallId)
+        : undefined;
+
     const hasInput = part.state !== 'input-streaming';
 
     const requestText = useMemo(
@@ -90,6 +97,14 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
 
     const renderStatus = () => {
         if (part.state === 'output-error') {
+            if (reconnectState) {
+                return (
+                    <span className="text-sm flex-1 text-destructive flex items-center gap-1.5">
+                        <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
+                        {reconnectState.serverName} needs to be reconnected.
+                    </span>
+                );
+            }
             return (
                 <span className="text-sm flex-1 text-destructive flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
@@ -163,6 +178,9 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
                     </button>
                 )}
             </div>
+            {reconnectState && (
+                <McpReconnectActions state={reconnectState} />
+            )}
             {hasInput && isExpanded && (
                 <div className="rounded-lg border border-border text-xs overflow-y-auto max-h-72">
                     <ResultSection label={`Request (${display.displayName})`} onCopy={onCopyRequest}>
@@ -180,6 +198,53 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
                     )}
                 </div>
             )}
+        </div>
+    );
+};
+
+const McpReconnectActions = ({ state }: { state: McpReconnectState }) => {
+    const reconnectContext = useMcpReconnect();
+    if (!reconnectContext) {
+        return null;
+    }
+
+    if (state.status === 'reconnected') {
+        return (
+            <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                    Reconnected
+                </span>
+                {reconnectContext.isContinueAllowed && (
+                    <Button
+                        size="sm"
+                        onClick={() => reconnectContext.continueAfterReconnect(state.serverId)}
+                    >
+                        Continue
+                    </Button>
+                )}
+            </div>
+        );
+    }
+
+    const isReconnecting = state.status === 'reconnecting';
+    return (
+        <div className="flex items-center">
+            <Button
+                size="sm"
+                variant="outline"
+                disabled={isReconnecting || !reconnectContext.isReconnectAllowed}
+                onClick={() => reconnectContext.reconnect(state.serverId)}
+            >
+                {isReconnecting ? (
+                    <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Reconnecting...
+                    </>
+                ) : (
+                    <>Reconnect {state.serverName}</>
+                )}
+            </Button>
         </div>
     );
 };

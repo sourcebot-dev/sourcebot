@@ -158,6 +158,11 @@ export type SBChatMessageDataParts = {
     "mcp-tool": { modelToolName: string; rawToolName: string },
     // The `mcp-failed-server` data type surfaces MCP servers that failed to load their tools.
     "mcp-failed-server": { serverName: string },
+    // The `mcp-auth-required` data type signals that a connector's tool call
+    // failed with a reconnect-required authentication failure. Always written
+    // with `transient: true`: it is consumed live by the client to drive the
+    // inline reconnect UI and is never included in persisted messages.
+    "mcp-auth-required": { serverId: string; serverName: string; toolCallId: string },
     // A user-provided file attachment included with the message.
     "attachment": AttachmentData,
     // The `command` data type preserves the slash command identity so the server
