@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added a `lint:fix` script to auto-fix ESLint issues across workspaces. [#XXXX](https://github.com/sourcebot-dev/sourcebot/pull/1510)
+### Fixed
+- Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- Upgraded `tar` to `^7.5.22`. [#1472](https://github.com/sourcebot-dev/sourcebot/pull/1472)
+- Fixed GitLab topic filters being incorrectly case-sensitive. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
 
-### Changed
-- Vulnerability triage now keeps Linear issues synchronized with current security findings.
+## [5.1.5] - 2026-07-31
+
+### Fixed
+- Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
+- Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Fixed GitHub connection syncs failing when a configured organization does not have the GitHub App installed by falling back to legacy authentication for that organization. [#1523](https://github.com/sourcebot-dev/sourcebot/pull/1523)
 
 ## [5.1.4] - 2026-07-24
 
