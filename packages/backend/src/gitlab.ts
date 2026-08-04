@@ -249,7 +249,7 @@ export const shouldExcludeProject = ({
 
         if (include?.topics) {
             const configTopics = include.topics.map(topic => topic.toLowerCase());
-            const projectTopics = project.topics ?? [];
+            const projectTopics = (project.topics ?? []).map(topic => topic.toLowerCase());
 
             const matchingTopics = projectTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
             if (matchingTopics.length === 0) {
@@ -260,7 +260,7 @@ export const shouldExcludeProject = ({
 
         if (exclude?.topics) {
             const configTopics = exclude.topics.map(topic => topic.toLowerCase());
-            const projectTopics = project.topics ?? [];
+            const projectTopics = (project.topics ?? []).map(topic => topic.toLowerCase());
 
             const matchingTopics = projectTopics.filter((topic) => micromatch.isMatch(topic, configTopics));
             if (matchingTopics.length > 0) {
