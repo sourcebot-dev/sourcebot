@@ -21,12 +21,17 @@ const mocks = vi.hoisted(() => {
         isAnonymousAccessAvailable: vi.fn(() => false),
         syncWithLighthouse: vi.fn(async (_orgId: number) => undefined),
         getSeatCap: vi.fn(() => undefined as number | undefined),
+        setSentryUser: vi.fn(),
         env: {} as Record<string, string>,
     }
 });
 
 vi.mock('../auth', () => ({
     auth: mocks.auth,
+}));
+
+vi.mock('@/lib/sentryUser', () => ({
+    setSentryUser: mocks.setSentryUser,
 }));
 
 vi.mock('next/headers', () => ({
@@ -390,6 +395,39 @@ describe('getAuthenticatedUser', () => {
 });
 
 describe('getAuthContext', () => {
+    test('sets the Sentry user for direct callers', async () => {
+        const userId = 'test-user-id';
+        const user = {
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        };
+        prisma.user.findUnique.mockResolvedValue(user);
+        prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: new Date(),
+            role: OrgRole.MEMBER,
+        });
+        mocks.env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED = 'true';
+        setMockSession(createMockSession({ user: { id: userId } }));
+
+        await getAuthContext();
+
+        expect(mocks.setSentryUser).toHaveBeenCalledWith(user, true);
+    });
+
+    test('clears the Sentry user for unauthenticated direct callers', async () => {
+        prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+
+        await getAuthContext();
+
+        expect(mocks.setSentryUser).toHaveBeenCalledWith(null, false);
+    });
+
     test('should return a auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -734,6 +772,10 @@ describe('getAuthContext', () => {
             org: MOCK_ORG,
             prisma: undefined,
         });
+        expect(mocks.setSentryUser).toHaveBeenCalledWith(
+            expect.objectContaining({ id: userId }),
+            false,
+        );
     });
 
     describe('DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS', () => {

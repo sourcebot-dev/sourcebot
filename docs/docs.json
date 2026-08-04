@@ -231,8 +231,8 @@
     "navbar": {
         "primary": {
             "type": "button",
-            "label": "GitHub",
-            "href": "https://github.com/sourcebot-dev/sourcebot"
+            "label": "Book a Call",
+            "href": "https://calendly.com/michael-sourcebot/sourcebot-call?utm_source=docs"
         }
     },
     "footer": {

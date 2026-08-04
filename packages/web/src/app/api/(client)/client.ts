@@ -36,7 +36,7 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
-import { OffersResponse } from "@/features/billing/types";
+import type { OffersResponse } from "@sourcebot/shared/client";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
 import type { GetMcpConfigurationResponse, GetMcpServerToolPermissionsResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";

@@ -27,6 +27,10 @@ You can read more about the options in the [authorization](#authorization) secti
     If [anonymous access](https://docs.sourcebot.dev/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
 </Note>
 
+<Note>
+    The examples below add the MCP server and connect it to Sourcebot's public deployment at [app.sourcebot.dev](https://app.sourcebot.dev). Replace the URL with your own Sourcebot deployment as needed.
+</Note>
+
 <AccordionGroup>
 <Accordion title="Claude Code">
         [Claude Code MCP docs](https://code.claude.com/docs/en/mcp#connect-claude-code-to-tools-via-mcp)
@@ -38,18 +42,18 @@ You can read more about the options in the [authorization](#authorization) secti
                 <LicenseKeyRequired feature="OAuth" />
 
                 ```sh
-                claude mcp add --transport http sourcebot https://sb.example.com/api/mcp
+                claude mcp add --transport http sourcebot https://app.sourcebot.dev/api/mcp
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Claude Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Claude Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
             </Tab>
             <Tab title="API Key">
                 ```sh
-                claude mcp add --transport http sourcebot https://sb.example.com/api/mcp \
+                claude mcp add --transport http sourcebot https://app.sourcebot.dev/api/mcp \
                   --header "Authorization: Bearer <key>"
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
             </Tab>
         </Tabs>
     </Accordion>
@@ -70,13 +74,13 @@ You can read more about the options in the [authorization](#authorization) secti
                     "mcpServers": {
                         "sourcebot": {
                             "type": "http",
-                            "url": "https://sb.example.com/api/mcp"
+                            "url": "https://app.sourcebot.dev/api/mcp"
                         }
                     }
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Cursor will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Cursor will automatically handle the OAuth 2.0 authorization flow the first time you connect.
             </Tab>
             <Tab title="API Key">
                 ```json
@@ -84,7 +88,7 @@ You can read more about the options in the [authorization](#authorization) secti
                     "mcpServers": {
                         "sourcebot": {
                             "type": "http",
-                            "url": "https://sb.example.com/api/mcp",
+                            "url": "https://app.sourcebot.dev/api/mcp",
                             "headers": {
                                 "Authorization": "Bearer <key>"
                             }
@@ -93,7 +97,7 @@ You can read more about the options in the [authorization](#authorization) secti
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
             </Tab>
         </Tabs>
     </Accordion>
@@ -112,13 +116,13 @@ You can read more about the options in the [authorization](#authorization) secti
                     "servers": {
                         "sourcebot": {
                             "type": "http",
-                            "url": "https://sb.example.com/api/mcp"
+                            "url": "https://app.sourcebot.dev/api/mcp"
                         }
                     }
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. VS Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. VS Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
             </Tab>
             <Tab title="API Key">
                 ```json
@@ -126,7 +130,7 @@ You can read more about the options in the [authorization](#authorization) secti
                     "servers": {
                         "sourcebot": {
                             "type": "http",
-                            "url": "https://sb.example.com/api/mcp",
+                            "url": "https://app.sourcebot.dev/api/mcp",
                             "headers": {
                                 "Authorization": "Bearer <key>"
                             }
@@ -135,7 +139,7 @@ You can read more about the options in the [authorization](#authorization) secti
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
             </Tab>
         </Tabs>
     </Accordion>
@@ -151,10 +155,10 @@ You can read more about the options in the [authorization](#authorization) secti
 
                 ```toml
                 [mcp_servers.sourcebot]
-                url = "https://sb.example.com/api/mcp"
+                url = "https://app.sourcebot.dev/api/mcp"
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Then run the following to authenticate:
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Then run the following to authenticate:
 
                 ```sh
                 codex mcp login sourcebot
@@ -163,11 +167,11 @@ You can read more about the options in the [authorization](#authorization) secti
             <Tab title="API Key">
                 ```toml
                 [mcp_servers.sourcebot]
-                url = "https://sb.example.com/api/mcp"
+                url = "https://app.sourcebot.dev/api/mcp"
                 bearer_token_env_var = "SOURCEBOT_API_KEY"
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, then set your API key as an environment variable:
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, then set your API key as an environment variable:
 
                 ```sh
                 export SOURCEBOT_API_KEY=<key>
@@ -193,13 +197,13 @@ You can read more about the options in the [authorization](#authorization) secti
                     "mcp": {
                         "sourcebot": {
                             "type": "remote",
-                            "url": "https://sb.example.com/api/mcp"
+                            "url": "https://app.sourcebot.dev/api/mcp"
                         }
                     }
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. OpenCode will automatically handle the OAuth 2.0 authorization flow the first time you connect. You can also manually trigger it with:
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. OpenCode will automatically handle the OAuth 2.0 authorization flow the first time you connect. You can also manually trigger it with:
 
                 ```sh
                 opencode mcp auth sourcebot
@@ -212,7 +216,7 @@ You can read more about the options in the [authorization](#authorization) secti
                     "mcp": {
                         "sourcebot": {
                             "type": "remote",
-                            "url": "https://sb.example.com/api/mcp",
+                            "url": "https://app.sourcebot.dev/api/mcp",
                             "oauth": false,
                             "headers": {
                                 "Authorization": "Bearer <key>"
@@ -222,7 +226,7 @@ You can read more about the options in the [authorization](#authorization) secti
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
             </Tab>
         </Tabs>
     </Accordion>
@@ -242,20 +246,20 @@ You can read more about the options in the [authorization](#authorization) secti
                 {
                     "mcpServers": {
                         "sourcebot": {
-                            "serverUrl": "https://sb.example.com/api/mcp"
+                            "serverUrl": "https://app.sourcebot.dev/api/mcp"
                         }
                     }
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Windsurf will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Windsurf will automatically handle the OAuth 2.0 authorization flow the first time you connect.
             </Tab>
             <Tab title="API Key">
                 ```json
                 {
                     "mcpServers": {
                         "sourcebot": {
-                            "serverUrl": "https://sb.example.com/api/mcp",
+                            "serverUrl": "https://app.sourcebot.dev/api/mcp",
                             "headers": {
                                 "Authorization": "Bearer <key>"
                             }
@@ -264,7 +268,7 @@ You can read more about the options in the [authorization](#authorization) secti
                 }
                 ```
 
-                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
             </Tab>
         </Tabs>
     </Accordion>
