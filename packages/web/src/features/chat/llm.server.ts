@@ -23,6 +23,8 @@ import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { env, getTokenFromConfig } from '@sourcebot/shared';
 import { extractReasoningMiddleware, JSONValue, wrapLanguageModel } from "ai";
 import * as Sentry from "@sentry/nextjs";
+import { getAuthContext } from '@/middleware/withAuth';
+import { isServiceError } from '@/lib/utils';
 
 // @note: This module resolves a configured language model into an AI SDK
 // provider object. It is intentionally FSL (open source) provider plumbing —
@@ -37,6 +39,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
     temperature?: number,
 }> => {
     const { provider, model: modelId } = config;
+    const headers = await resolveLanguageModelHeaders(config.headers);
 
     const { model: _model, providerOptions } = await (async (): Promise<{
         model: AISDKLanguageModelV3,
@@ -56,9 +59,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     sessionToken: config.sessionToken
                         ? await getTokenFromConfig(config.sessionToken)
                         : env.AWS_SESSION_TOKEN,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                     // Fallback to the default Node.js credential provider chain if no credentials are provided.
                     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-credential-providers/#fromnodeproviderchain
                     credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
@@ -77,10 +78,6 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                 const authToken = config.authToken
                     ? await getTokenFromConfig(config.authToken)
                     : env.ANTHROPIC_AUTH_TOKEN;
-                const headers = config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined;
-
                 const anthropic = createAnthropic({
                     baseURL: config.baseUrl,
                     apiKey,
@@ -111,9 +108,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.AZURE_API_KEY,
                     apiVersion: config.apiVersion,
                     resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 const reasoningSummary = config.reasoningSummary ?? 'auto';
@@ -131,9 +126,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                 const deepseek = createDeepSeek({
                     baseURL: config.baseUrl,
                     apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.DEEPSEEK_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -146,9 +139,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.GOOGLE_GENERATIVE_AI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -173,9 +164,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                             keyFilename: await getTokenFromConfig(config.credentials),
                         }
                     } : {}),
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -202,9 +191,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                             keyFilename: await getTokenFromConfig(config.credentials),
                         }
                     } : {}),
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -217,9 +204,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.MISTRAL_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -232,9 +217,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.OPENAI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 const reasoningSummary = config.reasoningSummary ?? 'auto';
@@ -255,9 +238,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : undefined,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                     queryParams: config.queryParams
                         ? await extractLanguageModelKeyValuePairs(config.queryParams)
                         : undefined,
@@ -282,9 +263,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.OPENROUTER_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -297,9 +276,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.XAI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    headers,
                 });
 
                 return {
@@ -332,7 +309,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
 const extractLanguageModelKeyValuePairs = async (
     pairs: {
         [k: string]: string | Token;
-    }
+    } | undefined
 ): Promise<Record<string, string>> => {
     const resolvedPairs: Record<string, string> = {};
 
@@ -351,6 +328,28 @@ const extractLanguageModelKeyValuePairs = async (
     }
 
     return resolvedPairs;
+};
+
+export const SOURCEBOT_USER_EMAIL_HEADER = 'X-Sourcebot-User-Email';
+
+export const resolveLanguageModelHeaders = async (
+    configuredHeaders: Record<string, string | Token> | undefined,
+): Promise<Record<string, string> | undefined> => {
+    const headers = await extractLanguageModelKeyValuePairs(configuredHeaders);
+
+    const userEmail = await (async () => {
+        if (env.SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED !== 'true') {
+            return undefined;
+        }
+
+        const authContext = await getAuthContext();
+        return isServiceError(authContext) ? undefined : authContext.user?.email;
+    })();
+    if (userEmail) {
+        headers[SOURCEBOT_USER_EMAIL_HEADER] = userEmail.toLowerCase();
+    }
+
+    return Object.keys(headers).length > 0 ? headers : undefined;
 };
 
 type AnthropicThinkingConfig = NonNullable<AnthropicProviderOptions['thinking']>;

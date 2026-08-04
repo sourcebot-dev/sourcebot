@@ -10,7 +10,7 @@ if (!!process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN && !!process.env.NEXT_PUBLIC_SEN
         dsn: process.env.NEXT_PUBLIC_SENTRY_WEBAPP_DSN,
         environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 
-        tracesSampleRate: 1.0,
+        tracesSampleRate: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === 'development' ? 1.0 : 0.1,
 
         // Setting this option to true will print useful information to the console while you're setting up Sentry.
         debug: false,

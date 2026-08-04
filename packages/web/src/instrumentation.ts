@@ -27,7 +27,8 @@ export async function register() {
     }
 
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-        await import('./initialize');
+        const { initialize } = await import('./initialize');
+        await initialize();
     }
 }
 
