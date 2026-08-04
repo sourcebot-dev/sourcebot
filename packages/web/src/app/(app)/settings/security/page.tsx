@@ -5,22 +5,37 @@ import { CredentialsLoginEnabledSettingsCard } from "./components/credentialsLog
 import { EmailCodeLoginEnabledSettingsCard } from "./components/emailCodeLoginEnabledSettingsCard";
 import { IdentityProviderSettingsCard } from "./components/identityProviderSettingsCard";
 import { IdentityProviderUpsellCard } from "./components/identityProviderUpsellCard";
+import { ScimProvisioningSettings } from "./components/scimProvisioningSettings";
+import { ScimEnabledSettingsCard } from "./components/scimEnabledSettingsCard";
+import { ScimUpsellCard } from "./components/scimUpsellCard";
+import { getScimTokens } from "@/ee/features/scim/actions";
 import { UpgradeBadge } from "@/app/(app)/@sidebar/components/upgradeBadge";
 import { getProviders, IdentityProvider } from "@/auth";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
-import { createInviteLink } from "@/lib/utils";
+import { createInviteLink, isServiceError } from "@/lib/utils";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 import { env, getSMTPConnectionURL, isCredentialsLoginEnabled, isEmailCodeLoginEnabled, isMemberApprovalRequired } from "@sourcebot/shared";
 import { SettingsCardGroup } from "../components/settingsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { isScimEnabled } from "@/features/scim/utils";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
     const inviteLink = createInviteLink(env.AUTH_URL, org.inviteLinkId);
     const hasSSOEntitlement = await hasEntitlement("sso");
     const identityProviders = await getConfiguredIdentityProviders();
+
+    const hasScimEntitlement = await hasEntitlement("scim");
+    const scimBaseUrl = `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2`;
+    const scimTokens = hasScimEntitlement ? await getScimTokens() : [];
+    if (isServiceError(scimTokens)) {
+        throw new ServiceErrorException(scimTokens);
+    }
+
+    const scimEnabled = await isScimEnabled(org)
 
 
     return (
@@ -45,9 +60,11 @@ export default authenticatedPage(async ({ org }) => {
                     <InviteLinkEnabledSettingsCard
                         inviteLinkEnabled={org.inviteLinkEnabled}
                         inviteLink={inviteLink}
+                        scimManaged={scimEnabled}
                     />
                     <MemberApprovalRequiredSettingsCard
                         memberApprovalRequired={isMemberApprovalRequired(org)}
+                        scimManaged={scimEnabled}
                     />
                     <AnonymousAccessEnabledSettingsCard
                         anonymousAccessEnabled={anonymousAccessEnabled}
@@ -106,6 +123,36 @@ export default authenticatedPage(async ({ org }) => {
                             </a>
                         </AlertDescription>
                     </Alert>
+                )}
+
+                <div>
+                    <div className="flex items-center gap-2">
+                        <p className="text-md font-medium">SCIM Provisioning</p>
+                        {!hasScimEntitlement && <UpgradeBadge />}
+                    </div>
+                    <p className="text-sm text-muted-foreground">Provision and deprovision members automatically from your identity provider (Okta, Entra). Configure your IdP with the base URL below and a SCIM token.{" "}
+                        <a
+                            href="https://docs.sourcebot.dev/docs/configuration/auth/scim"
+                            target="_blank"
+                            rel="noopener"
+                            className="text-link hover:underline transition-colors"
+                        >
+                            Learn more
+                        </a>
+                    </p>
+                </div>
+
+                {!hasScimEntitlement ? (
+                    <ScimUpsellCard />
+                ) : (
+                    <>
+                        <SettingsCardGroup>
+                            <ScimEnabledSettingsCard isScimEnabled={scimEnabled} />
+                        </SettingsCardGroup>
+                        {scimEnabled && (
+                            <ScimProvisioningSettings baseUrl={scimBaseUrl} tokens={scimTokens} />
+                        )}
+                    </>
                 )}
             </div>
         </div>

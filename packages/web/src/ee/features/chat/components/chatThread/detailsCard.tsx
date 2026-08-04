@@ -27,6 +27,7 @@ import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { ToolOutputGuard } from './tools/toolOutputGuard';
 import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
+import { LoadSkillToolComponent } from './tools/loadSkillToolComponent';
 
 
 // A UI-visible step: the parts of one LLM invocation, tagged with the
@@ -85,6 +86,18 @@ const DetailsCardComponent = ({
     const cachedInputPercent = inputTokens > 0
         ? Math.round((cacheReadTokens / inputTokens) * 100)
         : 0;
+
+    // Context-window usage gauge. "In use" is the input the model saw on its
+    // most recent step — i.e. the full accumulated prompt occupying the window
+    // right now — not the cumulative totalInputTokens.
+    const stepTokenUsage = metadata?.stepTokenUsage;
+    const currentContextTokens = stepTokenUsage && stepTokenUsage.length > 0
+        ? stepTokenUsage[stepTokenUsage.length - 1].inputTokens
+        : undefined;
+    const contextWindow = metadata?.contextWindow;
+    const contextUsagePercent = currentContextTokens !== undefined && contextWindow !== undefined && contextWindow > 0
+        ? Math.min(100, Math.round((currentContextTokens / contextWindow) * 100))
+        : undefined;
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -192,6 +205,23 @@ const DetailsCardComponent = ({
                                                     </Tooltip>
                                                 )}
                                             </div>
+                                        )}
+                                        {contextUsagePercent !== undefined && currentContextTokens !== undefined && contextWindow !== undefined && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="cursor-help">
+                                                        <ContextWindowGauge
+                                                            total={contextWindow}
+                                                            percent={contextUsagePercent}
+                                                        />
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="max-w-xs text-xs">
+                                                        The most recent step&apos;s prompt used {currentContextTokens.toLocaleString()} of the model&apos;s {contextWindow.toLocaleString()}-token context window ({contextUsagePercent}%).
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">
@@ -367,6 +397,61 @@ const StepTokenUsage = ({ usage, label = 'step' }: { usage: StepTokenUsageEntry,
     );
 }
 
+
+const CONTEXT_USAGE_YELLOW_PERCENT = 50;
+const CONTEXT_USAGE_RED_PERCENT = 80;
+
+const getContextUsageColorClass = (percent: number): string => {
+    if (percent >= CONTEXT_USAGE_RED_PERCENT) {
+        return "text-red-500";
+    }
+    if (percent >= CONTEXT_USAGE_YELLOW_PERCENT) {
+        return "text-yellow-500";
+    }
+    return "text-[#6cb38f]";
+};
+
+const ContextWindowGauge = ({ total, percent }: { total: number, percent: number }) => {
+    const size = 14;
+    const strokeWidth = 2;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - Math.min(100, percent) / 100);
+    const colorClass = getContextUsageColorClass(percent);
+
+    return (
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+            <svg width={size} height={size} className="-rotate-90 flex-shrink-0">
+                {/* Neutral gray track. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    className="text-zinc-500"
+                />
+                {/* Progress arc. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    className={cn("transition-all duration-300", colorClass)}
+                />
+            </svg>
+            <span className={cn("font-semibold", colorClass)}>{percent}%</span>
+            <span className="text-muted-foreground">of {getShortenedNumberDisplayString(total, 0).toUpperCase()}</span>
+        </div>
+    );
+}
+
 type GuardedToolType =
     | 'tool-read_file'
     | 'tool-grep'
@@ -445,14 +530,25 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
                 return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
             }
             return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} estimatedOutputTokens={estimatedOutputTokens} />;
+        case 'tool-load_skill':
+            if (part.state === 'output-error') {
+                return <span className="text-sm text-destructive">Loading skill failed: {part.errorText}</span>;
+            }
+            if (part.state !== 'output-available') {
+                return <span className="text-sm text-muted-foreground animate-pulse">Loading skill...</span>;
+            }
+            return <LoadSkillToolComponent input={part.input} output={part.output} />;
         case 'dynamic-tool':
             if (part.toolName.startsWith('mcp_')) {
                 return <McpToolComponent part={part} estimatedOutputTokens={estimatedOutputTokens} />;
             }
             return null;
         case 'data-source':
+        case 'data-command':
         case 'data-mcp-server':
+        case 'data-mcp-tool':
         case 'data-mcp-failed-server':
+        case 'data-attachment':
         case 'file':
         case 'source-document':
         case 'source-url':

@@ -1,7 +1,7 @@
 'use client';
 
 import { approveAuthorization, denyAuthorization } from '@/ee/features/oauth/actions';
-import { isPermittedRedirectUrl } from '@/ee/features/oauth/constants';
+import { isPermittedRedirectUrl } from '@/ee/features/oauth/utils';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { isServiceError } from '@/lib/utils';
 import { ClientIcon } from './clientIcon';
@@ -17,7 +17,9 @@ interface ConsentScreenProps {
     clientLogoUri: string | null;
     redirectUri: string;
     codeChallenge: string;
+    requestedScope: string | undefined;
     resource: string | null;
+    dpopJkt: string | null;
     state: string | undefined;
     userEmail: string;
 }
@@ -28,7 +30,9 @@ export function ConsentScreen({
     clientLogoUri,
     redirectUri,
     codeChallenge,
+    requestedScope,
     resource,
+    dpopJkt,
     state,
     userEmail,
 }: ConsentScreenProps) {
@@ -43,7 +47,7 @@ export function ConsentScreen({
     const onApprove = async () => {
         captureEvent('wa_oauth_authorization_approved', { clientId, clientName });
         setPending('approve');
-        const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
+        const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, requestedScope, resource, dpopJkt, state });
         if (!isServiceError(result)) {
             if (!isPermittedRedirectUrl(result)) {
                 toast({ description: `❌ Redirect URL is not permitted.` });

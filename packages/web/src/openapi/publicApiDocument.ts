@@ -433,7 +433,7 @@ export function createPublicOpenApiDocument(version: string) {
         operationId: 'getUser',
         tags: [eeTag.name],
         summary: 'Get a user',
-        description: 'Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.',
+        description: 'Fetches details for a single organization member by `userId`. Only organization owners can access this endpoint.',
         request: {
             query: z.object({
                 userId: z.string().describe('The ID of the user to retrieve.'),
@@ -446,7 +446,7 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Missing userId parameter.'),
             403: errorJson('Insufficient permissions or entitlement not enabled.'),
-            404: errorJson('User not found.'),
+            404: errorJson('User is not a member of this organization.'),
             500: errorJson('Unexpected failure.'),
         },
         'x-mint': {
@@ -459,21 +459,21 @@ export function createPublicOpenApiDocument(version: string) {
         path: '/api/ee/user',
         operationId: 'deleteUser',
         tags: [eeTag.name],
-        summary: 'Delete a user',
-        description: 'Permanently deletes a user and all associated records. Only organization owners can delete other users.',
+        summary: 'Remove a user from the organization',
+        description: 'Removes a user from the organization, revoking their access and their sessions. Only organization owners can access this endpoint.',
         request: {
             query: z.object({
-                userId: z.string().describe('The ID of the user to delete.'),
+                userId: z.string().describe('The ID of the user to remove.'),
             }),
         },
         responses: {
             200: {
-                description: 'User deleted successfully.',
+                description: 'User removed successfully.',
                 content: jsonContent(publicEeDeleteUserResponseSchema),
             },
-            400: errorJson('Missing userId parameter or attempting to delete own account.'),
-            403: errorJson('Insufficient permissions.'),
-            404: errorJson('User not found.'),
+            400: errorJson('Missing userId parameter.'),
+            403: errorJson('Insufficient permissions, the last active owner cannot be removed, or SCIM provisioning is enabled (membership is managed through your identity provider).'),
+            404: errorJson('User is not a member of this organization.'),
             500: errorJson('Unexpected failure.'),
         },
         'x-mint': {

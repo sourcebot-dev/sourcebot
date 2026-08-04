@@ -7,15 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- Upgraded `tar` to `^7.5.22`. [#1472](https://github.com/sourcebot-dev/sourcebot/pull/1472)
+- Fixed GitLab topic filters being incorrectly case-sensitive. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
+
+## [5.1.5] - 2026-07-31
+
+### Fixed
+- Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
+- Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Fixed GitHub connection syncs failing when a configured organization does not have the GitHub App installed by falling back to legacy authentication for that organization. [#1523](https://github.com/sourcebot-dev/sourcebot/pull/1523)
+
+## [5.1.4] - 2026-07-24
+
+### Fixed
+- Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
+- [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
+- [EE] Classified code host permission sync failures by provider context before clearing cached repository permissions. [#1482](https://github.com/sourcebot-dev/sourcebot/pull/1482)
+- [EE] Added action-required warnings and guided recovery when permission syncing clears cached repository access. [#1484](https://github.com/sourcebot-dev/sourcebot/pull/1484)
+- Upgraded `brace-expansion` to `^1.1.16`/`^2.1.2`/`^5.0.7` to address CVE-2026-13149. [#1471](https://github.com/sourcebot-dev/sourcebot/pull/1471)
+- Upgraded `shell-quote` to `^1.10.0`. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
+- Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
+- Fixed multiple CVEs in JavaScript dependencies by upgrading `next-auth`, `@auth/core`, `next`, `postcss`, `sharp`, `linkify-it`, `fast-uri`, `protobufjs`, `body-parser`, `hono`, `@hono/node-server`, and `dompurify` to patched versions, resolving all Yarn audit findings. [#1502](https://github.com/sourcebot-dev/sourcebot/pull/1502)
+- Upgraded the bundled Zoekt gRPC-Go dependency to `v1.82.1`. [#1503](https://github.com/sourcebot-dev/sourcebot/pull/1503)
+
+### Changed
+- Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+
+## [5.1.3] - 2026-07-20
+
+### Added
+- [EE] Added Idira SSO support through OpenID Connect. [#1459](https://github.com/sourcebot-dev/sourcebot/pull/1459)
+- Added an optional `webUrl` field to the GitLab connection config, used to build links to repositories in the GitLab web UI when the API host differs from the browsable host. [#1458](https://github.com/sourcebot-dev/sourcebot/pull/1458)
+
+### Fixed
+- Prevented focus rings in workspace connector dialogs from being clipped. [#1457](https://github.com/sourcebot-dev/sourcebot/pull/1457)
+- Prevented long file paths from overflowing the browse file header. [#1465](https://github.com/sourcebot-dev/sourcebot/pull/1465)
+
+## [5.1.2] - 2026-07-16
+
+### Added
+- Added an opt-in `SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED` environment variable that sends the authenticated user's lower-cased email to language model providers in the `X-Sourcebot-User-Email` header. [#1455](https://github.com/sourcebot-dev/sourcebot/pull/1455)
+
+### Fixed
+- [EE] Verified signed online license assertions before granting paid feature entitlements. [#1442](https://github.com/sourcebot-dev/sourcebot/pull/1442)
+- [EE] Fixed worker startup races that could disable GitHub App authentication and permission syncing until restart after an online license refresh. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+- [EE] Fixed GitHub connection sync jobs to fail safely when GitHub App authentication is configured without the required entitlement. [#1454](https://github.com/sourcebot-dev/sourcebot/pull/1454)
+
+## [5.1.1] - 2026-07-14
+
+- Add book a call button to sidebar. [#1441](https://github.com/sourcebot-dev/sourcebot/pull/1441)
+
+## [5.1.0] - 2026-07-10
+
 ### Changed
 - [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
+- Refactored Ask Sourcebot user message text extraction into a shared helper that robustly handles non-text message parts. [#1371](https://github.com/sourcebot-dev/sourcebot/pull/1371)
+- Made the backend worker API address configurable via the `WORKER_API_URL` environment variable (default `http://localhost:3060`) instead of being hardcoded. [#1409](https://github.com/sourcebot-dev/sourcebot/pull/1409)
+- [EE] Disabled `DELETE /api/ee/user` while SCIM provisioning is enabled, and switched it to an org-scoped membership removal (with last-owner protection) instead of a global account delete. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
+- [EE] Unified the `GET /api/ee/user` and `GET /api/ee/users` response shapes behind a shared mapper; the single-user endpoint is now scoped to org membership, and both include role, membership status, and last activity. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
+- Browse blob, tree, and commit pages now fetch file sources, folder contents, and diffs client-side via API routes instead of embedding them in the server-rendered page, keeping documents small and event-loop pressure low for large files and commits. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+- [EE] Added mermaid diagram rendering to Ask Sourcebot answers, with pan/zoom, copy/export, in-thread deep links, and an interleaved right-panel view. [#1369](https://github.com/sourcebot-dev/sourcebot/pull/1369)
+- [EE] Added a context-window usage gauge to the Ask Sourcebot chat details, showing how much of the selected model's context window each turn occupies. Window sizes are resolved from the models.dev catalog. [#1370](https://github.com/sourcebot-dev/sourcebot/pull/1370)
+- Added language model input-modality and document capability resolution, automatically resolved from the models.dev catalog (falls back to text-only for uncatalogued/self-hosted models). [#1372](https://github.com/sourcebot-dev/sourcebot/pull/1372)
+- [EE] Added DPoP sender-constrained OAuth tokens for MCP clients. [#1395](https://github.com/sourcebot-dev/sourcebot/pull/1395)
+- [EE] Added text file attachments to Ask Sourcebot, letting users attach text/code/config files to a chat message via the paperclip button, drag-and-drop, or paste, with large pastes auto-converted to attachments. [#1374](https://github.com/sourcebot-dev/sourcebot/pull/1374)
+- [EE] Added image attachments to Ask Sourcebot, letting users attach images to a chat message when the selected model supports image input. [#1375](https://github.com/sourcebot-dev/sourcebot/pull/1375)
+- Added deployment system resource stats (CPU cores + cgroup quota, host + container memory, disk, load average) to the service ping, so resource issues can be diagnosed more quickly. [#1424](https://github.com/sourcebot-dev/sourcebot/pull/1424)
+- Added a `robots.txt` that disallows crawlers, with an allowlist for link-preview bots so shared links keep their OpenGraph previews. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
+- [EE] Added Ask Sourcebot skills, letting users create, import, share, sync, and auto-invoke reusable chat instructions across personal and workspace scopes. [#1410](https://github.com/sourcebot-dev/sourcebot/pull/1410)
 
 ### Fixed
 - Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
+- [EE] Fixed Ask Sourcebot mermaid diagrams overflowing their container by contain-fitting them to both width and height, and made revealing a diagram from the answer jump it into view instantly to avoid over/undershooting. [#1373](https://github.com/sourcebot-dev/sourcebot/pull/1373)
+- Verified GitHub review webhook deliveries before processing them. [#1378](https://github.com/sourcebot-dev/sourcebot/pull/1378)
+- Passed Zoekt index parameters via argv to preserve revision names with punctuation. [#1376](https://github.com/sourcebot-dev/sourcebot/pull/1376)
+- [EE] Validated OAuth bearer token scopes before allowing access to the Sourcebot MCP resource server. [#1396](https://github.com/sourcebot-dev/sourcebot/pull/1396)
+- Added HTTP security headers to all web app responses. [#1407](https://github.com/sourcebot-dev/sourcebot/pull/1407)
+- Maintained the sidebar scroll position when navigating between chats instead of resetting to the top. [#1411](https://github.com/sourcebot-dev/sourcebot/pull/1411)
+- Upgraded `nodemailer` to `^9.0.1`. [#1356](https://github.com/sourcebot-dev/sourcebot/pull/1356)
+- Upgraded `@opentelemetry/core` to `^2.8.0`. [#1413](https://github.com/sourcebot-dev/sourcebot/pull/1413)
+- [EE] Fixed connector setup dialogs to add scrolling when connector setup content goes out of view.
+- Fixed Gitea sync failing with `ERR_STREAM_PREMATURE_CLOSE` by forcing identity encoding on the Gitea API fetch and guarding against null repository responses. [#1405](https://github.com/sourcebot-dev/sourcebot/pull/1405)
+- [EE] Fixed Ask connector MCP tools with provider-invalid names failing to run by sanitizing model-facing tool names while preserving raw names in the UI.
 
 ## [5.0.4] - 2026-06-18
 
@@ -49,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 - Added a list of configured SSO providers from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+- [EE] Added a SCIM 2.0 server for automated user provisioning and deprovisioning from identity providers (Okta, Entra). [#1306](https://github.com/sourcebot-dev/sourcebot/pull/1306)
 
 ### Fixed
 - Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)

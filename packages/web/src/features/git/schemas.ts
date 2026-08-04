@@ -35,6 +35,10 @@ export const fileSourceResponseSchema = z.object({
     repoExternalWebUrl: z.string().optional(),
     webUrl: z.string(),
     externalWebUrl: z.string().optional(),
+    // The git blob OID (SHA-1 of the file bytes) at the resolved ref. Used as a
+    // cheap content identifier to detect when an imported file has changed.
+    // Optional because it is best-effort; absent if `git rev-parse` failed.
+    blobSha: z.string().optional(),
 });
 
 export const getDiffRequestSchema = z.object({

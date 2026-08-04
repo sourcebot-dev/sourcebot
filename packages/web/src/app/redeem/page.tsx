@@ -1,12 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getInviteInfo } from "../invite/actions";
+import { getInviteInfo } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { AcceptInviteCard } from './components/acceptInviteCard';
 import { LogoutEscapeHatch } from '../components/logoutEscapeHatch';
 import { InviteNotFoundCard } from './components/inviteNotFoundCard';
 import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { __unsafePrisma } from '@/prisma';
+import { isScimEnabled } from '@/features/scim/utils';
+import { NotProvisionedCard } from '@/features/membership/components/notProvisionedCard';
+import { activeOrPendingMembershipWhere } from '@/features/membership/utils';
 
 interface RedeemPageProps {
     searchParams: Promise<{
@@ -29,6 +32,25 @@ export default async function RedeemPage(props: RedeemPageProps) {
     const session = await auth();
     if (!session) {
         return redirect(`/login?callbackUrl=${encodeURIComponent(`/redeem?invite_id=${inviteId}`)}`);
+    }
+
+    const membership = await __unsafePrisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id
+            },
+            ...activeOrPendingMembershipWhere(),
+        }
+    });
+
+    // If already a member, redirect to the organization
+    if (membership) {
+        redirect(`/`);
+    }
+
+    if (await isScimEnabled(org)) {
+        return <NotProvisionedCard />
     }
 
     const inviteInfo = await getInviteInfo(inviteId);

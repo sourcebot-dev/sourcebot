@@ -1,7 +1,8 @@
 import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
+import * as Sentry from '@sentry/node';
 import { hasEntitlement } from './entitlements.js';
 import { createLogger, doesIdpSupportPermissionSyncing, env } from '@sourcebot/shared';
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
 import { ConnectionManager } from './connectionManager.js';
@@ -9,12 +10,15 @@ import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
+import { isNotFound } from './errors.js';
 import { Octokit } from '@octokit/rest';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import z from 'zod';
 
 const logger = createLogger('api');
-const PORT = 3060;
+
+const workerApiUrl = new URL(env.WORKER_API_URL);
+const PORT = Number(workerApiUrl.port) || (workerApiUrl.protocol === "https:" ? 443 : 80);
 
 export class Api {
     private server: http.Server;
@@ -41,6 +45,11 @@ export class Api {
         app.post('/api/index-repo', this.indexRepo.bind(this));
         app.post('/api/trigger-account-permission-sync', this.triggerAccountPermissionSync.bind(this));
         app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
+
+        app.use((error: unknown, _req: Request, _res: Response, next: NextFunction) => {
+            Sentry.captureException(error);
+            next(error);
+        });
 
         this.server = app.listen(PORT, () => {
             logger.debug(`API server is running on port ${PORT}`);
@@ -148,10 +157,19 @@ export class Api {
         }
 
         const octokit = new Octokit();
-        const response = await octokit.rest.repos.get({
-            owner: parsed.data.owner,
-            repo: parsed.data.repo,
-        });
+        let response;
+        try {
+            response = await octokit.rest.repos.get({
+                owner: parsed.data.owner,
+                repo: parsed.data.repo,
+            });
+        } catch (error) {
+            if (isNotFound(error)) {
+                res.status(404).json({ error: 'Repository not found on GitHub' });
+                return;
+            }
+            throw error;
+        }
 
         const record = createGitHubRepoRecord({
             repo: response.data,

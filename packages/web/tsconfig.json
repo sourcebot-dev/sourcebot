@@ -27,6 +27,12 @@
       ],
       "@/public/*": [
         "./public/*"
+      ],
+      "@sourcebot/schemas/v3/*": [
+        "../schemas/src/v3/*"
+      ],
+      "@sourcebot/schemas/v2/*": [
+        "../schemas/src/v2/*"
       ]
     },
     "target": "ES2017"

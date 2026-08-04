@@ -1,6 +1,6 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { MOCK_REFRESH_TOKEN, MOCK_USER_WITH_ACCOUNTS, prisma } from '@/__mocks__/prisma';
-import { verifyAndExchangeCode, verifyAndRotateRefreshToken, revokeToken } from './server';
+import { generateAndStoreAuthCode, verifyAndExchangeCode, verifyAndRotateRefreshToken, revokeToken } from './server';
 
 vi.mock('@/prisma', async () => {
     const actual = await vi.importActual<typeof import('@/__mocks__/prisma')>('@/__mocks__/prisma');
@@ -23,6 +23,8 @@ vi.mock('@sourcebot/shared', () => ({
 }));
 
 const VALID_CODE_HASH = 'validcode';
+const EMPTY_OAUTH_SCOPE = '';
+const TEST_OAUTH_SCOPE = 'read other';
 const VALID_AUTH_CODE = {
     codeHash: VALID_CODE_HASH,
     clientId: 'test-client-id',
@@ -30,7 +32,9 @@ const VALID_AUTH_CODE = {
     redirectUri: 'http://localhost:9999/callback',
     // SHA-256('myverifier') base64url
     codeChallenge: 'Eb223qLjTQNFkRjCVsrDbsBk5ycPKwHdbHNRX99tTeQ',
+    scope: EMPTY_OAUTH_SCOPE,
     resource: null,
+    dpopJkt: null,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     createdAt: new Date(),
 };
@@ -40,6 +44,39 @@ beforeEach(() => {
     // Default: resolve $transaction — individual operations are already mocked separately
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     prisma.$transaction.mockResolvedValue([] as any);
+});
+
+// ---------------------------------------------------------------------------
+// generateAndStoreAuthCode
+// ---------------------------------------------------------------------------
+
+describe('generateAndStoreAuthCode', () => {
+    test('stores the granted scope with the authorization code', async () => {
+        prisma.oAuthAuthorizationCode.create.mockResolvedValue(VALID_AUTH_CODE);
+
+        const code = await generateAndStoreAuthCode({
+            clientId: 'test-client-id',
+            userId: MOCK_USER_WITH_ACCOUNTS.id,
+            redirectUri: 'http://localhost:9999/callback',
+            codeChallenge: 'challenge',
+            scope: TEST_OAUTH_SCOPE,
+            resource: 'https://sourcebot.test/api/mcp',
+            dpopJkt: 'dpop-thumbprint',
+        });
+
+        expect(code).toEqual(expect.any(String));
+        expect(prisma.oAuthAuthorizationCode.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+                clientId: 'test-client-id',
+                userId: MOCK_USER_WITH_ACCOUNTS.id,
+                redirectUri: 'http://localhost:9999/callback',
+                codeChallenge: 'challenge',
+                scope: TEST_OAUTH_SCOPE,
+                resource: 'https://sourcebot.test/api/mcp',
+                dpopJkt: 'dpop-thumbprint',
+            }),
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -59,12 +96,47 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
+            scope: EMPTY_OAUTH_SCOPE,
+        });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
+        });
+    });
+
+    test('uses the scope bound to the authorization code when issuing tokens', async () => {
+        prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue({
+            ...VALID_AUTH_CODE,
+            scope: TEST_OAUTH_SCOPE,
+        });
+        prisma.oAuthAuthorizationCode.delete.mockResolvedValue(VALID_AUTH_CODE);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndExchangeCode({
+            rawCode: VALID_CODE_HASH,
+            clientId: 'test-client-id',
+            redirectUri: 'http://localhost:9999/callback',
+            codeVerifier: 'myverifier',
+            resource: null,
+            dpopJkt: null,
+        });
+
+        expect(result).toMatchObject({ scope: TEST_OAUTH_SCOPE });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: TEST_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: TEST_OAUTH_SCOPE }),
         });
     });
 
@@ -77,6 +149,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -95,6 +168,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -109,6 +183,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -123,6 +198,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/wrong',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -137,6 +213,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'wrongverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -154,9 +231,53 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: 'https://other.com/api/mcp',
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_target' });
+    });
+
+    test('binds issued tokens to the DPoP proof thumbprint', async () => {
+        prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue(VALID_AUTH_CODE);
+        prisma.oAuthAuthorizationCode.delete.mockResolvedValue(VALID_AUTH_CODE);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndExchangeCode({
+            rawCode: VALID_CODE_HASH,
+            clientId: 'test-client-id',
+            redirectUri: 'http://localhost:9999/callback',
+            codeVerifier: 'myverifier',
+            resource: null,
+            dpopJkt: 'dpop-thumbprint',
+        });
+
+        expect(result).toMatchObject({ dpopJkt: 'dpop-thumbprint' });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+    });
+
+    test('returns invalid_dpop_proof if DPoP key does not match the bound authorization code', async () => {
+        prisma.oAuthAuthorizationCode.findUnique.mockResolvedValue({
+            ...VALID_AUTH_CODE,
+            dpopJkt: 'expected-thumbprint',
+        });
+
+        const result = await verifyAndExchangeCode({
+            rawCode: VALID_CODE_HASH,
+            clientId: 'test-client-id',
+            redirectUri: 'http://localhost:9999/callback',
+            codeVerifier: 'myverifier',
+            resource: null,
+            dpopJkt: 'other-thumbprint',
+        });
+
+        expect(result).toMatchObject({ error: 'invalid_dpop_proof' });
+        expect(prisma.oAuthAuthorizationCode.delete).not.toHaveBeenCalled();
     });
 
     test('returns invalid_grant if code was already used (P2025)', async () => {
@@ -172,6 +293,7 @@ describe('verifyAndExchangeCode', () => {
             redirectUri: 'http://localhost:9999/callback',
             codeVerifier: 'myverifier',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -188,6 +310,7 @@ describe('verifyAndExchangeCode', () => {
                 redirectUri: 'http://localhost:9999/callback',
                 codeVerifier: 'myverifier',
                 resource: null,
+                dpopJkt: null,
             })
         ).rejects.toThrow('DB connection lost');
     });
@@ -208,12 +331,45 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
+            scope: EMPTY_OAUTH_SCOPE,
+        });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
+        });
+    });
+
+    test('preserves empty-scope refresh tokens during rotation', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            scope: EMPTY_OAUTH_SCOPE,
+        });
+        prisma.oAuthRefreshToken.delete.mockResolvedValue(MOCK_REFRESH_TOKEN);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+            dpopJkt: null,
+        });
+
+        expect(result).toMatchObject({ scope: EMPTY_OAUTH_SCOPE });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: EMPTY_OAUTH_SCOPE }),
         });
     });
 
@@ -222,6 +378,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'invalid_prefix_token',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -237,6 +394,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_used',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -251,6 +409,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'wrong-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -267,6 +426,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
@@ -282,9 +442,52 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: 'https://other.com/api/mcp',
+            dpopJkt: null,
         });
 
         expect(result).toMatchObject({ error: 'invalid_target' });
+    });
+
+    test('preserves the DPoP thumbprint when rotating a bound refresh token', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            dpopJkt: 'dpop-thumbprint',
+        });
+        prisma.oAuthRefreshToken.delete.mockResolvedValue(MOCK_REFRESH_TOKEN);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+            dpopJkt: 'dpop-thumbprint',
+        });
+
+        expect(result).toMatchObject({ dpopJkt: 'dpop-thumbprint' });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ dpopJkt: 'dpop-thumbprint' }),
+        });
+    });
+
+    test('returns invalid_dpop_proof if DPoP key does not match the refresh token binding', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            dpopJkt: 'expected-thumbprint',
+        });
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+            dpopJkt: 'other-thumbprint',
+        });
+
+        expect(result).toMatchObject({ error: 'invalid_dpop_proof' });
+        expect(prisma.oAuthRefreshToken.delete).not.toHaveBeenCalled();
     });
 
     test('old refresh token is deleted during rotation', async () => {
@@ -297,6 +500,7 @@ describe('verifyAndRotateRefreshToken', () => {
             rawRefreshToken: 'sbor_refreshtoken',
             clientId: 'test-client-id',
             resource: null,
+            dpopJkt: null,
         });
 
         expect(prisma.oAuthRefreshToken.delete).toHaveBeenCalledWith({ where: { hash: 'refreshtoken' } });

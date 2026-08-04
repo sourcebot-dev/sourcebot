@@ -11,6 +11,7 @@ export type IdentityProviderConfig =
   | AuthentikIdentityProviderConfig
   | BitbucketCloudIdentityProviderConfig
   | JumpCloudIdentityProviderConfig
+  | IdiraIdentityProviderConfig
   | BitbucketServerIdentityProviderConfig;
 
 export interface GitHubIdentityProviderConfig {
@@ -373,6 +374,53 @@ export interface JumpCloudIdentityProviderConfig {
   provider: "jumpcloud";
   /**
    * Optional human-readable label shown on the login screen. Defaults to 'JumpCloud'.
+   */
+  displayName?: string;
+  purpose: "sso";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  issuer:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+}
+export interface IdiraIdentityProviderConfig {
+  provider: "idira";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Idira'.
    */
   displayName?: string;
   purpose: "sso";

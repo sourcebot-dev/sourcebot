@@ -4,7 +4,7 @@ import { cn, getCodeHostInfoForRepo, truncateSha } from "@/lib/utils";
 import Image from "next/image";
 import { getBrowsePath } from "../browse/hooks/utils";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
-import { useCallback, useState, useMemo, useRef, useEffect } from "react";
+import { useCallback, useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
     DropdownMenu,
@@ -48,6 +48,8 @@ interface BreadcrumbSegment {
         to: number;
     };
 }
+
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 export const PathHeader = ({
     repo,
@@ -110,12 +112,14 @@ export const PathHeader = ({
     }, [path, pathHighlightRange]);
 
     // Calculate which segments should be visible based on available space
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         const measureSegments = () => {
             if (!containerRef.current || !breadcrumbsRef.current) return;
 
             const containerWidth = containerRef.current.offsetWidth;
             const availableWidth = containerWidth - 40; // Reserve space for copy button and padding
+            const collapsedPrefixWidth = 40; // Ellipsis button + separator
+            const fileIconWidth = isFileIconVisible ? 20 : 0; // Icon + right margin
 
             // Create a temporary element to measure segment widths
             const tempElement = document.createElement('div');
@@ -125,27 +129,38 @@ export const PathHeader = ({
             tempElement.className = 'font-mono text-sm';
             document.body.appendChild(tempElement);
 
-            let totalWidth = 0;
+            const segmentWidths = breadcrumbSegments.map((segment) => {
+                tempElement.textContent = segment.name;
+                return tempElement.offsetWidth;
+            });
+
+            const fullBreadcrumbWidth = segmentWidths.reduce((width, segmentWidth) => width + segmentWidth, fileIconWidth)
+                + Math.max(0, breadcrumbSegments.length - 1) * 16;
+
             let visibleCount = breadcrumbSegments.length;
 
-            // Start from the end (most important segments) and work backwards
-            for (let i = breadcrumbSegments.length - 1; i >= 0; i--) {
-                const segment = breadcrumbSegments[i];
-                tempElement.textContent = segment.name;
-                const segmentWidth = tempElement.offsetWidth;
-                const separatorWidth = i < breadcrumbSegments.length - 1 ? 16 : 0; // ChevronRight width
+            if (fullBreadcrumbWidth > availableWidth) {
+                let visibleWidth = fileIconWidth;
+                visibleCount = 0;
 
-                if (totalWidth + segmentWidth + separatorWidth > availableWidth && i > 0) {
-                    // If adding this segment would overflow and it's not the last segment
-                    visibleCount = breadcrumbSegments.length - i;
-                    // Add width for ellipsis dropdown (approximately 24px)
-                    if (visibleCount < breadcrumbSegments.length) {
-                        totalWidth += 40; // Ellipsis button + separator
+                // Keep the largest suffix that fits alongside the collapsed-prefix control.
+                for (let i = breadcrumbSegments.length - 1; i >= 0; i--) {
+                    const separatorWidth = visibleCount > 0 ? 16 : 0;
+                    const candidateWidth = visibleWidth + segmentWidths[i] + separatorWidth;
+                    const prefixWidth = i > 0 ? collapsedPrefixWidth : 0;
+
+                    if (candidateWidth + prefixWidth > availableWidth) {
+                        // The final segment is always visible. It may truncate when there
+                        // is not enough room for it and the fixed controls by themselves.
+                        if (visibleCount === 0) {
+                            visibleCount = 1;
+                        }
+                        break;
                     }
-                    break;
-                }
 
-                totalWidth += segmentWidth + separatorWidth;
+                    visibleWidth = candidateWidth;
+                    visibleCount++;
+                }
             }
 
             document.body.removeChild(tempElement);
@@ -160,7 +175,7 @@ export const PathHeader = ({
         }
 
         return () => resizeObserver.disconnect();
-    }, [breadcrumbSegments]);
+    }, [breadcrumbSegments, isFileIconVisible]);
 
     const hiddenSegments = useMemo(() => {
         if (visibleSegmentCount === null || visibleSegmentCount >= breadcrumbSegments.length) {
@@ -249,14 +264,20 @@ export const PathHeader = ({
             {breadcrumbSegments.length > 0 && (
                 <span>·</span>
             )}
-            <div ref={containerRef} className="flex-1 flex items-center overflow-hidden mt-0.5">
-                <div ref={breadcrumbsRef} className="flex items-center overflow-hidden">
+            <div
+                ref={containerRef}
+                className={cn(
+                    "flex-1 min-w-0 flex items-center overflow-hidden mt-0.5",
+                    visibleSegmentCount === null && "invisible",
+                )}
+            >
+                <div ref={breadcrumbsRef} className="flex min-w-0 items-center overflow-hidden">
                     {hiddenSegments.length > 0 && (
                         <>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
-                                        className="font-mono text-sm cursor-pointer hover:underline p-1 rounded transition-colors"
+                                        className="font-mono text-sm cursor-pointer hover:underline p-1 rounded transition-colors shrink-0"
                                         aria-label="Show hidden path segments"
                                     >
                                         <MoreHorizontal className="h-4 w-4" />
@@ -285,13 +306,19 @@ export const PathHeader = ({
                         </>
                     )}
                     {visibleSegments.map((segment, index) => (
-                        <div key={segment.fullPath} className="flex items-center">
+                        <div
+                            key={segment.fullPath}
+                            className={cn(
+                                "flex items-center",
+                                index === visibleSegments.length - 1 ? "min-w-0" : "shrink-0",
+                            )}
+                        >
                             {(isFileIconVisible && index === visibleSegments.length - 1) && (
-                                <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1" />
+                                <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1 flex-shrink-0" />
                             )}
                             <Link
                                 className={cn(
-                                    "font-mono text-sm truncate cursor-pointer hover:underline",
+                                    "font-mono text-sm min-w-0 truncate cursor-pointer hover:underline",
                                 )}
                                 href={getBrowsePath({
                                     repoName: repo.name,
@@ -311,7 +338,7 @@ export const PathHeader = ({
                 {breadcrumbSegments.length > 0 && (
                     <CopyIconButton
                         onCopy={onCopyPath}
-                        className="ml-2"
+                        className="ml-2 shrink-0"
                     />
                 )}
             </div>

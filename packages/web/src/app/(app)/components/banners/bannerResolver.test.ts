@@ -60,6 +60,7 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     yearlyPeakSeats: null,
     lastSyncAt: NOW,
     lastSyncErrorCode: null,
+    licenseAssertion: null,
     createdAt: NOW,
     updatedAt: NOW,
     ...overrides,
@@ -77,6 +78,7 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     offlineLicense: null,
     hasPermissionSyncEntitlement: false,
     hasPendingFirstSync: false,
+    permissionSyncIssues: [],
     dismissals: {},
     today: TODAY,
     now: NOW,
@@ -97,6 +99,22 @@ describe('resolveActiveBanner', () => {
                 hasPendingFirstSync: true,
             }));
             expect(result?.id).toBe('permissionSync');
+        });
+
+        test('shows permission sync banner when an account requires reauthentication', () => {
+            const result = resolveActiveBanner(makeContext({
+                hasPermissionSyncEntitlement: true,
+                permissionSyncIssues: [{
+                    accountId: 'account_1',
+                    providerId: 'bitbucket-server',
+                    providerType: 'bitbucket-server',
+                    reason: 'REAUTHENTICATION_REQUIRED',
+                    occurredAt: NOW.toISOString(),
+                    isSyncing: false,
+                }],
+            }));
+            expect(result?.id).toBe('permissionSync');
+            expect(result?.dismissible).toBe(false);
         });
 
         test('license expired outranks permission sync', () => {
