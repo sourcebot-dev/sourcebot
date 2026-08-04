@@ -13,6 +13,7 @@ import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
 import authentikLogo from "@/public/authentik.svg";
 import jumpcloudLogo from "@/public/jumpcloud.svg";
+import idiraLogo from "@/public/idira.svg";
 import { ServiceError } from "./serviceError";
 import { ConnectionType } from "@sourcebot/db";
 import { CodeHostType } from "@sourcebot/db";
@@ -153,6 +154,15 @@ export const getAuthProviderInfo = (providerType: string): AuthProviderInfo => {
                 displayName: "JumpCloud",
                 icon: {
                     src: jumpcloudLogo,
+                },
+            };
+        case "idira":
+            return {
+                id: "idira",
+                name: "Idira",
+                displayName: "Idira",
+                icon: {
+                    src: idiraLogo,
                 },
             };
         case "credentials":

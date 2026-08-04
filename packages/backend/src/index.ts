@@ -2,7 +2,6 @@ import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 import { createLogger, env, getConfigSettings } from "@sourcebot/shared";
-import { hasEntitlement } from "./entitlements.js";
 import { prisma } from "./prisma.js";
 import 'express-async-errors';
 import { existsSync } from 'fs';
@@ -14,7 +13,6 @@ import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
 import { AuditLogPruner } from "./ee/auditLogPruner.js";
-import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
@@ -46,10 +44,6 @@ const promClient = new PromClient();
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
 
-if (await hasEntitlement('github-app')) {
-    await GithubAppManager.getInstance().init(prisma);
-}
-
 const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
 const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
@@ -63,10 +57,7 @@ await repoIndexManager.startScheduler();
 auditLogPruner.startScheduler();
 attachmentPruner.startScheduler();
 
-if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
-    logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
-}
-else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
+if (env.PERMISSION_SYNC_ENABLED === 'true') {
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
         await repoPermissionSyncer.startScheduler();
     }

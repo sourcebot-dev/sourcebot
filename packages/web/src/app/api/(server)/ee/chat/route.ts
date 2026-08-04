@@ -2,7 +2,7 @@ import { sew } from "@/middleware/sew";
 import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/ee/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
-import { additionalChatRequestParamsSchema } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, type SBChatMessage } from "@/features/chat/types";
 import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
 import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
 import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
@@ -10,6 +10,8 @@ import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.serv
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
+import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
+import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -184,12 +186,19 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
             const askMcpSource = source === 'sourcebot-web-client' ? source : undefined;
-            const askMcpAvailability = await getAskMcpAvailabilityAnalytics({
-                prisma,
-                userId: user?.id,
-                orgId: org.id,
-                disabledMcpServerIds,
-            });
+            const [askMcpAvailability, askSkillAvailability] = await Promise.all([
+                getAskMcpAvailabilityAnalytics({
+                    prisma,
+                    userId: user?.id,
+                    orgId: org.id,
+                    disabledMcpServerIds,
+                }),
+                getAskSkillAvailabilityAnalytics({
+                    prisma,
+                    userId: user?.id,
+                    orgId: org.id,
+                }),
+            ]);
 
             await captureEvent('ask_message_sent', {
                 chatId: id,
@@ -202,9 +211,18 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });
 
+            const messagesWithMaterializedCommands = await materializeCommandMessageTexts({
+                messages,
+                persistedMessages: chat.messages as unknown as SBChatMessage[],
+                prisma,
+                userId: user?.id,
+                orgId: org.id,
+                requestSource: source,
+            });
+
             const stream = await createMessageStream({
                 chatId: id,
-                messages,
+                messages: messagesWithMaterializedCommands,
                 metadata: {
                     selectedSearchScopes,
                 },
@@ -231,6 +249,17 @@ export const POST = apiHandler(async (req: NextRequest) => {
                             chatId: id,
                             source: askMcpSource,
                             ...askMcpTurnCompleted,
+                        });
+                    }
+                    const askSkillTurnCompleted = getAskSkillTurnCompletedAnalytics({
+                        messages,
+                        availability: askSkillAvailability,
+                    });
+                    if (askSkillTurnCompleted) {
+                        void captureEvent('ask_skill_turn_completed', {
+                            chatId: id,
+                            source: askMcpSource,
+                            ...askSkillTurnCompleted,
                         });
                     }
                 },

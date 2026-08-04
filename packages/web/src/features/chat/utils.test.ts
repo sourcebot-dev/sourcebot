@@ -1,7 +1,8 @@
 import { expect, test, describe, vi } from 'vitest'
-import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, getUserMessageText, groupMessageIntoSteps, repairReferences } from './utils'
+import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, getUserMessageText, groupMessageIntoSteps, repairReferences, slateContentToString } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
+import type { Descendant } from 'slate';
 
 // Mock the env module
 vi.mock('@sourcebot/shared', () => ({
@@ -131,6 +132,58 @@ test('fileReferenceToString matches FILE_REFERENCE_REGEX', () => {
             endLine: 60,
         }
     }))).toBe(true);
+});
+
+test('slateContentToString serializes command mentions as literal slash commands', () => {
+    const children = [{
+        type: 'paragraph',
+        children: [
+            {
+                type: 'mention',
+                data: {
+                    type: 'command',
+                    commandId: 'skill-1',
+                    sourceId: 'personal-skill',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                },
+                children: [{ text: '' }],
+            },
+            { text: ' focus on auth changes' },
+        ],
+    }] satisfies Descendant[];
+
+    expect(slateContentToString(children)).toBe('/review-pr focus on auth changes\n');
+});
+
+test('slateContentToString separates command mentions from adjacent text without doubling spaces', () => {
+    const commandMention = {
+        type: 'mention' as const,
+        data: {
+            type: 'command' as const,
+            commandId: 'skill-1',
+            sourceId: 'personal-skill',
+            slug: 'review-pr',
+            name: 'Review PR',
+        },
+        children: [{ text: '' }],
+    };
+
+    expect(slateContentToString([{
+        type: 'paragraph',
+        children: [
+            commandMention,
+            { text: 'focus on auth changes' },
+        ],
+    }])).toBe('/review-pr focus on auth changes\n');
+
+    expect(slateContentToString([{
+        type: 'paragraph',
+        children: [
+            commandMention,
+            { text: ' focus on auth changes' },
+        ],
+    }])).toBe('/review-pr focus on auth changes\n');
 });
 
 test('groupMessageIntoSteps returns an empty array when there are no parts', () => {
@@ -740,5 +793,59 @@ describe('createUIMessage', () => {
 
         expect(result.metadata?.selectedSearchScopes).toEqual(scopes);
         expect(result.metadata?.disabledMcpServerIds).toEqual(['disabled1']);
+    });
+
+    test('converts a leading command mention into command data', () => {
+        const result = createUIMessage('/review-pr src/auth/session.ts\n', [{
+            type: 'command',
+            commandId: 'skill-1',
+            sourceId: 'personal-skill',
+            slug: 'review-pr',
+            name: 'Review PR',
+        }], [], []);
+
+        expect(result.parts).toEqual([
+            {
+                type: 'text',
+                text: '/review-pr src/auth/session.ts\n',
+            },
+            {
+                type: 'data-command',
+                data: {
+                    type: 'command',
+                    commandId: 'skill-1',
+                    sourceId: 'personal-skill',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                },
+            },
+        ]);
+    });
+
+    test('converts non-leading command mentions into command data', () => {
+        const result = createUIMessage('please /review-pr src/auth/session.ts', [{
+            type: 'command',
+            commandId: 'skill-1',
+            sourceId: 'personal-skill',
+            slug: 'review-pr',
+            name: 'Review PR',
+        }], [], []);
+
+        expect(result.parts).toEqual([
+            {
+                type: 'text',
+                text: 'please /review-pr src/auth/session.ts',
+            },
+            {
+                type: 'data-command',
+                data: {
+                    type: 'command',
+                    commandId: 'skill-1',
+                    sourceId: 'personal-skill',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                },
+            },
+        ]);
     });
 });

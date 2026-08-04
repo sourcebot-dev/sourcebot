@@ -1,9 +1,9 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getCommit, getDiff } from "@/features/git";
-import { isServiceError } from "@/lib/utils";
 import { format } from "date-fns";
-import { FileCode } from "lucide-react";
+import { FileCode, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { formatAuthorsText, getCommitAuthors } from "../../../components/commitAuthors";
 import { AuthorsAvatarGroup } from "../../../components/commitParts";
@@ -12,55 +12,34 @@ import { CommitHashLine } from "./commitHashLine";
 import { CommitMessage } from "./commitMessage";
 import { computeTotalChangeCounts, DiffStat } from "./diffStat";
 import { FileDiffList } from "./fileDiffList";
+import { useCommitDiff } from "./useCommitDiff";
 
 interface FullCommitDiffPanelProps {
     repoName: string;
     commitSha: string;
 }
 
-// Git's well-known empty-tree SHA. Used as the diff base when the commit has
-// no parent (i.e. the initial commit), since `<sha>^` doesn't resolve there.
-const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+export const FullCommitDiffPanel = ({ repoName, commitSha }: FullCommitDiffPanelProps) => {
+    const { data, isPending, error } = useCommitDiff({ repoName, commitSha });
 
-export const FullCommitDiffPanel = async ({ repoName, commitSha }: FullCommitDiffPanelProps) => {
-    const [commitResponse, initialDiffResponse] = await Promise.all([
-        getCommit({
-            repo: repoName,
-            ref: commitSha,
-        }),
-        getDiff({
-            repo: repoName,
-            base: `${commitSha}^`,
-            head: commitSha,
-        }),
-    ]);
-
-    if (isServiceError(commitResponse)) {
+    if (isPending) {
         return (
-            <div className="p-6 text-sm text-destructive">
-                Error loading commit: {commitResponse.message}
+            <div className="flex flex-col w-full min-h-full items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
             </div>
         );
     }
 
-    // Initial commit has no parent — `<sha>^` fails. Fall back to diffing
-    // against git's empty tree so all files show as added.
-    let diffResponse = initialDiffResponse;
-    if (isServiceError(initialDiffResponse) && commitResponse.parents.length === 0) {
-        diffResponse = await getDiff({
-            repo: repoName,
-            base: EMPTY_TREE_SHA,
-            head: commitSha,
-        });
-    }
-
-    if (isServiceError(diffResponse)) {
+    if (error || !data) {
         return (
             <div className="p-6 text-sm text-destructive">
-                Error loading diff: {diffResponse.message}
+                {error instanceof Error ? error.message : 'Error loading commit'}
             </div>
         );
     }
+
+    const { commit: commitResponse, diff: diffResponse } = data;
 
     const baseSha = commitResponse.parents.length > 0 ? commitResponse.parents[0] : null;
     const subject = commitResponse.message.split('\n')[0];

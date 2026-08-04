@@ -11,7 +11,7 @@ import { decryptActivationCode, env } from "@sourcebot/shared";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { client } from "@/features/billing/client";
-import { Invoice } from "@/features/billing/types";
+import type { Invoice } from "@sourcebot/shared";
 
 export const refreshLicense = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>

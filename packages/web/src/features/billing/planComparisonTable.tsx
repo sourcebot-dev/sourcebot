@@ -11,7 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { cn, formatCurrency } from "@/lib/utils";
-import { OffersResponse } from "@/features/billing/types";
+import type { OffersResponse } from "@sourcebot/shared/client";
 
 interface FeatureLinkProps {
     text: string;

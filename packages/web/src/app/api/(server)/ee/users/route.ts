@@ -1,6 +1,7 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
+import { toPublicUser } from "../utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -35,33 +36,7 @@ export const GET = apiHandler(async () => {
                     },
                 });
 
-                const usersWithActivity = await Promise.all(
-                    memberships.map(async (membership) => {
-                        const lastActivity = await prisma.audit.findFirst({
-                            where: {
-                                actorId: membership.user.id,
-                                actorType: 'user',
-                                orgId: org.id,
-                            },
-                            orderBy: {
-                                timestamp: 'desc',
-                            },
-                            select: {
-                                timestamp: true,
-                            },
-                        });
-
-                        return {
-                            id: membership.user.id,
-                            name: membership.user.name,
-                            email: membership.user.email,
-                            role: membership.role,
-                            suspendedAt: membership.suspendedAt,
-                            createdAt: membership.user.createdAt,
-                            lastActivityAt: lastActivity?.timestamp ?? null,
-                        };
-                    })
-                );
+                const users = memberships.map((membership) => toPublicUser(membership));
 
                 await createAudit({
                     action: "user.list",
@@ -76,8 +51,8 @@ export const GET = apiHandler(async () => {
                     orgId: org.id
                 });
 
-                logger.info('Fetched users list', { count: usersWithActivity.length });
-                return usersWithActivity;
+                logger.info('Fetched users list', { count: users.length });
+                return users;
             } catch (error) {
                 logger.error('Error fetching users', { error });
                 throw error;

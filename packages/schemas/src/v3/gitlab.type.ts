@@ -26,6 +26,10 @@ export interface GitlabConnectionConfig {
    */
   url?: string;
   /**
+   * The base URL used to construct links to repositories in the GitLab web UI. Useful when the API is served from a different host than the one users browse (e.g. `https://api.gitlab.example.com` for `url` and `https://gitlab.example.com` for `webUrl`). Defaults to the value of `url`.
+   */
+  webUrl?: string;
+  /**
    * Sync all projects visible to the provided `token` (if any) in the GitLab instance. This option is ignored if `url` is either unset or set to https://gitlab.com .
    */
   all?: boolean;

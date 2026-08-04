@@ -34,6 +34,9 @@ export const TableOfContents = ({ tocItems, activeId, className }: TableOfConten
                     key={item.id}
                     variant="link"
                     size="sm"
+                    // Keep mouse clicks from leaving the button focused; otherwise the
+                    // focus-visible ring lingers on the last-clicked item as you scroll.
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => scrollToHeading(item.id)}
                     className={cn(
                         'w-full justify-start text-left h-auto py-0.5 px-0 font-normal text-wrap hover:text-foreground underline-offset-2 text-xs',

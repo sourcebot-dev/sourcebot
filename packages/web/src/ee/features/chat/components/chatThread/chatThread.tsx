@@ -9,11 +9,11 @@ import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMe
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
-import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
+import { useUnsavedChangesGuard } from '../../useUnsavedChangesGuard';
 import { useSelectedLanguageModel } from '@/features/chat/useSelectedLanguageModel';
 import { ChatBox, ChatBoxHandle } from '@/features/chat/components/chatBox';
 import { ChatBoxToolbar } from '@/features/chat/components/chatBox/chatBoxToolbar';
@@ -28,11 +28,12 @@ import { duplicateChat } from '@/features/chat/actions';
 import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
-import { McpServerIconContext, McpServerIconMap } from '../../mcpServerIconContext';
+import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -45,6 +46,7 @@ interface ChatThreadProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
+    askCommands: AskCommandDefinition[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
@@ -63,6 +65,7 @@ export const ChatThread = ({
     languageModels,
     repos,
     searchContexts,
+    askCommands,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     disabledMcpServerIds,
@@ -99,6 +102,18 @@ export const ChatThread = ({
                 .filter((part) => part.type === 'data-mcp-server')
                 .forEach((part) => {
                     map[part.data.sanitizedName] = part.data.faviconUrl;
+                });
+        });
+        return map;
+    });
+
+    const [mcpToolNameMap, setMcpToolNameMap] = useState<McpToolNameMap>(() => {
+        const map: McpToolNameMap = {};
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-tool')
+                .forEach((part) => {
+                    map[part.data.modelToolName] = part.data.rawToolName;
                 });
         });
         return map;
@@ -171,6 +186,12 @@ export const ChatThread = ({
                 setMcpServerIconMap((prev) => ({
                     ...prev,
                     [dataPart.data.sanitizedName]: dataPart.data.faviconUrl,
+                }));
+            }
+            if (dataPart.type === 'data-mcp-tool') {
+                setMcpToolNameMap((prev) => ({
+                    ...prev,
+                    [dataPart.data.modelToolName]: dataPart.data.rawToolName,
                 }));
             }
             if (dataPart.type === 'data-mcp-failed-server') {
@@ -250,18 +271,8 @@ export const ChatThread = ({
         shouldGuardNavigation,
     } = useMemo(() => getTurnProgressState({ messages, status }), [messages, status]);
 
-    useNavigationGuard({
-        enabled: ({ type }) => {
-            // @note: a "refresh" in this context means we have triggered a client side
-            // refresh via `router.refresh()`, and not the user pressing "CMD+R"
-            // (that would be a "beforeunload" event). We can safely peform refreshes
-            // without loosing any unsaved changes.
-            if (type === "refresh") {
-                return false;
-            }
-
-            return shouldGuardNavigation;
-        },
+    useUnsavedChangesGuard({
+        enabled: shouldGuardNavigation,
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
 
@@ -385,6 +396,7 @@ export const ChatThread = ({
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
+        <McpToolNameContext.Provider value={mcpToolNameMap}>
         <ChatPaneDropzone
             className="flex flex-col flex-1 min-h-0 w-full"
             onFilesDropped={(files) => chatBoxRef.current?.addFiles(files)}
@@ -488,6 +500,7 @@ export const ChatThread = ({
                                     onStop={stop}
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
+                                    askCommands={askCommands}
                                     isDisabled={languageModels.length === 0}
                                     isAuthenticated={isAuthenticated}
                                     isLoginWallEnabled={isLoginWallEnabled}
@@ -532,6 +545,7 @@ export const ChatThread = ({
                 )}
             </div>
         </ChatPaneDropzone>
+        </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
         </ToolApprovalProvider>
     );

@@ -77,6 +77,7 @@ describe('ChatThreadPanel', () => {
                 repos={[]}
                 searchContexts={[]}
                 messages={[]}
+                askCommands={[]}
                 isOwner={true}
                 isAuthenticated={true}
                 isLoginWallEnabled={false}

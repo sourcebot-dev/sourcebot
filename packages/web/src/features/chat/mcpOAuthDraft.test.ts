@@ -14,6 +14,24 @@ const children = [{
     children: [{ text: 'check the Linear ticket' }],
 }] satisfies Descendant[];
 
+const commandChildren = [{
+    type: 'paragraph',
+    children: [
+        {
+            type: 'mention',
+            data: {
+                type: 'command',
+                commandId: 'skill-1',
+                sourceId: 'personal-skill',
+                slug: 'review-pr',
+                name: 'Review PR',
+            },
+            children: [{ text: '' }],
+        },
+        { text: ' focus on auth changes' },
+    ],
+}] satisfies Descendant[];
+
 const selectedSearchScopes = [{
     type: 'repo',
     value: 'sourcebot/sourcebot',
@@ -63,6 +81,22 @@ describe('MCP OAuth draft persistence', () => {
         expect(resolveMcpOAuthDraftForPath('{', '/chat/thread-1').shouldClear).toBe(true);
         expect(resolveMcpOAuthDraftForPath(JSON.stringify({ ...draft, children: [1] }), '/chat/thread-1?scope=sourcebot', 200).shouldClear).toBe(true);
         expect(resolveMcpOAuthDraftForPath(JSON.stringify(draft), '/chat/thread-1?scope=sourcebot', 30 * 60 * 1000 + 101).shouldClear).toBe(true);
+    });
+
+    test('accepts drafts with command mentions', () => {
+        const commandDraft = {
+            ...draft,
+            children: commandChildren,
+        };
+
+        const result = resolveMcpOAuthDraftForPath(
+            JSON.stringify(commandDraft),
+            '/chat/thread-1?scope=sourcebot&status=connected&server=Linear',
+            200,
+        );
+
+        expect(result.shouldClear).toBe(true);
+        expect(result.draft?.children).toEqual(commandChildren);
     });
 
     test('saves and consumes the composer draft from sessionStorage', () => {

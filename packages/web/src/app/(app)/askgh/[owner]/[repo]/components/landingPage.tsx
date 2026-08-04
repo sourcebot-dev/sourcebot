@@ -13,6 +13,7 @@ import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY } from "@/features/chat/const
 import { getRepoImageSrc } from '@/lib/utils';
 import { useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 interface LandingPageProps {
     languageModels: LanguageModelInfo[];
@@ -20,6 +21,7 @@ interface LandingPageProps {
     repoDisplayName?: string;
     imageUrl?: string | null;
     repoId: number;
+    askCommands: AskCommandDefinition[];
     isAuthenticated: boolean;
     maxImageBytes: number;
 }
@@ -30,6 +32,7 @@ export const LandingPage = ({
     repoDisplayName,
     imageUrl,
     repoId,
+    askCommands,
     isAuthenticated,
     maxImageBytes,
 }: LandingPageProps) => {
@@ -86,6 +89,7 @@ export const LandingPage = ({
                             isRedirecting={isLoading}
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={[]}
+                            askCommands={askCommands}
                             isDisabled={isChatBoxDisabled}
                             isAuthenticated={isAuthenticated}
                             isLoginWallEnabled={true}

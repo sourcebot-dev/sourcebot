@@ -2,6 +2,7 @@ import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/ut
 import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
 import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
+import { createCommandInvocationData } from "./commands/utils";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
     AttachmentData,
@@ -14,6 +15,7 @@ import {
     MentionElement,
     ParagraphElement,
     SBChatMessage,
+    SBChatMessageDataParts,
     SBChatMessagePart,
     SBChatMessageToolTypes,
     SearchScope,
@@ -129,8 +131,16 @@ export const isParagraphElement = (element: Descendant): element is ParagraphEle
     return 'type' in element && element.type === 'paragraph';
 }
 
+const commandMentionSeparator = (nextChild: Descendant | undefined) => {
+    if (nextChild && isCustomTextElement(nextChild) && /^\s/.test(nextChild.text)) {
+        return "";
+    }
+
+    return " ";
+}
+
 export const slateContentToString = (children: Descendant[]): string => {
-    return children.map((child) => {
+    return children.map((child, index) => {
         if (isCustomTextElement(child)) {
             return child.text;
         }
@@ -141,6 +151,8 @@ export const slateContentToString = (children: Descendant[]): string => {
             switch (type) {
                 case 'file':
                     return `${fileReferenceToString({ repo: child.data.repo, path: child.data.path })} `;
+                case 'command':
+                    return `/${child.data.slug}${commandMentionSeparator(children[index + 1])}`;
             }
         }
 
@@ -206,6 +218,10 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
             return undefined;
         })
         .filter((source) => source !== undefined);
+    const commandInvocation = createCommandInvocationData(
+        text,
+        mentions.filter((mention) => mention.type === 'command'),
+    );
 
     return {
         role: 'user',
@@ -222,6 +238,10 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
                 type: 'data-attachment',
                 data,
             })) as UIMessagePart<{ attachment: AttachmentData }, SBChatMessageToolTypes>[],
+            ...(commandInvocation ? [{
+                type: 'data-command',
+                data: commandInvocation,
+            }] as UIMessagePart<SBChatMessageDataParts, SBChatMessageToolTypes>[] : []),
         ],
         metadata: {
             selectedSearchScopes,

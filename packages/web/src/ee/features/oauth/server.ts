@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { __unsafePrisma } from '@/prisma';
-import { Prisma } from '@prisma/client';
+import { isRecordNotFoundError } from '@/lib/prismaErrors';
 import {
     env,
     generateOAuthRefreshToken,
@@ -115,7 +115,7 @@ export async function verifyAndExchangeCode({
     try {
         await __unsafePrisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
     } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        if (isRecordNotFoundError(error)) {
             return { error: 'invalid_grant', errorDescription: 'Authorization code has already been used.' };
         }
         throw error;

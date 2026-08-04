@@ -104,6 +104,13 @@ const nextConfig = {
                         key: "Content-Security-Policy",
                         value: "frame-ancestors 'self'",
                     },
+                    // Opts the document into the JS Self-Profiling API, which Sentry's
+                    // browser profiling integration needs in order to start a profiler.
+                    // @see: https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/
+                    {
+                        key: "Document-Policy",
+                        value: "js-profiling",
+                    },
                 ],
             },
         ];
@@ -146,8 +153,8 @@ export default withSentryConfig(nextConfig, {
     // For all available options, see:
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_WEBAPP_PROJECT,
-    authToken: process.env.SENTRY_SMUAT,
-    release: process.env.SENTRY_RELEASE,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: { name: process.env.SENTRY_RELEASE },
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,
