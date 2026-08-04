@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed the Langfuse integration, along with the `langfuse` and `langfuse-vercel` dependencies and the `LANGFUSE_SECRET_KEY`, `NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY`, and `NEXT_PUBLIC_LANGFUSE_BASE_URL` environment variables.
+
 ### Fixed
 - Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
 - Upgraded `tar` to `^7.5.22`. [#1472](https://github.com/sourcebot-dev/sourcebot/pull/1472)

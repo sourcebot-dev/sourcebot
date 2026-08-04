@@ -789,9 +789,6 @@ const createAgentStream = async ({
             },
             experimental_telemetry: {
                 isEnabled: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
-                metadata: {
-                    langfuseTraceId: traceId,
-                },
             },
             onError: (error) => {
                 logger.error(error);
