@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- Upgraded the bundled Zoekt `golang.org/x/text` dependency to `v0.39.0`. [#1535](https://github.com/sourcebot-dev/sourcebot/pull/1535)
 
 ## [5.1.5] - 2026-07-31
 
