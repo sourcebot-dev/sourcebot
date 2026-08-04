@@ -106,13 +106,13 @@ export class GithubAppManager {
         this.initialized = true;
     }
 
-    public async getInstallationToken(owner: string, deploymentHostname: string = GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME): Promise<string> {
+    public async getInstallationToken(owner: string, deploymentHostname: string = GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME): Promise<string | undefined> {
         this.assertInitialized();
 
         const key = this.generateMapKey(owner, deploymentHostname);
         const installation = this.installationMap.get(key) as Installation | undefined;
         if (!installation) {
-            throw new Error(`GitHub App Installation not found for ${key}`);
+            return undefined;
         }
 
         const octokitApp = this.octokitApps.get(installation.appId) as App;

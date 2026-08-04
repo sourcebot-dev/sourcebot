@@ -136,18 +136,20 @@ export const getOctokitWithGithubApp = async (
         throw new Error(`GitHub App authentication is not currently licensed for ${context}.`);
     }
 
-    try {
-        const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
-        const token = await githubAppManager.getInstallationToken(owner, hostname);
-        const { octokit: octokitFromToken } = await createOctokitFromToken({
-            token,
-            url,
-        });
-        return octokitFromToken;
-    } catch (error) {
-        logger.error(`Error getting GitHub App token for ${context}.`, error);
-        throw error;
+    const hostname = url ? new URL(url).hostname : GITHUB_CLOUD_HOSTNAME;
+    const token = await githubAppManager.getInstallationToken(owner, hostname);
+    if (!token) {
+        logger.warn(
+            `No matching GitHub App installation found for ${context} on ${hostname}; falling back to legacy GitHub authentication.`
+        );
+        return octokit;
     }
+
+    const { octokit: octokitFromToken } = await createOctokitFromToken({
+        token,
+        url,
+    });
+    return octokitFromToken;
 }
 
 export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
