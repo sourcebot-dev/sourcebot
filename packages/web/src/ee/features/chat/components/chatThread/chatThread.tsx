@@ -311,9 +311,6 @@ export const ChatThread = ({
         messages,
         isTurnInProgress,
         addToolApprovalResponse,
-        sendMessage,
-        selectedSearchScopes,
-        disabledMcpServerIds,
     });
 
     useEffect(() => {

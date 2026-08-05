@@ -24,9 +24,7 @@ const createReconnectContext = (
 ): McpReconnectContextValue => ({
     reconnectStates: { [state.serverId]: state },
     isReconnectAllowed: true,
-    isContinueAllowed: false,
     reconnect: vi.fn(),
-    continueAfterReconnect: vi.fn(),
     ...overrides,
 });
 
@@ -68,35 +66,18 @@ describe('McpReconnectBanner', () => {
         expect(button.disabled).toBe(true);
     });
 
-    test('shows the continue action after reconnecting', () => {
-        const contextValue = createReconnectContext(
-            createReconnectState({ status: 'reconnected' }),
-            { isContinueAllowed: true },
-        );
-        renderBanner(contextValue);
-
-        expect(screen.getByRole('status')).toBeTruthy();
-        expect(screen.getByText('Linear reconnected')).toBeTruthy();
-
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-        expect(contextValue.continueAfterReconnect).toHaveBeenCalledWith('server-1');
-    });
-
-    test('does not offer Continue when automatic continuation is unavailable', () => {
+    test('does not render a success banner after reconnecting', () => {
         const contextValue = createReconnectContext(createReconnectState({ status: 'reconnected' }));
-        renderBanner(contextValue);
+        const { container } = renderBanner(contextValue);
 
-        expect(screen.getByText('Connection restored.')).toBeTruthy();
-        expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+        expect(container.childElementCount).toBe(0);
     });
 
     test('does not render without a reconnect failure', () => {
         const contextValue: McpReconnectContextValue = {
             reconnectStates: {},
             isReconnectAllowed: true,
-            isContinueAllowed: false,
             reconnect: vi.fn(),
-            continueAfterReconnect: vi.fn(),
         };
         const { container } = renderBanner(contextValue);
 

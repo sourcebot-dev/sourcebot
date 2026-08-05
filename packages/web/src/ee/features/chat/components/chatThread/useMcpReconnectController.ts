@@ -14,9 +14,9 @@ import {
     consumeMcpPendingReconnectForPath,
     saveMcpPendingReconnect,
 } from '@/features/chat/mcpReconnect';
-import { CreateUIMessage, ChatStatus, ChatAddToolApproveResponseFunction } from 'ai';
-import { SBChatMessage, SearchScope } from '@/features/chat/types';
-import { createUIMessage, getLastStepParts, isSBChatToolPart } from '@/features/chat/utils';
+import { ChatStatus, ChatAddToolApproveResponseFunction } from 'ai';
+import { SBChatMessage } from '@/features/chat/types';
+import { getLastStepParts, isSBChatToolPart } from '@/features/chat/utils';
 import { isServiceError } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -37,9 +37,6 @@ interface UseMcpReconnectControllerOptions {
     messages: SBChatMessage[];
     isTurnInProgress: boolean;
     addToolApprovalResponse: ChatAddToolApproveResponseFunction;
-    sendMessage: (message: CreateUIMessage<SBChatMessage>) => void;
-    selectedSearchScopes: SearchScope[];
-    disabledMcpServerIds: string[];
 }
 
 // Orchestrates the client side of MCP connector reauthentication for a chat
@@ -47,15 +44,12 @@ interface UseMcpReconnectControllerOptions {
 // failures and tool-load failures, automatically denies tool approvals still
 // pending in an interrupted response, gates the Reconnect action until the
 // response has settled, restores pending reconnect metadata after the OAuth
-// round trip, and sends the follow-up user turn on Continue when applicable.
+// round trip, and confirms that the connector is usable again.
 export function useMcpReconnectController({
     status,
     messages,
     isTurnInProgress,
     addToolApprovalResponse,
-    sendMessage,
-    selectedSearchScopes,
-    disabledMcpServerIds,
 }: UseMcpReconnectControllerOptions): {
     contextValue: McpReconnectContextValue;
     onAuthRequired: (data: McpAuthRequiredData) => void;
@@ -168,7 +162,8 @@ export function useMcpReconnectController({
     // Restore pending reconnect metadata after returning from the OAuth
     // redirect, then confirm the connector actually reconnected via the
     // status endpoint. Runs once per mount; reads only sessionStorage, so it
-    // does not race the OAuth status toast's query-parameter cleanup.
+    // does not race the OAuth status toast's query-parameter cleanup. The
+    // app-level OAuth status toast owns the success feedback for this path.
     useEffect(() => {
         if (hasRestoredPendingReconnect.current) {
             return;
@@ -278,6 +273,7 @@ export function useMcpReconnectController({
 
         if (server?.isConnected && !server.isAuthExpired) {
             setReconnectStatus(serverId, 'reconnected');
+            toast({ description: `Successfully reconnected to ${state.serverName}.` });
         } else {
             setReconnectStatus(serverId, 'authentication-required');
             toast({
@@ -287,45 +283,11 @@ export function useMcpReconnectController({
         }
     }, [queryClient, setReconnectStatus, toast]);
 
-    const stateList = useMemo(
-        () => Object.values(reconnectStates).filter((state) => state.source !== 'tool-load'),
-        [reconnectStates],
-    );
-    // Continue is only supported when exactly one connector failed
-    // authentication in the response, and it has been reconnected.
-    const isContinueAllowed =
-        isReconnectAllowed &&
-        stateList.length === 1 &&
-        stateList[0].status === 'reconnected';
-    const isContinueAllowedRef = useRef(isContinueAllowed);
-    useEffect(() => {
-        isContinueAllowedRef.current = isContinueAllowed;
-    }, [isContinueAllowed]);
-
-    const continueAfterReconnect = useCallback((serverId: string) => {
-        const state = reconnectStatesRef.current[serverId];
-        if (!state || state.status !== 'reconnected' || !isContinueAllowedRef.current) {
-            return;
-        }
-
-        sendMessage(createUIMessage(
-            `Continue the previous request now that ${state.serverName} is reconnected. Do not repeat operations that already completed.`,
-            [],
-            selectedSearchScopes,
-            disabledMcpServerIds,
-        ));
-
-        setReconnectStates({});
-        deniedApprovalIdsRef.current.clear();
-    }, [sendMessage, selectedSearchScopes, disabledMcpServerIds]);
-
     const contextValue = useMemo<McpReconnectContextValue>(() => ({
         reconnectStates,
         isReconnectAllowed,
-        isContinueAllowed,
         reconnect,
-        continueAfterReconnect,
-    }), [reconnectStates, isReconnectAllowed, isContinueAllowed, reconnect, continueAfterReconnect]);
+    }), [reconnectStates, isReconnectAllowed, reconnect]);
 
     return { contextValue, onAuthRequired, onServerLoadFailed };
 }

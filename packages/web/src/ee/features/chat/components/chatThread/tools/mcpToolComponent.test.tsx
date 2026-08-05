@@ -71,9 +71,7 @@ const createReconnectContext = (
 ): McpReconnectContextValue => ({
     reconnectStates: { [state.serverId]: state },
     isReconnectAllowed: true,
-    isContinueAllowed: false,
     reconnect: vi.fn(),
-    continueAfterReconnect: vi.fn(),
     ...overrides,
 });
 

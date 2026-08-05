@@ -5,7 +5,6 @@ import { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { MCP_RECONNECT_SESSION_STORAGE_KEY } from '@/features/chat/constants';
 import { SBChatMessage } from '@/features/chat/types';
-import { getUserMessageText } from '@/features/chat/utils';
 import { useMcpReconnectController } from './useMcpReconnectController';
 
 const mocks = vi.hoisted(() => ({
@@ -44,16 +43,12 @@ const createWrapper = () => {
 };
 
 const addToolApprovalResponse = vi.fn();
-const sendMessage = vi.fn();
 
 const renderController = (initialProps: HookProps) =>
     renderHook(
         (props: HookProps) => useMcpReconnectController({
             ...props,
             addToolApprovalResponse,
-            sendMessage,
-            selectedSearchScopes: [],
-            disabledMcpServerIds: [],
         }),
         { initialProps, wrapper: createWrapper() },
     );
@@ -189,6 +184,28 @@ describe('useMcpReconnectController', () => {
         expect(mocks.connectMcpToAsk).not.toHaveBeenCalled();
     });
 
+    test('shows a success toast when reconnection completes without an OAuth redirect', async () => {
+        mocks.connectMcpToAsk.mockResolvedValue({ authorizationUrl: null });
+        mocks.getMcpServersWithStatus.mockResolvedValue([
+            { id: 'server-1', name: 'Linear', isConnected: true, isAuthExpired: false },
+        ]);
+        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        act(() => {
+            result.current.onAuthRequired(AUTH_FAILURE);
+        });
+
+        await act(async () => {
+            result.current.contextValue.reconnect('server-1');
+        });
+
+        await waitFor(() => {
+            expect(mocks.toast).toHaveBeenCalledWith({
+                description: 'Successfully reconnected to Linear.',
+            });
+        });
+    });
+
     test('tracks a failed tool load without treating it as a failed tool call', () => {
         const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
 
@@ -202,7 +219,6 @@ describe('useMcpReconnectController', () => {
             source: 'tool-load',
             status: 'authentication-required',
         });
-        expect(result.current.contextValue.isContinueAllowed).toBe(false);
         expect(addToolApprovalResponse).not.toHaveBeenCalled();
     });
 
@@ -224,7 +240,6 @@ describe('useMcpReconnectController', () => {
             expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('reconnected');
         });
         expect(window.sessionStorage.getItem(MCP_RECONNECT_SESSION_STORAGE_KEY)).toBeNull();
-        expect(result.current.contextValue.isContinueAllowed).toBe(true);
     });
 
     test('restores the source of a failed tool-load reconnect after OAuth', async () => {
@@ -245,7 +260,6 @@ describe('useMcpReconnectController', () => {
             expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('reconnected');
         });
         expect(result.current.contextValue.reconnectStates['server-1']?.source).toBe('tool-load');
-        expect(result.current.contextValue.isContinueAllowed).toBe(false);
     });
 
     test('falls back to authentication-required when the OAuth return did not reconnect the connector', async () => {
@@ -265,53 +279,5 @@ describe('useMcpReconnectController', () => {
         await waitFor(() => {
             expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('authentication-required');
         });
-        expect(result.current.contextValue.isContinueAllowed).toBe(false);
-    });
-
-    test('Continue sends a visible user turn naming the reconnected connector and resets the state', async () => {
-        window.sessionStorage.setItem(MCP_RECONNECT_SESSION_STORAGE_KEY, JSON.stringify({
-            serverId: 'server-1',
-            serverName: 'Linear',
-            toolCallId: 'tool-call-1',
-            returnTo: '/chat/abc123',
-            createdAt: Date.now(),
-        }));
-        mocks.getMcpServersWithStatus.mockResolvedValue([
-            { id: 'server-1', name: 'Linear', isConnected: true, isAuthExpired: false },
-        ]);
-
-        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
-        await waitFor(() => {
-            expect(result.current.contextValue.isContinueAllowed).toBe(true);
-        });
-
-        act(() => {
-            result.current.contextValue.continueAfterReconnect('server-1');
-        });
-
-        expect(sendMessage).toHaveBeenCalledTimes(1);
-        const sentMessage = sendMessage.mock.calls[0][0];
-        expect(sentMessage.role).toBe('user');
-        expect(getUserMessageText(sentMessage as SBChatMessage)).toBe(
-            'Continue the previous request now that Linear is reconnected. Do not repeat operations that already completed.'
-        );
-        expect(result.current.contextValue.reconnectStates).toEqual({});
-    });
-
-    test('Continue is unavailable when more than one connector failed authentication', () => {
-        const { result, rerender } = renderController({ status: 'streaming', messages: [], isTurnInProgress: true });
-
-        act(() => {
-            result.current.onAuthRequired(AUTH_FAILURE);
-            result.current.onAuthRequired({ serverId: 'server-2', serverName: 'Jira', toolCallId: 'tool-call-3' });
-        });
-        rerender({ status: 'ready', messages: [], isTurnInProgress: false });
-
-        expect(result.current.contextValue.isContinueAllowed).toBe(false);
-
-        act(() => {
-            result.current.contextValue.continueAfterReconnect('server-1');
-        });
-        expect(sendMessage).not.toHaveBeenCalled();
     });
 });

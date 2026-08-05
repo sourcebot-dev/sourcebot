@@ -25,11 +25,7 @@ export interface McpReconnectContextValue {
     // (started tool calls finished, pending approvals denied, the final
     // tools-disabled step streamed and persisted).
     isReconnectAllowed: boolean;
-    // True only in the supported case: exactly one failed connector, and it
-    // has been reconnected.
-    isContinueAllowed: boolean;
     reconnect: (serverId: string) => void;
-    continueAfterReconnect: (serverId: string) => void;
 }
 
 export const McpReconnectContext = createContext<McpReconnectContextValue | undefined>(undefined);

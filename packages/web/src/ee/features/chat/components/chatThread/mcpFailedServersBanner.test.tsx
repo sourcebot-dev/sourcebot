@@ -20,9 +20,7 @@ const createContext = (
         },
     },
     isReconnectAllowed,
-    isContinueAllowed: false,
     reconnect,
-    continueAfterReconnect: vi.fn(),
 });
 
 const renderBanner = (context: McpReconnectContextValue) => render(
