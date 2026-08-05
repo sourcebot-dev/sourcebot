@@ -1,7 +1,7 @@
 import { expect, test, vi, describe } from 'vitest';
 import { Gitlab } from '@gitbeaker/rest';
 import { gitlabPushMrReviews } from './gitlabPushMrReviews';
-import { sourcebot_pr_payload, sourcebot_file_diff_review, sourcebot_diff_refs } from '../types';
+import { sourcebot_pr_payload, sourcebot_file_diff_review } from '../types';
 
 type GitlabClient = InstanceType<typeof Gitlab>;
 
