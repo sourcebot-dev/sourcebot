@@ -562,6 +562,11 @@ enum PermissionSyncSource {
   REPO_DRIVEN
 }
 
+enum AccountPermissionSyncIssue {
+  REAUTHENTICATION_REQUIRED
+  INSUFFICIENT_SCOPE
+}
+
 model AccountToRepoPermission {
   createdAt DateTime @default(now())
 
@@ -607,7 +612,12 @@ model Account {
   permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
 
-  /// Set when an OAuth token refresh fails and the account needs to be re-linked by the user.
+  /// Set when permission syncing fails closed and user action is required.
+  /// Cleared after a subsequent permission sync completes successfully.
+  permissionSyncIssue   AccountPermissionSyncIssue?
+  permissionSyncIssueAt DateTime?
+
+  /// Last OAuth token refresh failure, retained for diagnostics.
   /// Cleared when the user successfully re-authenticates.
   tokenRefreshErrorMessage String?
 

@@ -150,16 +150,18 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
             }
 
             const token = await githubAppManager.getInstallationToken(owner, deploymentHostname);
-            return {
-                hostUrl: repo.external_codeHostUrl,
-                token,
-                cloneUrlWithToken: createGitCloneUrlWithToken(
-                    repo.cloneUrl,
-                    {
-                        username: 'x-access-token',
-                        password: token
-                    }
-                ),
+            if (token) {
+                return {
+                    hostUrl: repo.external_codeHostUrl,
+                    token,
+                    cloneUrlWithToken: createGitCloneUrlWithToken(
+                        repo.cloneUrl,
+                        {
+                            username: 'x-access-token',
+                            password: token
+                        }
+                    ),
+                }
             }
         }
     }

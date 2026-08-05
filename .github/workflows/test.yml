@@ -6,6 +6,17 @@ on:
 
 
 jobs:
+  vulnerability-triage:
+    name: Vulnerability triage reconciliation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Test reconciliation behavior
+        run: .github/scripts/test-vulnerability-triage.sh
+
   test:
     runs-on: ubuntu-latest
     permissions:

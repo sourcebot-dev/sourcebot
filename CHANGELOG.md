@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- Upgraded `tar` to `^7.5.22`. [#1472](https://github.com/sourcebot-dev/sourcebot/pull/1472)
+- Fixed GitLab topic filters being incorrectly case-sensitive. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
+- Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
+
+## [5.1.5] - 2026-07-31
+
+### Fixed
+- Upgraded `seroval` to `^1.5.6`. [#1508](https://github.com/sourcebot-dev/sourcebot/pull/1508)
+- Fixed vulnerability triage for reusable-workflow callers, repositories without CodeQL, and transient non-JSON Linear query responses. [#1515](https://github.com/sourcebot-dev/sourcebot/pull/1515)
+- [EE] Fixed GitHub connection syncs failing when a configured organization does not have the GitHub App installed by falling back to legacy authentication for that organization. [#1523](https://github.com/sourcebot-dev/sourcebot/pull/1523)
+
+## [5.1.4] - 2026-07-24
+
+### Fixed
+- Upgraded `tar` to `^7.5.20`. [#1474](https://github.com/sourcebot-dev/sourcebot/pull/1474)
+- [EE] Preserved cached repository permissions when OAuth token refresh fails because of a transient code host outage. [#1481](https://github.com/sourcebot-dev/sourcebot/pull/1481)
+- [EE] Classified code host permission sync failures by provider context before clearing cached repository permissions. [#1482](https://github.com/sourcebot-dev/sourcebot/pull/1482)
+- [EE] Added action-required warnings and guided recovery when permission syncing clears cached repository access. [#1484](https://github.com/sourcebot-dev/sourcebot/pull/1484)
+- Upgraded `brace-expansion` to `^1.1.16`/`^2.1.2`/`^5.0.7` to address CVE-2026-13149. [#1471](https://github.com/sourcebot-dev/sourcebot/pull/1471)
+- Upgraded `shell-quote` to `^1.10.0`. [#1469](https://github.com/sourcebot-dev/sourcebot/pull/1469)
+- Upgraded `js-yaml` to `^4.3.0`. [#1470](https://github.com/sourcebot-dev/sourcebot/pull/1470)
+- Fixed multiple CVEs in JavaScript dependencies by upgrading `next-auth`, `@auth/core`, `next`, `postcss`, `sharp`, `linkify-it`, `fast-uri`, `protobufjs`, `body-parser`, `hono`, `@hono/node-server`, and `dompurify` to patched versions, resolving all Yarn audit findings. [#1502](https://github.com/sourcebot-dev/sourcebot/pull/1502)
+- Upgraded the bundled Zoekt gRPC-Go dependency to `v1.82.1`. [#1503](https://github.com/sourcebot-dev/sourcebot/pull/1503)
+
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
 
