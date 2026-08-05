@@ -152,6 +152,29 @@ describe('getBrowseParamsFromPathParam', () => {
         });
     });
 
+    describe('history paths', () => {
+        it('should parse a commits path', () => {
+            const result = getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/commits/packages/web');
+            expect(result).toEqual({
+                repoName: 'github.com/sourcebot-dev/zoekt',
+                revisionName: 'HEAD',
+                path: 'packages/web',
+                pathType: 'commits',
+            });
+        });
+
+        it('should parse a commit path', () => {
+            const result = getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt/-/commit/a1b2c3d');
+            expect(result).toEqual({
+                repoName: 'github.com/sourcebot-dev/zoekt',
+                revisionName: undefined,
+                path: '',
+                pathType: 'commit',
+                commitSha: 'a1b2c3d',
+            });
+        });
+    });
+
     describe('edge cases', () => {
         it('should handle repo name with multiple @ symbols', () => {
             const result = getBrowseParamsFromPathParam('gitlab.com/user@domain/repo@main/-/tree/');
@@ -175,40 +198,44 @@ describe('getBrowseParamsFromPathParam', () => {
     });
 
     describe('error cases', () => {
-        it('should throw error for blob path with trailing slash and no path', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob/');
-            }).toThrow();
+        it('should return null for blob path with trailing slash and no path', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob/')).toBeNull();
         });
 
-        it('should throw error for blob path without trailing slash and no path', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob');
-            }).toThrow();
+        it('should return null for blob path without trailing slash and no path', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob')).toBeNull();
         });
 
-        it('should throw error for invalid pattern - missing /-/', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/tree/');
-            }).toThrow();
+        it('should return null for invalid pattern - missing /-/', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/tree/')).toBeNull();
         });
 
-        it('should throw error for invalid pattern - missing tree/blob', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/invalid/');
-            }).toThrow();
+        it('should return null for invalid pattern - missing tree/blob', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/invalid/')).toBeNull();
         });
 
-        it('should throw error for completely invalid format', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('invalid-path');
-            }).toThrow();
+        it('should return null for completely invalid format', () => {
+            expect(getBrowseParamsFromPathParam('invalid-path')).toBeNull();
         });
 
-        it('should throw error for empty string', () => {
-            expect(() => {
-                getBrowseParamsFromPathParam('');
-            }).toThrow();
+        it('should return null for empty string', () => {
+            expect(getBrowseParamsFromPathParam('')).toBeNull();
+        });
+
+        it('should return null for an empty repository name', () => {
+            expect(getBrowseParamsFromPathParam('/-/tree')).toBeNull();
+        });
+
+        it('should return null for a commit path without a SHA', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt/-/commit')).toBeNull();
+        });
+
+        it('should return null for invalid URL encoding', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/blob/%')).toBeNull();
+        });
+
+        it('should return null when the browse type is only a prefix', () => {
+            expect(getBrowseParamsFromPathParam('github.com/sourcebot-dev/zoekt@HEAD/-/treehouse')).toBeNull();
         });
     });
-}); 
+});

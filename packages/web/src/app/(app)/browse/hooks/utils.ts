@@ -59,65 +59,68 @@ export type BrowsePathType = BrowseProps['pathType'];
 // both map to the empty path.
 const normalizeRepoPath = (path: string): string => path.replace(/^\/+/, '');
 
-export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps => {
-    // @note: order matters — `commits` must come before `commit` so the regex
-    // engine doesn't greedily match `commit` against `/-/commits/...`.
-    const sentinelIndex = pathParam.search(/\/-\/(tree|blob|commits|commit)/);
-    if (sentinelIndex === -1) {
-        throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob|commits|commit)/" pattern`);
+const decodeBrowsePathPart = (pathPart: string): string | null => {
+    try {
+        return decodeURIComponent(pathPart);
+    } catch {
+        return null;
+    }
+};
+
+export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps | null => {
+    const sentinelMatch = pathParam.match(/\/-\/(tree|blob|commits|commit)(?:\/|$)/);
+    if (!sentinelMatch || sentinelMatch.index === undefined) {
+        return null;
     }
 
-    const repoAndRevisionPart = decodeURIComponent(pathParam.substring(0, sentinelIndex));
+    const sentinelIndex = sentinelMatch.index;
+    const repoAndRevisionPart = decodeBrowsePathPart(pathParam.substring(0, sentinelIndex));
+    if (repoAndRevisionPart === null) {
+        return null;
+    }
+
     const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
 
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
     const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
+    if (!repoName) {
+        return null;
+    }
 
-    const tail = pathParam.substring(sentinelIndex + '/-/'.length);
-    const pathType = ((): BrowsePathType => {
-        if (tail.startsWith('tree')) {
-            return 'tree';
-        }
-        else if (tail.startsWith('commits')) {
-            return 'commits';
-        }
-        else if (tail.startsWith('commit')) {
-            return 'commit';
-        }
+    const pathType = sentinelMatch[1] as BrowsePathType;
+    const tail = pathParam.substring(sentinelIndex + '/-/'.length + pathType.length);
+    const pathPart = tail.startsWith('/') ? tail.substring(1) : tail;
+    const decodedPathPart = decodeBrowsePathPart(pathPart);
+    if (decodedPathPart === null) {
+        return null;
+    }
 
-        return 'blob';
-    })();
-
-    // @note: decodeURIComponent is needed in case the path contains a space.
     switch (pathType) {
         case 'tree': {
-            const rest = tail.startsWith('tree/') ? tail.substring('tree/'.length) : tail.substring('tree'.length);
             return {
                 repoName,
                 revisionName,
                 pathType,
-                path: normalizeRepoPath(decodeURIComponent(rest)),
+                path: normalizeRepoPath(decodedPathPart),
             };
         }
         case 'commits': {
-            const rest = tail.startsWith('commits/') ? tail.substring('commits/'.length) : tail.substring('commits'.length);
             return {
                 repoName,
                 revisionName,
                 pathType,
-                path: normalizeRepoPath(decodeURIComponent(rest)),
+                path: normalizeRepoPath(decodedPathPart),
             };
         }
         case 'commit': {
             // Path suffix on /-/commit/<sha>/<path> is no longer used, but we
             // keep the slash-split here so legacy URLs still resolve to the
             // commit (we just ignore everything after the SHA).
-            const rest = tail.startsWith('commit/') ? tail.substring('commit/'.length) : tail.substring('commit'.length);
-            const firstSlash = rest.indexOf('/');
-            const commitSha = decodeURIComponent(firstSlash === -1 ? rest : rest.substring(0, firstSlash));
+            const firstSlash = decodedPathPart.indexOf('/');
+            const commitSha = firstSlash === -1 ? decodedPathPart : decodedPathPart.substring(0, firstSlash);
 
             if (!commitSha) {
-                throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a commit SHA for commit type`);
+                return null;
             }
 
             return {
@@ -129,11 +132,10 @@ export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps => 
             };
         }
         case 'blob': {
-            const rest = tail.startsWith('blob/') ? tail.substring('blob/'.length) : tail.substring('blob'.length);
-            const path = normalizeRepoPath(decodeURIComponent(rest));
+            const path = normalizeRepoPath(decodedPathPart);
 
             if (path === '') {
-                throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a path for blob type`);
+                return null;
             }
 
             return {

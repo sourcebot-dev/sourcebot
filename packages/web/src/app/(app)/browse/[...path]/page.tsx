@@ -7,6 +7,7 @@ import { CommitsPanel } from "./components/commitHistoryPanel/commitsPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel/treePreviewPanel";
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { TrackRepoVisit } from "./components/trackRepoVisit";
 import { auth } from "@/auth";
 
@@ -24,6 +25,10 @@ const parsePathForTitle = (path: string[]): string => {
     const pathParam = path.join('/');
 
     const browseProps = getBrowseParamsFromPathParam(pathParam);
+    if (!browseProps) {
+        return 'Browse';
+    }
+
     const { repoName, revisionName, path: filePath } = browseProps;
 
     // Build the base repository and revision string.
@@ -104,6 +109,10 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     const rawPath = _rawPath.join('/');
     const browseProps = getBrowseParamsFromPathParam(rawPath);
+    if (!browseProps) {
+        notFound();
+    }
+
     const { repoName, revisionName, path } = browseProps;
 
     const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
@@ -166,4 +175,3 @@ export default async function BrowsePage(props: BrowsePageProps) {
         </div>
     )
 }
-
