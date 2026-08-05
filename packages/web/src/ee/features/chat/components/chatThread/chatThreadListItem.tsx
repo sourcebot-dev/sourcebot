@@ -277,7 +277,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             markdownRenderer.removeEventListener('mouseout', handleMouseOut);
             markdownRenderer.removeEventListener('click', handleClick);
         };
-    }, [answerPart, selectedReference?.id]); // Re-run when answerPart changes to ensure we catch new content
+    }, [answerPart, selectedReference?.id, setHoveredReference, setSelectedReference]); // Re-run when answerPart changes to ensure we catch new content
 
     // When the selected reference changes, highlight all associated reference elements
     // and scroll to the nearest one, if needed.
