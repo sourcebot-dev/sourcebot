@@ -1,6 +1,10 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
+import { membershipManagedByIdpError } from "@/features/membership/errors";
+import { removeMember } from "@/features/membership/membership.service";
+import { isScimEnabled } from "@/features/scim/utils";
+import { toPublicUser } from "../utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
@@ -34,19 +38,19 @@ export const GET = apiHandler(async (request: NextRequest) => {
     const result = await withAuth(async ({ org, role, user, prisma }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
-                const userData = await prisma.user.findUnique({
+                const membership = await prisma.userToOrg.findUnique({
                     where: {
-                        id: userId,
+                        orgId_userId: {
+                            orgId: org.id,
+                            userId,
+                        },
                     },
-                    select: {
-                        name: true,
-                        email: true,
-                        createdAt: true,
-                        updatedAt: true,
+                    include: {
+                        user: true,
                     },
                 });
 
-                if (!userData) {
+                if (!membership) {
                     return notFound('User not found');
                 }
 
@@ -63,7 +67,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                     orgId: org.id,
                 });
 
-                return userData;
+                return toPublicUser(membership);
             } catch (error) {
                 logger.error('Error fetching user info', { error, userId });
                 throw error;
@@ -86,66 +90,32 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(missingQueryParam('userId'));
     }
 
-    const result = await withAuth(async ({ org, role, user: currentUser, prisma }) => {
+    const result = await withAuth(async ({ org, role, user: currentUser }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            try {
-                if (currentUser.id === userId) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: 'Cannot delete your own user account',
-                    };
-                }
-
-                const targetUser = await prisma.user.findUnique({
-                    where: {
-                        id: userId,
-                    },
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
-                    },
-                });
-
-                if (!targetUser) {
-                    return notFound('User not found');
-                }
-
-                await createAudit({
-                    action: "user.delete",
-                    actor: {
-                        id: currentUser.id,
-                        type: "user"
-                    },
-                    target: {
-                        id: userId,
-                        type: "user"
-                    },
-                    orgId: org.id,
-                });
-
-                // Delete the user (cascade will handle all related records)
-                await prisma.user.delete({
-                    where: {
-                        id: userId,
-                    },
-                });
-
-                logger.info('User deleted successfully', { 
-                    deletedUserId: userId,
-                    deletedByUserId: currentUser.id,
-                    orgId: org.id
-                });
-
-                return { 
-                    success: true,
-                    message: 'User deleted successfully'
-                };
-            } catch (error) {
-                logger.error('Error deleting user', { error, userId });
-                throw error;
+            // When SCIM is enabled the IdP is the source of truth for membership,
+            // so deleting users outside of it is disabled.
+            if (await isScimEnabled(org)) {
+                return membershipManagedByIdpError();
             }
+
+            const error = await removeMember(org.id, userId, {
+                actor: { id: currentUser.id, type: "user" },
+            });
+
+            if (isServiceError(error)) {
+                return error;
+            }
+
+            logger.info('User deleted successfully', {
+                deletedUserId: userId,
+                deletedByUserId: currentUser.id,
+                orgId: org.id,
+            });
+
+            return {
+                success: true,
+                message: 'User deleted successfully',
+            };
         });
     });
 

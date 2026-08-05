@@ -4,7 +4,7 @@ import NextAuth, { DefaultSession, Session, User as AuthJsUser } from "next-auth
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { __unsafePrisma } from "@/prisma";
-import { env, getSMTPConnectionURL } from "@sourcebot/shared";
+import { createLogger, env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -15,14 +15,18 @@ import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
 import { getEEIdentityProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@/lib/entitlements';
-import { onCreateUser } from '@/lib/authUtils';
 import { createAudit } from '@/ee/features/audit/audit';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { captureEvent } from '@/lib/posthog';
+import { isEmailCodeLoginEnabled, isCredentialsLoginEnabled } from '@sourcebot/shared'
+import { onCreateUser } from './features/membership/onCreateUser';
+import { setSentryUser } from './lib/sentryUser';
+import { requestAccountPermissionSync } from './features/workerApi/client.server';
 
 export const runtime = 'nodejs';
+const logger = createLogger('auth');
 
 export type IdentityProvider = {
     /** Provider type (e.g., 'github', 'gitlab') — used to pick icon / display defaults. */
@@ -71,9 +75,10 @@ export const getProviders = async () => {
     const providers: IdentityProvider[] = [
         ...(hasSSOEntitlement ? await getEEIdentityProviders() : []),
     ];
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
 
     const smtpConnectionUrl = getSMTPConnectionURL();
-    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
+    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && isEmailCodeLoginEnabled(org!)) {
         providers.push({
             __provider: EmailProvider({
                 server: smtpConnectionUrl,
@@ -106,7 +111,7 @@ export const getProviders = async () => {
         });
     }
 
-    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
+    if (isCredentialsLoginEnabled(org!)) {
         providers.push({
             __provider: Credentials({
                 credentials: {
@@ -141,7 +146,7 @@ export const getProviders = async () => {
                             sessionVersion: newUser.sessionVersion,
                         }
 
-                        onCreateUser({ user: authJsUser });
+                        await onCreateUser({ user: authJsUser });
                         return authJsUser;
 
                         // Otherwise, the user exists, so verify the password.
@@ -194,13 +199,13 @@ const nextAuthResult = NextAuth(async () => ({
             // NOTE: Tokens are encrypted before storage for security
             if (
                 account &&
+                (account.type === 'oauth' || account.type === 'oidc') &&
                 account.provider &&
-                account.provider !== 'credentials' &&
                 account.providerAccountId
             ) {
                 const issuerUrl = await getIssuerUrlForProviderId(account.provider);
 
-                await __unsafePrisma.account.update({
+                const updatedAccount = await __unsafePrisma.account.update({
                     where: {
                         providerId_providerAccountId: {
                             providerId: account.provider,
@@ -218,7 +223,21 @@ const nextAuthResult = NextAuth(async () => ({
                         // Clear any token refresh error since the user has successfully re-authenticated.
                         tokenRefreshErrorMessage: null,
                     })
-                })
+                });
+
+                if (
+                    updatedAccount.permissionSyncIssue !== null &&
+                    env.PERMISSION_SYNC_ENABLED === 'true'
+                ) {
+                    try {
+                        if (await hasEntitlement('permission-syncing')) {
+                            await requestAccountPermissionSync(updatedAccount.id);
+                        }
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        logger.error(`Failed to schedule permission sync after reauthentication for account ${updatedAccount.id}: ${message}`);
+                    }
+                }
             }
 
             if (user.id) {
@@ -286,7 +305,7 @@ const nextAuthResult = NextAuth(async () => ({
         }
     },
     callbacks: {
-        async signIn({ account }) {
+        async signIn({ account, user }) {
             const matchingProvider = account
                 ? (await getProviders()).find((p) => p.id === account.provider)
                 : undefined;
@@ -314,6 +333,12 @@ const nextAuthResult = NextAuth(async () => ({
             const session = await auth();
             if (isAccountLinkingAttempt && session === null) {
                 return false;
+            }
+
+            // Reject any sign-in that arrives without an email.
+            // @see 20260616000000_make_user_email_required/migration.sql
+            if (!user.email) {
+                return '/login/error?error=EmailRequired';
             }
 
             return true;
@@ -424,6 +449,7 @@ const nextAuthResult = NextAuth(async () => ({
     providers: (await getProviders()).map((provider) => provider.__provider),
     pages: {
         signIn: "/login",
+        error: "/login/error",
         // We set redirect to false in signInOptions so we can pass the email in as a param
         // verifyRequest: "/login/verify",
     }
@@ -443,7 +469,12 @@ export const { handlers, signIn, signOut } = nextAuthResult;
  * without re-running the upstream resolver.
  */
 export const auth = cache(async (): Promise<Session | null> => {
-    return nextAuthResult.auth();
+    const session = await nextAuthResult.auth();
+    setSentryUser(
+        session?.user ?? null,
+        env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
+    );
+    return session;
 });
 
 /**

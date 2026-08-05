@@ -8,12 +8,15 @@ import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRe
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, getLastStepParts, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
+import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageAttachments, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
+import { MessageAttachments } from './messageAttachments';
 import { DetailsCard } from './detailsCard';
 import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
+import { useExtractPanelItems } from '../../useExtractPanelItems';
+import { PanelContext, PanelContextValue, PanelSelection } from '../../panelContext';
 import isEqual from "fast-deep-equal/react";
 import { ANSWER_TAG } from '@/features/chat/constants';
 
@@ -42,14 +45,32 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
     const answerRef = useRef<HTMLDivElement>(null);
 
-    const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
-    const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
+    // Unified panel selection/hover: a single selection model shared by inline
+    // file-reference citations and diagrams (see panelContext.ts). Only one
+    // thing is selected/hovered at a time.
+    const [selected, setSelected] = useState<PanelSelection | undefined>(undefined);
+    const [hovered, setHovered] = useState<PanelSelection | undefined>(undefined);
+
+    const selectedReference = useMemo(() => (selected?.kind === 'reference' ? selected.reference : undefined), [selected]);
+    const hoveredReference = useMemo(() => (hovered?.kind === 'reference' ? hovered.reference : undefined), [hovered]);
+
+    const setSelectedReference = useCallback((reference?: Reference) => {
+        setSelected(reference ? { kind: 'reference', reference } : undefined);
+    }, []);
+    const setHoveredReference = useCallback((reference?: Reference) => {
+        setHovered(reference ? { kind: 'reference', reference } : undefined);
+    }, []);
+
     const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isNetworkActive);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
 
     const userQuestion = useMemo(() => {
-        return userMessage.parts.length > 0 && userMessage.parts[0].type === 'text' ? userMessage.parts[0].text : '';
+        return getUserMessageText(userMessage);
+    }, [userMessage]);
+
+    const userAttachments = useMemo(() => {
+        return getUserMessageAttachments(userMessage);
     }, [userMessage]);
 
     // Take the assistant message and repair any references that are not properly formatted.
@@ -91,33 +112,57 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     // should be visible to the user. By "steps", we mean parts that originated
     // from the same LLM invocation. By "visibile", we mean parts that have some
     // visual representation in the UI (e.g., text, reasoning, tool calls, etc.).
-    const uiVisibleThinkingSteps = useMemo(() => {
-        const steps = groupMessageIntoSteps(assistantMessage?.parts ?? []);
+    //
+    // Each step is tagged with its stepIndex — the invocation's position in
+    // the turn, which indexes into `metadata.stepTokenUsage`. Indices are
+    // assigned by counting 'step-start' markers (one per invocation) BEFORE
+    // any filtering, so dropping empty or answer-only steps below cannot
+    // shift the indices of the steps that remain.
+    const { uiVisibleThinkingSteps, answerStepIndex } = useMemo(() => {
+        const groupedParts = groupMessageIntoSteps(assistantMessage?.parts ?? []);
 
-        // Filter out the answerPart and empty steps
-        return steps
-            .map(
-                (step) => step
-                    // First, filter out any parts that are not text
-                    .filter((part) => {
-                        if (part.type === 'text') {
-                            return !part.text.includes(ANSWER_TAG);
-                        }
+        // Parts written before the first step-start (e.g. data parts) don't
+        // belong to any step; they get stepIndex -1 and never survive the
+        // visibility filters below.
+        let stepIndex = -1;
+        let answerStepIndex: number | undefined = undefined;
 
-                        return true;
-                    })
-                    .filter((part) => {
-                        // Only include text, reasoning, and tool parts
-                        return (
-                            part.type === 'text' ||
-                            part.type === 'reasoning' ||
-                            part.type.startsWith('tool-') ||
-                            part.type === 'dynamic-tool'
-                        )
-                    })
-            )
+        const steps = groupedParts
+            .map((stepParts) => {
+                if (stepParts[0]?.type === 'step-start') {
+                    stepIndex++;
+                }
+
+                if (stepParts.some((part) => part.type === 'text' && part.text.includes(ANSWER_TAG))) {
+                    answerStepIndex = stepIndex;
+                }
+
+                return {
+                    stepIndex,
+                    parts: stepParts
+                        // First, filter out the answer text
+                        .filter((part) => {
+                            if (part.type === 'text') {
+                                return !part.text.includes(ANSWER_TAG);
+                            }
+
+                            return true;
+                        })
+                        .filter((part) => {
+                            // Only include text, reasoning, and tool parts
+                            return (
+                                part.type === 'text' ||
+                                part.type === 'reasoning' ||
+                                part.type.startsWith('tool-') ||
+                                part.type === 'dynamic-tool'
+                            )
+                        }),
+                };
+            })
             // Then, filter out any steps that are empty
-            .filter(step => step.length > 0);
+            .filter((step) => step.parts.length > 0);
+
+        return { uiVisibleThinkingSteps: steps, answerStepIndex };
     }, [assistantMessage?.parts]);
 
     // "thinking" is when the agent is generating output that is not the answer.
@@ -301,27 +346,59 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [hoveredReference]);
 
     const references = useExtractReferences(answerPart);
+    const { diagrams, referencedFileSources, orderedItems } = useExtractPanelItems(answerPart, references, sources);
 
-    // Extract the file sources that are referenced by the answer part.
-    const referencedFileSources = useMemo(() => {
-        const fileSources = sources.filter((source) => source.type === 'file');
+    // Maps a diagram id to its position in order of appearance (matches the
+    // index the right panel assigns), used for the "Diagram N" label fallback.
+    const diagramIndexById = useMemo(() => {
+        return new Map(diagrams.map((diagram, i) => [diagram.id, i]));
+    }, [diagrams]);
 
-        return references
-            .filter((reference) => reference.type === 'file')
-            .map((reference) => tryResolveFileReference(reference, fileSources))
-            .filter((file) => file !== undefined)
-            // de-duplicate files
-            .filter((file, index, self) =>
-                index === self.findIndex((t) =>
-                    t?.path === file?.path
-                    && t?.repo === file?.repo
-                    && t?.revision === file?.revision
-                )
-            );
-    }, [references, sources]);
+    // Reveal a diagram in the right panel: the panel list expands it and scrolls
+    // it into view when the selection changes. Clearing first lets the same
+    // diagram be re-revealed (re-clicking a chip re-scrolls).
+    const revealDiagram = useCallback((diagramId: string) => {
+        setSelected(undefined);
+        requestAnimationFrame(() => setSelected({ kind: 'diagram', diagramId }));
+    }, []);
 
+    const setHoveredDiagram = useCallback((diagramId?: string) => {
+        setHovered(diagramId ? { kind: 'diagram', diagramId } : undefined);
+    }, []);
+
+    const jumpToInlineDiagram = useCallback((diagramId: string) => {
+        document.getElementById(`diagram-${diagramId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, []);
+
+    const getDiagramIndex = useCallback((diagramId: string) => {
+        return diagramIndexById.get(diagramId) ?? -1;
+    }, [diagramIndexById]);
+
+    const panelContextValue = useMemo<PanelContextValue>(() => ({
+        chatId,
+        isStreaming: isNetworkActive,
+        setSelectedReference,
+        setHoveredReference,
+        revealDiagram,
+        setHoveredDiagram,
+        getDiagramIndex,
+        jumpToInlineDiagram,
+    }), [chatId, isNetworkActive, setSelectedReference, setHoveredReference, revealDiagram, setHoveredDiagram, getDiagramIndex, jumpToInlineDiagram]);
+
+    const sourcesView = (
+        <ReferencedSourcesListView
+            index={index}
+            references={references}
+            sources={referencedFileSources}
+            style={rightPanelStyle}
+            orderedItems={orderedItems}
+            selected={selected}
+            hovered={hovered}
+        />
+    );
 
     return (
+        <PanelContext.Provider value={panelContextValue}>
         <div
             className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px-var(--banner-height,0px))]"
             ref={ref}
@@ -346,27 +423,30 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                         ref={leftPanelRef}
                         className="py-4 h-full"
                     >
-                        <div className="flex flex-row gap-2 mb-4">
-                            {isTurnInProgress ? (
-                                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
-                            ) : (
-                                <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
+                        <div className="mb-4">
+                            {userAttachments.length > 0 && (
+                                <MessageAttachments attachments={userAttachments} chatId={chatId} className="mb-1.5 ml-6" />
                             )}
-                            <MarkdownRenderer
-                                content={userQuestion.trim()}
-                                className="prose-p:m-0"
-                                escapeHtml={true}
-                            />
+
+                            <div className="flex flex-row gap-2">
+                                {isTurnInProgress ? (
+                                    <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
+                                ) : (
+                                    <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
+                                )}
+                                <MarkdownRenderer
+                                    content={userQuestion.trim()}
+                                    className="prose-p:m-0"
+                                    escapeHtml={true}
+                                />
+                            </div>
                         </div>
 
                         {isThinking && (
-                            <div className="space-y-4 mb-4">
-                                <Skeleton className="h-4 max-w-32" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-3 max-w-72" />
-                                    <Skeleton className="h-3 max-w-64" />
-                                    <Skeleton className="h-3 max-w-56" />
-                                </div>
+                            <div className="space-y-2 mb-4">
+                                <Skeleton className="h-3 w-full max-w-80" />
+                                <Skeleton className="h-3 w-full max-w-72" />
+                                <Skeleton className="h-3 w-full max-w-56" />
                             </div>
                         )}
 
@@ -379,6 +459,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                             isNetworkActive={isNetworkActive}
                             isAwaitingToolApproval={isAwaitingToolApproval}
                             thinkingSteps={uiVisibleThinkingSteps}
+                            answerStepIndex={answerStepIndex}
                             metadata={assistantMessage?.metadata}
                         />
 
@@ -415,17 +496,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     <div
                         className="sticky top-0"
                     >
-                        {referencedFileSources.length > 0 ? (
-                            <ReferencedSourcesListView
-                                index={index}
-                                references={references}
-                                sources={referencedFileSources}
-                                hoveredReference={hoveredReference}
-                                selectedReference={selectedReference}
-                                onSelectedReferenceChanged={setSelectedReference}
-                                onHoveredReferenceChanged={setHoveredReference}
-                                style={rightPanelStyle}
-                            />
+                        {(referencedFileSources.length > 0 || diagrams.length > 0) ? (
+                            sourcesView
                         ) : isNetworkActive ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
@@ -441,6 +513,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>
+        </PanelContext.Provider>
     )
 });
 

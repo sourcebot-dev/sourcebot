@@ -1,6 +1,7 @@
 name: PR Gate
 
-# This gate simply validates that we can build the docker container.
+# This gate validates that Prisma migrations are in order and that we can build
+# the docker container.
 
 on:
   pull_request:
@@ -16,6 +17,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: "true"
+          # full history so migration checks can diff against the base branch
+          fetch-depth: 0
+
+      # Fails fast (before the docker build) when migrations drift from
+      # schema.prisma or a new migration is added out of timestamp order.
+      - name: Check Prisma migrations
+        uses: ./.github/actions/check-prisma-migrations
+        with:
+          base-ref: ${{ github.base_ref }}
 
       - name: Build Docker image
         id: build

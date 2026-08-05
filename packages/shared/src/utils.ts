@@ -3,9 +3,10 @@ import stripJsonComments from 'strip-json-comments';
 import { z } from "zod";
 import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
 import { ConfigSettings } from "./types.js";
-import { Repo } from "@sourcebot/db";
+import { Org, Repo } from "@sourcebot/db";
 import path from "path";
 import { env, isRemotePath, loadConfig } from "./env.server.js";
+import { isAnonymousAccessAvailable } from './entitlements.js';
 
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
 export const base64Decode = (base64: string): string => {
@@ -118,4 +119,28 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
         path: path.join(reposPath, repo.id.toString()),
         isReadOnly: false,
     }
+}
+
+export const isCredentialsLoginEnabled = (org: Org): boolean => {
+    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED !== undefined) {
+        return env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true';
+    }
+
+    return org.isCredentialsLoginEnabled;
+}
+
+export const isEmailCodeLoginEnabled = (org: Org): boolean => {
+    if (env.AUTH_EMAIL_CODE_LOGIN_ENABLED !== undefined) {
+        return env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true';
+    }
+
+    return org.isEmailCodeLoginEnabled;
+}
+
+export const isMemberApprovalRequired = (org: Org): boolean => {
+    if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
+        return env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
+    }
+
+    return org.memberApprovalRequired;
 }

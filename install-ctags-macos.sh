@@ -23,7 +23,7 @@ if ! command -v brew >/dev/null 2>&1; then
   exit 1
 fi
 
-brew install autoconf automake pkg-config jansson
+brew install autoconf automake pkg-config jansson pcre2 libyaml
 
 curl --retry 5 "https://codeload.github.com/universal-ctags/ctags/tar.gz/$CTAGS_VERSION" | tar xz -C /tmp
 cd /tmp/$CTAGS_ARCHIVE_TOP_LEVEL_DIR

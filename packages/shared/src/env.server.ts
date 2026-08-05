@@ -172,13 +172,11 @@ const options = {
         // Zoekt
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
 
+        WORKER_API_URL: z.string().url().default("http://localhost:3060"),
+
         // Auth
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
-        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
-        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
         /**
          * Relative time from now in seconds when to expire the session.
@@ -308,23 +306,40 @@ const options = {
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
 
-        /**
-         * @deprecated Use `thinkingBudget` in the language model config instead.
-         */
-        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
-
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
         AWS_SESSION_TOKEN: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
-        /**
-         * @deprecated Use per-model `temperature` in the language model config instead.
-         */
-        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
         SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
+        SOURCEBOT_LLM_USER_EMAIL_HEADER_ENABLED: booleanSchema.default('false'),
+        /** TTL for the static block. The moving tail marker always uses the 5m default. */
+        SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL: z.enum(['5m', '1h']).default('5m'),
+        /**
+         * Observability: when enabled, logs a warning on unexpected prompt-cache
+         * breaks (static-prefix signature changes, or zero cache reads on a
+         * continuation step). Does not affect request behavior.
+         */
+        SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: booleanSchema.default('false'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
+
+        /**
+         * Maximum size (in bytes) of a single image attachment uploaded to the
+         * Ask chat. Enforced server-side at upload time. Distinct from the
+         * inline-text cap (which lives as a web-package constant).
+         * @default 10 MiB
+         */
+        SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES: numberSchema.int().positive().default(10 * 1024 * 1024),
+
+        /**
+         * How long (in hours) an uploaded-but-unlinked (PENDING) attachment
+         * blob is retained before the orphan sweep deletes it and its bytes.
+         * Covers "select a file then never send" abandonment. Set to 0 to
+         * disable the orphan sweep entirely.
+         * @default 24 hours
+         */
+        SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS: numberSchema.int().nonnegative().default(24),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
@@ -342,12 +357,6 @@ const options = {
                 return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
             }),
 
-        /**
-         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
-         */
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
-
-
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
@@ -355,8 +364,15 @@ const options = {
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
         PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
+        EXPERIMENT_ASK_GH_GITHUB_TOKEN: z.string().optional(),
 
-        SOURCEBOT_ENCRYPTION_KEY: z.string(),
+        // Used as the key for AES-256-CBC encryption (@see shared/src/crypto.ts).
+        // The key is read as ASCII (1 char = 1 byte), so AES-256's 32-byte key
+        // requirement means this must be exactly 32 characters. Generate one with
+        // `openssl rand -base64 24` (24 random bytes => a 32-character base64 string).
+        SOURCEBOT_ENCRYPTION_KEY: z.string().length(32, {
+            message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.\nWARNING: Updating this value will invalidate any existing API keys.",
+        }),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
@@ -408,11 +424,6 @@ const options = {
             }),
 
         /**
-         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
-         */
-        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
-
-        /**
          * Configure whether to send telemetry events.
          * By default, all events are anonymized and do not contain PII data,
          * unless SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED is set to true.
@@ -425,6 +436,59 @@ const options = {
          * ignored.
          */
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
+
+        //////////// Deprecated ////////////
+        /**
+         * @deprecated Configure this setting via the "Require approval
+         * for new members" toggle in Settings → Security intsead.
+         */
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email + password login via the "Email & password login"
+         * toggle in Settings → Security instead. When set, this env var overrides the UI
+         * setting and locks the toggle; when unset, the DB-backed
+         * `Org.isCredentialsLoginEnabled` setting is used.
+         */
+        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email code login via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isEmailCodeLoginEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure anonymous access via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isAnonymousAccessEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.optional(),
+
+        /**
+         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
+         */
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+
+        /**
+         * @deprecated Use `thinkingBudget` in the language model config instead.
+         */
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
+
+        /**
+         * @deprecated Use per-model `temperature` in the language model config instead.
+         */
+        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,

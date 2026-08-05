@@ -1,25 +1,14 @@
 import { __unsafePrisma } from "@/prisma";
-import { startServicePingCronJob } from '@/features/billing/servicePing';
+import { startServicePingCronJob, syncWithLighthouse } from '@/features/billing/servicePing';
 import { startChangelogPollingJob } from '@/features/changelog/pollChangelog';
 import { createLogger, env } from "@sourcebot/shared";
-import { hasEntitlement } from '@/lib/entitlements';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { warmModelCapabilitiesCatalog } from '@/features/chat/utils.server';
+import * as Sentry from '@sentry/nextjs';
 
 const logger = createLogger('web-initialize');
 
-const init = async () => {
-    // If we don't have the search context entitlement then wipe any existing
-    // search contexts that may be present in the DB. This could happen if a deployment had
-    // the entitlement, synced search contexts, and then no longer had the entitlement
-    const hasSearchContextEntitlement = await hasEntitlement("search-contexts")
-    if (!hasSearchContextEntitlement) {
-        await __unsafePrisma.searchContext.deleteMany({
-            where: {
-                orgId: SINGLE_TENANT_ORG_ID,
-            },
-        });
-    }
-
+const syncDeprecatedEnvVars = async () => {
     // Sync member approval setting from env var (only if explicitly set)
     if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
         const requireApprovalNewMembers = env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
@@ -32,10 +21,58 @@ const init = async () => {
             logger.info(`Member approval requirement set to ${requireApprovalNewMembers} via REQUIRE_APPROVAL_NEW_MEMBERS environment variable`);
         }
     }
+
+    // Sync credentials (email + password) login setting from the (deprecated) env var (only if explicitly set)
+    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED !== undefined) {
+        const isCredentialsLoginEnabled = env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true';
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+        if (org && org.isCredentialsLoginEnabled !== isCredentialsLoginEnabled) {
+            await __unsafePrisma.org.update({
+                where: { id: org.id },
+                data: { isCredentialsLoginEnabled },
+            });
+            logger.info(`Credentials login set to ${isCredentialsLoginEnabled} via AUTH_CREDENTIALS_LOGIN_ENABLED environment variable`);
+        }
+    }
+
+    // Sync email code login setting from the (deprecated) env var (only if explicitly set)
+    if (env.AUTH_EMAIL_CODE_LOGIN_ENABLED !== undefined) {
+        const isEmailCodeLoginEnabled = env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true';
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+        if (org && org.isEmailCodeLoginEnabled !== isEmailCodeLoginEnabled) {
+            await __unsafePrisma.org.update({
+                where: { id: org.id },
+                data: { isEmailCodeLoginEnabled },
+            });
+            logger.info(`Email code login set to ${isEmailCodeLoginEnabled} via AUTH_EMAIL_CODE_LOGIN_ENABLED environment variable`);
+        }
+    }
+
+    // Sync anonymous access setting from the (deprecated) env var (only if explicitly set)
+    if (env.FORCE_ENABLE_ANONYMOUS_ACCESS !== undefined) {
+        const isAnonymousAccessEnabled = env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+        if (org && org.isAnonymousAccessEnabled !== isAnonymousAccessEnabled) {
+            await __unsafePrisma.org.update({
+                where: { id: org.id },
+                data: { isAnonymousAccessEnabled },
+            });
+            logger.info(`Anonymous access set to ${isAnonymousAccessEnabled} via FORCE_ENABLE_ANONYMOUS_ACCESS environment variable`);
+        }
+    }
 }
 
-(async () => {
-    await init();
+export const initialize = async (): Promise<void> => {
+    await syncDeprecatedEnvVars();
+
+    try {
+        await syncWithLighthouse(SINGLE_TENANT_ORG_ID);
+    } catch (error) {
+        logger.error(`Startup Lighthouse sync failed: ${error instanceof Error ? error.message : String(error)}`);
+        Sentry.captureException(error);
+    }
+
     startServicePingCronJob();
     startChangelogPollingJob();
-})();
+    warmModelCapabilitiesCatalog();
+};

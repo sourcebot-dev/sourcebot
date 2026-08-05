@@ -14,7 +14,7 @@ docker run \
     -v $(pwd)/config.json:/data/config.json \
     -e CONFIG_PATH=/data/config.json \
     ... \ # other options
-    ghcr.io/sourcebot-dev/sourcebot:latest
+    docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
 ```
 
 The config file tells Sourcebot which repos to index, what language models to use, and various other settings as defined in the [schema](#config-file-schema).
@@ -49,7 +49,6 @@ The following are settings that can be provided in your config file to modify So
 | `maxRepoGarbageCollectionJobConcurrency`        | number  | 8          | 1       | Concurrent repo‑garbage‑collection jobs.                                               |
 | `repoGarbageCollectionGracePeriodMs`            | number  | 10 seconds | 1       | Grace period to avoid deleting shards while loading.                                   |
 | `repoIndexTimeoutMs`                            | number  | 2 hours    | 1       | Timeout for a single repo‑indexing run.                                                |
-| `enablePublicAccess` **(deprecated)**           | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
 | `repoDrivenPermissionSyncIntervalMs`            | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
 | `userDrivenPermissionSyncIntervalMs`            | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |
 | `experiment_repoDrivenPermissionSyncIntervalMs` **(deprecated)** | number  | 24 hours   | 1       | Use `repoDrivenPermissionSyncIntervalMs` instead.             |

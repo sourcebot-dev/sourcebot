@@ -24,6 +24,20 @@ enum ChatVisibility {
   PUBLIC
 }
 
+/// Lifecycle status of an uploaded attachment blob.
+/// PENDING: uploaded but not yet linked to a chat (orphan until a message
+/// referencing it is sent). COMMITTED: linked to at least one chat.
+/// DELETING: condemned tombstone. The row is kept (as the only durable handle
+/// to the bytes) until the stored bytes are confirmed deleted, at which point
+/// the row is removed. A failed byte delete leaves the row DELETING for the
+/// attachment pruner's reclaim sweep to retry, so a transient storage error
+/// can never orphan bytes.
+enum AttachmentStatus {
+  PENDING
+  COMMITTED
+  DELETING
+}
+
 /// @note: The @map annotation is required to maintain backwards compatibility
 /// with the existing database.
 /// @note: In the generated client, these mapped values will be in pascalCase.
@@ -272,11 +286,36 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  scimTokens  ScimToken[]
+  attachments Attachment[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
-  metadata    Json? // For schema see orgMetadataSchema in packages/web/src/types.ts
 
+  isScimEnabled Boolean    @default(false)
+
+  /// @deprecated This property can be controlled by the environment
+  /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
+  /// the correct setting, use the helper function `isMemberApprovalRequired`
+  /// in shared/src/utils.ts
   memberApprovalRequired Boolean @default(true)
+
+  /// @deprecated This property can be controlled by the environment
+  /// variable `AUTH_CREDENTIALS_LOGIN_ENABLED`. To ensure that we use
+  /// the correct setting, use the helper function `isCredentialsLoginEnabled`
+  /// in shared/src/utils.ts
+  isCredentialsLoginEnabled Boolean @default(true)
+
+  /// @deprecated This property can be controlled by the environment
+  /// variable `AUTH_EMAIL_CODE_LOGIN_ENABLED`. To ensure that we use
+  /// the correct setting, use the helper function `isEmailCodeLoginEnabled`
+  /// in shared/src/utils.ts
+  isEmailCodeLoginEnabled Boolean @default(false)
+
+  /// @deprecated This property can be overriden by the environment
+  /// variable `FORCE_ENABLE_ANONYMOUS_ACCESS`, as well as the org's
+  /// available entitlements. Use the helper function `isAnonymousAccessEnabled`
+  /// in web/src/lib/entitlements.ts
+  isAnonymousAccessEnabled Boolean @default(false)
 
   /// List of pending invites to this organization
   invites Invite[]
@@ -295,8 +334,11 @@ model Org {
   repoVisits RepoVisit[]
 
   mcpServers McpServer[]
+  agentSkills AgentSkill[]
+  agentSkillAdoptions AgentSkillAdoption[]
 
   license License?
+  servicePingEvents ServicePingEvent[]
 }
 
 model License {
@@ -331,10 +373,23 @@ model License {
   yearlyBillableOverageSeats    Int?
   yearlyPeakSeats               Int?
 
+  /// Compact, signed online-license assertion returned by Lighthouse.
+  /// Authorization must be derived from this assertion when it is present.
+  licenseAssertion  String?
+
   lastSyncAt        DateTime?
   lastSyncErrorCode String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model ServicePingEvent {
+  id String @id @default(cuid())
+  payload Json
+  createdAt DateTime @default(now())
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 }
 
 enum OrgRole {
@@ -366,7 +421,23 @@ model UserToOrg {
 
   role OrgRole @default(MEMBER)
 
+  /// When set, the membership is suspended and the user is treated as a
+  /// non-member for auth purposes (see `getAuthContext`).
+  suspendedAt DateTime?
+
+  /// The IdP-supplied `externalId` for this membership when provisioned via
+  /// SCIM. Null for members that joined through invites or self-serve sign-up.
+  scimExternalId String?
+
+  /// Last time the user performed an authenticated action *in this org*. Unlike
+  /// `User.lastActiveAt` (which is global to the instance), this is scoped to
+  /// the membership, so it distinguishes a member who has been active in this
+  /// org from one who was provisioned but never signed in here. Null means the
+  /// member has never been active in this org.
+  lastActiveAt DateTime?
+
   @@id([orgId, userId])
+  @@unique([orgId, scimExternalId])
 }
 
 model ApiKey {
@@ -381,6 +452,23 @@ model ApiKey {
 
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
+}
+
+/// Org-scoped bearer token presented by an IdP (Okta, Entra) to authenticate
+/// against the SCIM provisioning endpoints. Unlike `ApiKey`, a SCIM token is
+/// not tied to a user — it acts on behalf of the SCIM integration for the
+/// whole org. Only the HMAC hash of the secret is stored.
+model ScimToken {
+  name String
+  hash String @id @unique
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([orgId])
 }
 
 model Audit {
@@ -409,7 +497,7 @@ model Audit {
 model User {
   id              String                 @id @default(cuid())
   name            String?
-  email           String?                @unique
+  email           String                 @unique
   hashedPassword  String?
   emailVerified   DateTime?
   image           String?
@@ -425,6 +513,7 @@ model User {
   chats Chat[]
   sharedChats ChatAccess[]
   repoVisits RepoVisit[]
+  uploadedAttachments Attachment[]
 
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
@@ -436,6 +525,9 @@ model User {
   sessionVersion Int @default(0)
 
   userMcpServers       UserMcpServer[]
+  createdAgentSkills   AgentSkill[] @relation("AgentSkillCreatedBy")
+  updatedAgentSkills   AgentSkill[] @relation("AgentSkillUpdatedBy")
+  agentSkillAdoptions  AgentSkillAdoption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -468,6 +560,11 @@ model AccountPermissionSyncJob {
 enum PermissionSyncSource {
   ACCOUNT_DRIVEN
   REPO_DRIVEN
+}
+
+enum AccountPermissionSyncIssue {
+  REAUTHENTICATION_REQUIRED
+  INSUFFICIENT_SCOPE
 }
 
 model AccountToRepoPermission {
@@ -515,7 +612,12 @@ model Account {
   permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
 
-  /// Set when an OAuth token refresh fails and the account needs to be re-linked by the user.
+  /// Set when permission syncing fails closed and user action is required.
+  /// Cleared after a subsequent permission sync completes successfully.
+  permissionSyncIssue   AccountPermissionSyncIssue?
+  permissionSyncIssueAt DateTime?
+
+  /// Last OAuth token refresh failure, retained for diagnostics.
   /// Cleared when the user successfully re-authenticates.
   tokenRefreshErrorMessage String?
 
@@ -577,6 +679,69 @@ model Chat {
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 
   sharedWith ChatAccess[]
+
+  attachments ChatAttachment[]
+}
+
+/// A user-uploaded binary attachment blob (e.g. an image). The bytes live in
+/// the configured StorageBackend (keyed by `storageKey`), never in the DB.
+/// Attachments are NOT chat-bound: they are uploaded before any chat
+/// association exists, and linked to chats via `ChatAttachment`. Permissions
+/// are derived entirely from the linked chat(s); there are no independent ACLs.
+model Attachment {
+  id String @id @default(cuid())
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  /// Opaque key the StorageBackend uses to locate the bytes.
+  storageKey String
+
+  /// Original (sanitized) filename supplied by the uploader.
+  filename String
+
+  /// Final media type of the stored bytes (validated by decoding at upload).
+  mediaType String
+
+  /// Size of the stored bytes.
+  sizeBytes Int
+
+  /// Hex SHA-256 of the stored bytes (integrity / debugging; not used for dedup).
+  checksum String
+
+  /// The user who uploaded this blob. Uploads require authentication, so this
+  /// is set at creation (anonymous users cannot upload binary attachments). It
+  /// is nulled if the uploader is later deleted, so committed attachments
+  /// survive on the chats they're linked to.
+  uploadedBy   User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedById String?
+
+  status AttachmentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  chats ChatAttachment[]
+
+  @@index([status, createdAt])
+}
+
+/// Join table linking an `Attachment` blob to a `Chat`. This is the linker
+/// that makes chat duplication metadata-only (no byte copy) and keeps
+/// attachment access purely chat-derived. Deleting a chat cascades these rows;
+/// a separate sweep deletes `Attachment`s left with zero links (and their bytes).
+model ChatAttachment {
+  id String @id @default(cuid())
+
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+
+  attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  attachmentId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([chatId, attachmentId])
+  @@index([attachmentId])
 }
 
 /// Represents a user's access to a chat that has been shared with them.
@@ -593,6 +758,93 @@ model ChatAccess {
   createdAt DateTime @default(now())
 
   @@unique([chatId, userId])
+}
+
+enum AgentSkillVisibility {
+  PERSONAL
+  SHARED
+}
+
+model AgentSkill {
+  id String @id @default(cuid())
+
+  // Namespace identity for slash-command uniqueness and lookup.
+  // This is not a foreign key and should not be used as an authorization check by itself.
+  //
+  // Every skill belongs to an org (orgId is always set).
+  // PERSONAL: scopeId is the user id; the skill is private to that user within the org.
+  // SHARED:   scopeId is String(orgId); the skill is visible to the whole org (opt-in via adoptions).
+  //
+  // Future sharing/grants should treat this as the skill's home namespace, not as the ACL.
+  visibility AgentSkillVisibility
+  scopeId    String
+  slug       String
+
+  name         String
+  description  String
+  instructions String
+
+  // The user who authored the skill. This is audit metadata, separate from
+  // the namespace that owns the slash-command slug.
+  createdBy   User   @relation("AgentSkillCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  updatedBy   User?   @relation("AgentSkillUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedById String?
+
+  // The owning org. Both PERSONAL and SHARED skills are scoped to an org, so a
+  // user's personal skills change when they switch orgs.
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  enabled      Boolean  @default(true)
+  autoEnrolled Boolean  @default(false)
+
+  // Provenance for skills imported from an indexed repository file. All null for
+  // skills created manually or imported from a local file. When set, the skill's
+  // content is a read-only mirror of the source file: edits happen in the repo and
+  // are pulled in via "Update from source". sourceBlobSha (the git blob OID at
+  // import) is the comparison key used to detect when the indexed file has changed.
+  // Sync is personal-only; publishing to shared snapshots the content and drops
+  // these fields.
+  sourceRepoName   String?
+  sourceFilePath   String?
+  sourceRevision   String?
+  sourceBlobSha    String?
+  sourceImportedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adoptions AgentSkillAdoption[]
+
+  @@unique([orgId, visibility, scopeId, slug])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([orgId])
+  @@index([orgId, visibility, scopeId])
+  @@index([orgId, visibility, scopeId, enabled, updatedAt(sort: Desc), name], map: "AgentSkill_shared_catalog_idx")
+}
+
+model AgentSkillAdoption {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  agentSkill   AgentSkill @relation(fields: [agentSkillId], references: [id], onDelete: Cascade)
+  agentSkillId String
+
+  createdAt DateTime @default(now())
+  removedAt DateTime?
+
+  @@unique([orgId, userId, agentSkillId])
+  @@index([userId, orgId, removedAt])
+  @@index([agentSkillId])
+  @@index([orgId])
 }
 
 // OAuth2 Authorization Server models
@@ -622,7 +874,9 @@ model OAuthAuthorizationCode {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   redirectUri   String
   codeChallenge String // BASE64URL(SHA-256(codeVerifier))
+  scope         String      @default("")
   resource      String? // RFC 8707: canonical URI of the target resource server
+  dpopJkt       String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt     DateTime
   createdAt     DateTime    @default(now())
 }
@@ -636,6 +890,7 @@ model OAuthRefreshToken {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   scope     String      @default("")
   resource  String? // RFC 8707
+  dpopJkt   String? // RFC 9449
   expiresAt DateTime
   createdAt DateTime    @default(now())
 
@@ -651,6 +906,7 @@ model OAuthToken {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   scope      String      @default("")
   resource   String? // RFC 8707: canonical URI of the target resource server
+  dpopJkt    String? // RFC 9449: DPoP JWK SHA-256 thumbprint binding
   expiresAt  DateTime
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?

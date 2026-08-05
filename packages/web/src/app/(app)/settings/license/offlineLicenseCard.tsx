@@ -1,6 +1,7 @@
 import type { OfflineLicenseMetadata } from "@sourcebot/shared";
 import { Badge } from "@/components/ui/badge";
 import { SettingsCard } from "../components/settingsCard";
+import { DownloadServicePingHistoryButton } from "./downloadServicePingHistoryButton";
 
 interface OfflineLicenseCardProps {
     license: OfflineLicenseMetadata;
@@ -15,33 +16,46 @@ export function OfflineLicenseCard({ license, isExpired }: OfflineLicenseCardPro
 
     return (
         <SettingsCard>
-            <div className="flex items-center justify-between gap-6">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <p className="font-medium">Enterprise plan</p>
-                        {isExpired && (
-                            <Badge variant="outline" className="border-destructive/30 text-destructive">
-                                Expired
-                            </Badge>
-                        )}
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-6">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <p className="font-medium">Enterprise plan</p>
+                            {isExpired && (
+                                <Badge variant="outline" className="border-destructive/30 text-destructive">
+                                    Expired
+                                </Badge>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <code className="font-mono">{truncatedId}</code>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <code className="font-mono">{truncatedId}</code>
+                    <div className="flex items-center gap-12">
+                        {license.seats !== undefined && (
+                            <div className="flex flex-col items-end">
+                                <p className="text-xs text-muted-foreground">Billed seats</p>
+                                <p className="text-sm">{license.seats}</p>
+                            </div>
+                        )}
+                        <div className="flex flex-col items-end">
+                            <p className="text-xs text-muted-foreground">
+                                {isExpired ? "Expired on" : "Expires on"}
+                            </p>
+                            <p className="text-sm">{formatDate(expiryDate)}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-12">
-                    {license.seats !== undefined && (
-                        <div className="flex flex-col items-end">
-                            <p className="text-xs text-muted-foreground">Billed seats</p>
-                            <p className="text-sm">{license.seats}</p>
-                        </div>
-                    )}
-                    <div className="flex flex-col items-end">
-                        <p className="text-xs text-muted-foreground">
-                            {isExpired ? "Expired on" : "Expires on"}
-                        </p>
-                        <p className="text-sm">{formatDate(expiryDate)}</p>
-                    </div>
+                <div className="flex items-center justify-between gap-6 border-t border-border pt-4">
+                    <p className="text-xs text-muted-foreground">
+                        Your instance doesn&apos;t report usage automatically. Usage data must be
+                        manually sent to{" "}
+                        <a href="mailto:ar@sourcebot.dev" className="text-primary hover:underline">
+                            ar@sourcebot.dev
+                        </a>
+                        .
+                    </p>
+                    <DownloadServicePingHistoryButton />
                 </div>
             </div>
         </SettingsCard>

@@ -13,9 +13,9 @@ import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
 import authentikLogo from "@/public/authentik.svg";
 import jumpcloudLogo from "@/public/jumpcloud.svg";
+import idiraLogo from "@/public/idira.svg";
 import { ServiceError } from "./serviceError";
-import { ConnectionType, Org } from "@sourcebot/db";
-import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { ConnectionType } from "@sourcebot/db";
 import { CodeHostType } from "@sourcebot/db";
 
 export function cn(...inputs: ClassValue[]) {
@@ -154,6 +154,15 @@ export const getAuthProviderInfo = (providerType: string): AuthProviderInfo => {
                 displayName: "JumpCloud",
                 icon: {
                     src: jumpcloudLogo,
+                },
+            };
+        case "idira":
+            return {
+                id: "idira",
+                name: "Idira",
+                displayName: "Idira",
+                icon: {
+                    src: idiraLogo,
                 },
             };
         case "credentials":
@@ -618,11 +627,6 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): s
         return imageUrl;
     }
 };
-
-export const getOrgMetadata = (org: Org): OrgMetadata | null => {
-    const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
-    return currentMetadata.success ? currentMetadata.data : null;
-}
 
 export const isHttpError = (error: unknown, status: number): boolean => {
     return error !== null

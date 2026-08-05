@@ -9,7 +9,6 @@ import {
 } from "@sourcebot/shared";
 import { __unsafePrisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID } from "./constants";
-import { getOrgMetadata } from "./utils";
 import { cache } from 'react';
 
 const logger = createLogger('entitlements');
@@ -47,8 +46,8 @@ export const isAnonymousAccessEnabled = async () => {
         return false;
     }
 
-    if (env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true') {
-        return true;
+    if (env.FORCE_ENABLE_ANONYMOUS_ACCESS !== undefined) {
+        return env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
     }
 
     const org = await __unsafePrisma.org.findUnique({
@@ -59,9 +58,7 @@ export const isAnonymousAccessEnabled = async () => {
         return false;
     }
 
-    const metadata = getOrgMetadata(org);
-
-    return !!metadata?.anonymousAccessEnabled;
+    return org.isAnonymousAccessEnabled;
 }
 
 export const isValidLicenseActive = async () => {

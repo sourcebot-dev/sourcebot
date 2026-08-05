@@ -53,9 +53,8 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
                 },
                 include: { user: true },
             });
-            // Cast: Prisma's User.email is nullable but AdapterUser.email is
-            // typed as `string`. The base PrismaAdapter performs the same
-            // implicit widening; we mirror it here.
+            // Cast to AdapterUser to satisfy next-auth's adapter return type;
+            // the base PrismaAdapter returns the user row directly, and we mirror it.
             return (account?.user ?? null) as AdapterUser | null;
         },
         async unlinkAccount({ provider, providerAccountId }) {

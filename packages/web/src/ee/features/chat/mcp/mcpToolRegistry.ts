@@ -49,15 +49,19 @@ function expandTokens(tokens: string[]): string[] {
 }
 
 export function buildMcpToolRegistry(tools: McpToolRecord): McpToolRegistryEntry[] {
-    return Object.entries(tools).map(([name, tool]) => {
-        const match = name.match(/^mcp_(.+?)__/);
-        const serverName = match ? match[1] : '';
-        return {
-            name,
-            description: tool.description ?? '',
-            serverName,
-        };
-    });
+    return Object.entries(tools)
+        // Sort by tool name so the <mcp_tools> system-prompt block is byte-stable
+        // across requests regardless of upstream iteration order (prompt caching).
+        .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+        .map(([name, tool]) => {
+            const match = name.match(/^mcp_(.+?)__/);
+            const serverName = match ? match[1] : '';
+            return {
+                name,
+                description: tool.description ?? '',
+                serverName,
+            };
+        });
 }
 
 export function searchMcpTools(

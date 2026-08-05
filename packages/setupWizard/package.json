@@ -1,8 +1,13 @@
 {
     "name": "setup-sourcebot",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "description": "CLI wizard for creating a Sourcebot configuration.",
     "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sourcebot-dev/sourcebot.git",
+        "directory": "packages/setupWizard"
+    },
     "bin": "./dist/index.js",
     "scripts": {
         "build": "tsc",
@@ -14,7 +19,8 @@
         "@inquirer/prompts": "^8.4.3",
         "chalk": "^5.6.2",
         "inquirer-select-pro": "^1.0.0-alpha.9",
-        "ora": "^9.4.0"
+        "ora": "^9.4.0",
+        "reo-census": "^1.2.8"
     },
     "devDependencies": {
         "@sourcebot/schemas": "workspace:^",

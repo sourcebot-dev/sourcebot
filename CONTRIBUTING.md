@@ -4,7 +4,7 @@ So you're interested in contributing to Sourcebot. Great! If you have any questi
 
 ## Understanding the Licenses
 
-First thing to know is that Sourcebot is not a side-project - it is a product of a company based in San Francisco who builds and maintain it professionally. For this reason, Sourcebot follows the [open core](https://en.wikipedia.org/wiki/Open-core_model) business model, which splits the codebase into two parts: **core** and **ee**, which each have their own license:
+First thing to know is that Sourcebot is not a side-project - it is a product of a company based in San Francisco who builds and maintains it professionally. For this reason, Sourcebot follows the [open core](https://en.wikipedia.org/wiki/Open-core_model) business model, which splits the codebase into two parts: **core** and **ee**, which each have their own license:
 
 - **core** code is licensed under the [Functional Source License](https://fsl.software/), a
 mostly permissive non-compete license that converts to Apache 2.0 or MIT after two years. Code shipped in core (without ee) forms the [Sourcebot Community Edition (CE)](https://www.sourcebot.dev/pricing).
@@ -55,14 +55,11 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
     After installing, set `CTAGS_COMMAND` in your `.env.development.local` to the path of the installed binary (e.g. `/usr/local/bin/universal-ctags`).
 
-3. Install corepack:
+3. Install and enable Corepack so the repository uses the Yarn version pinned in `package.json`:
     ```sh
     npm install -g corepack
-    ```
-
-3. Install `yarn`:
-    ```sh
-    npm install --global yarn
+    corepack enable
+    yarn --version
     ```
 
 3. Clone the repository with submodules:

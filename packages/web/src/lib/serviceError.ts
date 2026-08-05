@@ -87,11 +87,27 @@ export const notAuthenticated = (): ServiceError => {
     }
 }
 
+export const insufficientOAuthScope = (requiredScopes: readonly string[]): ServiceError => {
+    return {
+        statusCode: StatusCodes.FORBIDDEN,
+        errorCode: ErrorCode.OAUTH_INSUFFICIENT_SCOPE,
+        message: `OAuth access token is missing required scope${requiredScopes.length === 1 ? '' : 's'}: ${requiredScopes.join(' ')}`,
+    };
+}
+
 export const notFound = (message?: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.NOT_FOUND,
         message: message ?? "Not found",
+    }
+}
+
+export const repositoryNotFound = (repository: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.NOT_FOUND,
+        errorCode: ErrorCode.REPOSITORY_NOT_FOUND,
+        message: `Repository "${repository}" was not found`,
     }
 }
 
@@ -126,4 +142,3 @@ export const unresolvedGitRef = (ref: string): ServiceError => {
         message: `Git reference "${ref}" could not be resolved.`,
     };
 }
-

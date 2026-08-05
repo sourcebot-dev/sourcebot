@@ -1,0 +1,179 @@
+import "server-only";
+
+import { commandInvocationDataSchema } from "@/features/chat/commands/types";
+import type { SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
+import { getTurnProgressState } from "@/features/chat/utils";
+import { hasEntitlement } from "@/lib/entitlements";
+import {
+    personalAgentSkillAuthScope,
+    sharedAgentSkillVisibleToUserWhere,
+    type PrismaClient,
+} from "@sourcebot/db";
+import { filterSkillsBySourceRepoAccess } from "./sourceRepoAccess";
+
+export type AskSkillAvailabilityAnalytics = {
+    availableSkillCount: number;
+};
+
+export type AskSkillTurnCompletedAnalytics = {
+    traceId?: string;
+    availableSkillCount: number;
+    manualInvocationCount: number;
+    autoInvocationCount: number;
+    successfulInvocationCount: number;
+    failedInvocationCount: number;
+    uniqueSkillCount: number;
+    durationMs: number;
+};
+
+const emptyAskSkillAvailability: AskSkillAvailabilityAnalytics = {
+    availableSkillCount: 0,
+};
+
+type AskSkillAvailabilityPrismaClient = Pick<PrismaClient, "agentSkill" | "repo">;
+
+export async function getAskSkillAvailabilityAnalytics({
+    prisma,
+    userId,
+    orgId,
+}: {
+    prisma: AskSkillAvailabilityPrismaClient;
+    userId: string | undefined;
+    orgId: number;
+}): Promise<AskSkillAvailabilityAnalytics> {
+    if (!userId || !(await hasEntitlement("ask"))) {
+        return emptyAskSkillAvailability;
+    }
+
+    try {
+        const [personalSkills, sharedSkills] = await Promise.all([
+            prisma.agentSkill.findMany({
+                where: {
+                    ...personalAgentSkillAuthScope(userId, orgId),
+                    enabled: true,
+                },
+                select: { sourceRepoName: true },
+            }),
+            prisma.agentSkill.findMany({
+                where: sharedAgentSkillVisibleToUserWhere(userId, orgId),
+                select: { sourceRepoName: true },
+            }),
+        ]);
+
+        const accessibleSkills = await filterSkillsBySourceRepoAccess(
+            [...personalSkills, ...sharedSkills],
+            { prisma: prisma as PrismaClient, orgId },
+        );
+
+        return { availableSkillCount: accessibleSkills.length };
+    } catch {
+        return emptyAskSkillAvailability;
+    }
+}
+
+type LoadSkillToolPart = SBChatMessagePart & {
+    type: "tool-load_skill";
+    state?: string;
+    input?: unknown;
+    output?: unknown;
+};
+
+const isLoadSkillToolPart = (part: SBChatMessagePart): part is LoadSkillToolPart =>
+    part.type === "tool-load_skill";
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null;
+
+const isLoadSkillSuccess = (part: LoadSkillToolPart) =>
+    part.state === "output-available" && isObject(part.output) && !("error" in part.output);
+
+const isLoadSkillFailure = (part: LoadSkillToolPart) =>
+    part.state === "output-error" || (part.state === "output-available" && isObject(part.output) && "error" in part.output);
+
+const getLoadedSkillId = (part: LoadSkillToolPart): string | undefined => {
+    if (part.state !== "output-available" || !isObject(part.output) || "error" in part.output) {
+        return undefined;
+    }
+
+    const skill = part.output.skill;
+    if (!isObject(skill) || typeof skill.id !== "string") {
+        return undefined;
+    }
+
+    return skill.id;
+};
+
+type ManualSkillInvocation = {
+    skillId: string;
+    success: boolean;
+};
+
+const getManualSkillInvocation = (part: SBChatMessagePart): ManualSkillInvocation | undefined => {
+    if (part.type !== "data-command") {
+        return undefined;
+    }
+
+    const parsed = commandInvocationDataSchema.safeParse(part.data);
+    if (!parsed.success) {
+        return undefined;
+    }
+
+    return {
+        skillId: parsed.data.commandId,
+        success: parsed.data.resolutionStatus === "success",
+    };
+};
+
+export function getAskSkillTurnCompletedAnalytics({
+    messages,
+    availability,
+}: {
+    messages: SBChatMessage[];
+    availability: AskSkillAvailabilityAnalytics;
+}): AskSkillTurnCompletedAnalytics | undefined {
+    const latestMessage = messages.at(-1);
+    const latestAssistantMessage = latestMessage?.role === "assistant" ? latestMessage : undefined;
+    if (!latestAssistantMessage) {
+        return undefined;
+    }
+
+    const progressState = getTurnProgressState({ messages, status: "ready" });
+    if (progressState.isTurnInProgress) {
+        return undefined;
+    }
+
+    const latestAssistantIndex = messages.length - 1;
+    const latestUserMessage = [...messages.slice(0, latestAssistantIndex)].reverse()
+        .find((message) => message.role === "user");
+    const manualInvocations = latestUserMessage?.parts
+        .map(getManualSkillInvocation)
+        .filter((invocation): invocation is ManualSkillInvocation => invocation !== undefined) ?? [];
+    const manualSkillIds = manualInvocations.map(({ skillId }) => skillId);
+    const manualSuccessCount = manualInvocations.filter(({ success }) => success).length;
+    const manualFailureCount = manualInvocations.length - manualSuccessCount;
+
+    const loadSkillToolParts = latestAssistantMessage.parts.filter(isLoadSkillToolPart);
+    const autoSkillIds = loadSkillToolParts
+        .map(getLoadedSkillId)
+        .filter((skillId): skillId is string => skillId !== undefined);
+    const autoSuccessCount = loadSkillToolParts.filter(isLoadSkillSuccess).length;
+    const autoFailureCount = loadSkillToolParts.filter(isLoadSkillFailure).length;
+    const autoInvocationCount = autoSuccessCount + autoFailureCount;
+    const manualInvocationCount = manualSkillIds.length;
+    const uniqueSkillCount = new Set([...manualSkillIds, ...autoSkillIds]).size;
+
+    if (availability.availableSkillCount === 0 && manualInvocationCount === 0 && autoInvocationCount === 0) {
+        return undefined;
+    }
+
+    return {
+        traceId: latestAssistantMessage.metadata?.traceId,
+        availableSkillCount: availability.availableSkillCount,
+        manualInvocationCount,
+        autoInvocationCount,
+        successfulInvocationCount: manualSuccessCount + autoSuccessCount,
+        failedInvocationCount: manualFailureCount + autoFailureCount,
+        uniqueSkillCount,
+        durationMs: latestAssistantMessage.metadata?.totalResponseTimeMs ?? 0,
+    };
+}

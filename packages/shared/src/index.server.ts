@@ -6,15 +6,19 @@ export {
     getEntitlements as _getEntitlements,
     isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
     isValidLicenseActive as _isValidLicenseActive,
+    isValidOfflineLicenseActive,
+    isValidOnlineLicenseActive as _isValidOnlineLicenseActive,
     getSeatCap,
     getOfflineLicenseMetadata,
     STALE_ONLINE_LICENSE_THRESHOLD_MS,
     STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
+    verifyOnlineLicenseAssertion,
 } from "./entitlements.js";
 export type {
     Entitlement,
     OfflineLicenseMetadata,
 } from "./entitlements.js";
+export * from './lighthouseTypes.js';
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,
@@ -31,6 +35,9 @@ export {
     getConfigSettings,
     getRepoPath,
     getRepoIdFromPath,
+    isCredentialsLoginEnabled,
+    isEmailCodeLoginEnabled,
+    isMemberApprovalRequired,
 } from "./utils.js";
 export * from "./constants.js";
 export {
@@ -53,6 +60,7 @@ export {
     decrypt,
     hashSecret,
     generateApiKey,
+    generateScimToken,
     generateOAuthToken,
     generateOAuthRefreshToken,
     verifySignature,
@@ -70,6 +78,13 @@ export {
 export {
     createRedisClient,
 } from "./redis.js";
+export {
+    getStorageBackend,
+    LocalFsStorageBackend,
+} from "./storage.js";
+export type {
+    StorageBackend,
+} from "./storage.js";
 export {
     SOURCEBOT_VERSION,
 } from "./version.js";

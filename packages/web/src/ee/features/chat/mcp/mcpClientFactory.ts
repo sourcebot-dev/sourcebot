@@ -36,6 +36,11 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 clientInfo: { not: null },
             },
         },
+        // Deterministic ordering is required for prompt caching: the MCP server
+        // order flows into both the serialized tool definitions and the
+        // <mcp_tools> system-prompt block, and an unordered query would let the
+        // byte layout drift between requests and bust the cache.
+        orderBy: { serverId: 'asc' },
         select: {
             serverId: true,
             tokens: true,

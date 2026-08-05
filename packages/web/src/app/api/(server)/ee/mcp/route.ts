@@ -12,6 +12,7 @@ import { sew } from "@/middleware/sew";
 import { apiHandler } from '@/lib/apiHandler';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
+import { SOURCEBOT_OAUTH_SCOPES } from '@/ee/features/oauth/constants';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
@@ -20,14 +21,33 @@ import { hasEntitlement } from '@/lib/entitlements';
 // @see: https://datatracker.ietf.org/doc/html/rfc9728
 async function mcpErrorResponse(error: ServiceError): Promise<Response> {
     const response = serviceErrorResponse(error);
-    if (error.statusCode === StatusCodes.UNAUTHORIZED && await hasEntitlement('oauth')) {
-        const issuer = env.AUTH_URL.replace(/\/$/, '');
-        response.headers.set(
-            'WWW-Authenticate',
-            `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`
-        );
+    if (
+        (error.statusCode === StatusCodes.UNAUTHORIZED || error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) &&
+        await hasEntitlement('oauth')
+    ) {
+        response.headers.append('WWW-Authenticate', mcpOAuthChallenge('Bearer', error));
+        response.headers.append('WWW-Authenticate', mcpOAuthChallenge('DPoP', error));
     }
     return response;
+}
+
+function mcpOAuthChallenge(scheme: 'Bearer' | 'DPoP', error: ServiceError): string {
+    const issuer = env.AUTH_URL.replace(/\/$/, '');
+    const params = [
+        'realm="Sourcebot"',
+        `resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`,
+    ];
+    const scope = SOURCEBOT_OAUTH_SCOPES.join(' ');
+    if (scope) {
+        params.push(`scope="${scope}"`);
+    }
+
+    if (error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) {
+        params.push('error="insufficient_scope"');
+        params.push(`error_description="${error.message}"`);
+    }
+
+    return `${scheme} ${params.join(', ')}`;
 }
 
 // @see: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management

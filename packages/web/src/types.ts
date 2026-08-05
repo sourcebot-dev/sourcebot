@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-export const orgMetadataSchema = z.object({
-    anonymousAccessEnabled: z.boolean().optional(),
-})
-
 export const demoSearchScopeSchema = z.object({
     id: z.number(),
     displayName: z.string(),
@@ -24,7 +20,6 @@ export const demoExamplesSchema = z.object({
     searchExamples: demoSearchExampleSchema.array(),
 })
 
-export type OrgMetadata = z.infer<typeof orgMetadataSchema>;
 export type DemoExamples = z.infer<typeof demoExamplesSchema>;
 export type DemoSearchScope = z.infer<typeof demoSearchScopeSchema>;
 export type DemoSearchExample = z.infer<typeof demoSearchExampleSchema>;

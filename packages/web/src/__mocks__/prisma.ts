@@ -17,8 +17,11 @@ export const MOCK_ORG: Org = {
     updatedAt: new Date(),
     isOnboarded: true,
     imageUrl: null,
-    metadata: null,
+    isScimEnabled: false,
     memberApprovalRequired: false,
+    isCredentialsLoginEnabled: true,
+    isEmailCodeLoginEnabled: false,
+    isAnonymousAccessEnabled: false,
     inviteLinkEnabled: false,
     inviteLinkId: null,
 }
@@ -52,6 +55,7 @@ export const MOCK_OAUTH_TOKEN: OAuthToken & { user: User & { accounts: Account[]
     userId: MOCK_USER_WITH_ACCOUNTS.id,
     scope: '',
     resource: null,
+    dpopJkt: null,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60), // 1 hour from now
     createdAt: new Date(),
     lastUsedAt: null,
@@ -64,6 +68,7 @@ export const MOCK_REFRESH_TOKEN: OAuthRefreshToken = {
     userId: MOCK_USER_WITH_ACCOUNTS.id,
     scope: '',
     resource: null,
+    dpopJkt: null,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 90 days from now
     createdAt: new Date(),
 }

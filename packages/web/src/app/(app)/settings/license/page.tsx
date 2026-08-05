@@ -15,6 +15,7 @@ import { getAllInvoices } from "@/ee/features/lighthouse/actions";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { getYearlyTermStatus } from "./types";
+import { activeMembershipWhere } from "@/features/membership/utils";
 
 type LicensePageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -49,7 +50,12 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
         : await prisma.license.findUnique({ where: { orgId: org.id } });
 
     const yearlyTermStatus = getYearlyTermStatus(license);
-    const currentUserCount = await prisma.userToOrg.count({ where: { orgId: org.id } });
+    const currentActiveUserCount = await prisma.userToOrg.count({
+        where: {
+            orgId: org.id,
+            ...activeMembershipWhere(),
+        },
+    });
 
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
@@ -97,7 +103,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                 && !isOnlineLicenseInactive
                 && yearlyTermStatus && (
                     <YearlyTermSeatsUsageCard
-                        currentUsers={currentUserCount}
+                        currentUsers={currentActiveUserCount}
                         status={yearlyTermStatus}
                     />
                 )}

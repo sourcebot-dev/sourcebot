@@ -1,1 +1,5 @@
-{}
+{
+    "@react-grab/cli": { "old": "UNKNOWN", "new": "MIT" },
+    "@react-grab/mcp": { "old": "UNKNOWN", "new": "MIT" },
+    "element-source": { "old": "UNKNOWN", "new": "MIT" }
+}

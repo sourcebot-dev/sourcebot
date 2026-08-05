@@ -1,4 +1,4 @@
-import { YearlyTermStatus as RawYearlyTermStatus } from "@/features/billing/types";
+import type { YearlyTermStatus as RawYearlyTermStatus } from "@sourcebot/shared/client";
 import { License } from "@sourcebot/db";
 
 export type YearlyTermStatus = Omit<RawYearlyTermStatus, 'currentQuarterStartedAt' | 'currentQuarterEndsAt' | 'termStartedAt' | 'termEndsAt'> & {

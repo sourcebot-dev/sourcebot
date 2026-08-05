@@ -10,9 +10,9 @@ import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
-import { SBChatMessageMetadata, SBChatMessagePart } from '@/features/chat/types';
+import { SBChatMessageMetadata, SBChatMessagePart, StepTokenUsageEntry } from '@/features/chat/types';
 import { SearchScopeIcon } from '@/features/chat/components/searchScopeIcon';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
@@ -27,7 +27,17 @@ import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { ToolOutputGuard } from './tools/toolOutputGuard';
 import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
+import { LoadSkillToolComponent } from './tools/loadSkillToolComponent';
 
+
+// A UI-visible step: the parts of one LLM invocation, tagged with the
+// invocation's position in the turn. The stepIndex indexes directly into
+// `metadata.stepTokenUsage`, whose entries are recorded 1:1 with the turn's
+// steps in order (across approval-continuation phases).
+export interface ThinkingStep {
+    stepIndex: number;
+    parts: SBChatMessagePart[];
+}
 
 interface DetailsCardProps {
     chatId: string;
@@ -37,7 +47,10 @@ interface DetailsCardProps {
     isTurnInProgress: boolean;
     isNetworkActive: boolean;
     isAwaitingToolApproval: boolean;
-    thinkingSteps: SBChatMessagePart[][];
+    thinkingSteps: ThinkingStep[];
+    // Index of the step that produced the answer. That step is filtered out
+    // of `thinkingSteps`, so its usage is rendered as a dedicated final row.
+    answerStepIndex?: number;
     metadata?: SBChatMessageMetadata;
 }
 
@@ -51,19 +64,40 @@ const DetailsCardComponent = ({
     isAwaitingToolApproval,
     metadata,
     thinkingSteps,
+    answerStepIndex,
 }: DetailsCardProps) => {
     const captureEvent = useCaptureEvent();
 
-    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part =>
+    const toolCallCount = useMemo(() => thinkingSteps.flatMap(({ parts }) => parts).filter(part =>
         part.type.startsWith('tool-') ||
         (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
     ).length, [thinkingSteps]);
+
+    // Lookup of estimated output tokens by tool call id, used to badge
+    // individual tool calls in the thinking steps.
+    const toolTokenUsageMap = useMemo(() => new Map(
+        (metadata?.stepTokenUsage ?? []).flatMap(({ tools }) =>
+            tools.map(({ toolCallId, estimatedOutputTokens }) => [toolCallId, estimatedOutputTokens] as const)
+        )
+    ), [metadata?.stepTokenUsage]);
 
     const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
     const inputTokens = metadata?.totalInputTokens ?? 0;
     const cachedInputPercent = inputTokens > 0
         ? Math.round((cacheReadTokens / inputTokens) * 100)
         : 0;
+
+    // Context-window usage gauge. "In use" is the input the model saw on its
+    // most recent step — i.e. the full accumulated prompt occupying the window
+    // right now — not the cumulative totalInputTokens.
+    const stepTokenUsage = metadata?.stepTokenUsage;
+    const currentContextTokens = stepTokenUsage && stepTokenUsage.length > 0
+        ? stepTokenUsage[stepTokenUsage.length - 1].inputTokens
+        : undefined;
+    const contextWindow = metadata?.contextWindow;
+    const contextUsagePercent = currentContextTokens !== undefined && contextWindow !== undefined && contextWindow > 0
+        ? Math.min(100, Math.round((currentContextTokens / contextWindow) * 100))
+        : undefined;
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -172,6 +206,23 @@ const DetailsCardComponent = ({
                                                 )}
                                             </div>
                                         )}
+                                        {contextUsagePercent !== undefined && currentContextTokens !== undefined && contextWindow !== undefined && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="cursor-help">
+                                                        <ContextWindowGauge
+                                                            total={contextWindow}
+                                                            percent={contextUsagePercent}
+                                                        />
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="max-w-xs text-xs">
+                                                        The most recent step&apos;s prompt used {currentContextTokens.toLocaleString()} of the model&apos;s {contextWindow.toLocaleString()}-token context window ({contextUsagePercent}%).
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">
                                                 <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -202,6 +253,9 @@ const DetailsCardComponent = ({
                             thinkingSteps={thinkingSteps}
                             isNetworkActive={isNetworkActive}
                             isThinking={isThinking}
+                            toolTokenUsageMap={toolTokenUsageMap}
+                            stepTokenUsage={metadata?.stepTokenUsage}
+                            answerStepIndex={answerStepIndex}
                         />
                     </CardContent>
                 </CollapsibleContent>
@@ -213,7 +267,7 @@ const DetailsCardComponent = ({
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
 
 
-const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean }) => {
+const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap, stepTokenUsage, answerStepIndex }: { thinkingSteps: ThinkingStep[], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number>, stepTokenUsage?: StepTokenUsageEntry[], answerStepIndex?: number }) => {
     const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
     const [shouldStick, setShouldStick] = useState(isThinking);
     const prevIsThinking = usePrevious(isThinking);
@@ -227,6 +281,14 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkin
         }
     }, [isThinking, prevIsThinking, scrollToBottom]);
 
+    // The answer step is normally filtered out of `thinkingSteps` (its only
+    // part is the answer text), so its usage gets a dedicated row. If the
+    // step is still visible (e.g. it also contained narration), the index
+    // join below already covers it — skip the extra row.
+    const answerUsage = answerStepIndex !== undefined && !thinkingSteps.some(({ stepIndex }) => stepIndex === answerStepIndex)
+        ? stepTokenUsage?.[answerStepIndex]
+        : undefined;
+
     return (
         <div ref={scrollRef} className="max-h-[350px] overflow-y-auto px-6 py-2">
             <div ref={shouldStick ? contentRef : undefined}>
@@ -236,22 +298,196 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkin
                     ) : (
                         <p className="text-sm text-muted-foreground">No thinking steps</p>
                     )
-                ) : thinkingSteps.map((step, index) => (
-                    <div key={index}>
-                        {step.map((part, index) => (
-                            <div key={index} className="mb-2">
-                                <StepPartRenderer part={part} />
+                ) : (
+                    <>
+                        {thinkingSteps.map(({ stepIndex, parts }) => {
+                            // A step's usage is simply the entry at its position
+                            // in the turn's step sequence. Out-of-range lookups
+                            // (e.g. an aborted turn whose last step never
+                            // finished) return undefined and render no usage line.
+                            const stepUsage = stepTokenUsage?.[stepIndex];
+
+                            // Inline the step's usage alongside the step's first part
+                            // when that part is narration text, so the cost reads as a
+                            // property of the step, not of the tool calls below it.
+                            // Steps that open directly with a tool call get the usage
+                            // on its own line instead — tool rows already carry their
+                            // own right-aligned info.
+                            const [firstPart, ...restParts] = parts;
+                            const isFirstPartNarration = firstPart.type === 'text' || firstPart.type === 'reasoning';
+
+                            return (
+                                <div key={stepIndex}>
+                                    {stepUsage && !isFirstPartNarration && (
+                                        <div className="flex justify-end mb-2">
+                                            <StepTokenUsage usage={stepUsage} />
+                                        </div>
+                                    )}
+                                    <div className="flex items-start gap-4">
+                                        <div className="mb-2 flex-1 min-w-0">
+                                            <StepPartRenderer
+                                                part={firstPart}
+                                                toolTokenUsageMap={toolTokenUsageMap}
+                                            />
+                                        </div>
+                                        {stepUsage && isFirstPartNarration && <StepTokenUsage usage={stepUsage} />}
+                                    </div>
+                                    {restParts.map((part, index) => (
+                                        <div key={index} className="mb-2">
+                                            <StepPartRenderer
+                                                part={part}
+                                                toolTokenUsageMap={toolTokenUsageMap}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })}
+                        {answerUsage && (
+                            <div className="flex justify-end mb-2">
+                                <StepTokenUsage usage={answerUsage} label="answer" />
                             </div>
-                        ))}
-                    </div>
-                ))}
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
 }
 
 
-export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
+// The provider-reported input/output token pair of a single agent step,
+// rendered at the end of the step's group of parts.
+const StepTokenUsage = ({ usage, label = 'step' }: { usage: StepTokenUsageEntry, label?: string }) => {
+    if (usage.inputTokens === undefined && usage.outputTokens === undefined) {
+        return null;
+    }
+
+    const cachedPercent = usage.inputTokens && usage.cacheReadTokens
+        ? Math.round((usage.cacheReadTokens / usage.inputTokens) * 100)
+        : 0;
+
+    const compactParts = [
+        ...(usage.inputTokens !== undefined ? [`${getShortenedNumberDisplayString(usage.inputTokens, 0)} in`] : []),
+        ...(usage.outputTokens !== undefined ? [`${getShortenedNumberDisplayString(usage.outputTokens, 0)} out`] : []),
+    ];
+
+    return (
+        <div className="flex-shrink-0 mt-0.5">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground cursor-help whitespace-nowrap">
+                        {label} · {compactParts.join(' · ')}
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                    <div className="space-y-1 text-xs">
+                        <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Input</span>
+                            <span>{usage.inputTokens?.toLocaleString() ?? '—'}{cachedPercent > 0 ? ` (${cachedPercent}% cached)` : ''}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Output</span>
+                            <span>{usage.outputTokens?.toLocaleString() ?? '—'}</span>
+                        </div>
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        </div>
+    );
+}
+
+
+const CONTEXT_USAGE_YELLOW_PERCENT = 50;
+const CONTEXT_USAGE_RED_PERCENT = 80;
+
+const getContextUsageColorClass = (percent: number): string => {
+    if (percent >= CONTEXT_USAGE_RED_PERCENT) {
+        return "text-red-500";
+    }
+    if (percent >= CONTEXT_USAGE_YELLOW_PERCENT) {
+        return "text-yellow-500";
+    }
+    return "text-[#6cb38f]";
+};
+
+const ContextWindowGauge = ({ total, percent }: { total: number, percent: number }) => {
+    const size = 14;
+    const strokeWidth = 2;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - Math.min(100, percent) / 100);
+    const colorClass = getContextUsageColorClass(percent);
+
+    return (
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+            <svg width={size} height={size} className="-rotate-90 flex-shrink-0">
+                {/* Neutral gray track. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    className="text-zinc-500"
+                />
+                {/* Progress arc. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    className={cn("transition-all duration-300", colorClass)}
+                />
+            </svg>
+            <span className={cn("font-semibold", colorClass)}>{percent}%</span>
+            <span className="text-muted-foreground">of {getShortenedNumberDisplayString(total, 0).toUpperCase()}</span>
+        </div>
+    );
+}
+
+type GuardedToolType =
+    | 'tool-read_file'
+    | 'tool-grep'
+    | 'tool-glob'
+    | 'tool-find_symbol_definitions'
+    | 'tool-find_symbol_references'
+    | 'tool-list_repos'
+    | 'tool-list_commits'
+    | 'tool-get_diff'
+    | 'tool-list_tree';
+
+type GuardedToolPart = Extract<SBChatMessagePart, { type: GuardedToolType }>;
+
+// The builtin tools that render through ToolOutputGuard, which differ only in
+// their loading text and output component. The `satisfies` mapped type checks
+// each entry's `render` against its own tool's output shape.
+const TOOL_GUARD_CONFIG = {
+    'tool-read_file': { loadingText: 'Reading file...', render: (output) => <ReadFileToolComponent {...output} /> },
+    'tool-grep': { loadingText: 'Searching...', render: (output) => <GrepToolComponent {...output} /> },
+    'tool-glob': { loadingText: 'Searching files...', render: (output) => <GlobToolComponent {...output} /> },
+    'tool-find_symbol_definitions': { loadingText: 'Resolving definitions...', render: (output) => <FindSymbolDefinitionsToolComponent {...output} /> },
+    'tool-find_symbol_references': { loadingText: 'Resolving references...', render: (output) => <FindSymbolReferencesToolComponent {...output} /> },
+    'tool-list_repos': { loadingText: 'Listing repositories...', render: (output) => <ListReposToolComponent {...output} /> },
+    'tool-list_commits': { loadingText: 'Listing commits...', render: (output) => <ListCommitsToolComponent {...output} /> },
+    'tool-get_diff': { loadingText: 'Comparing revisions...', render: (output) => <GetDiffToolComponent {...output} /> },
+    'tool-list_tree': { loadingText: 'Listing tree...', render: (output) => <ListTreeToolComponent {...output} /> },
+} satisfies {
+    [K in GuardedToolType]: {
+        loadingText: string;
+        render: (output: Extract<GuardedToolPart, { type: K, state: 'output-available' }>['output']) => ReactNode;
+    }
+};
+
+export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMessagePart, toolTokenUsageMap?: Map<string, number> }) => {
+    const estimatedOutputTokens = 'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined;
+
     switch (part.type) {
         case 'reasoning':
         case 'text':
@@ -262,86 +498,30 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
                 />
             )
         case 'tool-read_file':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Reading file..."
-                >
-                    {(output) => <ReadFileToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-grep':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText={'Searching...'}
-                >
-                    {(output) => <GrepToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-glob':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Searching files..."
-                >
-                    {(output) => <GlobToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-find_symbol_definitions':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Resolving definitions..."
-                >
-                    {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-find_symbol_references':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Resolving references..."
-                >
-                    {(output) => <FindSymbolReferencesToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-list_repos':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Listing repositories..."
-                >
-                    {(output) => <ListReposToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-list_commits':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Listing commits..."
-                >
-                    {(output) => <ListCommitsToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-get_diff':
+        case 'tool-list_tree': {
+            const { loadingText, render } = TOOL_GUARD_CONFIG[part.type];
             return (
                 <ToolOutputGuard
                     part={part}
-                    loadingText="Comparing revisions..."
+                    estimatedOutputTokens={estimatedOutputTokens}
+                    loadingText={loadingText}
                 >
-                    {(output) => <GetDiffToolComponent {...output} />}
+                    {/* The table lookup erases the per-tool correlation between
+                        `render` and `output` (TypeScript can't track it across
+                        a union), so re-assert it here. Each entry's `render` is
+                        checked against its own tool's output by the table's
+                        `satisfies` type. */}
+                    {(output) => (render as (o: typeof output) => ReactNode)(output)}
                 </ToolOutputGuard>
-            )
-        case 'tool-list_tree':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    loadingText="Listing tree..."
-                >
-                    {(output) => <ListTreeToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
+            );
+        }
         case 'tool-tool_request_activation':
             if (part.state === 'output-error') {
                 return <span className="text-sm text-destructive">Tool activation failed: {part.errorText}</span>;
@@ -349,15 +529,26 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             if (part.state !== 'output-available') {
                 return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
             }
-            return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} />;
+            return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} estimatedOutputTokens={estimatedOutputTokens} />;
+        case 'tool-load_skill':
+            if (part.state === 'output-error') {
+                return <span className="text-sm text-destructive">Loading skill failed: {part.errorText}</span>;
+            }
+            if (part.state !== 'output-available') {
+                return <span className="text-sm text-muted-foreground animate-pulse">Loading skill...</span>;
+            }
+            return <LoadSkillToolComponent input={part.input} output={part.output} />;
         case 'dynamic-tool':
             if (part.toolName.startsWith('mcp_')) {
-                return <McpToolComponent part={part} />;
+                return <McpToolComponent part={part} estimatedOutputTokens={estimatedOutputTokens} />;
             }
             return null;
         case 'data-source':
+        case 'data-command':
         case 'data-mcp-server':
+        case 'data-mcp-tool':
         case 'data-mcp-failed-server':
+        case 'data-attachment':
         case 'file':
         case 'source-document':
         case 'source-url':

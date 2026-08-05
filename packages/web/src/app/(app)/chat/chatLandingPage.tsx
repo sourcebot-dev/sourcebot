@@ -5,6 +5,7 @@ import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError, measure } from "@/lib/utils";
 import { LandingPageChatBox } from "./components/landingPageChatBox";
+import { ChatLandingDropzone } from "./components/chatLandingDropzone";
 import { RepositoryCarousel } from "../components/repositoryCarousel";
 import { Separator } from "@/components/ui/separator";
 import { DemoCards } from "./components/demoCards";
@@ -12,12 +13,18 @@ import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
+import { hasEntitlement } from "@/lib/entitlements";
+import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
 
 export async function ChatLandingPage() {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const searchContexts = await getSearchContexts();
     const allRepos = await getRepos();
     const session = await auth();
+    const hasAskEntitlement = await hasEntitlement('ask');
+    const askCommands = session?.user && hasAskEntitlement
+        ? await listAgentSkillCommandsOrEmpty()
+        : [];
 
     const carouselRepos = await getRepos({
         where: {
@@ -56,7 +63,7 @@ export async function ChatLandingPage() {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center h-full overflow-hidden">
+        <ChatLandingDropzone disabled={languageModels.length === 0}>
                 <div className="flex flex-col items-center h-full overflow-y-auto pt-8 pb-8 md:pt-16 w-full px-5">
                     <div className="max-h-44 w-auto">
                         <SourcebotLogo
@@ -68,8 +75,10 @@ export async function ChatLandingPage() {
                             languageModels={languageModels}
                             repos={allRepos}
                             searchContexts={searchContexts}
+                            askCommands={askCommands}
                             isAuthenticated={!!session}
                             isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
+                            maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
                         />
                     </CustomSlateEditor>
 
@@ -92,6 +101,6 @@ export async function ChatLandingPage() {
                         </>
                     )}
                 </div>
-        </div>
+        </ChatLandingDropzone>
     )
 }

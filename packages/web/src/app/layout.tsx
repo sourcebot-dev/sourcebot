@@ -1,3 +1,11 @@
+/**
+ * Render all routes at request time rather than build time,
+ * since every route depends on per-request session, entitlements,
+ * and DB-backed data, none of which are available at build time.
+ * @see https://nextjs.org/docs/app/guides/caching-without-cache-components#route-segment-config
+ */
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
@@ -13,6 +21,7 @@ import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@/lib/entitlements";
 import { IdentityProvidersProvider } from "@/features/auth/identityProvidersProvider";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
+import { SentryUserProvider } from "./sentryUserProvider";
 
 export const metadata: Metadata = {
     metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
@@ -66,6 +75,9 @@ export default async function RootLayout({
             <body>
                 <Toaster />
                 <SessionProvider>
+                    <SentryUserProvider
+                        isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
+                    />
                     <PlanProvider entitlements={entitlements}>
                         <IdentityProvidersProvider providers={identityProviders}>
                             <PostHogProvider
