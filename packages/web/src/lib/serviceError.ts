@@ -111,6 +111,14 @@ export const repositoryNotFound = (repository: string): ServiceError => {
     }
 }
 
+export const githubRateLimited = (): ServiceError => {
+    return {
+        statusCode: StatusCodes.TOO_MANY_REQUESTS,
+        errorCode: ErrorCode.GITHUB_RATE_LIMITED,
+        message: 'GitHub is temporarily rate limiting requests. Please try again later.',
+    }
+}
+
 export const userNotFound = (): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
