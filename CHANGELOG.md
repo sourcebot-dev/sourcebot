@@ -13,7 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed GitLab topic filters being incorrectly case-sensitive. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
 - Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
 - Fixed search queries failing to parse when negating a bare term that contains a colon (e.g. `-foo:bar`, `-http://example.com`). [#1301](https://github.com/sourcebot-dev/sourcebot/pull/1301)
-- Resolved outstanding ESLint warnings so `yarn lint` reports a clean run. [#1537](https://github.com/sourcebot-dev/sourcebot/pull/1537)
 
 ## [5.1.5] - 2026-07-31
 
