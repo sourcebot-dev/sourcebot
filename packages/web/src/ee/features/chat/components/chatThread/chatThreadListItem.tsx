@@ -473,7 +473,6 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 answerText={answerPart.text}
                                 chatId={chatId}
                                 messageId={assistantMessage.id}
-                                traceId={assistantMessage.metadata?.traceId}
                                 sources={referencedFileSources}
                             />
                         ) : !isTurnInProgress && approvalRequestedParts.length === 0 && (
