@@ -12,6 +12,22 @@ import { measure } from './utils.js';
 const logger = createLogger('gitea');
 const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
+// Some Gitea instances (particularly when behind certain reverse proxies or with
+// response compression enabled) cause `cross-fetch` to fail while reading the
+// response body with ERR_STREAM_PREMATURE_CLOSE. Forcing identity encoding and
+// closing the connection avoids the premature close.
+// @see https://github.com/sourcebot-dev/sourcebot/issues/1404
+const customFetch: typeof fetch = (url, options = {}) => {
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers ?? {}),
+            'Accept-Encoding': 'identity',
+            'Connection': 'close',
+        },
+    });
+};
+
 export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => {
     const hostname = config.url ?
         new URL(config.url).hostname :
@@ -25,7 +41,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => 
 
     const api = giteaApi(config.url ?? 'https://gitea.com', {
         token: token,
-        customFetch: fetch,
+        customFetch,
     });
 
     let allRepos: GiteaRepository[] = [];
@@ -49,8 +65,11 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => 
         allWarnings = allWarnings.concat(warnings);
     }
     
-    allRepos = allRepos.filter(repo => repo.full_name !== undefined);
     allRepos = allRepos.filter(repo => {
+        if (repo === null || repo === undefined) {
+            logger.warn(`Skipping null/undefined repository returned by the Gitea API`);
+            return false;
+        }
         if (repo.full_name === undefined) {
             logger.warn(`Repository with undefined full_name found: repoId=${repo.id}`);
             return false;
@@ -207,6 +226,10 @@ const getRepos = async <T>(repoList: string[], api: Api<T>) => {
             const { durationMs, data: response } = await measure(() =>
                 api.repos.repoGet(owner, repoName),
             );
+
+            if (response.error || !response.data) {
+                throw response.error ?? new Error(`Received empty response body while fetching repository ${repo}`);
+            }
 
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
             return {

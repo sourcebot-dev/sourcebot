@@ -42,6 +42,16 @@ export const useSuggestionModeAndQuery = () => {
 
         let match: RegExpMatchArray | null = null;
 
+        // Command mode.
+        match = text.match(/^\/(.*)$/);
+        if (match && Editor.isStart(editor, Range.start(range), [])) {
+            return {
+                suggestionMode: "command",
+                suggestionQuery: match[1],
+                range,
+            };
+        }
+
         // Refine mode.
         match = text.match(/^@$/);
         if (match) {

@@ -10,12 +10,23 @@ export type UpsellSource =
     'license_settings' |
     'mcp_settings' |
     'sso_settings' |
+    'scim_settings' |
     'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';
 export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent';
 export type McpConnectorEntryPoint = 'chat' | 'account_settings' | 'workspace_settings' | 'unknown';
 export type McpConnectorAuthMode = 'dynamic' | 'static';
+export type AskSkillScope = 'personal' | 'shared';
+export type AskSkillEntryPoint =
+    'skills_settings' |
+    'account_ask_agent_settings' |
+    'workspace_ask_agent_settings' |
+    'chat_box' |
+    'unknown';
+export type AskSkillCreationMethod = 'manual' | 'local_markdown' | 'repository';
+export type AskSkillChangedField = 'name' | 'command' | 'description' | 'instructions';
+export type AskSkillActorRelationship = 'creator' | 'owner' | 'member';
 
 export type PosthogEventMap = {
     search_finished: {
@@ -132,6 +143,7 @@ export type PosthogEventMap = {
     wa_login_with_keycloak: {},
     wa_login_with_microsoft_entra_id: {},
     wa_login_with_jumpcloud: {},
+    wa_login_with_idira: {},
     wa_login_with_magic_link: {},
     wa_login_with_credentials: {},
     //////////////////////////////////////////////////////////////////
@@ -204,6 +216,18 @@ export type PosthogEventMap = {
          */
         selectedRepos?: string[],
     },
+    chat_attachment_uploaded: {
+        source: string,
+        mediaType: string,
+        sizeBytes: number,
+    },
+    chat_attachment_degraded: {
+        chatId: string,
+        source: string,
+        droppedImageCount: number,
+        modelProvider: string,
+        model: string,
+    },
     ask_mcp_turn_completed: {
         chatId: string,
         source?: SourcebotWebClientSource,
@@ -227,6 +251,148 @@ export type PosthogEventMap = {
         success: boolean,
         durationMs: number,
         failureReason?: string,
+    },
+    // Fired when an agent skill is invoked, either automatically by the model
+    // (activationMethod: 'auto', via the load_skill tool) or manually by the
+    // user (activationMethod: 'manual', via a slash command). Multi-source, so
+    // no wa_ prefix; source identifies the origin.
+    ask_skill_invoked: {
+        chatId?: string,
+        traceId?: string,
+        source: string,
+        activationMethod: 'auto' | 'manual',
+        skillIdHash?: string,
+        scope?: AskSkillScope,
+        isSynced?: boolean,
+        success: boolean,
+        failureReason?: string,
+        durationMs?: number,
+    },
+    ask_skill_turn_completed: {
+        chatId: string,
+        traceId?: string,
+        source?: SourcebotWebClientSource,
+        availableSkillCount: number,
+        manualInvocationCount: number,
+        autoInvocationCount: number,
+        successfulInvocationCount: number,
+        failedInvocationCount: number,
+        uniqueSkillCount: number,
+        durationMs: number,
+    },
+    ask_skill_created: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        creationMethod: AskSkillCreationMethod,
+        isSynced: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_updated: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        isSynced: boolean,
+        skillIdHash?: string,
+        changedFieldTypes: AskSkillChangedField[],
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_deleted: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        isSynced: boolean,
+        skillIdHash?: string,
+        actorRelationship: AskSkillActorRelationship,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_shared: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        isSynced: boolean,
+        skillIdHash?: string,
+        permissionSyncEnabled: boolean,
+        requiredRepoAccessWarning: boolean,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_made_personal: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        isSynced: boolean,
+        wasAutoEnrolled: boolean,
+        skillIdHash?: string,
+        actorRelationship: AskSkillActorRelationship,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_adoption_changed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        action: 'adopted' | 'removed',
+        isSynced: boolean,
+        autoEnrolled: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_auto_enrollment_changed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        enabled: boolean,
+        isSynced: boolean,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_command_selected: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'chat_box',
+        scope: AskSkillScope,
+        isSynced: boolean,
+        suggestionIndex: number,
+        visibleSuggestionCount: number,
+    },
+    ask_skill_import_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        method: Exclude<AskSkillCreationMethod, 'manual'>,
+        isSynced: boolean,
+        hasFrontmatter?: boolean,
+        hasDescription?: boolean,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skill_source_refresh_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: AskSkillEntryPoint,
+        scope: AskSkillScope,
+        skillIdHash?: string,
+        success: boolean,
+        failureReason?: string,
+    },
+    ask_skills_page_viewed: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'skills_settings',
+        personalSkillCount: number,
+        sharedSkillCount: number,
+        visibleSharedSkillCount: number,
+        adoptedSharedSkillCount: number,
+        syncedSkillCount: number,
+        isOwner: boolean,
+        permissionSyncEnabled: boolean,
+    },
+    ask_workspace_skills_manager_viewed: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'workspace_ask_agent_settings',
+        sharedSkillCount: number,
+        syncedSharedSkillCount: number,
+        manualSharedSkillCount: number,
+        autoEnrolledSkillCount: number,
     },
     ask_mcp_connector_added: {
         source: SourcebotWebClientSource,
@@ -334,6 +500,35 @@ export type PosthogEventMap = {
     wa_chat_toc_toggled: {
         chatId: string,
         isExpanded: boolean,
+    },
+    wa_chat_diagram_rendered: {
+        chatId: string,
+        diagramId: string,
+        outcome: 'success' | 'error',
+        /** Mermaid diagram type (e.g. 'flowchart', 'sequenceDiagram'), if detectable. */
+        diagramType?: string,
+    },
+    wa_chat_diagram_fullscreen_opened: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_copied: {
+        chatId: string,
+        diagramId: string,
+        format: 'link' | 'source' | 'image',
+    },
+    wa_chat_diagram_exported: {
+        chatId: string,
+        diagramId: string,
+        format: 'svg' | 'png',
+    },
+    wa_chat_diagram_panned: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_reference_clicked: {
+        chatId: string,
+        diagramId: string,
     },
     wa_user_created: {
         userId: string,

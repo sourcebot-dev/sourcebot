@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
-import { useMcpServerIconMap } from "@/ee/features/chat/mcpServerIconContext";
+import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
 import { useToolApproval } from "@/ee/features/chat/toolApprovalContext";
 import { SBChatToolPart } from "@/features/chat/utils";
 import { cn } from "@/lib/utils";
 import { getToolName } from "ai";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useState } from "react";
-import { parseMcpToolName } from "./tools/mcpToolComponent";
+import { getMcpToolDisplayParts } from "./tools/mcpToolComponent";
 import { JsonHighlighter } from "./tools/jsonHighlighter";
 
 export type ApprovalRequestedToolPart = SBChatToolPart & {
@@ -23,6 +23,7 @@ interface ToolApprovalBannerProps {
 export const ToolApprovalBanner = ({ parts }: ToolApprovalBannerProps) => {
     const addToolApprovalResponse = useToolApproval();
     const iconMap = useMcpServerIconMap();
+    const rawToolNames = useMcpToolNameMap();
 
     if (parts.length === 0) {
         return null;
@@ -36,6 +37,7 @@ export const ToolApprovalBanner = ({ parts }: ToolApprovalBannerProps) => {
                     part={part}
                     addToolApprovalResponse={addToolApprovalResponse}
                     iconMap={iconMap}
+                    rawToolNames={rawToolNames}
                 />
             ))}
         </div>
@@ -46,17 +48,17 @@ const ToolApprovalItem = ({
     part,
     addToolApprovalResponse,
     iconMap,
+    rawToolNames,
 }: {
     part: ApprovalRequestedToolPart;
     addToolApprovalResponse: ReturnType<typeof useToolApproval>;
     iconMap: Record<string, string | undefined>;
+    rawToolNames: McpToolNameMap;
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const partToolName = getToolName(part);
-    const parsed = parseMcpToolName(partToolName);
-    const serverName = parsed?.serverName ?? partToolName;
-    const toolName = parsed?.toolName ?? partToolName;
-    const faviconUrl = parsed ? iconMap[parsed.serverName] : undefined;
+    const display = getMcpToolDisplayParts(partToolName, rawToolNames);
+    const faviconUrl = display.serverName ? iconMap[display.serverName] : undefined;
 
     const requestText = JSON.stringify(part.input, null, 2);
 
@@ -83,13 +85,13 @@ const ToolApprovalItem = ({
                 >
                     <McpFavicon faviconUrl={faviconUrl} className="w-4 h-4" />
                     <span className="text-sm text-foreground truncate">
-                        {parsed ? (
+                        {display.serverName ? (
                             <>
-                                Agent wants to use <span className="font-medium">{toolName}</span> from <span className="font-medium">{serverName}</span>
+                                Agent wants to use <span className="font-medium">{display.toolName}</span> from <span className="font-medium">{display.serverName}</span>
                             </>
                         ) : (
                             <>
-                                Agent wants to use <span className="font-medium">{toolName}</span>
+                                Agent wants to use <span className="font-medium">{display.toolName}</span>
                             </>
                         )}
                     </span>

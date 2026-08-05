@@ -96,7 +96,7 @@ When implementing a new API route, ask the user whether it should be part of the
 3. Add the endpoint to the relevant group in the `API Reference` tab of `docs/docs.json`.
 4. Regenerate the OpenAPI spec by running `yarn workspace @sourcebot/web openapi:generate`.
 
-Route handlers should validate inputs using Zod schemas.
+Route handlers should validate inputs using Zod schemas. Put coercion, defaults, minimums, maximums, and cross-field validation in the schema instead of scattering parsing logic through the handler.
 
 **Query parameters** (GET requests):
 
@@ -105,8 +105,9 @@ import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/se
 import { z } from "zod";
 
 const myQueryParamsSchema = z.object({
-    q: z.string().default(''),
+    repo: z.string(),
     page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
 export const GET = apiHandler(async (request: NextRequest) => {
@@ -124,8 +125,39 @@ export const GET = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const { q, page } = parsed.data;
+    const { page, perPage, ...searchParams } = parsed.data;
+    const skip = (page - 1) * perPage;
     // ... rest of handler
+});
+```
+
+**Search query parameters**:
+
+```ts
+import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { z } from "zod";
+
+const searchMembersQueryParamsSchema = z.object({
+    query: z.string().default(''),
+});
+
+export const GET = apiHandler(async (request: NextRequest) => {
+    const rawParams = Object.fromEntries(
+        Object.keys(searchMembersQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = searchMembersQueryParamsSchema.safeParse(rawParams);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            queryParamsSchemaValidationError(parsed.error)
+        );
+    }
+
+    const { query } = parsed.data;
+    // ... use query in the database/search call
 });
 ```
 
@@ -153,6 +185,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
     const { name, count } = parsed.data;
     // ... rest of handler
 });
+```
+
+Use `safeParseAsync` when the schema has async refinements, as in search routes:
+
+```ts
+const body = await request.json();
+const parsed = await searchRequestSchema.safeParseAsync(body);
 ```
 
 ## Data Fetching
@@ -223,6 +262,41 @@ export const GET = apiHandler(async (request: NextRequest) => {
     }
 
     return Response.json(result);
+});
+```
+
+## Membership States
+
+Organization membership state is derived from fields on `UserToOrg`:
+
+- **Active**: `suspendedAt` is `null` and `lastActiveAt` is not `null`. Active members can access the org and count as billable seats.
+- **Pending**: `suspendedAt` is `null` and `lastActiveAt` is `null`. Pending users can access the org, but are not billable yet.
+- **Suspended**: `suspendedAt` is not `null`. Suspended users cannot access the org and are not billable.
+
+When filtering memberships, use the helper predicates from `packages/web/src/features/membership/utils.ts` instead of writing these conditions inline. This keeps auth, billing, SCIM, and UI queries aligned as the state rules evolve.
+
+```ts
+import {
+    activeMembershipWhere,
+    activeOrPendingMembershipWhere,
+    pendingMembershipWhere,
+    suspendedMembershipWhere,
+} from "@/features/membership/utils";
+
+// Billable seat count.
+await prisma.userToOrg.count({
+    where: {
+        orgId,
+        ...activeMembershipWhere(),
+    },
+});
+
+// Users who should be able to access the org.
+await prisma.userToOrg.findMany({
+    where: {
+        orgId,
+        ...activeOrPendingMembershipWhere(),
+    },
 });
 ```
 

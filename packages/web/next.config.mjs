@@ -59,9 +59,63 @@ const nextConfig = {
             {
                 source: "/api/mcp",
                 destination: "/api/ee/mcp",
+            },
+            // The SCIM 2.0 server lives under /api/ee/scim/v2 (EE-licensed route
+            // tree) but is exposed at the clean /scim/v2 path that IdPs (Okta,
+            // Entra) are configured to send provisioning requests to.
+            {
+                source: "/scim/v2/:path*",
+                destination: "/api/ee/scim/v2/:path*",
             }
         ];
     },
+    // Apply HTTP security headers to all responses to align with security
+    // hardening best practices (defends against clickjacking, MIME-sniffing,
+    // TLS downgrade, and referrer leakage). We intentionally avoid a strict
+    // Content-Security-Policy `script-src` here since Next.js, PostHog, and
+    // Sentry rely on inline scripts; instead CSP is scoped to `frame-ancestors`
+    // to prevent framing, mirroring the X-Frame-Options directive below.
+    async headers() {
+        return [
+            {
+                source: "/:path*",
+                headers: [
+                    {
+                        key: "Strict-Transport-Security",
+                        value: "max-age=63072000; includeSubDomains",
+                    },
+                    {
+                        key: "X-Content-Type-Options",
+                        value: "nosniff",
+                    },
+                    {
+                        key: "X-Frame-Options",
+                        value: "SAMEORIGIN",
+                    },
+                    {
+                        key: "Referrer-Policy",
+                        value: "strict-origin-when-cross-origin",
+                    },
+                    {
+                        key: "Permissions-Policy",
+                        value: "camera=(), microphone=(), geolocation=()",
+                    },
+                    {
+                        key: "Content-Security-Policy",
+                        value: "frame-ancestors 'self'",
+                    },
+                    // Opts the document into the JS Self-Profiling API, which Sentry's
+                    // browser profiling integration needs in order to start a profiler.
+                    // @see: https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/
+                    {
+                        key: "Document-Policy",
+                        value: "js-profiling",
+                    },
+                ],
+            },
+        ];
+    },
+
     // This is required to support PostHog trailing slash API requests
     skipTrailingSlashRedirect: true,
 
@@ -99,8 +153,8 @@ export default withSentryConfig(nextConfig, {
     // For all available options, see:
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_WEBAPP_PROJECT,
-    authToken: process.env.SENTRY_SMUAT,
-    release: process.env.SENTRY_RELEASE,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: { name: process.env.SENTRY_RELEASE },
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,

@@ -1,26 +1,20 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
-import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notAuthenticated, notFound, ServiceError } from "@/lib/serviceError";
-import { __unsafePrisma } from "@/prisma";
-import { render } from "@react-email/components";
-import { generateApiKey, getTokenFromConfig } from "@sourcebot/shared";
+import { notFound, ServiceError } from "@/lib/serviceError";
+import { sew } from "@/middleware/sew";
 import { ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
+import { createLogger, env, generateApiKey, getTokenFromConfig } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
-import { createTransport } from "nodemailer";
-import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID } from "./lib/constants";
-import { RepositoryQuery } from "./lib/types";
-import { getAuthenticatedUser, withAuth, withOptionalAuth } from "./middleware/withAuth";
 import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
-import { sew } from "@/middleware/sew";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
+import { RepositoryQuery } from "./lib/types";
+import { withAuth, withOptionalAuth } from "./middleware/withAuth";
 
 const logger = createLogger('web-actions');
 
@@ -374,110 +368,6 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
             indexedAt: repo.indexedAt ?? undefined,
         }
     }));
-
-// eslint-disable-next-line authz/require-auth-wrapper -- calls getAuthenticatedUser() directly; runs pre-org-membership so cannot use withAuth
-export const createAccountRequest = async () => sew(async () => {
-    const authResult = await getAuthenticatedUser();
-    if (!authResult) {
-        return notAuthenticated();
-    }
-
-    const { user } = authResult;
-
-    const org = await __unsafePrisma.org.findUnique({
-        where: {
-            id: SINGLE_TENANT_ORG_ID,
-        },
-    });
-
-    if (!org) {
-        return notFound("Organization not found");
-    }
-
-    const existingRequest = await __unsafePrisma.accountRequest.findUnique({
-        where: {
-            requestedById_orgId: {
-                requestedById: user.id,
-                orgId: org.id,
-            },
-        },
-    });
-
-    if (existingRequest) {
-        logger.warn(`User ${user.id} already has an account request for org ${org.id}. Skipping account request creation.`);
-        return {
-            success: true,
-            existingRequest: true,
-        }
-    }
-
-    if (!existingRequest) {
-        await __unsafePrisma.accountRequest.create({
-            data: {
-                requestedById: user.id,
-                orgId: org.id,
-            },
-        });
-
-        const smtpConnectionUrl = getSMTPConnectionURL();
-        if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
-            // TODO: This is needed because we can't fetch the origin from the request headers when this is called
-            // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
-            const deploymentUrl = env.AUTH_URL;
-
-            const owners = await __unsafePrisma.user.findMany({
-                where: {
-                    orgs: {
-                        some: {
-                            orgId: org.id,
-                            role: "OWNER",
-                        },
-                    },
-                },
-            });
-
-            if (owners.length === 0) {
-                logger.error(`Failed to find any owners for org ${org.id} when drafting email for account request from ${user.id}`);
-            } else {
-                const html = await render(JoinRequestSubmittedEmail({
-                    baseUrl: deploymentUrl,
-                    requestor: {
-                        name: user.name ?? undefined,
-                        email: user.email,
-                        avatarUrl: user.image ?? undefined,
-                    },
-                    orgName: org.name,
-                    orgImageUrl: org.imageUrl ?? undefined,
-                }));
-
-                const ownerEmails = owners
-                    .map((owner) => owner.email)
-                    .filter((email): email is string => email !== null);
-
-                const transport = createTransport(smtpConnectionUrl);
-                const result = await transport.sendMail({
-                    to: ownerEmails,
-                    from: env.EMAIL_FROM_ADDRESS,
-                    subject: `New account request for ${org.name} on Sourcebot`,
-                    html,
-                    text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
-                });
-
-                const failed = result.rejected.concat(result.pending).filter(Boolean);
-                if (failed.length > 0) {
-                    logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
-                }
-            }
-        } else {
-            logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
-        }
-    }
-
-    return {
-        success: true,
-        existingRequest: false,
-    }
-});
 
 export const getSearchContexts = async () => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {

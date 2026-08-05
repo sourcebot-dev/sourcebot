@@ -5,8 +5,10 @@ import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
-import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
+import { JoinOrganizationCard } from "@/features/membership/components/joinOrganizationCard";
+import { NotProvisionedCard } from "@/features/membership/components/notProvisionedCard";
+import { isScimEnabled } from "@/features/scim/utils";
+import { activeOrPendingMembershipWhere } from "@/features/membership/utils";
 
 interface InvitePageProps {
     searchParams: Promise<{
@@ -36,7 +38,8 @@ export default async function InvitePage(props: InvitePageProps) {
             orgId_userId: {
                 orgId: org.id,
                 userId: session.user.id
-            }
+            },
+            ...activeOrPendingMembershipWhere(),
         }
     });
 
@@ -45,12 +48,13 @@ export default async function InvitePage(props: InvitePageProps) {
         redirect(`/`);
     }
 
+    if (await isScimEnabled(org)) {
+        return <NotProvisionedCard />;
+    }
+
     // User is logged in but not a member, show join invitation
     return (
-        <div className="min-h-screen flex items-center justify-center p-6">
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-            <JoinOrganizationCard inviteLinkId={inviteLinkId} />
-        </div>
+        <JoinOrganizationCard inviteLinkId={inviteLinkId} />
     );
 }
 

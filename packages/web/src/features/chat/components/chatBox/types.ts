@@ -1,13 +1,14 @@
+import type { AskCommandSuggestion } from "@/features/chat/commands/types";
 
 export type SuggestionMode = 
     "none" |
     "refine" |
+    "command" |
     "file"
 ;
 
 export type RefineSuggestion = {
     type: 'refine';
-    targetSuggestionMode: Exclude<SuggestionMode, 'none' | 'refine'>;
     name: string;
     description: string;
 }
@@ -21,4 +22,4 @@ export type FileSuggestion = {
     revision: string;
 }
 
-export type Suggestion = FileSuggestion | RefineSuggestion;
+export type Suggestion = FileSuggestion | RefineSuggestion | AskCommandSuggestion;

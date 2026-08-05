@@ -13,6 +13,7 @@ const { AccountAskAgentEmptyState } = await import('./accountAskAgentPage');
 
 afterEach(() => {
     cleanup();
+    vi.clearAllMocks();
 });
 
 describe('AccountAskAgentEmptyState', () => {

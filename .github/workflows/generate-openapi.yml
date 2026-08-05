@@ -1,0 +1,49 @@
+name: Generate OpenAPI Spec
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "packages/web/**"
+      - "packages/shared/src/version.ts"
+
+jobs:
+  generate-openapi:
+    runs-on: ubuntu-latest
+    # Skip forks: the default GITHUB_TOKEN can't push back to a fork's branch.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: "true"
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'yarn'
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Generate OpenAPI spec
+        run: yarn workspace @sourcebot/web openapi:generate
+
+      - name: Commit regenerated spec if changed
+        run: |
+          SPEC=docs/api-reference/sourcebot-public.openapi.json
+          if [ -z "$(git status --porcelain "$SPEC")" ]; then
+            echo "OpenAPI spec is up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$SPEC"
+          git commit -m "chore: regenerate OpenAPI spec"
+          git push

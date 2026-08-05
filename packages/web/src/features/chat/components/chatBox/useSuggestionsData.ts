@@ -5,17 +5,19 @@ import { FileSuggestion, RefineSuggestion, Suggestion, SuggestionMode } from "./
 import { unwrapServiceError } from "@/lib/utils";
 import { search } from "@/app/api/(client)/client";
 import { useMemo } from "react";
+import type { AskCommandDefinition } from "@/features/chat/commands/types";
+import { filterAskCommandDefinitions, toAskCommandSuggestion } from "@/features/chat/commands/utils";
 
 interface Props {
     suggestionMode: SuggestionMode;
     suggestionQuery: string;
     selectedRepos: string[];
+    askCommands: AskCommandDefinition[];
 }
 
 const refineSuggestions: RefineSuggestion[] = [
     {
         type: 'refine',
-        targetSuggestionMode: 'file',
         name: 'Files',
         description: 'Include a file in the agent\'s context window.',
     }
@@ -25,6 +27,7 @@ export const useSuggestionsData = ({
     suggestionMode,
     suggestionQuery,
     selectedRepos,
+    askCommands,
 }: Props): { isLoading: boolean, suggestions: Suggestion[] } => {
     const { data: fileSuggestions, isLoading: _isLoadingFileSuggestions } = useQuery({
         queryKey: ["fileSuggestions-agentic", suggestionQuery, selectedRepos],
@@ -66,6 +69,12 @@ export const useSuggestionsData = ({
     const isLoadingFiles = useMemo(() => suggestionMode === "file" && _isLoadingFileSuggestions, [_isLoadingFileSuggestions, suggestionMode]);
 
     switch (suggestionMode) {
+        case 'command':
+            return {
+                suggestions: filterAskCommandDefinitions(askCommands, suggestionQuery)
+                    .map(toAskCommandSuggestion),
+                isLoading: false,
+            }
         case 'file':
             return {
                 suggestions: fileSuggestions ?? [],

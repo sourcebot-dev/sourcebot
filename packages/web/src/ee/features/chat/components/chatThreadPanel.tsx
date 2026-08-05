@@ -8,15 +8,18 @@ import { CreateUIMessage } from 'ai';
 import { useEffect, useState } from 'react';
 import { useChatId } from '@/app/(app)/chat/useChatId';
 import { useSessionStorage } from 'usehooks-ts';
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
     messages: SBChatMessage[];
+    askCommands: AskCommandDefinition[];
     isOwner: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
+    maxImageBytes: number;
     chatName?: string;
 }
 
@@ -33,9 +36,11 @@ export const ChatThreadPanel = ({
     repos,
     searchContexts,
     messages,
+    askCommands,
     isOwner,
     isAuthenticated,
     isLoginWallEnabled,
+    maxImageBytes,
     chatName,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
@@ -83,6 +88,7 @@ export const ChatThreadPanel = ({
                 languageModels={languageModels}
                 repos={repos}
                 searchContexts={searchContexts}
+                askCommands={askCommands}
                 selectedSearchScopes={selectedSearchScopes}
                 onSelectedSearchScopesChange={setSelectedSearchScopes}
                 disabledMcpServerIds={disabledMcpServerIds}
@@ -90,6 +96,7 @@ export const ChatThreadPanel = ({
                 isOwner={isOwner}
                 isAuthenticated={isAuthenticated}
                 isLoginWallEnabled={isLoginWallEnabled}
+                maxImageBytes={maxImageBytes}
                 chatName={chatName}
             />
         </div>

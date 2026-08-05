@@ -14,7 +14,7 @@ docker run \
     -v $(pwd)/config.json:/data/config.json \
     -e CONFIG_PATH=/data/config.json \
     ... \ # other options
-    ghcr.io/sourcebot-dev/sourcebot:latest
+    docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
 ```
 
 The config file tells Sourcebot which repos to index, what language models to use, and various other settings as defined in the [schema](#config-file-schema).

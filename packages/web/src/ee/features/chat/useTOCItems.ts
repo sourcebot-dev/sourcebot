@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 
 interface Props {
     target: HTMLElement | null;
+    // IntersectionObserver root for active-section tracking. Pass the scroll
+    // container when content scrolls inside an element rather than the page.
+    root?: HTMLElement | null;
 }
 
 export interface TocItem {
@@ -14,7 +17,7 @@ export interface TocItem {
 }
 
 
-export const useExtractTOCItems = ({ target }: Props) => {
+export const useExtractTOCItems = ({ target, root }: Props) => {
     const [tocItems, setTocItems] = useState<TocItem[]>([]);
     const [activeId, setActiveId] = useState<string>('');
     const observerRef = useRef<IntersectionObserver | null>(null);
@@ -76,6 +79,7 @@ export const useExtractTOCItems = ({ target }: Props) => {
                 });
             },
             {
+                root: root ?? null,
                 rootMargin: '-20px 0px -80% 0px'
             }
         );
@@ -91,7 +95,7 @@ export const useExtractTOCItems = ({ target }: Props) => {
                 observerRef.current.disconnect();
             }
         };
-    }, [tocItems]);
+    }, [tocItems, root]);
 
     return {
         tocItems,

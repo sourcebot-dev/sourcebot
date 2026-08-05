@@ -4,19 +4,20 @@ import { useToast } from '@/components/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
-import { createUIMessage, getAllMentionElements, getTurnProgressState, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { AdditionalChatRequestParams, AttachmentData, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
+import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMessageText, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
-import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
+import { useUnsavedChangesGuard } from '../../useUnsavedChangesGuard';
 import { useSelectedLanguageModel } from '@/features/chat/useSelectedLanguageModel';
-import { ChatBox } from '@/features/chat/components/chatBox';
+import { ChatBox, ChatBoxHandle } from '@/features/chat/components/chatBox';
 import { ChatBoxToolbar } from '@/features/chat/components/chatBox/chatBoxToolbar';
+import { ChatPaneDropzone } from '@/features/chat/components/chatBox/chatPaneDropzone';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
 import { McpFailedServersBanner } from './mcpFailedServersBanner';
@@ -27,11 +28,12 @@ import { duplicateChat } from '@/features/chat/actions';
 import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
-import { McpServerIconContext, McpServerIconMap } from '../../mcpServerIconContext';
+import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -44,6 +46,7 @@ interface ChatThreadProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
+    askCommands: AskCommandDefinition[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
@@ -51,6 +54,7 @@ interface ChatThreadProps {
     isOwner?: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
+    maxImageBytes: number;
     chatName?: string;
 }
 
@@ -61,6 +65,7 @@ export const ChatThread = ({
     languageModels,
     repos,
     searchContexts,
+    askCommands,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     disabledMcpServerIds,
@@ -68,10 +73,12 @@ export const ChatThread = ({
     isOwner = true,
     isAuthenticated,
     isLoginWallEnabled,
+    maxImageBytes,
     chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const hasSubmittedInputMessage = useRef(false);
+    const chatBoxRef = useRef<ChatBoxHandle>(null);
     const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: false });
     const { toast } = useToast();
     const router = useRouter();
@@ -95,6 +102,18 @@ export const ChatThread = ({
                 .filter((part) => part.type === 'data-mcp-server')
                 .forEach((part) => {
                     map[part.data.sanitizedName] = part.data.faviconUrl;
+                });
+        });
+        return map;
+    });
+
+    const [mcpToolNameMap, setMcpToolNameMap] = useState<McpToolNameMap>(() => {
+        const map: McpToolNameMap = {};
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-tool')
+                .forEach((part) => {
+                    map[part.data.modelToolName] = part.data.rawToolName;
                 });
         });
         return map;
@@ -169,6 +188,12 @@ export const ChatThread = ({
                     [dataPart.data.sanitizedName]: dataPart.data.faviconUrl,
                 }));
             }
+            if (dataPart.type === 'data-mcp-tool') {
+                setMcpToolNameMap((prev) => ({
+                    ...prev,
+                    [dataPart.data.modelToolName]: dataPart.data.rawToolName,
+                }));
+            }
             if (dataPart.type === 'data-mcp-failed-server') {
                 setFailedMcpServers((prev) => {
                     if (prev.includes(dataPart.data.serverName)) {
@@ -204,16 +229,16 @@ export const ChatThread = ({
             } satisfies AdditionalChatRequestParams,
         });
 
+        const userMessageText = getUserMessageText(message);
         if (
             messages.length === 0 &&
-            message.parts.length > 0 &&
-            message.parts[0].type === 'text'
+            userMessageText.length > 0
         ) {
             generateAndUpdateChatNameFromMessage(
                 {
                     chatId,
                     languageModelId: selectedLanguageModel.model,
-                    message: message.parts[0].text,
+                    message: userMessageText,
                 },
             ).then((response) => {
                 if (isServiceError(response)) {
@@ -246,18 +271,8 @@ export const ChatThread = ({
         shouldGuardNavigation,
     } = useMemo(() => getTurnProgressState({ messages, status }), [messages, status]);
 
-    useNavigationGuard({
-        enabled: ({ type }) => {
-            // @note: a "refresh" in this context means we have triggered a client side
-            // refresh via `router.refresh()`, and not the user pressing "CMD+R"
-            // (that would be a "beforeunload" event). We can safely peform refreshes
-            // without loosing any unsaved changes.
-            if (type === "refresh") {
-                return false;
-            }
-
-            return shouldGuardNavigation;
-        },
+    useUnsavedChangesGuard({
+        enabled: shouldGuardNavigation,
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
 
@@ -347,11 +362,11 @@ export const ChatThread = ({
         }
     }, [error]);
 
-    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor) => {
+    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds, attachments);
         sendMessage(message);
 
         scrollToBottom();
@@ -381,6 +396,12 @@ export const ChatThread = ({
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
+        <McpToolNameContext.Provider value={mcpToolNameMap}>
+        <ChatPaneDropzone
+            className="flex flex-col flex-1 min-h-0 w-full"
+            onFilesDropped={(files) => chatBoxRef.current?.addFiles(files)}
+            disabled={!isOwner || languageModels.length === 0}
+        >
             {error && (
                 <ErrorBanner
                     error={error}
@@ -470,6 +491,7 @@ export const ChatThread = ({
                         <div className="border rounded-md w-full shadow-sm">
                             <CustomSlateEditor>
                                 <ChatBox
+                                    ref={chatBoxRef}
                                     onSubmit={onSubmit}
                                     className="min-h-[80px]"
                                     preferredSuggestionsBoxPlacement="top-start"
@@ -478,9 +500,11 @@ export const ChatThread = ({
                                     onStop={stop}
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
+                                    askCommands={askCommands}
                                     isDisabled={languageModels.length === 0}
                                     isAuthenticated={isAuthenticated}
                                     isLoginWallEnabled={isLoginWallEnabled}
+                                    maxImageBytes={maxImageBytes}
                                 />
                                 <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                                     <ChatBoxToolbar
@@ -520,6 +544,8 @@ export const ChatThread = ({
                     </div>
                 )}
             </div>
+        </ChatPaneDropzone>
+        </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
         </ToolApprovalProvider>
     );

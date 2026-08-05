@@ -22,6 +22,7 @@ import {
     ServerIcon,
     Settings2Icon,
     ShieldIcon,
+    SparklesIcon,
     UserIcon,
     UsersIcon,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const iconMap = {
     "user": UserIcon,
     "mcp": VscMcp,
     "bot": BotIcon,
+    "sparkles": SparklesIcon,
 } satisfies Record<string, LucideIcon | IconType>;
 
 export type NavIconName = keyof typeof iconMap;

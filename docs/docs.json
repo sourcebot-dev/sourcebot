@@ -41,6 +41,7 @@
                             "docs/overview",
                             {
                                 "group": "Deploy Sourcebot",
+                                "root": "docs/deployment/deploy-sourcebot",
                                 "pages": [
                                     "docs/deployment/docker-compose",
                                     "docs/deployment/k8s"
@@ -65,6 +66,7 @@
                                 "group": "Ask Sourcebot",
                                 "root": "docs/features/ask/ask-sourcebot",
                                 "pages": [
+                                    "docs/features/ask/skills",
                                     "docs/features/ask/connectors",
                                     "docs/features/ask/chat-sharing",
                                     "docs/features/ask/add-model-providers"
@@ -113,6 +115,7 @@
                                 "root": "docs/configuration/auth/authentication",
                                 "pages": [
                                     "docs/configuration/auth/providers",
+                                    "docs/configuration/auth/scim",
                                     "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"
@@ -228,8 +231,8 @@
     "navbar": {
         "primary": {
             "type": "button",
-            "label": "GitHub",
-            "href": "https://github.com/sourcebot-dev/sourcebot"
+            "label": "Book a Call",
+            "href": "https://calendly.com/michael-sourcebot/sourcebot-call?utm_source=docs"
         }
     },
     "footer": {
@@ -250,6 +253,10 @@
         "strict": false
     },
     "redirects": [
+        {
+            "source": "/docs/deployment/overview",
+            "destination": "/docs/deployment/deploy-sourcebot"
+        },
         {
             "source": "/docs/features/search/overview",
             "destination": "/docs/features/search/code-search"

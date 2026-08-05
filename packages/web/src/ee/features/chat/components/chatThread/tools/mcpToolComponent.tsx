@@ -2,7 +2,7 @@
 
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
-import { useMcpServerIconMap } from "@/ee/features/chat/mcpServerIconContext";
+import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { DynamicToolUIPart } from "ai";
@@ -26,17 +26,34 @@ export function parseMcpToolName(toolName: string): { serverName: string; toolNa
     };
 }
 
+export function getMcpToolDisplayParts(
+    modelToolName: string,
+    rawToolNames: McpToolNameMap = {},
+): { serverName?: string; toolName: string; displayName: string } {
+    const parsed = parseMcpToolName(modelToolName);
+    const toolName = rawToolNames[modelToolName] ?? parsed?.toolName ?? modelToolName;
+
+    return parsed
+        ? {
+            serverName: parsed.serverName,
+            toolName,
+            displayName: `${parsed.serverName}: ${toolName}`,
+        }
+        : {
+            toolName,
+            displayName: toolName,
+        };
+}
+
 export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: DynamicToolUIPart, estimatedOutputTokens?: number }) => {
     const needsApproval = part.state === 'approval-requested';
     const [isExpanded, setIsExpanded] = useState(needsApproval);
     const onToggle = useCallback(() => setIsExpanded(v => !v), []);
 
     const iconMap = useMcpServerIconMap();
-    const parsed = parseMcpToolName(part.toolName);
-    const displayName = parsed
-        ? `${parsed.serverName}: ${parsed.toolName}`
-        : part.toolName;
-    const faviconUrl = parsed ? iconMap[parsed.serverName] : undefined;
+    const rawToolNames = useMcpToolNameMap();
+    const display = getMcpToolDisplayParts(part.toolName, rawToolNames);
+    const faviconUrl = display.serverName ? iconMap[display.serverName] : undefined;
 
     const hasInput = part.state !== 'input-streaming';
 
@@ -76,7 +93,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
             return (
                 <span className="text-sm flex-1 text-destructive flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
-                    {displayName} failed: {part.errorText}
+                    {display.displayName} failed: {part.errorText}
                 </span>
             );
         }
@@ -85,7 +102,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
                 <span className="text-sm flex-1 text-muted-foreground flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
                     <XCircle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />
-                    {displayName} — denied
+                    {display.displayName} — denied
                 </span>
             );
         }
@@ -93,7 +110,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
             return (
                 <span className="text-sm flex-1 text-foreground flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
-                    {displayName}
+                    {display.displayName}
                 </span>
             );
         }
@@ -103,7 +120,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
                 <span className="text-sm flex-1 text-muted-foreground animate-pulse flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
                     {approved ? <CheckCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />}
-                    {displayName}{approved ? '...' : ' — denied'}
+                    {display.displayName}{approved ? '...' : ' — denied'}
                 </span>
             );
         }
@@ -111,7 +128,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
             return (
                 <span className="text-sm text-muted-foreground flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
-                    {displayName}
+                    {display.displayName}
                 </span>
             );
         }
@@ -119,7 +136,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
         return (
             <span className="text-sm flex-1 text-muted-foreground animate-pulse flex items-center gap-1.5">
                 <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
-                {displayName}...
+                {display.displayName}...
             </span>
         );
     };
@@ -148,7 +165,7 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
             </div>
             {hasInput && isExpanded && (
                 <div className="rounded-lg border border-border text-xs overflow-y-auto max-h-72">
-                    <ResultSection label={`Request (${part.toolName})`} onCopy={onCopyRequest}>
+                    <ResultSection label={`Request (${display.displayName})`} onCopy={onCopyRequest}>
                         <JsonHighlighter text={requestText} />
                     </ResultSection>
                     {responseText !== undefined && (

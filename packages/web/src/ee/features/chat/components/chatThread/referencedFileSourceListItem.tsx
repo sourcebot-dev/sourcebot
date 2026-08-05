@@ -125,12 +125,12 @@ const ReferencedFileSourceListItemComponent = ({
     }, [references, selectedReference?.id, selectedReference?.range]);
 
     return (
-        <div className="relative" id={id}>
+        <div className="relative rounded-md overflow-clip" id={id}>
             {/* Sentinel element to scroll to when collapsing a file */}
             <div id={`${id}-start`} />
             {/* Sticky header outside the bordered container */}
-            <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md", {
-                'rounded-b-md border-b': !isExpanded,
+            <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t", {
+                'border-b': !isExpanded,
                 'border-chat-reference-selected-border border-b': isSelectedWithoutRange,
             })}>
                 <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer mt-0.5`} onClick={() => onExpandedChanged(!isExpanded)} />
@@ -149,7 +149,7 @@ const ReferencedFileSourceListItemComponent = ({
 
             {/* Code container */}
             {/* @note: don't conditionally render here since we want to maintain state */}
-            <div className="border-l border-r border-b rounded-b-md overflow-hidden" style={{
+            <div className="border-l border-r border-b overflow-hidden" style={{
                 height: isExpanded ? 'auto' : '0px',
                 visibility: isExpanded ? 'visible' : 'hidden',
             }}>

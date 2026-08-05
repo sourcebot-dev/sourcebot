@@ -102,7 +102,7 @@ function getColumns(context: ColumnsContext): ColumnDef<Chat>[] {
         },
         {
             id: "actions",
-            meta: { width: "50px" },
+            meta: { className: "w-[50px]" },
             cell: ({ row }) => <ChatRowActions chat={row.original} />,
         },
     ];

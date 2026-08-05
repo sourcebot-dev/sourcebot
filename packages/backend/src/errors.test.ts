@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { RequestError } from '@octokit/request-error';
 import { GitbeakerRequestError } from '@gitbeaker/requester-utils';
-import { isForbidden, isGone, isUnauthorized } from './errors';
+import { getErrorHeader, getErrorStatus, isGitHubRateLimitError, isForbidden, isGone, isUnauthorized } from './errors';
 import { throwOnHttpError } from './bitbucket';
 
 // Helper: invoke the openapi-fetch middleware against a synthetic Response and
@@ -22,6 +22,59 @@ const invokeMiddleware = async (response: Response): Promise<unknown> => {
         return e;
     }
 };
+
+describe('HTTP error metadata', () => {
+    test('reads status and case-insensitive headers from a direct response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            response: {
+                status: 429,
+                headers: {
+                    'Retry-After': '30',
+                },
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(429);
+        expect(getErrorHeader(error, 'retry-after')).toBe('30');
+    });
+
+    test('reads status and native Headers from a nested cause response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            cause: {
+                response: new Response(null, {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Remaining': '0',
+                    },
+                }),
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(429);
+        expect(getErrorHeader(error, 'x-ratelimit-remaining')).toBe('0');
+    });
+
+    test('combines a direct status with headers from the direct response', () => {
+        const error = Object.assign(new Error('Rate limited'), {
+            status: 403,
+            response: {
+                headers: {
+                    'x-ratelimit-remaining': '0',
+                },
+            },
+        });
+
+        expect(getErrorStatus(error)).toBe(403);
+        expect(getErrorHeader(error, 'X-RateLimit-Remaining')).toBe('0');
+    });
+
+    test('returns no metadata for a plain error', () => {
+        const error = new Error('Not an HTTP error');
+
+        expect(getErrorStatus(error)).toBeNull();
+        expect(getErrorHeader(error, 'retry-after')).toBeUndefined();
+    });
+});
 
 describe('isUnauthorized', () => {
     test('Octokit RequestError with status 401', () => {
@@ -195,6 +248,60 @@ describe('isGone', () => {
             request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
         });
         expect(isGone(err)).toBe(false);
+    });
+});
+
+describe('isGitHubRateLimitError', () => {
+    const createRequestError = (
+        message: string,
+        status: number,
+        headers: Record<string, string> = {},
+    ) => new RequestError(message, status, {
+        response: {
+            headers,
+            status,
+            url: 'https://api.github.com/repos/sourcebot-dev/sourcebot',
+            data: {},
+        },
+        request: {
+            method: 'GET',
+            url: 'https://api.github.com/repos/sourcebot-dev/sourcebot',
+            headers: {},
+        },
+    });
+
+    test('recognizes a 429 response', () => {
+        expect(isGitHubRateLimitError(createRequestError('Too Many Requests', 429))).toBe(true);
+    });
+
+    test('recognizes a primary rate limit response', () => {
+        const error = createRequestError('Forbidden', 403, {
+            'x-ratelimit-remaining': '0',
+        });
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('recognizes a secondary rate limit response with retry-after', () => {
+        const error = createRequestError('Forbidden', 403, {
+            'retry-after': '60',
+        });
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('recognizes a secondary rate limit response by its message', () => {
+        const error = createRequestError('You have exceeded a secondary rate limit.', 403);
+
+        expect(isGitHubRateLimitError(error)).toBe(true);
+    });
+
+    test('does not classify an unrelated forbidden response as rate limited', () => {
+        expect(isGitHubRateLimitError(createRequestError('Resource not accessible', 403))).toBe(false);
+    });
+
+    test('does not classify an unrelated server error as rate limited', () => {
+        expect(isGitHubRateLimitError(createRequestError('Rate limit service unavailable', 500))).toBe(false);
     });
 });
 

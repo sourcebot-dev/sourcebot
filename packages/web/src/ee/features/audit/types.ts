@@ -2,19 +2,20 @@ import { z } from "zod";
 
 export const auditActorSchema = z.object({
     id: z.string(),
-    type: z.enum(["user", "api_key"]),
+    type: z.enum(["user", "api_key", "scim_token"]),
 })
 export type AuditActor = z.infer<typeof auditActorSchema>;
 
 export const auditTargetSchema = z.object({
     id: z.string(),
-    type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite", "chat"]),
+    type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite", "chat", "scim_token"]),
 })
 export type AuditTarget = z.infer<typeof auditTargetSchema>;
 
 export const auditMetadataSchema = z.object({
     message: z.string().optional(),
     api_key: z.string().optional(),
+    scim_token: z.string().optional(),
     emails: z.string().optional(), // comma separated list of emails
     source: z.string().optional(), // request source (e.g., 'mcp') from X-Sourcebot-Client-Source header
 })
