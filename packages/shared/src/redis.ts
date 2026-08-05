@@ -24,9 +24,6 @@ const buildTlsOptions = (): Record<string, unknown> => {
             ...(env.REDIS_TLS_SERVERNAME
                 ? { servername: env.REDIS_TLS_SERVERNAME }
                 : {}),
-            ...(env.REDIS_TLS_CHECK_SERVER_IDENTITY === "false"
-                ? { checkServerIdentity: () => undefined }
-                : {}),
             ...(env.REDIS_TLS_SECURE_PROTOCOL
                 ? { secureProtocol: env.REDIS_TLS_SECURE_PROTOCOL }
                 : {}),
