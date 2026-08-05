@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added reusable nightly CVE remediation with Linear discovery and Claude-generated pull requests. [#1538](https://github.com/sourcebot-dev/sourcebot/pull/1538)
-
 ### Removed
 - Removed the Langfuse integration. [#1536](https://github.com/sourcebot-dev/sourcebot/pull/1536)
 
