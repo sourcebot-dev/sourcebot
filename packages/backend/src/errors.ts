@@ -59,7 +59,7 @@ export const isNotFound = (err: unknown): boolean => getErrorStatus(err) === 404
 export const isGone = (err: unknown): boolean => getErrorStatus(err) === 410;
 
 export const isGitHubRateLimitError = (err: unknown): boolean => {
-    const status = getStatus(err);
+    const status = getErrorStatus(err);
     if (status !== 403 && status !== 429) {
         return false;
     }
