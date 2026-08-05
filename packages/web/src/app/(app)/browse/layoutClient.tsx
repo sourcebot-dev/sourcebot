@@ -5,7 +5,8 @@ import { BottomPanel } from "./components/bottomPanel";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { BrowseStateProvider } from "./browseStateProvider";
 import { FileTreePanel } from "./components/fileTreePanel";
-import { useBrowseParams } from "./hooks/useBrowseParams";
+import { BrowseParamsContext } from "./hooks/useBrowseParams";
+import type { BrowseProps } from "./hooks/utils";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { SearchBar } from "../components/searchBar";
 import escapeStringRegexp from "escape-string-regexp";
@@ -13,65 +14,69 @@ import { Separator } from "@/components/ui/separator";
 
 interface LayoutProps {
     children: React.ReactNode;
+    browseParams: BrowseProps;
     isSearchAssistSupported: boolean;
 }
 
 export function LayoutClient({
     children,
+    browseParams,
     isSearchAssistSupported,
 }: LayoutProps) {
-    const { repoName, revisionName, pathType } = useBrowseParams();
+    const { repoName, revisionName, pathType } = browseParams;
     return (
-        <BrowseStateProvider>
-            <div className="flex flex-col h-full">
-                <div className='sticky top-0 left-0 right-0 z-10'>
-                    <div className="py-1.5 px-3">
-                        <SearchBar
-                            size="sm"
-                            defaults={{
-                                query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
-                            }}
-                            className="w-full"
-                            isSearchAssistSupported={isSearchAssistSupported}
-                        />
+        <BrowseParamsContext.Provider value={browseParams}>
+            <BrowseStateProvider>
+                <div className="flex flex-col h-full">
+                    <div className='sticky top-0 left-0 right-0 z-10'>
+                        <div className="py-1.5 px-3">
+                            <SearchBar
+                                size="sm"
+                                defaults={{
+                                    query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
+                                }}
+                                className="w-full"
+                                isSearchAssistSupported={isSearchAssistSupported}
+                            />
+                        </div>
+                        <Separator />
                     </div>
-                    <Separator />
-                </div>
-                <ResizablePanelGroup
-                    direction="horizontal"
-                >
-                    <FileTreePanel order={1} />
-
-                    <AnimatedResizableHandle />
-
-                    <ResizablePanel
-                        order={2}
-                        minSize={10}
-                        defaultSize={80}
-                        id="code-preview-panel-container"
+                    <ResizablePanelGroup
+                        direction="horizontal"
                     >
-                        <ResizablePanelGroup
-                            direction="vertical"
+                        <FileTreePanel order={1} />
+
+                        <AnimatedResizableHandle />
+
+                        <ResizablePanel
+                            order={2}
+                            minSize={10}
+                            defaultSize={80}
+                            id="code-preview-panel-container"
                         >
-                            <ResizablePanel
-                                order={1}
-                                id="code-preview-panel"
+                            <ResizablePanelGroup
+                                direction="vertical"
                             >
-                                {children}
-                            </ResizablePanel>
-                            {(pathType === 'blob' || pathType === 'tree') && (
-                                <>
-                                    <AnimatedResizableHandle />
-                                    <BottomPanel
-                                        order={2}
-                                    />
-                                </>
-                            )}
-                        </ResizablePanelGroup>
-                    </ResizablePanel>
-                </ResizablePanelGroup>
-            </div>
-            <FileSearchCommandDialog />
-        </BrowseStateProvider>
+                                <ResizablePanel
+                                    order={1}
+                                    id="code-preview-panel"
+                                >
+                                    {children}
+                                </ResizablePanel>
+                                {(pathType === 'blob' || pathType === 'tree') && (
+                                    <>
+                                        <AnimatedResizableHandle />
+                                        <BottomPanel
+                                            order={2}
+                                        />
+                                    </>
+                                )}
+                            </ResizablePanelGroup>
+                        </ResizablePanel>
+                    </ResizablePanelGroup>
+                </div>
+                <FileSearchCommandDialog />
+            </BrowseStateProvider>
+        </BrowseParamsContext.Provider>
     );
 }
