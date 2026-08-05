@@ -6,8 +6,8 @@ on:
 
 
 jobs:
-  vulnerability-triage:
-    name: Vulnerability triage reconciliation
+  vulnerability-automation:
+    name: Vulnerability automation
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,6 +16,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Test reconciliation behavior
         run: .github/scripts/test-vulnerability-triage.sh
+      - name: Test CVE remediation discovery
+        run: .github/scripts/test-cve-remediation.sh
 
   test:
     runs-on: ubuntu-latest
