@@ -673,27 +673,12 @@ export const negateToken = new ExternalTokenizer((input, stack) => {
         }
     }
 
-    // Check if followed by a prefix keyword (by checking for keyword followed by colon)
-    let foundColon = false;
-    let peekOffset = offset;
-    
-    while (true) {
-        const ch = input.peek(peekOffset);
-        if (ch === EOF) break;
-        
-        if (ch === COLON) {
-            foundColon = true;
-            break;
-        }
-        // Hit a delimiter (whitespace, paren, or quote) - not a prefix keyword
-        if (isWhitespace(ch) || ch === OPEN_PAREN || ch === CLOSE_PAREN || ch === QUOTE) {
-            break;
-        }
-        peekOffset++;
-    }
-    
-    if (foundColon) {
-        // It's a prefix keyword, accept as negate
+    // Only accept as negate when the dash is immediately followed by a known
+    // prefix keyword (e.g. `-file:`). A bare word that merely contains a colon
+    // (e.g. `-foo:bar`, `-http://x`) is not a prefix and must be left for
+    // wordToken; otherwise the grammar has no PrefixExpr to follow the negate
+    // token and the (strict) parser throws a SyntaxError.
+    if (startsWithPrefixAt(input, offset)) {
         input.advance();
         input.acceptToken(negate);
         return;
