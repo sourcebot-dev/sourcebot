@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
 - Fixed search queries failing to parse when negating a bare term that contains a colon (e.g. `-foo:bar`, `-http://example.com`). [#1301](https://github.com/sourcebot-dev/sourcebot/pull/1301)
 - Fixed the Review Agent failing to fetch pull request diffs for private GitHub repositories. [#1352](https://github.com/sourcebot-dev/sourcebot/pull/1352)
+- Upgraded `hono` to `^4.13.0`. [#1544](https://github.com/sourcebot-dev/sourcebot/pull/1544)
 
 ## [5.1.5] - 2026-07-31
 
