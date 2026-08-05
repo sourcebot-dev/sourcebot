@@ -75,7 +75,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
 
 export interface McpToolsResult {
     tools: Record<string, Awaited<ReturnType<MCPClient['tools']>>[string]>;
-    failedServers: string[];
+    failedServers: Array<{ serverId: string; serverName: string }>;
     serverFaviconUrls: Record<string, string>;
     toolDisplayNames: Record<string, string>;
     cleanup: () => Promise<void>;
@@ -204,7 +204,7 @@ async function getListToolsResult(
 export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpToolsAnalyticsContext, toolsOptions?: McpToolsOptions): Promise<McpToolsResult> {
     const onAuthFailure = toolsOptions?.onAuthFailure;
     const allTools: McpToolsResult['tools'] = {};
-    const failedServers: string[] = [];
+    const failedServers: McpToolsResult['failedServers'] = [];
     const serverFaviconUrls: Record<string, string> = {};
     const toolDisplayNames: Record<string, string> = {};
     const mcpClients: MCPClient[] = [];
@@ -389,7 +389,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 sanitizedName,
                 error: getExternalMcpErrorLogFields(error),
             });
-            failedServers.push(serverName);
+            failedServers.push({ serverId, serverName });
         }
     }
 

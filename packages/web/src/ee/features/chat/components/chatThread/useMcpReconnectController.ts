@@ -27,6 +27,11 @@ export interface McpAuthRequiredData {
     toolCallId: string;
 }
 
+export interface McpServerLoadFailureData {
+    serverId: string;
+    serverName: string;
+}
+
 interface UseMcpReconnectControllerOptions {
     status: ChatStatus;
     messages: SBChatMessage[];
@@ -38,11 +43,11 @@ interface UseMcpReconnectControllerOptions {
 }
 
 // Orchestrates the client side of MCP connector reauthentication for a chat
-// thread: tracks per-connector reconnect state from transient
-// `data-mcp-auth-required` events, automatically denies tool approvals still
-// pending in the interrupted response, gates the Reconnect action until the
+// thread: tracks per-connector reconnect state from tool-call authentication
+// failures and tool-load failures, automatically denies tool approvals still
+// pending in an interrupted response, gates the Reconnect action until the
 // response has settled, restores pending reconnect metadata after the OAuth
-// round trip, and sends the follow-up user turn on Continue.
+// round trip, and sends the follow-up user turn on Continue when applicable.
 export function useMcpReconnectController({
     status,
     messages,
@@ -54,6 +59,7 @@ export function useMcpReconnectController({
 }: UseMcpReconnectControllerOptions): {
     contextValue: McpReconnectContextValue;
     onAuthRequired: (data: McpAuthRequiredData) => void;
+    onServerLoadFailed: (data: McpServerLoadFailureData) => void;
 } {
     const [reconnectStates, setReconnectStates] = useState<Record<string, McpReconnectState>>({});
     // Response-scoped finalizing flag: set when an authentication failure is
@@ -82,7 +88,8 @@ export function useMcpReconnectController({
         setReconnectStates((prev) => {
             // Repeated failures from the same connector reference the first
             // failure's reconnect state (and its tool call).
-            if (prev[data.serverId]) {
+            const existing = prev[data.serverId];
+            if (existing && existing.status !== 'reconnected') {
                 return prev;
             }
             return {
@@ -91,6 +98,25 @@ export function useMcpReconnectController({
                     serverId: data.serverId,
                     serverName: data.serverName,
                     toolCallId: data.toolCallId,
+                    source: 'tool-call',
+                    status: 'authentication-required',
+                },
+            };
+        });
+    }, []);
+
+    const onServerLoadFailed = useCallback((data: McpServerLoadFailureData) => {
+        setReconnectStates((prev) => {
+            const existing = prev[data.serverId];
+            if (existing && existing.status !== 'reconnected') {
+                return prev;
+            }
+            return {
+                ...prev,
+                [data.serverId]: {
+                    serverId: data.serverId,
+                    serverName: data.serverName,
+                    source: 'tool-load',
                     status: 'authentication-required',
                 },
             };
@@ -100,7 +126,7 @@ export function useMcpReconnectController({
     // Automatically deny every tool approval still pending in the interrupted
     // response. Later approval actions are invalid: the parts flip to
     // approval-responded, which removes the approval UI.
-    const hasAuthFailure = Object.keys(reconnectStates).length > 0;
+    const hasAuthFailure = Object.values(reconnectStates).some((state) => state.source !== 'tool-load');
     useEffect(() => {
         if (!hasAuthFailure) {
             return;
@@ -159,11 +185,13 @@ export function useMcpReconnectController({
                 serverId: pending.serverId,
                 serverName: pending.serverName,
                 toolCallId: pending.toolCallId,
+                source: pending.source,
                 status: 'reconnecting',
             },
         });
 
         (async () => {
+            await invalidateMcpConfigurationQueries(queryClient);
             const servers = await getMcpServersWithStatus();
             const server = isServiceError(servers)
                 ? undefined
@@ -179,7 +207,7 @@ export function useMcpReconnectController({
                 });
             }
         })();
-    }, [setReconnectStatus, toast]);
+    }, [queryClient, setReconnectStatus, toast]);
 
     const isReconnectAllowed = !isTurnInProgress && !isAuthFinalizing;
     const isReconnectAllowedRef = useRef(isReconnectAllowed);
@@ -194,7 +222,9 @@ export function useMcpReconnectController({
 
     const reconnect = useCallback(async (serverId: string) => {
         const state = reconnectStatesRef.current[serverId];
-        if (!state || state.status === 'reconnecting' || !isReconnectAllowedRef.current) {
+        const isAnotherReconnectStarting = Object.values(reconnectStatesRef.current)
+            .some((candidate) => candidate.status === 'reconnecting');
+        if (!state || isAnotherReconnectStarting || !isReconnectAllowedRef.current) {
             return;
         }
 
@@ -207,15 +237,20 @@ export function useMcpReconnectController({
             return;
         }
 
+        reconnectStatesRef.current = {
+            ...reconnectStatesRef.current,
+            [serverId]: { ...state, status: 'reconnecting' },
+        };
         setReconnectStatus(serverId, 'reconnecting');
         saveMcpPendingReconnect({
             serverId,
             serverName: state.serverName,
             toolCallId: state.toolCallId,
+            source: state.source,
             returnTo,
         });
 
-        const result = await connectMcpToAsk({ serverId, returnTo });
+        const result = await connectMcpToAsk({ serverId, returnTo, forceAuthorization: true });
 
         if (isServiceError(result)) {
             clearMcpPendingReconnect();
@@ -232,10 +267,8 @@ export function useMcpReconnectController({
             return;
         }
 
-        // No authorization URL: the stored credentials are still considered
-        // authorized (e.g. a refresh succeeded out of band). Confirm via the
-        // status endpoint; if the connector still is not usable, this is the
-        // known V1-unsupported corner case and the user can retry.
+        // Defensive fallback for older or alternate endpoint implementations
+        // that complete reconnection without returning an authorization URL.
         clearMcpPendingReconnect();
         await invalidateMcpConfigurationQueries(queryClient);
         const servers = await getMcpServersWithStatus();
@@ -254,7 +287,10 @@ export function useMcpReconnectController({
         }
     }, [queryClient, setReconnectStatus, toast]);
 
-    const stateList = useMemo(() => Object.values(reconnectStates), [reconnectStates]);
+    const stateList = useMemo(
+        () => Object.values(reconnectStates).filter((state) => state.source !== 'tool-load'),
+        [reconnectStates],
+    );
     // Continue is only supported when exactly one connector failed
     // authentication in the response, and it has been reconnected.
     const isContinueAllowed =
@@ -291,5 +327,5 @@ export function useMcpReconnectController({
         continueAfterReconnect,
     }), [reconnectStates, isReconnectAllowed, isContinueAllowed, reconnect, continueAfterReconnect]);
 
-    return { contextValue, onAuthRequired };
+    return { contextValue, onAuthRequired, onServerLoadFailed };
 }

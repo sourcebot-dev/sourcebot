@@ -3,19 +3,27 @@ import { normalizeMcpOAuthDraftPath } from "@/features/chat/mcpOAuthDraft";
 
 const MCP_RECONNECT_MAX_AGE_MS = 30 * 60 * 1000;
 
+export type McpReconnectSource = 'tool-call' | 'tool-load';
+
 // The reconnect metadata preserved across the current-tab OAuth redirect. It
-// re-associates the reconnect flow with the failed tool call when the browser
-// returns to the thread, because the in-memory reconnect state does not
-// survive the navigation.
+// re-associates the reconnect flow with the failed tool call or tool load when
+// the browser returns to the thread, because in-memory state does not survive
+// the navigation.
 export interface McpPendingReconnect {
     serverId: string;
     serverName: string;
-    toolCallId: string;
+    toolCallId?: string;
+    source: McpReconnectSource;
     returnTo: string;
     createdAt: number;
 }
 
-type McpPendingReconnectInput = Omit<McpPendingReconnect, 'createdAt'>;
+type McpPendingReconnectInput = Omit<McpPendingReconnect, 'createdAt' | 'source'> & {
+    source?: McpReconnectSource;
+};
+type StoredMcpPendingReconnect = Omit<McpPendingReconnect, 'source'> & {
+    source?: McpReconnectSource;
+};
 
 interface ResolveMcpPendingReconnectResult {
     pending?: McpPendingReconnect;
@@ -26,14 +34,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
 
-function isMcpPendingReconnect(value: unknown): value is McpPendingReconnect {
+function isMcpPendingReconnect(value: unknown): value is StoredMcpPendingReconnect {
+    const source = isRecord(value) && value.source === 'tool-load' ? 'tool-load' : 'tool-call';
     return (
         isRecord(value) &&
         typeof value.serverId === 'string' &&
         value.serverId.length > 0 &&
         typeof value.serverName === 'string' &&
-        typeof value.toolCallId === 'string' &&
-        value.toolCallId.length > 0 &&
+        (source === 'tool-load' || (typeof value.toolCallId === 'string' && value.toolCallId.length > 0)) &&
+        (value.source === undefined || value.source === 'tool-call' || value.source === 'tool-load') &&
         typeof value.returnTo === 'string' &&
         typeof value.createdAt === 'number'
     );
@@ -80,6 +89,7 @@ export function resolveMcpPendingReconnectForPath(
     return {
         pending: {
             ...parsed,
+            source: parsed.source ?? 'tool-call',
             returnTo: storedPath,
         },
         shouldClear: true,
@@ -108,6 +118,7 @@ export function saveMcpPendingReconnect(input: McpPendingReconnectInput): void {
     try {
         storage.setItem(MCP_RECONNECT_SESSION_STORAGE_KEY, JSON.stringify({
             ...input,
+            source: input.source ?? 'tool-call',
             returnTo,
             createdAt: Date.now(),
         } satisfies McpPendingReconnect));

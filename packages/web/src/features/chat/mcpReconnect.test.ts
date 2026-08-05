@@ -26,6 +26,7 @@ describe('resolveMcpPendingReconnectForPath', () => {
             serverId: 'server-1',
             serverName: 'Linear',
             toolCallId: 'tool-call-1',
+            source: 'tool-call',
             returnTo: '/chat/abc123',
         });
     });
@@ -73,6 +74,19 @@ describe('resolveMcpPendingReconnectForPath', () => {
 
     test('does nothing when no value is stored', () => {
         expect(resolveMcpPendingReconnectForPath(null, '/chat/abc123', NOW)).toEqual({ shouldClear: false });
+    });
+
+    test('accepts a tool-load reconnect without a tool call ID', () => {
+        const result = resolveMcpPendingReconnectForPath(
+            createStoredPending({ source: 'tool-load', toolCallId: undefined }),
+            '/chat/abc123',
+            NOW,
+        );
+
+        expect(result.pending).toMatchObject({
+            serverId: 'server-1',
+            source: 'tool-load',
+        });
     });
 });
 

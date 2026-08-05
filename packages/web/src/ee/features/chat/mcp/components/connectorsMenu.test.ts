@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { ErrorCode } from '@/lib/errorCodes';
-import { McpServersLoadError, shouldRetryMcpServersLoad, splitMcpServersForChatMenu } from './connectorsMenu';
+import { getMcpServerToggleState, McpServersLoadError, shouldRetryMcpServersLoad, splitMcpServersForChatMenu } from './connectorsMenu';
 
 describe('splitMcpServersForChatMenu', () => {
     test('keeps connected and expired servers separate from connectable approved servers', () => {
@@ -14,6 +14,17 @@ describe('splitMcpServersForChatMenu', () => {
 
         expect(connectedServers.map((server) => server.id)).toEqual(['connected', 'expired']);
         expect(connectableServers.map((server) => server.id)).toEqual(['approved']);
+    });
+
+    test('keeps an unavailable connector in the toggle list even if its credentials were invalidated', () => {
+        const servers = [
+            { id: 'unavailable', isConnected: false, isAuthExpired: false },
+        ];
+
+        const { connectedServers, connectableServers } = splitMcpServersForChatMenu(servers, ['unavailable']);
+
+        expect(connectedServers.map((server) => server.id)).toEqual(['unavailable']);
+        expect(connectableServers).toEqual([]);
     });
 });
 
@@ -34,5 +45,31 @@ describe('shouldRetryMcpServersLoad', () => {
         expect(shouldRetryMcpServersLoad(0, error)).toBe(true);
         expect(shouldRetryMcpServersLoad(2, error)).toBe(true);
         expect(shouldRetryMcpServersLoad(3, error)).toBe(false);
+    });
+});
+
+describe('getMcpServerToggleState', () => {
+    test('forces an unavailable connector off and disables its toggle', () => {
+        expect(getMcpServerToggleState(
+            { id: 'server-1', isAuthExpired: false },
+            [],
+            ['server-1'],
+        )).toEqual({
+            isUnavailable: true,
+            isDisabled: true,
+            isEnabled: false,
+        });
+    });
+
+    test('automatically returns the connector to enabled after it is available again', () => {
+        expect(getMcpServerToggleState(
+            { id: 'server-1', isAuthExpired: false },
+            [],
+            [],
+        )).toEqual({
+            isUnavailable: false,
+            isDisabled: false,
+            isEnabled: true,
+        });
     });
 });

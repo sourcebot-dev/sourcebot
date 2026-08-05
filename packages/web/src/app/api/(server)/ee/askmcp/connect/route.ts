@@ -24,6 +24,7 @@ import { getEnabledMcpOAuthScopeNames } from '@/ee/features/chat/mcp/oauthScopeU
 const bodySchema = z.object({
     serverId: z.string(),
     returnTo: z.string().optional(),
+    forceAuthorization: z.boolean().optional().default(false),
 });
 const logger = createLogger('mcp-connect');
 const MCP_AUTH_FETCH_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 30000);
@@ -146,6 +147,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     callbackReturnTo,
                     allowClientRegistration: true,
                     requestedOAuthScopes: getEnabledMcpOAuthScopeNames(mcpServer.oauthScopes),
+                    forceAuthorization: parsed.data.forceAuthorization,
                 });
 
                 let authResult: Awaited<ReturnType<typeof mcpAuth>>;
@@ -200,13 +202,25 @@ export const POST = apiHandler(async (request: NextRequest) => {
             throw error;
         }
 
-        if (connectResult.authResult === 'AUTHORIZED') {
+        if (connectResult.authResult === 'AUTHORIZED' && !parsed.data.forceAuthorization) {
             // Already has valid tokens (e.g., refreshed)
             void captureEvent('ask_mcp_connector_connection_completed', {
                 ...eventProperties,
                 alreadyAuthorized: true,
             });
             return { authorizationUrl: null } satisfies ConnectMcpResponse;
+        }
+
+        if (connectResult.authResult === 'AUTHORIZED') {
+            void captureEvent('ask_mcp_connector_connection_failed', {
+                ...eventProperties,
+                failureReason: 'missing_authorization_url',
+            });
+            throw new ServiceErrorException({
+                statusCode: StatusCodes.BAD_GATEWAY,
+                errorCode: ErrorCode.UNEXPECTED_ERROR,
+                message: 'Could not start connector reauthorization.',
+            });
         }
 
         if (!connectResult.authorizationUrl) {

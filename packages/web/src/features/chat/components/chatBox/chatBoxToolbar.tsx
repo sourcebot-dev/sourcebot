@@ -18,6 +18,7 @@ export interface ChatBoxToolbarProps {
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
     disabledMcpServerIds?: string[];
+    unavailableMcpServerIds?: string[];
     onDisabledMcpServerIdsChange?: (ids: string[]) => void;
     isAuthenticated: boolean;
 }
@@ -31,6 +32,7 @@ export const ChatBoxToolbar = ({
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
     disabledMcpServerIds,
+    unavailableMcpServerIds,
     onDisabledMcpServerIdsChange,
     isAuthenticated,
 }: ChatBoxToolbarProps) => {
@@ -44,6 +46,7 @@ export const ChatBoxToolbar = ({
                         selectedSearchScopes={selectedSearchScopes}
                         onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                         disabledMcpServerIds={disabledMcpServerIds}
+                        unavailableMcpServerIds={unavailableMcpServerIds}
                         onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
                         isAuthenticated={isAuthenticated}
                     />

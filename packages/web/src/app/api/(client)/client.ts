@@ -320,7 +320,7 @@ export const getOffers = async (): Promise<OffersResponse | ServiceError> => {
     return result as OffersResponse | ServiceError;
 }
 
-export const connectMcpToAsk = async (body: { serverId: string; returnTo?: string }): Promise<ConnectMcpResponse | ServiceError> => {
+export const connectMcpToAsk = async (body: { serverId: string; returnTo?: string; forceAuthorization?: boolean }): Promise<ConnectMcpResponse | ServiceError> => {
     const result = await fetch('/api/ee/askmcp/connect', {
         method: 'POST',
         headers: {

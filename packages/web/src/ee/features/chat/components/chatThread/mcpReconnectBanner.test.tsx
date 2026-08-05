@@ -13,6 +13,7 @@ const createReconnectState = (overrides: Partial<McpReconnectState> = {}): McpRe
     serverId: 'server-1',
     serverName: 'Linear',
     toolCallId: 'tool-call-1',
+    source: 'tool-call',
     status: 'authentication-required',
     ...overrides,
 });
@@ -97,6 +98,13 @@ describe('McpReconnectBanner', () => {
             reconnect: vi.fn(),
             continueAfterReconnect: vi.fn(),
         };
+        const { container } = renderBanner(contextValue);
+
+        expect(container.childElementCount).toBe(0);
+    });
+
+    test('leaves tool-load failures to the failed-connectors banner', () => {
+        const contextValue = createReconnectContext(createReconnectState({ source: 'tool-load' }));
         const { container } = renderBanner(contextValue);
 
         expect(container.childElementCount).toBe(0);

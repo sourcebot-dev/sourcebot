@@ -81,6 +81,7 @@ const createReconnectState = (overrides: Partial<McpReconnectState> = {}): McpRe
     serverId: 'server-1',
     serverName: 'Linear',
     toolCallId: 'tool-call-1',
+    source: 'tool-call',
     status: 'authentication-required',
     ...overrides,
 });

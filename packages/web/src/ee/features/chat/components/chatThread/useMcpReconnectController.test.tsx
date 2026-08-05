@@ -155,7 +155,11 @@ describe('useMcpReconnectController', () => {
             });
 
             await waitFor(() => {
-                expect(mocks.connectMcpToAsk).toHaveBeenCalledWith({ serverId: 'server-1', returnTo: '/chat/abc123' });
+                expect(mocks.connectMcpToAsk).toHaveBeenCalledWith({
+                    serverId: 'server-1',
+                    returnTo: '/chat/abc123',
+                    forceAuthorization: true,
+                });
             });
 
             const stored = JSON.parse(window.sessionStorage.getItem(MCP_RECONNECT_SESSION_STORAGE_KEY) ?? '{}');
@@ -185,6 +189,23 @@ describe('useMcpReconnectController', () => {
         expect(mocks.connectMcpToAsk).not.toHaveBeenCalled();
     });
 
+    test('tracks a failed tool load without treating it as a failed tool call', () => {
+        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        act(() => {
+            result.current.onServerLoadFailed({ serverId: 'server-1', serverName: 'Linear' });
+        });
+
+        expect(result.current.contextValue.reconnectStates['server-1']).toMatchObject({
+            serverId: 'server-1',
+            serverName: 'Linear',
+            source: 'tool-load',
+            status: 'authentication-required',
+        });
+        expect(result.current.contextValue.isContinueAllowed).toBe(false);
+        expect(addToolApprovalResponse).not.toHaveBeenCalled();
+    });
+
     test('restores the pending reconnect after the OAuth return and confirms via the status query', async () => {
         window.sessionStorage.setItem(MCP_RECONNECT_SESSION_STORAGE_KEY, JSON.stringify({
             serverId: 'server-1',
@@ -204,6 +225,27 @@ describe('useMcpReconnectController', () => {
         });
         expect(window.sessionStorage.getItem(MCP_RECONNECT_SESSION_STORAGE_KEY)).toBeNull();
         expect(result.current.contextValue.isContinueAllowed).toBe(true);
+    });
+
+    test('restores the source of a failed tool-load reconnect after OAuth', async () => {
+        window.sessionStorage.setItem(MCP_RECONNECT_SESSION_STORAGE_KEY, JSON.stringify({
+            serverId: 'server-1',
+            serverName: 'Linear',
+            source: 'tool-load',
+            returnTo: '/chat/abc123',
+            createdAt: Date.now(),
+        }));
+        mocks.getMcpServersWithStatus.mockResolvedValue([
+            { id: 'server-1', name: 'Linear', isConnected: true, isAuthExpired: false },
+        ]);
+
+        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        await waitFor(() => {
+            expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('reconnected');
+        });
+        expect(result.current.contextValue.reconnectStates['server-1']?.source).toBe('tool-load');
+        expect(result.current.contextValue.isContinueAllowed).toBe(false);
     });
 
     test('falls back to authentication-required when the OAuth return did not reconnect the connector', async () => {

@@ -24,6 +24,7 @@ interface PrismaOAuthClientProviderOptions {
   allowClientRegistration?: boolean;
   requestedOAuthScopes?: string[];
   clientInvalidationPrisma?: McpOAuthPrismaClient;
+  forceAuthorization?: boolean;
 }
 
 export interface ClearMcpServerClientCredentialsOptions {
@@ -86,6 +87,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   private readonly callbackUrl: string;
   private readonly callbackReturnTo: string | undefined;
   private readonly requestedOAuthScopes: string[];
+  private readonly forceAuthorization: boolean;
   private observedClientInfo: string | undefined;
   private observedClientInfoSource: McpServerClientInfoSource | undefined;
 
@@ -105,6 +107,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     allowClientRegistration = false,
     requestedOAuthScopes = [],
     clientInvalidationPrisma = __unsafePrisma,
+    forceAuthorization = false,
   }: PrismaOAuthClientProviderOptions) {
     this.prisma = prisma;
     this.clientInvalidationPrisma = clientInvalidationPrisma;
@@ -114,6 +117,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     this.callbackUrl = callbackUrl;
     this.callbackReturnTo = callbackReturnTo;
     this.requestedOAuthScopes = normalizeMcpRequestedOAuthScopes(requestedOAuthScopes);
+    this.forceAuthorization = forceAuthorization;
 
     if (allowClientRegistration) {
       this.saveClientInformation = async (info: OAuthClientInformation) => {
@@ -177,6 +181,10 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async tokens(): Promise<OAuthTokens | undefined> {
+    if (this.forceAuthorization) {
+      return undefined;
+    }
+
     const userServer = await this.getUserServer();
     if (!userServer?.tokens) {
       return undefined;

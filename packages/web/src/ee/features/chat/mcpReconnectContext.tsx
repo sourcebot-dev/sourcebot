@@ -1,18 +1,20 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+import type { McpReconnectSource } from '@/features/chat/mcpReconnect';
 
 export type McpReconnectStatus = 'authentication-required' | 'reconnecting' | 'reconnected';
 
 // Client-only reconnect state for a connector that failed authentication in
-// the current assistant response. `toolCallId` identifies the first failed
-// tool call so its technical status can be decorated while the recovery
-// action remains visible in the thread-level banner. This state intentionally
-// does not survive an unrelated reload.
+// the current assistant response. Tool-call failures retain `toolCallId` so
+// their technical status can be decorated. Tool-load failures use the same
+// reconnect machinery but surface their action in the failed-server banner.
+// This state intentionally does not survive an unrelated reload.
 export interface McpReconnectState {
     serverId: string;
     serverName: string;
-    toolCallId: string;
+    toolCallId?: string;
+    source: McpReconnectSource;
     status: McpReconnectStatus;
 }
 

@@ -393,10 +393,10 @@ export const createMessageStream = async ({
                         data: { modelToolName, rawToolName },
                     });
                 },
-                onMcpServerFailed: (serverName) => {
+                onMcpServerFailed: (server) => {
                     writer.write({
                         type: 'data-mcp-failed-server',
-                        data: { serverName },
+                        data: server,
                     });
                 },
                 onMcpAuthRequired: (failure) => {
@@ -536,7 +536,7 @@ interface AgentOptions {
     onWriteSource: (source: Source) => void;
     onMcpServerDiscovered: (sanitizedName: string, faviconUrl: string) => void;
     onMcpToolDiscovered: (modelToolName: string, rawToolName: string) => void;
-    onMcpServerFailed: (serverName: string) => void;
+    onMcpServerFailed: (server: { serverId: string; serverName: string }) => void;
     // Fired at most once per connector per response when a tool call fails
     // with a reconnect-required authentication failure.
     onMcpAuthRequired: (failure: McpToolAuthFailure) => void;
@@ -646,8 +646,8 @@ const createAgentStream = async ({
         }
     }
 
-    for (const serverName of mcpToolSetsObj.failedServers) {
-        onMcpServerFailed(serverName);
+    for (const server of mcpToolSetsObj.failedServers) {
+        onMcpServerFailed(server);
     }
 
     const mcpRegistry = buildMcpToolRegistry(mcpToolSetsObj.tools);

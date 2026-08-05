@@ -396,7 +396,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'BrokenServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['BrokenServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'BrokenServer' }]);
         expect(Object.keys(result.tools)).toEqual([]);
         expect(mockLogger.error).toHaveBeenCalledWith('Failed to get tools from MCP server.', {
             serverId: 'server-id',
@@ -424,7 +424,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'Linear' }),
         ]);
 
-        expect(result.failedServers).toEqual(['BrokenServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'BrokenServer' }]);
         expect(Object.keys(result.tools)).toEqual(['mcp_linear__list_issues']);
     });
 

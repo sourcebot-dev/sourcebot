@@ -6,7 +6,8 @@ import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 export const McpReconnectBanner = () => {
     const reconnectContext = useMcpReconnect();
-    const reconnectStates = Object.values(reconnectContext?.reconnectStates ?? {});
+    const reconnectStates = Object.values(reconnectContext?.reconnectStates ?? {})
+        .filter((state) => state.source !== 'tool-load');
 
     if (!reconnectContext || reconnectStates.length === 0) {
         return null;
@@ -22,8 +23,8 @@ export const McpReconnectBanner = () => {
                             role="status"
                             className="border-b border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
                         >
-                            <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-start gap-2">
+                            <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-center sm:gap-6">
+                                <div className="flex min-w-0 items-start gap-2">
                                     <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
                                     <div>
                                         <p className="text-sm font-medium text-green-800 dark:text-green-200">
@@ -39,7 +40,7 @@ export const McpReconnectBanner = () => {
                                 {reconnectContext.isContinueAllowed && (
                                     <Button
                                         size="sm"
-                                        className="self-start sm:self-auto"
+                                        className="ml-6 self-start sm:ml-0 sm:self-auto"
                                         onClick={() => reconnectContext.continueAfterReconnect(state.serverId)}
                                     >
                                         Continue
@@ -57,8 +58,8 @@ export const McpReconnectBanner = () => {
                         role="alert"
                         className="border-b border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20"
                     >
-                        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-start gap-2">
+                        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-center sm:gap-6">
+                            <div className="flex min-w-0 items-start gap-2">
                                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" />
                                 <div>
                                     <p className="text-sm font-medium text-red-800 dark:text-red-200">
@@ -71,7 +72,7 @@ export const McpReconnectBanner = () => {
                             </div>
                             <Button
                                 size="sm"
-                                className="self-start sm:self-auto"
+                                className="ml-6 self-start sm:ml-0 sm:self-auto"
                                 disabled={isReconnecting || !reconnectContext.isReconnectAllowed}
                                 onClick={() => reconnectContext.reconnect(state.serverId)}
                             >
