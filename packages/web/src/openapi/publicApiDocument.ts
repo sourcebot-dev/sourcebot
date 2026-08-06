@@ -437,7 +437,7 @@ export function createPublicOpenApiDocument(version: string) {
         tags: [scopedAccessTokensTag.name],
         summary: 'Create a scoped access token',
         description: dedent`
-            Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories. Repository names are resolved atomically against the API-key owner's current access; the request fails if any name is missing, inaccessible, or ambiguous.
+            Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories. Repository IDs are validated atomically against the API-key owner's current access; the request fails if any ID is missing or inaccessible. Repository IDs are returned by GET /api/repos.
 
             This endpoint requires a Sourcebot API key. Scoped access tokens, OAuth tokens, and browser sessions cannot mint another scoped access token. The returned token is independent of the API key after issuance and cannot be refreshed.
         `,
