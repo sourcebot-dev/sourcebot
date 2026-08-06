@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { CodeHostType } from "@sourcebot/db";
+import { CodeHostType, ConnectionType } from "@sourcebot/db";
+
+export const connectionQuerySchema = z.object({
+    id: z.number().int(),
+    name: z.string(),
+    connectionType: z.nativeEnum(ConnectionType),
+});
+
+export const listConnectionsResponseSchema = connectionQuerySchema.array();
 
 export const repositoryQuerySchema = z.object({
     codeHostType: z.nativeEnum(CodeHostType),

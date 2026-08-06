@@ -24,7 +24,7 @@ import {
     searchResponseSchema,
 } from '../features/search/types.js';
 import { serviceErrorSchema } from '../lib/serviceError.js';
-import { getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema } from '../lib/schemas.js';
+import { getVersionResponseSchema, listConnectionsResponseSchema, listReposQueryParamsSchema, listReposResponseSchema } from '../lib/schemas.js';
 
 let hasExtendedZod = false;
 
@@ -45,6 +45,7 @@ export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('
 export const publicFileBlameRequestSchema = fileBlameRequestSchema.openapi('PublicFileBlameRequest');
 export const publicFileBlameResponseSchema = fileBlameResponseSchema.openapi('PublicFileBlameResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
+export const publicListConnectionsResponseSchema = listConnectionsResponseSchema.openapi('PublicListConnectionsResponse');
 export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
 export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
 export const publicGetDiffRequestSchema = getDiffRequestSchema.openapi('PublicGetDiffRequest');

@@ -11,6 +11,10 @@
       "description": "Code search and symbol navigation endpoints."
     },
     {
+      "name": "Connections",
+      "description": "Code host connection metadata."
+    },
+    {
       "name": "Repositories",
       "description": "Repository listing and metadata endpoints."
     },
@@ -513,6 +517,37 @@
             "webUrl",
             "isFork",
             "isArchived"
+          ]
+        }
+      },
+      "PublicListConnectionsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "connectionType": {
+              "type": "string",
+              "enum": [
+                "github",
+                "gitlab",
+                "gitea",
+                "gerrit",
+                "bitbucket",
+                "azuredevops",
+                "git"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "connectionType"
           ]
         }
       },
@@ -1486,6 +1521,48 @@
           },
           "500": {
             "description": "Unexpected repository listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connections": {
+      "get": {
+        "operationId": "listConnections",
+        "tags": [
+          "Connections"
+        ],
+        "summary": "List connections",
+        "description": "Returns unique code host connections associated with at least one repository visible to the caller. Connection configuration and credentials are never included.",
+        "responses": {
+          "200": {
+            "description": "Connections associated with visible repositories.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListConnectionsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required when anonymous access is disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected connection listing failure.",
             "content": {
               "application/json": {
                 "schema": {
