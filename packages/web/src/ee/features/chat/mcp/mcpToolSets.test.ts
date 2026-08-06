@@ -499,6 +499,7 @@ describe('getMcpTools', () => {
                 inputSchema: {
                     type: 'object',
                     properties: { title: { type: 'string' } },
+                    additionalProperties: false,
                 },
             },
         ]);
@@ -522,6 +523,173 @@ describe('getMcpTools', () => {
             const invalidResult = await schema.validate({ title: 'My Issue', bogus: 'field' });
             expect(invalidResult.success).toBe(false);
         }
+    });
+
+    test.each([
+        {
+            dialect: 'draft-07',
+            inputSchema: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: 'object',
+                properties: {
+                    coordinates: {
+                        type: 'array',
+                        items: [{ type: 'string' }, { type: 'integer' }],
+                        additionalItems: false,
+                    },
+                },
+            },
+            validInput: { coordinates: ['north', 3] },
+            invalidInput: { coordinates: ['north', 3, 'extra'] },
+        },
+        {
+            dialect: '2019-09',
+            inputSchema: {
+                $schema: 'https://json-schema.org/draft/2019-09/schema',
+                type: 'object',
+                properties: {
+                    mode: { type: 'string' },
+                    token: { type: 'string' },
+                },
+                dependentRequired: { mode: ['token'] },
+            },
+            validInput: { mode: 'private', token: 'available' },
+            invalidInput: { mode: 'private' },
+        },
+        {
+            dialect: '2020-12',
+            inputSchema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'object',
+                properties: {
+                    coordinates: {
+                        type: 'array',
+                        prefixItems: [{ type: 'string' }, { type: 'integer' }],
+                        items: false,
+                    },
+                },
+            },
+            validInput: { coordinates: ['north', 3] },
+            invalidInput: { coordinates: ['north', 'not-an-integer'] },
+        },
+        {
+            dialect: '2020-12 by default',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    coordinates: {
+                        type: 'array',
+                        prefixItems: [{ type: 'string' }, { type: 'integer' }],
+                        items: false,
+                    },
+                },
+            },
+            validInput: { coordinates: ['north', 3] },
+            invalidInput: { coordinates: ['north', 3, 'extra'] },
+        },
+        {
+            dialect: '2020-12 composition',
+            inputSchema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'object',
+                allOf: [{
+                    properties: { title: { type: 'string' } },
+                    required: ['title'],
+                }],
+                unevaluatedProperties: false,
+            },
+            validInput: { title: 'Composed schema' },
+            invalidInput: { title: 'Composed schema', extra: true },
+        },
+    ])('validates tool input using its declared $dialect dialect', async ({
+        inputSchema,
+        validInput,
+        invalidInput,
+    }) => {
+        const mockClient = createMockMcpClient([{
+            name: 'dialect_tool',
+            inputSchema,
+        }]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'DialectServer' }),
+        ]);
+        const tool = result.tools['mcp_dialectserver__dialect_tool'];
+        const schema = tool.inputSchema as {
+            validate?: (value: unknown) => Promise<{ success: boolean; error?: Error }>;
+        };
+
+        await expect(schema.validate?.(validInput)).resolves.toMatchObject({ success: true });
+        await expect(schema.validate?.(invalidInput)).resolves.toMatchObject({ success: false });
+        expect(result.failedServers).toEqual([]);
+    });
+
+    test('isolates an unsupported schema dialect without logging its URI', async () => {
+        const unsupportedDialect = 'https://schema.example.com/private?token=schema-secret';
+        const badClient = createMockMcpClient([
+            {
+                name: 'valid_tool_before_failure',
+                inputSchema: { type: 'object' },
+            },
+            {
+                name: 'bad_tool',
+                inputSchema: {
+                    $schema: unsupportedDialect,
+                    type: 'object',
+                },
+            },
+        ]);
+        const goodClient = createMockMcpClient([{
+            name: 'good_tool',
+            inputSchema: { type: 'object' },
+        }]);
+        mockCreateMCPClient
+            .mockResolvedValueOnce(badClient)
+            .mockResolvedValueOnce(goodClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'UnsupportedServer' }),
+            createMockClient({ serverName: 'WorkingServer' }),
+        ]);
+
+        expect(result.failedServers).toEqual(['UnsupportedServer']);
+        expect(Object.keys(result.tools)).toEqual(['mcp_workingserver__good_tool']);
+        expect(result.toolDisplayNames).toEqual({
+            'mcp_workingserver__good_tool': 'good_tool',
+        });
+        expect(mockLogger.error).toHaveBeenCalledWith('Failed to get tools from MCP server.', {
+            serverId: 'server-id',
+            sanitizedName: 'unsupportedserver',
+            error: { errorClass: 'UnsupportedMcpJsonSchemaDialectError' },
+        });
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain(unsupportedDialect);
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain('schema-secret');
+    });
+
+    test('isolates malformed supported schemas without logging remote references', async () => {
+        const remoteReference = 'https://schemas.example.com/input?token=reference-secret';
+        const badClient = createMockMcpClient([{
+            name: 'bad_reference_tool',
+            inputSchema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'object',
+                properties: {
+                    input: { $ref: remoteReference },
+                },
+            },
+        }]);
+        mockCreateMCPClient.mockResolvedValue(badClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'MalformedServer' }),
+        ]);
+
+        expect(result.failedServers).toEqual(['MalformedServer']);
+        expect(result.tools).toEqual({});
+        expect(mockLogger.error).toHaveBeenCalledOnce();
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain(remoteReference);
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain('reference-secret');
     });
 
     test('tool execute wrapper propagates non-timeout errors', async () => {

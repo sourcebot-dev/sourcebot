@@ -1,9 +1,9 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { McpToolSet } from './mcpClientFactory';
 import { createLogger, env } from '@sourcebot/shared';
-import Ajv from 'ajv';
+import type { AnySchemaObject } from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
-import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import type { JSONSchema7 } from 'json-schema';
 import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
@@ -18,9 +18,12 @@ import {
     getMcpServerToolPermission,
     getMcpServerToolPermissionsByServerId,
 } from './mcpToolPermissions';
+import {
+    compileMcpJsonSchemaValidator,
+    formatMcpJsonSchemaValidationErrors,
+} from './mcpJsonSchemaValidator';
 
 const logger = createLogger('mcp-tool-sets');
-const ajv = new Ajv({ allErrors: true, strict: false });
 const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 60 * 60;
 const MODEL_TOOL_NAME_MAX_LENGTH = 64;
 type ListToolsResult = Awaited<ReturnType<MCPClient['listTools']>>;
@@ -202,6 +205,8 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
 
     for (const client of clients) {
         const { serverId, serverName, sanitizedName, serverUrl, transport } = client;
+        const clientTools: McpToolsResult['tools'] = {};
+        const clientToolDisplayNames: Record<string, string> = {};
         try {
             const mcpClient = await Promise.race([
                 createMCPClient({ transport }),
@@ -243,21 +248,25 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 }
                 const needsApproval = permission === McpServerToolPermission.NEEDS_APPROVAL;
 
-                // The @ai-sdk/mcp library sets additionalProperties: false in the JSON schema
-                // sent to the model, but does NOT provide a validate function — so the AI SDK
-                // skips server-side validation entirely. We compile the schema with ajv to
-                // enforce parameter names at runtime, which allows experimental_repairToolCall
-                // to fire on InvalidToolInputError.
+                // @ai-sdk/mcp provides the schema sent to the model, but no validate
+                // function, so the AI SDK otherwise skips runtime input validation. Compile
+                // the server's schema without rewriting its semantics and honor its declared
+                // JSON Schema dialect.
                 const rawSchema = def?.inputSchema ?? { type: 'object', properties: {} };
-                const schema = {
+                const schemaProperties = rawSchema.properties ?? {};
+                const schema: AnySchemaObject = {
                     ...rawSchema,
                     type: 'object' as const,
-                    properties: (rawSchema.properties ?? {}) as Record<string, JSONSchema7Definition>,
-                    additionalProperties: false,
-                } satisfies JSONSchema7;
-                const validate = ajv.compile(schema);
-                const validProperties = Object.keys(schema.properties);
-                const validatedInputSchema = jsonSchema(schema, {
+                    properties: schemaProperties,
+                };
+                const validate = compileMcpJsonSchemaValidator(schema);
+                const validProperties = Object.keys(schemaProperties);
+                const validPropertiesHint = validProperties.length > 0
+                    ? `. The top-level parameter names declared by this tool are: [${validProperties.join(', ')}]`
+                    : '';
+                // The AI SDK currently types this boundary as draft-07 even though MCP
+                // 2025-11-25 defines 2020-12 as the default JSON Schema dialect.
+                const validatedInputSchema = jsonSchema(schema as JSONSchema7, {
                     validate: async (value: unknown) => {
                         if (validate(value)) {
                             return { success: true as const, value };
@@ -265,7 +274,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                         return {
                             success: false as const,
                             error: new Error(
-                                `${ajv.errorsText(validate.errors)}. The valid parameter names for this tool are: [${validProperties.join(', ')}]`
+                                `${formatMcpJsonSchemaValidationErrors(validate.errors)}${validPropertiesHint}`
                             ),
                         };
                     },
@@ -275,7 +284,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 const rawQualifiedName = `${prefix}__${toolName}`;
                 const qualifiedName = sanitizeMcpToolNameForModel(rawQualifiedName);
                 const timeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
-                toolDisplayNames[qualifiedName] = toolName;
+                clientToolDisplayNames[qualifiedName] = toolName;
 
                 const executeWithTimeout = (async (input: unknown, options: ToolExecutionOptions) => {
                     const startTime = Date.now();
@@ -328,7 +337,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                     }
                 }) as typeof originalExecute;
 
-                allTools[qualifiedName] = {
+                clientTools[qualifiedName] = {
                     ...tool,
                     execute: executeWithTimeout,
                     // The @ai-sdk/mcp package bundles its own copy of @ai-sdk/provider-utils,
@@ -343,6 +352,11 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             }
 
             const faviconUrl = getMcpFaviconUrl(serverUrl, serverName);
+
+            // Expose a server's tools atomically. If any schema is malformed or uses an
+            // unsupported dialect, no partially constructed tools from that server survive.
+            Object.assign(allTools, clientTools);
+            Object.assign(toolDisplayNames, clientToolDisplayNames);
             if (faviconUrl) {
                 serverFaviconUrls[sanitizedName] = faviconUrl;
             }
