@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - [EE] Added guided reconnection for MCP connector authentication failures during Ask Sourcebot agent turns. [#1548](https://github.com/sourcebot-dev/sourcebot/pull/1548)
+- Added public connection listing and connection-based repository filtering APIs. [#1550](https://github.com/sourcebot-dev/sourcebot/pull/1550)
 
 ### Changed
 - Updated the bundled Zoekt version. [#1564](https://github.com/sourcebot-dev/sourcebot/pull/1564)
