@@ -345,8 +345,6 @@ const options = {
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_GRAB: booleanSchema.default('false'),
 
-        LANGFUSE_SECRET_KEY: z.string().optional(),
-
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
         DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),

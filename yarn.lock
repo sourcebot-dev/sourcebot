@@ -9264,7 +9264,6 @@ __metadata:
     "@uidotdev/usehooks": "npm:^2.4.1"
     "@uiw/codemirror-themes": "npm:^4.23.6"
     "@uiw/react-codemirror": "npm:^4.23.0"
-    "@vercel/otel": "npm:^1.13.0"
     "@viz-js/lang-dot": "npm:^1.0.4"
     "@xiechao/codemirror-lang-handlebars": "npm:^1.0.4"
     ai: "npm:^6.0.167"
@@ -9309,8 +9308,6 @@ __metadata:
     http-status-codes: "npm:^2.3.0"
     input-otp: "npm:^1.4.2"
     jsdom: "npm:^25.0.1"
-    langfuse: "npm:^3.38.4"
-    langfuse-vercel: "npm:^3.38.4"
     linguist-languages: "npm:^9.3.1"
     lucide-react: "npm:^1.7.0"
     mermaid: "npm:^11.16.0"
@@ -10876,21 +10873,6 @@ __metadata:
   version: 3.1.0
   resolution: "@vercel/oidc@npm:3.1.0"
   checksum: 10c0/f57278ed4b4c022c7ca85e8baa5f9bdb2623397abfa0e5dbfd75de283c8e5dc534d64dac1364b5ad8c96d00eb2d469886e6f7b640f6f195def5766950ad8ce71
-  languageName: node
-  linkType: hard
-
-"@vercel/otel@npm:^1.13.0":
-  version: 1.13.0
-  resolution: "@vercel/otel@npm:1.13.0"
-  peerDependencies:
-    "@opentelemetry/api": ">=1.7.0 <2.0.0"
-    "@opentelemetry/api-logs": ">=0.46.0 <0.200.0"
-    "@opentelemetry/instrumentation": ">=0.46.0 <0.200.0"
-    "@opentelemetry/resources": ">=1.19.0 <2.0.0"
-    "@opentelemetry/sdk-logs": ">=0.46.0 <0.200.0"
-    "@opentelemetry/sdk-metrics": ">=1.19.0 <2.0.0"
-    "@opentelemetry/sdk-trace-base": ">=1.19.0 <2.0.0"
-  checksum: 10c0/720e1fd7efa3882fc147ec749d78e861d2d0644184838947c5754a8fa4e29d59e201ca54649dac4c4b75f4d932c8b62711e94f8fecd3176a96fc380eb7dd9437
   languageName: node
   linkType: hard
 
@@ -16977,36 +16959,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"langfuse-core@npm:^3.38.4":
-  version: 3.38.4
-  resolution: "langfuse-core@npm:3.38.4"
-  dependencies:
-    mustache: "npm:^4.2.0"
-  checksum: 10c0/65290416c379d1d628842a372127ad016b360409de07b670a72ff0ff79aa82255166571b532142b871548d562ee326f65e5cfb4e919e58520cdad633ea148bc7
-  languageName: node
-  linkType: hard
-
-"langfuse-vercel@npm:^3.38.4":
-  version: 3.38.4
-  resolution: "langfuse-vercel@npm:3.38.4"
-  dependencies:
-    langfuse: "npm:^3.38.4"
-    langfuse-core: "npm:^3.38.4"
-  peerDependencies:
-    ai: ">=3.2.44"
-  checksum: 10c0/f1781353e37ccfbf1f452be6fe9aeae548ed735c00e6d2d77c513c36b2dabeda0607bd25635a43f0047e8fa199a726cc1af8fc3f2b88501c956f55cf8d94449b
-  languageName: node
-  linkType: hard
-
-"langfuse@npm:^3.38.4":
-  version: 3.38.4
-  resolution: "langfuse@npm:3.38.4"
-  dependencies:
-    langfuse-core: "npm:^3.38.4"
-  checksum: 10c0/9718701a4c9b0634d6365edb4ad8a06a7334d65b11ec20f209a322f3aaaef859c427ad8adf7ee1e63ffa3c3aaa49edcf8360f29bb95b6ce539ea66a65fde4217
-  languageName: node
-  linkType: hard
-
 "langsmith@npm:>=0.5.0 <1.0.0":
   version: 0.7.1
   resolution: "langsmith@npm:0.7.1"
@@ -19805,13 +19757,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.4.47, postcss@npm:^8.5.12":
-  version: 8.5.22
-  resolution: "postcss@npm:8.5.22"
+  version: 8.5.25
+  resolution: "postcss@npm:8.5.25"
   dependencies:
     nanoid: "npm:^3.3.16"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/9e143ee457988049d5f187116fd37f2750ae9d8d71cc99eae690b776e549e134b34086cbaa2f0360ecd1729b15d918227bd0fc3a2ffbe341f7212d0827080793
+  checksum: 10c0/0a12c1e74b456c57122e81f684e02fd98ff4d57526f794d10c996df1147158808f5ae373ac82b988c8de6cbbaa82dbd7b13803b14f5dd3cf7cc6a42ccad5c9f2
   languageName: node
   linkType: hard
 

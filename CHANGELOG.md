@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Added guided reconnection for MCP connector authentication failures during Ask Sourcebot agent turns. [#1548](https://github.com/sourcebot-dev/sourcebot/pull/1548)
+
+### Removed
+- Removed the Langfuse integration. [#1536](https://github.com/sourcebot-dev/sourcebot/pull/1536)
+
+### Fixed
+- Upgraded `brace-expansion` to `^1.1.17`/`^2.1.3`/`^5.0.8`. [#1527](https://github.com/sourcebot-dev/sourcebot/pull/1527)
+- Upgraded `tar` to `^7.5.22`. [#1472](https://github.com/sourcebot-dev/sourcebot/pull/1472)
+- Fixed GitLab topic filters being incorrectly case-sensitive. [#1393](https://github.com/sourcebot-dev/sourcebot/pull/1393)
+- Fixed a crash when searching with `context:` referencing a search context that does not exist; it now returns a graceful error. [#1362](https://github.com/sourcebot-dev/sourcebot/pull/1362)
+- Fixed search queries failing to parse when negating a bare term that contains a colon (e.g. `-foo:bar`, `-http://example.com`). [#1301](https://github.com/sourcebot-dev/sourcebot/pull/1301)
+- Fixed the Review Agent failing to fetch pull request diffs for private GitHub repositories. [#1352](https://github.com/sourcebot-dev/sourcebot/pull/1352)
+- Upgraded `hono` to `^4.13.0`. [#1544](https://github.com/sourcebot-dev/sourcebot/pull/1544)
+- Upgraded `postcss` to `^8.5.25`. [#1543](https://github.com/sourcebot-dev/sourcebot/pull/1543)
+- Upgraded `socket.io-parser` to `^4.2.7`. [#1542](https://github.com/sourcebot-dev/sourcebot/pull/1542)
+- Upgraded `fast-uri` to `^3.1.5`. [#1541](https://github.com/sourcebot-dev/sourcebot/pull/1541)
+- Upgraded `ip-address` to `^10.4.0`. [#1540](https://github.com/sourcebot-dev/sourcebot/pull/1540)
+- [EE] Fixed Ask MCP connector tools failing to load when their input schemas use JSON Schema 2019-09 or 2020-12. [#1547](https://github.com/sourcebot-dev/sourcebot/pull/1547)
+
 ## [5.1.5] - 2026-07-31
 
 ### Fixed
@@ -29,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+
+### Fixed
+- Authenticated Ask GitHub repository lookups and added recoverable handling for GitHub API rate limits. [#1476](https://github.com/sourcebot-dev/sourcebot/pull/1476)
 
 ## [5.1.3] - 2026-07-20
 

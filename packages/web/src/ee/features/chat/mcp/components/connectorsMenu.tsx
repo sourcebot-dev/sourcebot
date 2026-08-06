@@ -42,6 +42,7 @@ interface ConnectorsMenuProps {
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
+    unavailableMcpServerIds?: string[];
     onDisabledMcpServerIdsChange: (ids: string[]) => void;
     isAuthenticated: boolean;
 }
@@ -65,10 +66,30 @@ export function shouldRetryMcpServersLoad(failureCount: number, error: Error) {
     return failureCount < 3;
 }
 
-export function splitMcpServersForChatMenu<T extends ChatMenuMcpServer>(servers: T[]) {
+export function splitMcpServersForChatMenu<T extends ChatMenuMcpServer & { id: string }>(
+    servers: T[],
+    unavailableMcpServerIds: string[] = [],
+) {
     return {
-        connectedServers: servers.filter((server) => server.isConnected || server.isAuthExpired),
-        connectableServers: servers.filter((server) => !server.isConnected && !server.isAuthExpired),
+        connectedServers: servers.filter((server) =>
+            server.isConnected || server.isAuthExpired || unavailableMcpServerIds.includes(server.id)),
+        connectableServers: servers.filter((server) =>
+            !server.isConnected && !server.isAuthExpired && !unavailableMcpServerIds.includes(server.id)),
+    };
+}
+
+export function getMcpServerToggleState(
+    server: { id: string; isAuthExpired: boolean },
+    disabledMcpServerIds: string[],
+    unavailableMcpServerIds: string[],
+) {
+    const isUnavailable = unavailableMcpServerIds.includes(server.id);
+    const isDisabled = server.isAuthExpired || isUnavailable;
+
+    return {
+        isUnavailable,
+        isDisabled,
+        isEnabled: !isDisabled && !disabledMcpServerIds.includes(server.id),
     };
 }
 
@@ -86,6 +107,7 @@ export const ConnectorsMenu = ({
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     disabledMcpServerIds,
+    unavailableMcpServerIds = [],
     onDisabledMcpServerIdsChange,
     isAuthenticated,
 }: ConnectorsMenuProps) => {
@@ -150,6 +172,10 @@ export const ConnectorsMenu = ({
     }, [editor, onDisabledMcpServerIdsChange, onSelectedSearchScopesChange]);
 
     const onToggle = (serverId: string, checked: boolean) => {
+        if (unavailableMcpServerIds.includes(serverId)) {
+            return;
+        }
+
         if (checked) {
             onDisabledMcpServerIdsChange(disabledMcpServerIds.filter((id) => id !== serverId));
         } else {
@@ -215,7 +241,7 @@ export const ConnectorsMenu = ({
         }
     };
 
-    const { connectedServers, connectableServers } = splitMcpServersForChatMenu(servers);
+    const { connectedServers, connectableServers } = splitMcpServersForChatMenu(servers, unavailableMcpServerIds);
     const hasServers = connectedServers.length > 0 || connectableServers.length > 0;
     const isAuthenticationError = error instanceof McpServersLoadError && error.serviceError.errorCode === ErrorCode.NOT_AUTHENTICATED;
     const shouldShowLoginConnectorItem = !isAuthenticated || isAuthenticationError;
@@ -262,26 +288,38 @@ export const ConnectorsMenu = ({
                                 ) : (
                                     <>
                                         {connectedServers.map((server) => {
-                                            const isEnabled = !server.isAuthExpired && !disabledMcpServerIds.includes(server.id);
+                                            const { isDisabled, isEnabled, isUnavailable } = getMcpServerToggleState(
+                                                server,
+                                                disabledMcpServerIds,
+                                                unavailableMcpServerIds,
+                                            );
                                             return (
                                                 <DropdownMenuItem
                                                     key={server.id}
                                                     onSelect={(e) => e.preventDefault()}
-                                                    disabled={server.isAuthExpired}
+                                                    disabled={isDisabled}
                                                     className="flex items-center justify-between gap-2"
                                                 >
                                                     <div className="flex items-center gap-2 min-w-0">
-                                                        {server.isAuthExpired ? (
+                                                        {isDisabled ? (
                                                             <AlertTriangleIcon className="w-4 h-4 shrink-0 text-yellow-500" />
                                                         ) : (
                                                             <McpFavicon faviconUrl={server.faviconUrl} className="w-4 h-4 rounded-sm" />
                                                         )}
-                                                        <span className="truncate text-sm">{server.name}</span>
+                                                        <span className="min-w-0">
+                                                            <span className="block truncate text-sm">{server.name}</span>
+                                                            {isUnavailable && (
+                                                                <span className="block truncate text-[10px] text-muted-foreground">
+                                                                    Reconnect required
+                                                                </span>
+                                                            )}
+                                                        </span>
                                                     </div>
                                                     <Switch
                                                         checked={isEnabled}
                                                         onCheckedChange={(checked) => onToggle(server.id, checked)}
-                                                        disabled={server.isAuthExpired}
+                                                        disabled={isDisabled}
+                                                        aria-label={isUnavailable ? `${server.name} unavailable until reconnected` : undefined}
                                                         className="scale-75"
                                                     />
                                                 </DropdownMenuItem>

@@ -15,8 +15,6 @@ import { convertLLMOutputToPortableMarkdown } from "@/features/chat/utils";
 import { submitFeedback } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { LangfuseWeb } from "langfuse";
-import { env } from "@sourcebot/shared/client";
 import isEqual from "fast-deep-equal/react";
 import { FileSource } from "@/features/chat/types";
 
@@ -24,20 +22,13 @@ interface AnswerCardProps {
     answerText: string;
     messageId: string;
     chatId: string;
-    traceId?: string;
     sources: FileSource[];
 }
-
-const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
-    publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
-    baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
-}) : null;
 
 const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
     messageId,
     chatId,
-    traceId,
     sources,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
@@ -89,16 +80,10 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 chatId,
                 messageId,
             });
-
-            langfuseWeb?.score({
-                traceId: traceId,
-                name: 'user_feedback',
-                value: feedbackType === 'like' ? 1 : 0,
-            })
         }
 
         setIsSubmittingFeedback(false);
-    }, [chatId, messageId, toast, captureEvent, traceId]);
+    }, [chatId, messageId, toast, captureEvent]);
 
     return (
         <div className="flex flex-row w-full relative scroll-mt-16">

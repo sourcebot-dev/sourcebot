@@ -29,6 +29,9 @@ import { generateAndUpdateChatNameFromMessage } from '@/ee/features/chat/actions
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '@/features/chat/components/notConfiguredErrorBanner';
 import { McpServerIconContext, McpServerIconMap, McpToolNameContext, McpToolNameMap } from '../../mcpDisplayMetadataContext';
+import { McpReconnectContext } from '../../mcpReconnectContext';
+import { McpAuthRequiredData, McpServerLoadFailureData, useMcpReconnectController } from './useMcpReconnectController';
+import { McpReconnectBanner } from './mcpReconnectBanner';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
@@ -119,19 +122,7 @@ export const ChatThread = ({
         return map;
     });
 
-    const [failedMcpServers, setFailedMcpServers] = useState<string[]>(() => {
-        const names: string[] = [];
-        initialMessages?.forEach((message) => {
-            message.parts
-                .filter((part) => part.type === 'data-mcp-failed-server')
-                .forEach((part) => {
-                    if (!names.includes(part.data.serverName)) {
-                        names.push(part.data.serverName);
-                    }
-                });
-        });
-        return names;
-    });
+    const [failedMcpServers, setFailedMcpServers] = useState<McpServerLoadFailureData[]>([]);
     const [isFailedMcpBannerVisible, setIsFailedMcpBannerVisible] = useState(false);
 
     const { selectedLanguageModel } = useSelectedLanguageModel();
@@ -147,11 +138,48 @@ export const ChatThread = ({
     useEffect(() => { modelRef.current = selectedLanguageModel; }, [selectedLanguageModel]);
     useEffect(() => { disabledMcpRef.current = disabledMcpServerIds; }, [disabledMcpServerIds]);
 
+    const forceDisableMcpServer = useCallback((serverId: string) => {
+        if (disabledMcpRef.current.includes(serverId)) {
+            return;
+        }
+
+        const nextDisabledServerIds = [...disabledMcpRef.current, serverId];
+        disabledMcpRef.current = nextDisabledServerIds;
+        onDisabledMcpServerIdsChange(nextDisabledServerIds);
+    }, [onDisabledMcpServerIdsChange]);
+
+    const reenableMcpServer = useCallback((serverId: string) => {
+        if (!disabledMcpRef.current.includes(serverId)) {
+            return;
+        }
+
+        const nextDisabledServerIds = disabledMcpRef.current.filter((id) => id !== serverId);
+        disabledMcpRef.current = nextDisabledServerIds;
+        onDisabledMcpServerIdsChange(nextDisabledServerIds);
+    }, [onDisabledMcpServerIdsChange]);
+
+    const registerFailedMcpServer = useCallback((server: McpServerLoadFailureData) => {
+        setFailedMcpServers((prev) => {
+            if (prev.some((candidate) => candidate.serverId === server.serverId)) {
+                return prev;
+            }
+            return [...prev, server];
+        });
+        setIsFailedMcpBannerVisible(true);
+        forceDisableMcpServer(server.serverId);
+    }, [forceDisableMcpServer]);
+
     const getTransportBody = useCallback(() => ({
         selectedSearchScopes: searchScopesRef.current,
         languageModel: modelRef.current,
         disabledMcpServerIds: disabledMcpRef.current,
     }), []);
+
+    // The reconnect controller is created after useChat (it needs the chat's
+    // messages and status), so transient auth-required events received in
+    // onData are forwarded to it through a ref.
+    const onMcpAuthRequiredRef = useRef<((data: McpAuthRequiredData) => void) | null>(null);
+    const onMcpServerLoadFailedRef = useRef<((data: McpServerLoadFailureData) => void) | null>(null);
 
     // Transport with dynamic body, resolved on every request, including auto-resends
     // triggered by sendAutomaticallyWhen after tool approval.
@@ -195,13 +223,11 @@ export const ChatThread = ({
                 }));
             }
             if (dataPart.type === 'data-mcp-failed-server') {
-                setFailedMcpServers((prev) => {
-                    if (prev.includes(dataPart.data.serverName)) {
-                        return prev;
-                    }
-                    return [...prev, dataPart.data.serverName];
-                });
-                setIsFailedMcpBannerVisible(true);
+                registerFailedMcpServer(dataPart.data);
+                onMcpServerLoadFailedRef.current?.(dataPart.data);
+            }
+            if (dataPart.type === 'data-mcp-auth-required') {
+                onMcpAuthRequiredRef.current?.(dataPart.data);
             }
         }
     });
@@ -275,6 +301,44 @@ export const ChatThread = ({
         enabled: shouldGuardNavigation,
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
+
+    const {
+        contextValue: mcpReconnectContextValue,
+        onAuthRequired: onMcpAuthRequired,
+        onServerLoadFailed: onMcpServerLoadFailed,
+    } = useMcpReconnectController({
+        status,
+        messages,
+        isTurnInProgress,
+        addToolApprovalResponse,
+    });
+
+    useEffect(() => {
+        onMcpAuthRequiredRef.current = onMcpAuthRequired;
+        onMcpServerLoadFailedRef.current = onMcpServerLoadFailed;
+    }, [onMcpAuthRequired, onMcpServerLoadFailed]);
+
+    const handledLoadReconnectsRef = useRef(new Set<string>());
+    useEffect(() => {
+        for (const state of Object.values(mcpReconnectContextValue.reconnectStates)) {
+            if (state.source !== 'tool-load') {
+                continue;
+            }
+
+            if (state.status === 'reconnected') {
+                if (handledLoadReconnectsRef.current.has(state.serverId)) {
+                    continue;
+                }
+                handledLoadReconnectsRef.current.add(state.serverId);
+                setFailedMcpServers((prev) => prev.filter((server) => server.serverId !== state.serverId));
+                reenableMcpServer(state.serverId);
+                continue;
+            }
+
+            handledLoadReconnectsRef.current.delete(state.serverId);
+            registerFailedMcpServer({ serverId: state.serverId, serverName: state.serverName });
+        }
+    }, [mcpReconnectContextValue.reconnectStates, reenableMcpServer, registerFailedMcpServer]);
 
     // When the chat is finished, refresh the page to update the chat history.
     const prevStatus = usePrevious(status);
@@ -395,6 +459,7 @@ export const ChatThread = ({
 
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
+        <McpReconnectContext.Provider value={mcpReconnectContextValue}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
         <McpToolNameContext.Provider value={mcpToolNameMap}>
         <ChatPaneDropzone
@@ -410,10 +475,11 @@ export const ChatThread = ({
                 />
             )}
             <McpFailedServersBanner
-                serverNames={failedMcpServers}
+                servers={failedMcpServers}
                 isVisible={isFailedMcpBannerVisible}
                 onClose={() => setIsFailedMcpBannerVisible(false)}
             />
+            <McpReconnectBanner />
 
             <div className="relative h-full w-full p-4 overflow-hidden min-h-0">
                 <div
@@ -516,6 +582,7 @@ export const ChatThread = ({
                                         isContextSelectorOpen={isContextSelectorOpen}
                                         onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                         disabledMcpServerIds={disabledMcpServerIds}
+                                        unavailableMcpServerIds={failedMcpServers.map((server) => server.serverId)}
                                         onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
                                         isAuthenticated={isAuthenticated}
                                     />
@@ -547,6 +614,7 @@ export const ChatThread = ({
         </ChatPaneDropzone>
         </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
+        </McpReconnectContext.Provider>
         </ToolApprovalProvider>
     );
 }
