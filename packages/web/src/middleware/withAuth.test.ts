@@ -62,6 +62,7 @@ vi.mock('@sourcebot/shared', () => ({
     OAUTH_ACCESS_TOKEN_PREFIX: 'sboa_',
     API_KEY_PREFIX: 'sbk_',
     LEGACY_API_KEY_PREFIX: 'sourcebot-',
+    SCOPED_ACCESS_TOKEN_PREFIX: 'sbst_',
     env: mocks.env,
     getSeatCap: mocks.getSeatCap,
     createLogger: vi.fn(() => ({
@@ -82,6 +83,26 @@ const setMockHeaders = (headers: Headers) => {
 };
 
 const SUSPENDED_AT = new Date('2026-01-01T00:00:00.000Z');
+
+const createMockScopedAccessToken = ({
+    expiresAt = new Date('2099-01-01T00:00:00.000Z'),
+    orgId = MOCK_ORG.id,
+    repositoryIds = [11, 22],
+}: {
+    expiresAt?: Date;
+    orgId?: number;
+    repositoryIds?: number[];
+} = {}) => ({
+    id: 'scoped-token-id',
+    hash: 'scopedtoken',
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    expiresAt,
+    lastUsedAt: null,
+    createdById: MOCK_USER_WITH_ACCOUNTS.id,
+    orgId,
+    createdBy: MOCK_USER_WITH_ACCOUNTS,
+    repos: repositoryIds.map((repoId) => ({ repoId })),
+});
 
 // Helper to create mock session objects
 const createMockSession = (overrides: Partial<Session> = {}): Session => ({
@@ -127,7 +148,7 @@ describe('getAuthenticatedUser', () => {
         const result = await getAuthenticatedUser();
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
-        expect(result?.source).toBe('session');
+        expect(result?.principal.source).toBe('session');
     });
 
     test('should return a user object if a valid api key is present', async () => {
@@ -146,7 +167,7 @@ describe('getAuthenticatedUser', () => {
         const result = await getAuthenticatedUser();
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
-        expect(result?.source).toBe('api_key');
+        expect(result?.principal.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
                 hash: 'apikey',
@@ -173,7 +194,7 @@ describe('getAuthenticatedUser', () => {
         const result = await getAuthenticatedUser();
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
-        expect(result?.source).toBe('api_key');
+        expect(result?.principal.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: { hash: 'apikey' },
             data: { lastUsedAt: expect.any(Date) },
@@ -196,7 +217,7 @@ describe('getAuthenticatedUser', () => {
         const result = await getAuthenticatedUser();
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
-        expect(result?.source).toBe('api_key');
+        expect(result?.principal.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
                 hash: 'apikey',
@@ -204,6 +225,90 @@ describe('getAuthenticatedUser', () => {
             data: {
                 lastUsedAt: expect.any(Date),
             },
+        });
+    });
+
+    describe('scoped access token Bearer authentication', () => {
+        test('should return the token creator and scoped access token principal for a valid token', async () => {
+            const scopedAccessToken = createMockScopedAccessToken();
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(prisma.scopedAccessToken.findUnique).toHaveBeenCalledWith({
+                where: { hash: 'scopedtoken' },
+                include: {
+                    createdBy: {
+                        include: { accounts: true },
+                    },
+                    repos: {
+                        select: { repoId: true },
+                    },
+                },
+            });
+            expect(result).toStrictEqual({
+                user: MOCK_USER_WITH_ACCOUNTS,
+                principal: {
+                    source: 'scoped_access_token',
+                    credentialId: scopedAccessToken.id,
+                    orgId: scopedAccessToken.orgId,
+                    repositoryIds: [11, 22],
+                    expiresAt: scopedAccessToken.expiresAt,
+                },
+            });
+            expect(prisma.scopedAccessToken.update).toHaveBeenCalledWith({
+                where: { hash: 'scopedtoken' },
+                data: { lastUsedAt: expect.any(Date) },
+            });
+            expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
+        });
+
+        test('should preserve an empty repository scope', async () => {
+            const scopedAccessToken = createMockScopedAccessToken({ repositoryIds: [] });
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(result?.principal).toMatchObject({
+                source: 'scoped_access_token',
+                repositoryIds: [],
+            });
+        });
+
+        test('should return undefined for an expired token', async () => {
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(createMockScopedAccessToken({
+                expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+            }));
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(result).toBeUndefined();
+            expect(prisma.scopedAccessToken.update).not.toHaveBeenCalled();
+            expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
+        });
+
+        test('should return undefined for a revoked token', async () => {
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(null);
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(result).toBeUndefined();
+            expect(prisma.scopedAccessToken.update).not.toHaveBeenCalled();
+            expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
+        });
+
+        test('should return undefined for a token without a secret', async () => {
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(result).toBeUndefined();
+            expect(prisma.scopedAccessToken.findUnique).not.toHaveBeenCalled();
+            expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
         });
     });
 
@@ -229,7 +334,7 @@ describe('getAuthenticatedUser', () => {
 
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(userId);
-        expect(result?.source).toBe('api_key');
+        expect(result?.principal.source).toBe('api_key');
         expect(mocks.headers).not.toHaveBeenCalled();
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
@@ -255,7 +360,7 @@ describe('getAuthenticatedUser', () => {
         const result = await getAuthenticatedUser();
         expect(result).not.toBeUndefined();
         expect(result?.user.id).toBe(MOCK_USER_WITH_ACCOUNTS.id);
-        expect(result?.source).toBe('oauth');
+        expect(result?.principal.source).toBe('oauth');
     });
 
     test('should return parsed scopes for a valid OAuth Bearer token', async () => {
@@ -266,7 +371,10 @@ describe('getAuthenticatedUser', () => {
         });
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
         const result = await getAuthenticatedUser();
-        expect(result?.oauthScopes).toEqual([TEST_OAUTH_SCOPE, 'other']);
+        expect(result?.principal).toEqual({
+            source: 'oauth',
+            oauthScopes: [TEST_OAUTH_SCOPE, 'other'],
+        });
     });
 
     test('should update lastUsedAt when an OAuth Bearer token is used', async () => {
@@ -395,6 +503,55 @@ describe('getAuthenticatedUser', () => {
 });
 
 describe('getAuthContext', () => {
+    test('should pass scoped access token repository IDs to the Prisma extension', async () => {
+        const scopedAccessToken = createMockScopedAccessToken();
+        prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);
+        prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: scopedAccessToken.createdBy.id,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: new Date(),
+            role: OrgRole.MEMBER,
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+        const authContext = await getAuthContext();
+
+        expect(userScopedPrismaClientExtension).toHaveBeenCalledWith(
+            scopedAccessToken.createdBy,
+            [11, 22],
+        );
+        expect(authContext).toMatchObject({
+            user: scopedAccessToken.createdBy,
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER,
+            principal: {
+                source: 'scoped_access_token',
+                credentialId: scopedAccessToken.id,
+                orgId: MOCK_ORG.id,
+                repositoryIds: [11, 22],
+                expiresAt: scopedAccessToken.expiresAt,
+            },
+        });
+    });
+
+    test('should reject a scoped access token issued for a different organization', async () => {
+        prisma.scopedAccessToken.findUnique.mockResolvedValue(createMockScopedAccessToken({
+            orgId: MOCK_ORG.id + 1,
+        }));
+        prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+        const authContext = await getAuthContext();
+
+        expect(authContext).toStrictEqual(notAuthenticated());
+        expect(prisma.userToOrg.findUnique).not.toHaveBeenCalled();
+        expect(userScopedPrismaClientExtension).not.toHaveBeenCalled();
+    });
+
     test('sets the Sentry user for direct callers', async () => {
         const userId = 'test-user-id';
         const user = {
@@ -458,6 +615,7 @@ describe('getAuthContext', () => {
             org: MOCK_ORG,
             role: OrgRole.MEMBER,
             prisma: undefined,
+            principal: { source: 'session' },
         });
     });
 
@@ -664,6 +822,7 @@ describe('getAuthContext', () => {
             org: MOCK_ORG,
             role: OrgRole.OWNER,
             prisma: undefined,
+            principal: { source: 'session' },
         });
     });
 
@@ -688,6 +847,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             prisma: undefined,
+            principal: { source: 'session' },
         });
     });
 
@@ -703,6 +863,7 @@ describe('getAuthContext', () => {
             user: undefined,
             org: MOCK_ORG,
             prisma: undefined,
+            principal: undefined,
         });
     });
 
@@ -734,6 +895,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             prisma: undefined,
+            principal: { source: 'session' },
         });
         expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
     });
@@ -771,6 +933,7 @@ describe('getAuthContext', () => {
             },
             org: MOCK_ORG,
             prisma: undefined,
+            principal: { source: 'api_key' },
         });
         expect(mocks.setSentryUser).toHaveBeenCalledWith(
             expect.objectContaining({ id: userId }),
@@ -827,6 +990,7 @@ describe('getAuthContext', () => {
                 org: MOCK_ORG,
                 role: OrgRole.OWNER,
                 prisma: undefined,
+                principal: { source: 'api_key' },
             });
         });
 
@@ -852,6 +1016,7 @@ describe('getAuthContext', () => {
                 org: MOCK_ORG,
                 role: OrgRole.MEMBER,
                 prisma: undefined,
+                principal: { source: 'session' },
             });
         });
     });
@@ -936,6 +1101,104 @@ describe('getAuthContext', () => {
 });
 
 describe('withAuth', () => {
+    describe('requiredAuthSource', () => {
+        test('should call the callback when the authentication source matches', async () => {
+            const userId = 'test-user-id';
+            prisma.user.findUnique.mockResolvedValue({
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            });
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId,
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: null,
+                role: OrgRole.MEMBER,
+            });
+            prisma.apiKey.findUnique.mockResolvedValue({
+                ...MOCK_API_KEY,
+                hash: 'apikey',
+                createdById: userId,
+            });
+            setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+            const cb = vi.fn(async () => 'allowed');
+
+            const result = await withAuth(cb, { requiredAuthSource: 'api_key' });
+
+            expect(result).toBe('allowed');
+            expect(cb).toHaveBeenCalledOnce();
+        });
+
+        test('should return forbidden when the authentication source does not match', async () => {
+            const userId = 'test-user-id';
+            prisma.user.findUnique.mockResolvedValue({
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            });
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId,
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: null,
+                role: OrgRole.MEMBER,
+            });
+            setMockSession(createMockSession({ user: { id: userId } }));
+            const cb = vi.fn(async () => 'allowed');
+
+            const result = await withAuth(cb, { requiredAuthSource: 'api_key' });
+
+            expect(result).toStrictEqual({
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                message: 'This operation cannot be performed with the current authentication method.',
+            });
+            expect(cb).not.toHaveBeenCalled();
+        });
+
+        test('should return forbidden when a scoped access token is used for an API-key-only operation', async () => {
+            const scopedAccessToken = createMockScopedAccessToken();
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);
+            prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId: scopedAccessToken.createdBy.id,
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: new Date(),
+                role: OrgRole.MEMBER,
+            });
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+            const cb = vi.fn(async () => 'allowed');
+
+            const result = await withAuth(cb, { requiredAuthSource: 'api_key' });
+
+            expect(result).toStrictEqual({
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                message: 'This operation cannot be performed with the current authentication method.',
+            });
+            expect(cb).not.toHaveBeenCalled();
+            expect(userScopedPrismaClientExtension).not.toHaveBeenCalled();
+        });
+
+        test('should return unauthenticated when no authentication source is present', async () => {
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            const cb = vi.fn(async () => 'allowed');
+
+            const result = await withAuth(cb, { requiredAuthSource: 'api_key' });
+
+            expect(result).toStrictEqual(notAuthenticated());
+            expect(cb).not.toHaveBeenCalled();
+        });
+    });
+
     test('should pass the scoped prisma client from $extends to the callback', async () => {
         const userId = 'test-user-id';
         const user = {
@@ -965,10 +1228,11 @@ describe('withAuth', () => {
         const cb = vi.fn();
         await withAuth(cb);
 
-        expect(userScopedPrismaClientExtension).toHaveBeenCalledWith(user);
+        expect(userScopedPrismaClientExtension).toHaveBeenCalledWith(user, undefined);
         expect(prisma.$extends).toHaveBeenCalledWith(extension);
         expect(cb).toHaveBeenCalledWith(expect.objectContaining({
             prisma: scopedPrisma,
+            principal: { source: 'session' },
         }));
     });
 
@@ -1000,7 +1264,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1033,7 +1298,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1071,7 +1337,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1109,7 +1376,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1147,7 +1415,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1185,7 +1454,8 @@ describe('withAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1321,7 +1591,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1354,7 +1625,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1392,7 +1664,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1430,7 +1703,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1468,7 +1742,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.MEMBER
+            role: OrgRole.MEMBER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1506,7 +1781,8 @@ describe('withOptionalAuth', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.OWNER
+            role: OrgRole.OWNER,
+            principal: expect.any(Object),
         });
         expect(result).toEqual(undefined);
     });
@@ -1581,6 +1857,7 @@ describe('withOptionalAuth', () => {
                 isAnonymousAccessEnabled: true,
             },
             prisma: undefined,
+            principal: { source: 'session' },
         });
         expect(result).toEqual(undefined);
     });

@@ -105,3 +105,18 @@ export const publicEeAuditRecordSchema = z.object({
 }).openapi('PublicEeAuditRecord');
 
 export const publicEeAuditResponseSchema = z.array(publicEeAuditRecordSchema).openapi('PublicEeAuditResponse');
+
+// EE: Scoped Access Tokens
+export const publicCreateScopedAccessTokenRequestSchema = z.object({
+    repos: z.array(z.string().min(1)).min(1)
+        .describe('Repository names to bind to the token. Every name must identify exactly one repository accessible to the API-key owner.'),
+}).strict().openapi('PublicCreateScopedAccessTokenRequest');
+
+export const publicCreateScopedAccessTokenResponseSchema = z.object({
+    id: z.string().describe('Identifier used to revoke the token.'),
+    token: z.string().regex(/^sbst_/)
+        .describe('Opaque bearer token. This value is returned only when the token is created.'),
+    createdAt: z.string().datetime(),
+    expiresAt: z.string().datetime(),
+    repos: z.array(z.string().min(1)).min(1),
+}).openapi('PublicCreateScopedAccessTokenResponse');

@@ -190,6 +190,14 @@
                         ]
                     },
                     {
+                        "group": "Scoped Access Tokens",
+                        "icon": "key",
+                        "pages": [
+                            "POST /api/ee/scoped_access_token",
+                            "DELETE /api/ee/scoped_access_token/{id}"
+                        ]
+                    },
+                    {
                         "group": "Git",
                         "icon": "code-branch",
                         "pages": [

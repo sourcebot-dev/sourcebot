@@ -19,6 +19,10 @@
       "description": "Git history, diff, and file content endpoints."
     },
     {
+      "name": "Scoped Access Tokens",
+      "description": "Mint and revoke short-lived credentials restricted to specific repositories."
+    },
+    {
       "name": "System",
       "description": "System health and version endpoints."
     },
@@ -1090,6 +1094,61 @@
           "$ref": "#/components/schemas/PublicCommitAuthor"
         }
       },
+      "PublicCreateScopedAccessTokenResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier used to revoke the token."
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^sbst_",
+            "description": "Opaque bearer token. This value is returned only when the token is created."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "createdAt",
+          "expiresAt",
+          "repos"
+        ]
+      },
+      "PublicCreateScopedAccessTokenRequest": {
+        "type": "object",
+        "properties": {
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "description": "Repository names to bind to the token. Every name must identify exactly one repository accessible to the API-key owner."
+          }
+        },
+        "required": [
+          "repos"
+        ],
+        "additionalProperties": false
+      },
       "PublicEeUser": {
         "type": "object",
         "properties": {
@@ -1253,7 +1312,7 @@
       "bearerToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key."
+        "description": "Bearer authentication header of the form `Bearer <token>`. The token may be a Sourcebot API key, OAuth access token, or scoped access token, subject to endpoint requirements."
       },
       "apiKeyHeader": {
         "type": "apiKey",
@@ -2255,6 +2314,161 @@
           },
           "500": {
             "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/scoped_access_token": {
+      "post": {
+        "operationId": "createScopedAccessToken",
+        "tags": [
+          "Scoped Access Tokens"
+        ],
+        "summary": "Create a scoped access token",
+        "description": "Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories. Repository names are resolved atomically against the API-key owner's current access; the request fails if any name is missing, inaccessible, or ambiguous.\n\nThis endpoint requires a Sourcebot API key. Scoped access tokens, OAuth tokens, and browser sessions cannot mint another scoped access token. The returned token is independent of the API key after issuance and cannot be refreshed.",
+        "security": [
+          {
+            "bearerToken": []
+          },
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicCreateScopedAccessTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scoped access token created. The opaque token value is returned only in this response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCreateScopedAccessTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or repository scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected token creation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/scoped_access_token/{id}": {
+      "delete": {
+        "operationId": "revokeScopedAccessToken",
+        "tags": [
+          "Scoped Access Tokens"
+        ],
+        "summary": "Revoke a scoped access token",
+        "description": "Immediately revokes a scoped access token created by the authenticated API-key owner. This endpoint requires a Sourcebot API key.",
+        "security": [
+          {
+            "bearerToken": []
+          },
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Identifier returned when the scoped access token was created."
+            },
+            "required": true,
+            "description": "Identifier returned when the scoped access token was created.",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scoped access token revoked."
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scoped access token not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected token revocation failure.",
             "content": {
               "application/json": {
                 "schema": {

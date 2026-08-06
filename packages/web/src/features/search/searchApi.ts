@@ -1,15 +1,14 @@
 import { sew } from "@/middleware/sew";
 import { createAudit } from "@/ee/features/audit/audit";
-import { getRepoPermissionFilterForUser } from "@/prisma";
-import { withOptionalAuth } from "@/middleware/withAuth";
-import { PrismaClient, UserWithAccounts } from "@sourcebot/db";
+import { withOptionalAuth, type AuthPrincipal } from "@/middleware/withAuth";
+import { PrismaClient } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { hasEntitlement } from "@/lib/entitlements";
 import { headers } from "next/headers";
 import { QueryIR } from './ir';
 import { parseQuerySyntaxIntoIR } from './parser';
 import { SearchOptions } from "./types";
-import { createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
+import { createZoektSearchRequest, type RepoSearchScope, zoektSearch, zoektStreamSearch } from './zoektSearcher';
 
 
 type QueryStringSearchRequest = {
@@ -30,7 +29,7 @@ type QueryIRSearchRequest = {
 type SearchRequest = QueryStringSearchRequest | QueryIRSearchRequest;
 
 export const search = (request: SearchRequest) => sew(() =>
-    withOptionalAuth(async ({ prisma, user, org }) => {
+    withOptionalAuth(async ({ prisma, user, org, principal }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             await createAudit({
@@ -42,7 +41,7 @@ export const search = (request: SearchRequest) => sew(() =>
             });
         }
 
-        const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
+        const repoSearchScope = await getRepoSearchScope({ prisma, principal });
 
         // If needed, parse the query syntax into the query intermediate representation.
         const query = request.queryType === 'string' ? await parseQuerySyntaxIntoIR({
@@ -61,7 +60,7 @@ export const search = (request: SearchRequest) => sew(() =>
     }));
 
 export const streamSearch = (request: SearchRequest) => sew(() =>
-    withOptionalAuth(async ({ prisma, user, org }) => {
+    withOptionalAuth(async ({ prisma, user, org, principal }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             await createAudit({
@@ -73,7 +72,7 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
             });
         }
 
-        const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
+        const repoSearchScope = await getRepoSearchScope({ prisma, principal });
 
         // If needed, parse the query syntax into the query intermediate representation.
         const query = request.queryType === 'string' ? await parseQuerySyntaxIntoIR({
@@ -92,22 +91,33 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
     }));
 
 /**
- * Returns a list of repository names that the user has access to.
- * If permission syncing is disabled, returns undefined.
+ * Returns whether search can include all repositories or must be constrained to
+ * the repositories exposed by the scoped Prisma client.
  */
-const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWithAccounts, prisma: PrismaClient }) => {
+const getRepoSearchScope = async ({
+    prisma,
+    principal,
+}: {
+    prisma: PrismaClient;
+    principal?: AuthPrincipal;
+}): Promise<RepoSearchScope> => {
     if (
-        env.PERMISSION_SYNC_ENABLED !== 'true' ||
-        !await hasEntitlement('permission-syncing')
+        principal?.source !== 'scoped_access_token' &&
+        (
+            env.PERMISSION_SYNC_ENABLED !== 'true' ||
+            !await hasEntitlement('permission-syncing')
+        )
     ) {
-        return undefined;
+        return { kind: 'all' };
     }
 
     const accessibleRepos = await prisma.repo.findMany({
-        where: getRepoPermissionFilterForUser(user),
         select: {
             name: true,
         }
     });
-    return accessibleRepos.map(repo => repo.name);
+    return {
+        kind: 'repos',
+        repos: accessibleRepos.map(repo => repo.name),
+    };
 }

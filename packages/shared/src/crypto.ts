@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { env } from './env.server.js';
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
-import { API_KEY_PREFIX, OAUTH_ACCESS_TOKEN_PREFIX, OAUTH_REFRESH_TOKEN_PREFIX, SCIM_TOKEN_PREFIX } from './constants.js';
+import { API_KEY_PREFIX, OAUTH_ACCESS_TOKEN_PREFIX, OAUTH_REFRESH_TOKEN_PREFIX, SCIM_TOKEN_PREFIX, SCOPED_ACCESS_TOKEN_PREFIX } from './constants.js';
 
 const algorithm = 'aes-256-cbc';
 const ivLength = 16; // 16 bytes for CBC
@@ -62,6 +62,16 @@ export function generateScimToken(): { token: string; hash: string } {
 
     return {
         token: `${SCIM_TOKEN_PREFIX}${secret}`,
+        hash,
+    };
+}
+
+export function generateScopedAccessToken(): { token: string; hash: string } {
+    const secret = crypto.randomBytes(32).toString('hex');
+    const hash = hashSecret(secret);
+
+    return {
+        token: `${SCOPED_ACCESS_TOKEN_PREFIX}${secret}`,
         hash,
     };
 }
