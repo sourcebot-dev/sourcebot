@@ -26,6 +26,7 @@ import {
     publicListCommitAuthorsResponseSchema,
     publicListCommitsQuerySchema,
     publicListCommitsResponseSchema,
+    publicListConnectionsResponseSchema,
     publicListReposQueryParamsSchema,
     publicListReposResponseSchema,
     publicSearchRequestSchema,
@@ -36,6 +37,7 @@ import {
 import dedent from 'dedent';
 
 const searchTag = { name: 'Search & Navigation', description: 'Code search and symbol navigation endpoints.' };
+const connectionsTag = { name: 'Connections', description: 'Code host connection metadata.' };
 const reposTag = { name: 'Repositories', description: 'Repository listing and metadata endpoints.' };
 const gitTag = { name: 'Git', description: 'Git history, diff, and file content endpoints.' };
 const systemTag = { name: 'System', description: 'System health and version endpoints.' };
@@ -172,6 +174,23 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Invalid query parameters.'),
             500: errorJson('Unexpected repository listing failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/connections',
+        operationId: 'listConnections',
+        tags: [connectionsTag.name],
+        summary: 'List connections',
+        description: 'Returns unique code host connections associated with at least one repository visible to the caller. Connection configuration and credentials are never included.',
+        responses: {
+            200: {
+                description: 'Connections associated with visible repositories.',
+                content: jsonContent(publicListConnectionsResponseSchema),
+            },
+            401: errorJson('Authentication is required when anonymous access is disabled.'),
+            500: errorJson('Unexpected connection listing failure.'),
         },
     });
 
@@ -609,7 +628,7 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access.',
         },
-        tags: [searchTag, reposTag, gitTag, scopedAccessTokensTag, systemTag, eeTag],
+        tags: [searchTag, connectionsTag, reposTag, gitTag, scopedAccessTokensTag, systemTag, eeTag],
         security: [
             { [securitySchemeNames.bearerToken]: [] },
             { [securitySchemeNames.apiKeyHeader]: [] },
