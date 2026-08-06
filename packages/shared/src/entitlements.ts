@@ -52,6 +52,7 @@ const ALL_ENTITLEMENTS = [
     "oauth",
     "ask",
     "mcp",
+    "scoped-access-tokens",
     "scim"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];

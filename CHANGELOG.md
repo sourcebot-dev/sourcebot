@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [EE] Added one-hour repository-scoped access tokens with public mint and revoke APIs. [#1549](https://github.com/sourcebot-dev/sourcebot/pull/1549)
 - [EE] Added guided reconnection for MCP connector authentication failures during Ask Sourcebot agent turns. [#1548](https://github.com/sourcebot-dev/sourcebot/pull/1548)
 
 ### Removed
