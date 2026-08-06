@@ -1,13 +1,5 @@
 import { z } from "zod";
-import { CodeHostType, ConnectionType } from "@sourcebot/db";
-
-export const connectionQuerySchema = z.object({
-    id: z.number().int(),
-    name: z.string(),
-    connectionType: z.nativeEnum(ConnectionType),
-});
-
-export const listConnectionsResponseSchema = connectionQuerySchema.array();
+import { CodeHostType } from "@sourcebot/db";
 
 export const repositoryQuerySchema = z.object({
     codeHostType: z.nativeEnum(CodeHostType),
@@ -46,6 +38,8 @@ export const listReposQueryParamsSchema = z.object({
     sort: z.enum(['name', 'pushed']).default('name'),
     direction: z.enum(['asc', 'desc']).default('asc'),
     query: z.string().optional(),
+    connectionId: z.coerce.number().int().positive().optional()
+        .describe('Filter repositories to those associated with this connection ID. IDs are returned by GET /api/connections.'),
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();

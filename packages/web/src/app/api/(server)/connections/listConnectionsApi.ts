@@ -1,9 +1,23 @@
-import type { ConnectionQuery } from '@/lib/types';
 import { sew } from '@/middleware/sew';
 import { withOptionalAuth } from '@/middleware/withAuth';
+import { ConnectionType } from '@sourcebot/db';
+import { z } from 'zod';
+
+export const connectionQuerySchema = z.object({
+    id: z.number().int(),
+    name: z.string(),
+    connectionType: z.nativeEnum(ConnectionType),
+});
+
+export const listConnectionsResponseSchema = connectionQuerySchema.array();
+
+export type ConnectionQuery = z.infer<typeof connectionQuerySchema>;
+export type ListConnectionsResponse = z.infer<typeof listConnectionsResponseSchema>;
 
 export const listConnections = async () => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {
+        // Query through repos so the scoped Prisma client applies repository visibility;
+        // querying Connection directly would expose connections unrelated to visible repos.
         const repositories = await prisma.repo.findMany({
             where: {
                 orgId: org.id,

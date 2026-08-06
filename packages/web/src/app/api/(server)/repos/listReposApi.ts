@@ -6,7 +6,7 @@ import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
 import { headers } from "next/headers";
 
-export const listRepos = async ({ query, page, perPage, sort, direction, source }: ListReposQueryParams & { source?: string }) => sew(() =>
+export const listRepos = async ({ query, page, perPage, sort, direction, connectionId, source }: ListReposQueryParams & { source?: string }) => sew(() =>
     withOptionalAuth(async ({ org, prisma, user }) => {
         if (user) {
             const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
@@ -22,26 +22,27 @@ export const listRepos = async ({ query, page, perPage, sort, direction, source 
         const skip = (page - 1) * perPage;
         const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
         const baseUrl = env.AUTH_URL;
+        const where = {
+            orgId: org.id,
+            ...(query ? {
+                name: { contains: query, mode: 'insensitive' as const },
+            } : {}),
+            ...(connectionId !== undefined ? {
+                connections: {
+                    some: { connectionId },
+                },
+            } : {}),
+        };
 
         const [repos, totalCount] = await Promise.all([
             prisma.repo.findMany({
-                where: {
-                    orgId: org.id,
-                    ...(query ? {
-                        name: { contains: query, mode: 'insensitive' },
-                    } : {}),
-                },
+                where,
                 skip,
                 take: perPage,
                 orderBy: { [orderByField]: direction },
             }),
             prisma.repo.count({
-                where: {
-                    orgId: org.id,
-                    ...(query ? {
-                        name: { contains: query, mode: 'insensitive' },
-                    } : {}),
-                },
+                where,
             }),
         ]);
 
