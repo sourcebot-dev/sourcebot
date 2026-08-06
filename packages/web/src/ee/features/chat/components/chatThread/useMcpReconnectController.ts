@@ -187,15 +187,23 @@ export function useMcpReconnectController({
         });
 
         (async () => {
-            await invalidateMcpConfigurationQueries(queryClient);
-            const servers = await getMcpServersWithStatus();
-            const server = isServiceError(servers)
-                ? undefined
-                : servers.find((candidate) => candidate.id === pending.serverId);
+            try {
+                await invalidateMcpConfigurationQueries(queryClient);
+                const servers = await getMcpServersWithStatus();
+                const server = isServiceError(servers)
+                    ? undefined
+                    : servers.find((candidate) => candidate.id === pending.serverId);
 
-            if (server?.isConnected && !server.isAuthExpired) {
-                setReconnectStatus(pending.serverId, 'reconnected');
-            } else {
+                if (server?.isConnected && !server.isAuthExpired) {
+                    setReconnectStatus(pending.serverId, 'reconnected');
+                } else {
+                    setReconnectStatus(pending.serverId, 'authentication-required');
+                    toast({
+                        description: `${pending.serverName} was not reconnected.`,
+                        variant: 'destructive',
+                    });
+                }
+            } catch {
                 setReconnectStatus(pending.serverId, 'authentication-required');
                 toast({
                     description: `${pending.serverName} was not reconnected.`,
@@ -224,61 +232,70 @@ export function useMcpReconnectController({
             return;
         }
 
-        const returnTo = createMcpOAuthDraftPath(window.location.pathname, window.location.search);
-        if (!returnTo) {
-            toast({
-                description: 'Failed to start the reconnect flow for this page.',
-                variant: 'destructive',
+        try {
+            const returnTo = createMcpOAuthDraftPath(window.location.pathname, window.location.search);
+            if (!returnTo) {
+                toast({
+                    description: 'Failed to start the reconnect flow for this page.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            reconnectStatesRef.current = {
+                ...reconnectStatesRef.current,
+                [serverId]: { ...state, status: 'reconnecting' },
+            };
+            setReconnectStatus(serverId, 'reconnecting');
+            saveMcpPendingReconnect({
+                serverId,
+                serverName: state.serverName,
+                toolCallId: state.toolCallId,
+                source: state.source,
+                returnTo,
             });
-            return;
-        }
 
-        reconnectStatesRef.current = {
-            ...reconnectStatesRef.current,
-            [serverId]: { ...state, status: 'reconnecting' },
-        };
-        setReconnectStatus(serverId, 'reconnecting');
-        saveMcpPendingReconnect({
-            serverId,
-            serverName: state.serverName,
-            toolCallId: state.toolCallId,
-            source: state.source,
-            returnTo,
-        });
+            const result = await connectMcpToAsk({ serverId, returnTo, forceAuthorization: true });
 
-        const result = await connectMcpToAsk({ serverId, returnTo, forceAuthorization: true });
+            if (isServiceError(result)) {
+                clearMcpPendingReconnect();
+                setReconnectStatus(serverId, 'authentication-required');
+                toast({
+                    description: `Failed to reconnect ${state.serverName}. ${result.message}`,
+                    variant: 'destructive',
+                });
+                return;
+            }
 
-        if (isServiceError(result)) {
+            if (result.authorizationUrl) {
+                window.location.href = result.authorizationUrl;
+                return;
+            }
+
+            // Defensive fallback for older or alternate endpoint implementations
+            // that complete reconnection without returning an authorization URL.
+            clearMcpPendingReconnect();
+            await invalidateMcpConfigurationQueries(queryClient);
+            const servers = await getMcpServersWithStatus();
+            const server = isServiceError(servers)
+                ? undefined
+                : servers.find((candidate) => candidate.id === serverId);
+
+            if (server?.isConnected && !server.isAuthExpired) {
+                setReconnectStatus(serverId, 'reconnected');
+                toast({ description: `Successfully reconnected to ${state.serverName}.` });
+            } else {
+                setReconnectStatus(serverId, 'authentication-required');
+                toast({
+                    description: `${state.serverName} was not reconnected.`,
+                    variant: 'destructive',
+                });
+            }
+        } catch {
             clearMcpPendingReconnect();
             setReconnectStatus(serverId, 'authentication-required');
             toast({
-                description: `Failed to reconnect ${state.serverName}. ${result.message}`,
-                variant: 'destructive',
-            });
-            return;
-        }
-
-        if (result.authorizationUrl) {
-            window.location.href = result.authorizationUrl;
-            return;
-        }
-
-        // Defensive fallback for older or alternate endpoint implementations
-        // that complete reconnection without returning an authorization URL.
-        clearMcpPendingReconnect();
-        await invalidateMcpConfigurationQueries(queryClient);
-        const servers = await getMcpServersWithStatus();
-        const server = isServiceError(servers)
-            ? undefined
-            : servers.find((candidate) => candidate.id === serverId);
-
-        if (server?.isConnected && !server.isAuthExpired) {
-            setReconnectStatus(serverId, 'reconnected');
-            toast({ description: `Successfully reconnected to ${state.serverName}.` });
-        } else {
-            setReconnectStatus(serverId, 'authentication-required');
-            toast({
-                description: `${state.serverName} was not reconnected.`,
+                description: `Failed to reconnect ${state.serverName}.`,
                 variant: 'destructive',
             });
         }

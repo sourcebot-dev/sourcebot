@@ -184,6 +184,26 @@ describe('useMcpReconnectController', () => {
         expect(mocks.connectMcpToAsk).not.toHaveBeenCalled();
     });
 
+    test('resets reconnect state when starting the OAuth flow rejects', async () => {
+        mocks.connectMcpToAsk.mockRejectedValue(new Error('Network error'));
+        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        act(() => {
+            result.current.onAuthRequired(AUTH_FAILURE);
+        });
+
+        await act(async () => {
+            result.current.contextValue.reconnect('server-1');
+        });
+
+        expect(window.sessionStorage.getItem(MCP_RECONNECT_SESSION_STORAGE_KEY)).toBeNull();
+        expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('authentication-required');
+        expect(mocks.toast).toHaveBeenCalledWith({
+            description: 'Failed to reconnect Linear.',
+            variant: 'destructive',
+        });
+    });
+
     test('shows a success toast when reconnection completes without an OAuth redirect', async () => {
         mocks.connectMcpToAsk.mockResolvedValue({ authorizationUrl: null });
         mocks.getMcpServersWithStatus.mockResolvedValue([
@@ -266,6 +286,27 @@ describe('useMcpReconnectController', () => {
             expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('reconnected');
         });
         expect(window.sessionStorage.getItem(MCP_RECONNECT_SESSION_STORAGE_KEY)).toBeNull();
+    });
+
+    test('resets reconnect state when the OAuth return status check rejects', async () => {
+        window.sessionStorage.setItem(MCP_RECONNECT_SESSION_STORAGE_KEY, JSON.stringify({
+            serverId: 'server-1',
+            serverName: 'Linear',
+            toolCallId: 'tool-call-1',
+            returnTo: '/chat/abc123',
+            createdAt: Date.now(),
+        }));
+        mocks.getMcpServersWithStatus.mockRejectedValue(new Error('Network error'));
+
+        const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        await waitFor(() => {
+            expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('authentication-required');
+        });
+        expect(mocks.toast).toHaveBeenCalledWith({
+            description: 'Linear was not reconnected.',
+            variant: 'destructive',
+        });
     });
 
     test('restores the source of a failed tool-load reconnect after OAuth', async () => {
