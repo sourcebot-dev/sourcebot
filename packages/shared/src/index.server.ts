@@ -21,13 +21,11 @@ export type {
 export * from './lighthouseTypes.js';
 export type {
     RepoMetadata,
-    RepoIndexingJobMetadata,
     IdentityProviderType,
     LicenseStatus,
 } from "./types.js";
 export {
     repoMetadataSchema,
-    repoIndexingJobMetadataSchema,
 } from "./types.js";
 export {
     base64Decode,
@@ -94,3 +92,37 @@ export {
     compareVersions,
 } from "./versionUtils.js";
 export type { Version } from "./versionUtils.js";
+export type {
+    QueueName,
+    DataOf,
+    QueueSpec,
+} from "./queue.js"
+export {
+    ACCOUNT_PERMISSION_SYNC_QUEUE,
+    CONNECTION_QUEUE,
+    RECONCILIATION_QUEUE,
+    REPO_INDEX_QUEUE,
+    REPO_PERMISSION_SYNC_QUEUE,
+} from "./queue.js";
+export {
+    BullMQClient,
+} from "./bullmqClient.js";
+export type {
+    WorkloadJob,
+    WorkloadJobStatus,
+} from "./bullmqClient.js";
+export {
+    createBullMQJobLogger,
+    DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    parseJobLogEntry,
+    readBullMQJobLogs,
+} from "./jobLogger.js";
+export type {
+    GetJobLogsOptions,
+    JobLogEntry,
+    JobLogFields,
+    JobLogLevel,
+    JobLogger,
+    JobLogs,
+    JobLogSink,
+} from "./jobLogger.js";

@@ -21,6 +21,17 @@ vi.mock('../entitlements.js', () => ({
     getPlan: vi.fn(() => Promise.resolve('enterprise')),
 }));
 
+// `syncSearchContexts` imports the prisma singleton, which builds a real client (and needs
+// DATABASE_URL) at import time. Stand in for it with an object that `buildDb` re-populates
+// with fresh mocks for each test, so tests stay isolated from one another.
+const { prismaMock } = vi.hoisted(() => ({
+    prismaMock: {} as Record<string, unknown>,
+}));
+
+vi.mock('../prisma.js', () => ({
+    prisma: prismaMock,
+}));
+
 import { syncSearchContexts } from './syncSearchContexts.js';
 
 // Helper to build a repo record with GitLab topics stored in metadata.
@@ -64,20 +75,25 @@ const buildDb = (overrides: Partial<{
     connectionFindMany: unknown[];
     searchContextFindUnique: unknown;
     searchContextFindMany: unknown[];
-}> = {}): PrismaClient => ({
-    repo: {
-        findMany: vi.fn().mockResolvedValue(overrides.repoFindMany ?? []),
-    },
-    connection: {
-        findMany: vi.fn().mockResolvedValue(overrides.connectionFindMany ?? []),
-    },
-    searchContext: {
-        findUnique: vi.fn().mockResolvedValue(overrides.searchContextFindUnique ?? null),
-        findMany: vi.fn().mockResolvedValue(overrides.searchContextFindMany ?? []),
-        upsert: vi.fn().mockResolvedValue({}),
-        delete: vi.fn().mockResolvedValue({}),
-    },
-} as unknown as PrismaClient);
+}> = {}): PrismaClient => {
+    // Overwrite every delegate so no mock survives from a previous test.
+    Object.assign(prismaMock, {
+        repo: {
+            findMany: vi.fn().mockResolvedValue(overrides.repoFindMany ?? []),
+        },
+        connection: {
+            findMany: vi.fn().mockResolvedValue(overrides.connectionFindMany ?? []),
+        },
+        searchContext: {
+            findUnique: vi.fn().mockResolvedValue(overrides.searchContextFindUnique ?? null),
+            findMany: vi.fn().mockResolvedValue(overrides.searchContextFindMany ?? []),
+            upsert: vi.fn().mockResolvedValue({}),
+            delete: vi.fn().mockResolvedValue({}),
+        },
+    });
+
+    return prismaMock as unknown as PrismaClient;
+};
 
 describe('syncSearchContexts - includeTopics', () => {
     test('includes repos whose topics match an includeTopics entry', async () => {
@@ -90,7 +106,6 @@ describe('syncSearchContexts - includeTopics', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -109,7 +124,6 @@ describe('syncSearchContexts - includeTopics', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -127,7 +141,6 @@ describe('syncSearchContexts - includeTopics', () => {
                 myContext: { includeTopics: ['backend', 'core'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -146,7 +159,6 @@ describe('syncSearchContexts - includeTopics', () => {
                 myContext: { includeTopics: ['core-*'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -165,7 +177,6 @@ describe('syncSearchContexts - includeTopics', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -188,7 +199,6 @@ describe('syncSearchContexts - excludeTopics', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -209,7 +219,6 @@ describe('syncSearchContexts - excludeTopics', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -230,7 +239,6 @@ describe('syncSearchContexts - excludeTopics', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -251,7 +259,6 @@ describe('syncSearchContexts - excludeTopics', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -274,7 +281,6 @@ describe('syncSearchContexts - includeTopics + excludeTopics combined', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -298,7 +304,6 @@ describe('syncSearchContexts - includeTopics combined with include globs', () =>
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -319,7 +324,6 @@ describe('syncSearchContexts - includeTopics combined with include globs', () =>
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -340,7 +344,6 @@ describe('syncSearchContexts - GitHub includeTopics', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -359,7 +362,6 @@ describe('syncSearchContexts - GitHub includeTopics', () => {
                 myContext: { includeTopics: ['core-*'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -377,7 +379,6 @@ describe('syncSearchContexts - GitHub includeTopics', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -400,7 +401,6 @@ describe('syncSearchContexts - GitHub excludeTopics', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -422,7 +422,6 @@ describe('syncSearchContexts - mixed GitHub and GitLab repos', () => {
                 myContext: { includeTopics: ['backend'] },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];
@@ -446,7 +445,6 @@ describe('syncSearchContexts - mixed GitHub and GitLab repos', () => {
                 },
             },
             orgId: 1,
-            db,
         });
 
         const upsertCall = vi.mocked(db.searchContext.upsert).mock.calls[0][0];

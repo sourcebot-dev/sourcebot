@@ -1,7 +1,7 @@
 import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
-import { env, getTokenFromConfig } from "@sourcebot/shared";
+import { env, getTokenFromConfig, JobLogSink } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
@@ -114,7 +114,7 @@ export const fetchWithRetry = async <T>(
 // fetch the token here using the connections from the repo. Multiple connections could be referencing this repo, and each
 // may have their own token. This method will just pick the first connection that has a token (if one exists) and uses that. This
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
-export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
+export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: JobLogSink): Promise<RepoAuthCredentials | undefined> => {
     if (repo.external_codeHostType === 'github' && env.EXPERIMENT_ASK_GH_GITHUB_TOKEN) {
         logger?.debug(`Using Ask GitHub PAT for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
 

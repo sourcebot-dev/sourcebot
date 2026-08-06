@@ -1,20 +1,19 @@
 import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/shared";
-import { PrismaClient } from "@sourcebot/db";
 import { repoMetadataSchema, SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";
+import { prisma } from "../prisma.js";
 
 const logger = createLogger('sync-search-contexts');
 
 interface SyncSearchContextsParams {
     contexts?: { [key: string]: SearchContext } | undefined;
     orgId: number;
-    db: PrismaClient;
 }
 
 export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
-    const { contexts, orgId, db } = params;
+    const { contexts, orgId } = params;
 
     if (!await hasEntitlement("search-contexts")) {
         if (contexts) {
@@ -25,7 +24,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
 
     if (contexts) {
         for (const [key, newContextConfig] of Object.entries(contexts)) {
-            const allRepos = await db.repo.findMany({
+            const allRepos = await prisma.repo.findMany({
                 where: {
                     orgId,
                 },
@@ -44,7 +43,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
             }
 
             if(newContextConfig.includeConnections) {
-                const connections = await db.connection.findMany({
+                const connections = await prisma.connection.findMany({
                     where: {
                         orgId,
                         name: {
@@ -101,7 +100,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
             }
 
             if (newContextConfig.excludeConnections) {
-                const connections = await db.connection.findMany({
+                const connections = await prisma.connection.findMany({
                     where: {
                         orgId,
                         name: {
@@ -145,7 +144,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                 });
             }
 
-            const currentReposInContext = (await db.searchContext.findUnique({
+            const currentReposInContext = (await prisma.searchContext.findUnique({
                 where: {
                     name_orgId: {
                         name: key,
@@ -157,7 +156,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                 }
             }))?.repos ?? [];
 
-            await db.searchContext.upsert({
+            await prisma.searchContext.upsert({
                 where: {
                     name_orgId: {
                         name: key,
@@ -195,7 +194,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
         }
     }
 
-    const deletedContexts = await db.searchContext.findMany({
+    const deletedContexts = await prisma.searchContext.findMany({
         where: {
             name: {
                 notIn: Object.keys(contexts ?? {}),
@@ -206,7 +205,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
 
     for (const context of deletedContexts) {
         logger.debug(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
-        await db.searchContext.delete({
+        await prisma.searchContext.delete({
             where: {
                 id: context.id,
             }

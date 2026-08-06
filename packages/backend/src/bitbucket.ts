@@ -755,7 +755,7 @@ export const getReposForAuthenticatedBitbucketServerUser = async (
  * @note This only covers direct user-to-repo grants. It does NOT include users who have access via:
  *   - Project-level permissions (inherited by all repos in the project)
  *   - Group membership
- * These users will still gain access through account-driven syncing (accountPermissionSyncer).
+ * These users will still gain access through account-driven permission syncing.
  *
  * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-projects-projectkey-repos-reposlug-permissions-users-get
  */

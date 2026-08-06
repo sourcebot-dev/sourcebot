@@ -31,7 +31,8 @@ const schema = {
         "resyncConnectionPollingIntervalMs": {
           "type": "number",
           "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.",
-          "minimum": 1
+          "minimum": 1,
+          "deprecated": true
         },
         "reindexRepoPollingIntervalMs": {
           "type": "number",
@@ -51,7 +52,8 @@ const schema = {
         "maxRepoGarbageCollectionJobConcurrency": {
           "type": "number",
           "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
-          "minimum": 1
+          "minimum": 1,
+          "deprecated": true
         },
         "repoGarbageCollectionGracePeriodMs": {
           "type": "number",
@@ -215,7 +217,8 @@ const schema = {
         "resyncConnectionPollingIntervalMs": {
           "type": "number",
           "description": "The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.",
-          "minimum": 1
+          "minimum": 1,
+          "deprecated": true
         },
         "reindexRepoPollingIntervalMs": {
           "type": "number",
@@ -235,7 +238,8 @@ const schema = {
         "maxRepoGarbageCollectionJobConcurrency": {
           "type": "number",
           "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
-          "minimum": 1
+          "minimum": 1,
+          "deprecated": true
         },
         "repoGarbageCollectionGracePeriodMs": {
           "type": "number",
