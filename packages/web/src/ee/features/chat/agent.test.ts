@@ -321,6 +321,50 @@ describe('createMessageStream approval continuation', () => {
         });
     });
 
+    test('streams the connector ID when its tools fail to load', async () => {
+        const { getConnectedMcpClients } = await import('@/ee/features/chat/mcp/mcpClientFactory');
+        const { getMcpTools } = await import('@/ee/features/chat/mcp/mcpToolSets');
+        vi.mocked(getConnectedMcpClients).mockResolvedValueOnce([
+            { serverId: 'server-linear', serverName: 'Linear' },
+        ] as never);
+        vi.mocked(getMcpTools).mockResolvedValueOnce({
+            tools: {},
+            failedServers: [{ serverId: 'server-linear', serverName: 'Linear' }],
+            serverFaviconUrls: {},
+            toolDisplayNames: {},
+            cleanup: vi.fn(),
+        });
+        mockAi.streamText.mockReturnValue(createFakeStreamResult());
+
+        await createMessageStream({
+            chatId: 'chat-id',
+            messages: [createUserMessage()],
+            selectedRepos: [],
+            disabledMcpServerIds: [],
+            prisma: {},
+            model: {},
+            modelName: 'test-model',
+            promptCacheStrategy: noopStrategy,
+            onFinish: vi.fn(),
+            onError: () => 'error',
+            userId: 'user-id',
+            orgId: 1,
+        } as unknown as Parameters<typeof createMessageStream>[0]);
+
+        const execute = mockAi.latestCreateUIMessageStreamOptions?.execute;
+        if (!execute) {
+            throw new Error('Expected createUIMessageStream to capture execute callback.');
+        }
+
+        const write = vi.fn();
+        await execute({ writer: { merge: vi.fn(), write } });
+
+        expect(write).toHaveBeenCalledWith({
+            type: 'data-mcp-failed-server',
+            data: { serverId: 'server-linear', serverName: 'Linear' },
+        });
+    });
+
     test.each([
         ['dynamic', dynamicApprovalRespondedPart],
         ['static', staticApprovalRespondedPart],

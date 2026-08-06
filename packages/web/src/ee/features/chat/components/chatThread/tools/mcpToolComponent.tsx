@@ -3,6 +3,7 @@
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import { McpToolNameMap, useMcpServerIconMap, useMcpToolNameMap } from "@/ee/features/chat/mcpDisplayMetadataContext";
+import { getMcpReconnectStateForToolCall, useMcpReconnect } from "@/ee/features/chat/mcpReconnectContext";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { DynamicToolUIPart } from "ai";
@@ -55,6 +56,11 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
     const display = getMcpToolDisplayParts(part.toolName, rawToolNames);
     const faviconUrl = display.serverName ? iconMap[display.serverName] : undefined;
 
+    const reconnectContext = useMcpReconnect();
+    const reconnectState = reconnectContext && part.state === 'output-error'
+        ? getMcpReconnectStateForToolCall(reconnectContext.reconnectStates, part.toolCallId)
+        : undefined;
+
     const hasInput = part.state !== 'input-streaming';
 
     const requestText = useMemo(
@@ -90,6 +96,14 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
 
     const renderStatus = () => {
         if (part.state === 'output-error') {
+            if (reconnectState) {
+                return (
+                    <span className="text-sm flex-1 text-destructive flex items-center gap-1.5">
+                        <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
+                        {reconnectState.serverName} needs to be reconnected.
+                    </span>
+                );
+            }
             return (
                 <span className="text-sm flex-1 text-destructive flex items-center gap-1.5">
                     <McpFavicon faviconUrl={faviconUrl} className="w-3 h-3" />
@@ -183,7 +197,6 @@ export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: Dynami
         </div>
     );
 };
-
 
 const ResultSection = ({ label, onCopy, children }: { label: string; onCopy: () => boolean; children: React.ReactNode }) => (
     <div className="flex flex-col gap-1.5">

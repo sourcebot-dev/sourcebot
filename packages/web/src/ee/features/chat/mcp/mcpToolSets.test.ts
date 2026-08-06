@@ -396,7 +396,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'BrokenServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['BrokenServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'BrokenServer' }]);
         expect(Object.keys(result.tools)).toEqual([]);
         expect(mockLogger.error).toHaveBeenCalledWith('Failed to get tools from MCP server.', {
             serverId: 'server-id',
@@ -424,7 +424,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'Linear' }),
         ]);
 
-        expect(result.failedServers).toEqual(['BrokenServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'BrokenServer' }]);
         expect(Object.keys(result.tools)).toEqual(['mcp_linear__list_issues']);
     });
 
@@ -653,7 +653,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'WorkingServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['UnsupportedServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'UnsupportedServer' }]);
         expect(Object.keys(result.tools)).toEqual(['mcp_workingserver__good_tool']);
         expect(result.toolDisplayNames).toEqual({
             'mcp_workingserver__good_tool': 'good_tool',
@@ -685,7 +685,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'MalformedServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['MalformedServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'MalformedServer' }]);
         expect(result.tools).toEqual({});
         expect(mockLogger.error).toHaveBeenCalledOnce();
         expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain(remoteReference);
@@ -719,6 +719,65 @@ describe('getMcpTools', () => {
             success: false,
             failureReason: 'Error',
         }));
+    });
+
+    test('tool execute wrapper replaces a 401 with a safe auth-required error and reports the failure', async () => {
+        const unauthorizedError = Object.assign(
+            new Error('HTTP 401 access_token=access-token'),
+            { statusCode: 401 },
+        );
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
+        ]);
+        const toolRecord = mockClient.toolsFromDefinitions();
+        toolRecord['list_issues'].execute.mockRejectedValue(unauthorizedError);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const onAuthFailure = vi.fn();
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ], undefined, { onAuthFailure });
+
+        const tool = result.tools['mcp_linear__list_issues'];
+        const thrown = await Promise.resolve(tool.execute({}, { messages: [], toolCallId: 'tool-call-1' }))
+            .then(() => undefined, (error: Error) => error);
+        expect(thrown).toBeInstanceOf(Error);
+        expect(thrown?.message).toContain('Authentication required: the connection to "Linear" is no longer authorized');
+        // The safe error must not carry the external error's contents.
+        expect(thrown?.message).not.toContain('access-token');
+
+        expect(onAuthFailure).toHaveBeenCalledTimes(1);
+        expect(onAuthFailure).toHaveBeenCalledWith({
+            serverId: 'server-linear',
+            serverName: 'Linear',
+            toolCallId: 'tool-call-1',
+        });
+        expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
+            success: false,
+            failureReason: 'status_401',
+        }));
+    });
+
+    test('tool execute wrapper does not report non-auth failures as auth failures', async () => {
+        const forbiddenError = Object.assign(new Error('Forbidden'), { statusCode: 403 });
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
+        ]);
+        const toolRecord = mockClient.toolsFromDefinitions();
+        toolRecord['list_issues'].execute.mockRejectedValue(forbiddenError);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const onAuthFailure = vi.fn();
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ], undefined, { onAuthFailure });
+
+        const tool = result.tools['mcp_linear__list_issues'];
+        await expect(
+            tool.execute({}, { messages: [], toolCallId: 'tool-call-1' })
+        ).rejects.toThrow('Forbidden');
+
+        expect(onAuthFailure).not.toHaveBeenCalled();
     });
 
     test('tool execute wrapper increments the raw tool call counter after success', async () => {
