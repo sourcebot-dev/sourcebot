@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Added one-hour repository-scoped access tokens with public mint and revoke APIs. [#1549](https://github.com/sourcebot-dev/sourcebot/pull/1549)
+
 ### Removed
 - Removed the Langfuse integration. [#1536](https://github.com/sourcebot-dev/sourcebot/pull/1536)
 
