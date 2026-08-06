@@ -653,7 +653,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'WorkingServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['UnsupportedServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'UnsupportedServer' }]);
         expect(Object.keys(result.tools)).toEqual(['mcp_workingserver__good_tool']);
         expect(result.toolDisplayNames).toEqual({
             'mcp_workingserver__good_tool': 'good_tool',
@@ -685,7 +685,7 @@ describe('getMcpTools', () => {
             createMockClient({ serverName: 'MalformedServer' }),
         ]);
 
-        expect(result.failedServers).toEqual(['MalformedServer']);
+        expect(result.failedServers).toEqual([{ serverId: 'server-id', serverName: 'MalformedServer' }]);
         expect(result.tools).toEqual({});
         expect(mockLogger.error).toHaveBeenCalledOnce();
         expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain(remoteReference);
