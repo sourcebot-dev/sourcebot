@@ -26,6 +26,12 @@ import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getA
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
+import {
+    createMcpAuthInterruptionDirective,
+    denyApprovedToolApprovalsForAuthInterruption,
+    getMcpAuthRequiredFailureFromAssistantMessage,
+    McpToolAuthFailure,
+} from "@/ee/features/chat/mcp/mcpAuthFailure";
 import { buildMcpToolRegistry, McpToolRegistryEntry } from "@/ee/features/chat/mcp/mcpToolRegistry";
 import { PromptCacheStrategy, mergeProviderOptions, detectPromptCacheBreak, detectUnexpectedCacheMiss } from "./promptCaching";
 import { hasEntitlement } from '@/lib/entitlements';
@@ -332,9 +338,21 @@ export const createMessageStream = async ({
         ? (lastMsg.metadata as SBChatMessageMetadata | undefined)
         : undefined;
 
+    // When the response was interrupted by a reconnect-required authentication
+    // failure (detected via the safe tool error's marker text), the
+    // continuation must run its final step with tool use disabled. Any
+    // approval that was still approved is rewritten to a denial: once the
+    // response is authentication-terminal, later approval actions are invalid.
+    const priorMcpAuthFailure = hasApprovalContinuationReady
+        ? getMcpAuthRequiredFailureFromAssistantMessage(lastMsg)
+        : undefined;
+
     if (hasApprovalContinuationReady) {
+        const continuationMessage = priorMcpAuthFailure
+            ? denyApprovedToolApprovalsForAuthInterruption(lastMsg, priorMcpAuthFailure.serverName)
+            : lastMsg;
         const fullLastTurn = await convertToModelMessages(
-            [lastMsg],
+            [continuationMessage],
             { ignoreIncompleteToolCalls: true }
         );
         messageHistory = [...messageHistory, ...fullLastTurn];
@@ -375,12 +393,22 @@ export const createMessageStream = async ({
                         data: { modelToolName, rawToolName },
                     });
                 },
-                onMcpServerFailed: (serverName) => {
+                onMcpServerFailed: (server) => {
                     writer.write({
                         type: 'data-mcp-failed-server',
-                        data: { serverName },
+                        data: server,
                     });
                 },
+                onMcpAuthRequired: (failure) => {
+                    // Transient: consumed live by the client to surface the
+                    // connector reconnect UI, never folded into persisted parts.
+                    writer.write({
+                        type: 'data-mcp-auth-required',
+                        data: failure,
+                        transient: true,
+                    });
+                },
+                priorMcpAuthFailure,
                 traceId,
                 chatId,
                 prisma,
@@ -508,7 +536,14 @@ interface AgentOptions {
     onWriteSource: (source: Source) => void;
     onMcpServerDiscovered: (sanitizedName: string, faviconUrl: string) => void;
     onMcpToolDiscovered: (modelToolName: string, rawToolName: string) => void;
-    onMcpServerFailed: (serverName: string) => void;
+    onMcpServerFailed: (server: { serverId: string; serverName: string }) => void;
+    // Fired at most once per connector per response when a tool call fails
+    // with a reconnect-required authentication failure.
+    onMcpAuthRequired: (failure: McpToolAuthFailure) => void;
+    // Set when the incoming messages show this response was already
+    // interrupted by an authentication failure (approval continuation): the
+    // stream must run its final step with tool use disabled from step one.
+    priorMcpAuthFailure?: { serverName: string };
     traceId: string;
     chatId: string;
     prisma: PrismaClient;
@@ -529,6 +564,8 @@ const createAgentStream = async ({
     onMcpServerDiscovered,
     onMcpToolDiscovered,
     onMcpServerFailed,
+    onMcpAuthRequired,
+    priorMcpAuthFailure,
     traceId,
     chatId,
     prisma,
@@ -564,6 +601,15 @@ const createAgentStream = async ({
         }))
     ).filter((source) => source !== undefined);
 
+    // Mutable, response-scoped authentication failure state. `serverName` is
+    // the first failed connector's display name (V1 supports recovery for a
+    // single failed connector). Failures are deduplicated by connector so the
+    // client sees at most one transient event per connector per response.
+    const mcpAuthFailureState: { failure?: { serverName: string } } = {
+        ...(priorMcpAuthFailure ? { failure: { serverName: priorMcpAuthFailure.serverName } } : {}),
+    };
+    const reportedMcpAuthFailureServerIds = new Set<string>();
+
     let mcpToolSetsObj: McpToolsResult = { tools: {}, failedServers: [], serverFaviconUrls: {}, toolDisplayNames: {}, cleanup: async () => {} };
     if (userId && orgId && await hasEntitlement('ask') && disabledMcpServerIds !== undefined) {
         try {
@@ -573,6 +619,16 @@ const createAgentStream = async ({
                 chatId,
                 traceId,
                 source: 'sourcebot-ask-agent',
+            }, {
+                onAuthFailure: (failure) => {
+                    if (!mcpAuthFailureState.failure) {
+                        mcpAuthFailureState.failure = { serverName: failure.serverName };
+                    }
+                    if (!reportedMcpAuthFailureServerIds.has(failure.serverId)) {
+                        reportedMcpAuthFailureServerIds.add(failure.serverId);
+                        onMcpAuthRequired(failure);
+                    }
+                },
             });
 
             for (const [sanitizedName, faviconUrl] of Object.entries(mcpToolSetsObj.serverFaviconUrls)) {
@@ -590,8 +646,8 @@ const createAgentStream = async ({
         }
     }
 
-    for (const serverName of mcpToolSetsObj.failedServers) {
-        onMcpServerFailed(serverName);
+    for (const server of mcpToolSetsObj.failedServers) {
+        onMcpServerFailed(server);
     }
 
     const mcpRegistry = buildMcpToolRegistry(mcpToolSetsObj.tools);
@@ -715,13 +771,33 @@ const createAgentStream = async ({
             // rebuilds the step's messages each time as the original input plus
             // its own accumulated response messages. Re-applying the moving tail marker
             // to the new last message each step is safe and does not accumulate.
-            prepareStep: (tailMarker || hasMcpTools) ? ({ steps, messages }) => {
+            prepareStep: (tailMarker || hasMcpTools || mcpAuthFailureState.failure) ? ({ steps, messages }) => {
                 const stepMessages = (tailMarker && messages.length > 0)
                     ? messages.map((message, index) =>
                         index === messages.length - 1
                             ? { ...message, providerOptions: mergeProviderOptions(message.providerOptions, tailMarker) }
                             : message)
                     : undefined;
+
+                // Once a reconnect-required authentication failure occurs, the
+                // response is terminal for tool use: every remaining step runs
+                // with tool calling disabled (`toolChoice: 'none'` keeps the
+                // tool definitions byte-stable for prompt caching) plus an
+                // ephemeral directive to summarize completed work and prompt
+                // the user to reconnect. In-flight tool calls of the failing
+                // step have already run to completion by the time this fires.
+                if (mcpAuthFailureState.failure) {
+                    return {
+                        messages: [
+                            ...(stepMessages ?? messages),
+                            {
+                                role: 'user' as const,
+                                content: createMcpAuthInterruptionDirective(mcpAuthFailureState.failure.serverName),
+                            },
+                        ],
+                        toolChoice: 'none' as const,
+                    };
+                }
 
                 if (!hasMcpTools) {
                     return stepMessages ? { messages: stepMessages } : {};

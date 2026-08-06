@@ -44,7 +44,7 @@ function createPrismaMock() {
 
 function createProvider(
     prisma = createPrismaMock(),
-    options: { allowClientRegistration?: boolean; requestedOAuthScopes?: string[] } = {},
+    options: { allowClientRegistration?: boolean; requestedOAuthScopes?: string[]; forceAuthorization?: boolean } = {},
 ) {
     return new PrismaOAuthClientProvider({
         prisma: prisma as never,
@@ -55,6 +55,7 @@ function createProvider(
         callbackUrl: 'https://sourcebot.example.com/api/ee/askmcp/callback',
         allowClientRegistration: options.allowClientRegistration ?? false,
         requestedOAuthScopes: options.requestedOAuthScopes,
+        forceAuthorization: options.forceAuthorization,
     });
 }
 
@@ -202,6 +203,19 @@ describe('PrismaOAuthClientProvider PKCE verifier storage', () => {
 });
 
 describe('PrismaOAuthClientProvider authorization redirect', () => {
+    test('ignores stored tokens when interactive authorization is forced', async () => {
+        const prisma = createPrismaMock();
+        prisma.userMcpServer.findUnique.mockResolvedValue({
+            tokens: 'encrypted:{"access_token":"stale-token"}',
+            codeVerifier: null,
+            state: null,
+        });
+        const provider = createProvider(prisma, { forceAuthorization: true });
+
+        await expect(provider.tokens()).resolves.toBeUndefined();
+        expect(prisma.userMcpServer.findUnique).not.toHaveBeenCalled();
+    });
+
     test('overwrites existing prompt values with consent', async () => {
         const prisma = createPrismaMock();
         prisma.userMcpServer.update.mockResolvedValue({

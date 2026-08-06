@@ -6,6 +6,7 @@ import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
+import { isReconnectRequiredMcpAuthFailure, McpAuthRequiredError, McpToolAuthFailure } from './mcpAuthFailure';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
 import { McpServerToolPermission } from '@sourcebot/db';
@@ -74,7 +75,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
 
 export interface McpToolsResult {
     tools: Record<string, Awaited<ReturnType<MCPClient['tools']>>[string]>;
-    failedServers: string[];
+    failedServers: Array<{ serverId: string; serverName: string }>;
     serverFaviconUrls: Record<string, string>;
     toolDisplayNames: Record<string, string>;
     cleanup: () => Promise<void>;
@@ -84,6 +85,12 @@ interface McpToolsAnalyticsContext {
     chatId?: string;
     traceId?: string;
     source: AskMcpAnalyticsSource;
+}
+
+interface McpToolsOptions {
+    // Invoked when a tool call fails with a reconnect-required authentication
+    // failure, before the safe McpAuthRequiredError is thrown in its place.
+    onAuthFailure?: (failure: McpToolAuthFailure) => void;
 }
 
 function getMcpToolFailureReason(error: unknown): string {
@@ -194,9 +201,10 @@ async function getListToolsResult(
  * Creates MCPClients from authenticated transports, retrieves their tools,
  * and returns a namespaced tool record + cleanup function.
  */
-export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpToolsAnalyticsContext): Promise<McpToolsResult> {
+export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpToolsAnalyticsContext, toolsOptions?: McpToolsOptions): Promise<McpToolsResult> {
+    const onAuthFailure = toolsOptions?.onAuthFailure;
     const allTools: McpToolsResult['tools'] = {};
-    const failedServers: string[] = [];
+    const failedServers: McpToolsResult['failedServers'] = [];
     const serverFaviconUrls: Record<string, string> = {};
     const toolDisplayNames: Record<string, string> = {};
     const mcpClients: MCPClient[] = [];
@@ -321,6 +329,21 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                             throw timeoutError;
                         }
                         failureReason = getMcpToolFailureReason(error);
+                        if (isReconnectRequiredMcpAuthFailure(error)) {
+                            logger.warn(`MCP tool "${qualifiedName}" failed with a reconnect-required authentication error.`, {
+                                serverId,
+                                error: getExternalMcpErrorLogFields(error),
+                            });
+                            onAuthFailure?.({
+                                serverId,
+                                serverName,
+                                toolCallId: options.toolCallId,
+                            });
+                            // Replace the external error with a safe one: the
+                            // original may echo secrets, and the model needs an
+                            // explicit signal that tool use has ended.
+                            throw new McpAuthRequiredError(serverName);
+                        }
                         throw error;
                     } finally {
                         void captureEvent('ask_mcp_tool_call_completed', {
@@ -366,7 +389,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 sanitizedName,
                 error: getExternalMcpErrorLogFields(error),
             });
-            failedServers.push(serverName);
+            failedServers.push({ serverId, serverName });
         }
     }
 

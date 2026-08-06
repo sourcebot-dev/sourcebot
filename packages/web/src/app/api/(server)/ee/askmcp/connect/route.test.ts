@@ -48,7 +48,7 @@ vi.mock('@ai-sdk/mcp', () => ({
 const { POST } = await import('./route');
 const { getMcpOAuthReturnToFromState } = await import('@/ee/features/chat/mcp/mcpOAuthReturnTo');
 
-function createRequest(body: { serverId: string; returnTo?: string } = { serverId: 'server-1' }) {
+function createRequest(body: { serverId: string; returnTo?: string; forceAuthorization?: boolean } = { serverId: 'server-1' }) {
     return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -226,6 +226,60 @@ describe('POST /api/ee/askmcp/connect', () => {
             data: {
                 state: expect.stringContaining('sourcebot_mcp.'),
             },
+        });
+    });
+
+    test('forces an interactive OAuth redirect for reconnect recovery', async () => {
+        const prisma = createPrismaMock();
+        const tx = createTransactionMock();
+        tx.userMcpServer.findUnique.mockResolvedValue({
+            tokens: 'encrypted:{"access_token":"stale-token"}',
+            codeVerifier: null,
+            state: null,
+        });
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+        mocks.unsafePrisma.$transaction.mockImplementation(async (callback, _options) => callback(tx));
+        mocks.mcpAuth.mockImplementation(async (provider) => {
+            await expect(provider.tokens()).resolves.toBeUndefined();
+            provider.authorizationUrl = 'https://oauth.example.com/authorize';
+            return 'REDIRECT';
+        });
+
+        const response = await POST(createRequest({
+            serverId: 'server-1',
+            returnTo: '/chat/abc123',
+            forceAuthorization: true,
+        }));
+
+        expect(await response.json()).toEqual({
+            authorizationUrl: 'https://oauth.example.com/authorize',
+        });
+    });
+
+    test('does not report a forced reconnect as successful without an OAuth redirect', async () => {
+        const prisma = createPrismaMock();
+        const tx = createTransactionMock();
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+        mocks.unsafePrisma.$transaction.mockImplementation(async (callback, _options) => callback(tx));
+        mocks.mcpAuth.mockResolvedValue('AUTHORIZED');
+
+        const response = await POST(createRequest({
+            serverId: 'server-1',
+            returnTo: '/chat/abc123',
+            forceAuthorization: true,
+        }));
+
+        expect(response.status).toBe(502);
+        expect(await response.json()).toMatchObject({
+            message: 'Could not start connector reauthorization.',
         });
     });
 
