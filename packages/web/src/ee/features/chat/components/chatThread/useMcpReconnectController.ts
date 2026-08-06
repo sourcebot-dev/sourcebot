@@ -120,7 +120,8 @@ export function useMcpReconnectController({
     // Automatically deny every tool approval still pending in the interrupted
     // response. Later approval actions are invalid: the parts flip to
     // approval-responded, which removes the approval UI.
-    const hasAuthFailure = Object.values(reconnectStates).some((state) => state.source !== 'tool-load');
+    const hasAuthFailure = Object.values(reconnectStates)
+        .some((state) => state.source !== 'tool-load' && state.status !== 'reconnected');
     useEffect(() => {
         if (!hasAuthFailure) {
             return;

@@ -206,6 +206,32 @@ describe('useMcpReconnectController', () => {
         });
     });
 
+    test('stops automatically denying approvals after all failed tool calls reconnect', async () => {
+        mocks.connectMcpToAsk.mockResolvedValue({ authorizationUrl: null });
+        mocks.getMcpServersWithStatus.mockResolvedValue([
+            { id: 'server-1', name: 'Linear', isConnected: true, isAuthExpired: false },
+        ]);
+        const { result, rerender } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
+
+        act(() => {
+            result.current.onAuthRequired(AUTH_FAILURE);
+        });
+
+        await act(async () => {
+            result.current.contextValue.reconnect('server-1');
+        });
+        await waitFor(() => {
+            expect(result.current.contextValue.reconnectStates['server-1']?.status).toBe('reconnected');
+        });
+
+        rerender({
+            status: 'ready',
+            messages: [assistantMessageWithPendingApproval()],
+            isTurnInProgress: false,
+        });
+        expect(addToolApprovalResponse).not.toHaveBeenCalled();
+    });
+
     test('tracks a failed tool load without treating it as a failed tool call', () => {
         const { result } = renderController({ status: 'ready', messages: [], isTurnInProgress: false });
 
