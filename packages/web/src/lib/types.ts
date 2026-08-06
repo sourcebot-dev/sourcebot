@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { connectionQuerySchema, getVersionResponseSchema, listConnectionsResponseSchema, listReposQueryParamsSchema, listReposResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
+import { getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
 
 export type KeymapType = "default" | "vim";
 
@@ -26,8 +26,6 @@ export type NewsItem = {
 }
 
 export type RepositoryQuery = z.infer<typeof repositoryQuerySchema>;
-export type ConnectionQuery = z.infer<typeof connectionQuerySchema>;
 export type SearchContextQuery = z.infer<typeof searchContextQuerySchema>;
-export type ListConnectionsResponse = z.infer<typeof listConnectionsResponseSchema>;
 export type ListReposResponse = z.infer<typeof listReposResponseSchema>;
 export type ListReposQueryParams = z.infer<typeof listReposQueryParamsSchema>;

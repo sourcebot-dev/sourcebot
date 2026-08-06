@@ -1,4 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { ConnectionType } from '@sourcebot/db';
 import z from 'zod';
 import {
     findRelatedSymbolsRequestSchema,
@@ -24,7 +25,7 @@ import {
     searchResponseSchema,
 } from '../features/search/types.js';
 import { serviceErrorSchema } from '../lib/serviceError.js';
-import { getVersionResponseSchema, listConnectionsResponseSchema, listReposQueryParamsSchema, listReposResponseSchema } from '../lib/schemas.js';
+import { getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema } from '../lib/schemas.js';
 
 let hasExtendedZod = false;
 
@@ -45,7 +46,11 @@ export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('
 export const publicFileBlameRequestSchema = fileBlameRequestSchema.openapi('PublicFileBlameRequest');
 export const publicFileBlameResponseSchema = fileBlameResponseSchema.openapi('PublicFileBlameResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
-export const publicListConnectionsResponseSchema = listConnectionsResponseSchema.openapi('PublicListConnectionsResponse');
+export const publicListConnectionsResponseSchema = z.array(z.object({
+    id: z.number().int(),
+    name: z.string(),
+    connectionType: z.nativeEnum(ConnectionType),
+})).openapi('PublicListConnectionsResponse');
 export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
 export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
 export const publicGetDiffRequestSchema = getDiffRequestSchema.openapi('PublicGetDiffRequest');
