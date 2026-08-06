@@ -104,6 +104,12 @@ if [ ! -d "$DATA_CACHE_DIR" ]; then
     mkdir -p "$DATA_CACHE_DIR"
 fi
 
+# Create a directory for heap snapshots. If the backend process approaches its heap
+# limit (e.g., due to a memory leak), Node will dump a snapshot here (see
+# --heapsnapshot-near-heap-limit in supervisord.conf) so the cause can be diagnosed
+# post-mortem instead of only seeing a generic "JavaScript heap out of memory" crash.
+mkdir -p "$DATA_CACHE_DIR/heap-snapshots"
+
 # As of v5, SOURCEBOT_ENCRYPTION_KEY must be provided explicitly via an environment variable.
 # @see: https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then

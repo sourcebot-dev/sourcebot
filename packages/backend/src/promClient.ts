@@ -91,4 +91,24 @@ export class PromClient {
             register: this.registry,
         });
     }
+
+    /**
+     * Removes all time series associated with a given repo across every repo-scoped
+     * metric. The `repo` label is a dynamic, user-controlled value (repo name), and
+     * prom-client never forgets a label combination on its own once it's been
+     * observed. Without this cleanup, every distinct repo name ever seen over the
+     * process's lifetime stays resident in memory forever, even after the repo is
+     * deleted. Call this once a repo is permanently removed (e.g., after a CLEANUP
+     * job deletes it) to keep the registry's memory footprint bounded by the current
+     * set of repos rather than the historical set.
+     */
+    public removeRepoMetrics(repoName: string) {
+        for (const type of ['index', 'cleanup']) {
+            this.activeRepoIndexJobs.remove({ repo: repoName, type });
+            this.pendingRepoIndexJobs.remove({ repo: repoName, type });
+            this.repoIndexJobReattemptsTotal.remove({ repo: repoName, type });
+            this.repoIndexJobFailTotal.remove({ repo: repoName, type });
+            this.repoIndexJobSuccessTotal.remove({ repo: repoName, type });
+        }
+    }
 }
