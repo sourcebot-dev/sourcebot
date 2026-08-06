@@ -190,6 +190,13 @@
                         ]
                     },
                     {
+                        "group": "Connections",
+                        "icon": "link",
+                        "pages": [
+                            "GET /api/connections"
+                        ]
+                    },
+                    {
                         "group": "Scoped Access Tokens",
                         "icon": "key",
                         "pages": [

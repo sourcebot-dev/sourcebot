@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { listReposResponseSchema, getVersionResponseSchema, repositoryQuerySchema, searchContextQuerySchema, listReposQueryParamsSchema } from "./schemas";
+import { getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
 
 export type KeymapType = "default" | "vim";
 
