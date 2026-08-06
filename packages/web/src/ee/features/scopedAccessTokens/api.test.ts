@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
     generateScopedAccessToken: vi.fn(),
+    hasEntitlement: vi.fn(),
 }));
 
 vi.mock('@/middleware/sew', () => ({
@@ -11,6 +12,10 @@ vi.mock('@/middleware/sew', () => ({
 
 vi.mock('@/middleware/withAuth', () => ({
     withAuth: vi.fn((callback: (context: unknown) => unknown) => callback(mocks.authContext)),
+}));
+
+vi.mock('@/lib/entitlements', () => ({
+    hasEntitlement: mocks.hasEntitlement,
 }));
 
 vi.mock('@sourcebot/shared', () => ({
@@ -61,6 +66,7 @@ beforeEach(() => {
         token: 'sbst_secret',
         hash: 'token-hash',
     });
+    mocks.hasEntitlement.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -82,6 +88,26 @@ describe('createScopedAccessTokenRequestSchema', () => {
 });
 
 describe('createScopedAccessToken', () => {
+    test('rejects minting before repository lookup when the entitlement is unavailable', async () => {
+        const prisma = createPrismaMock([{ id: REPO_A_ID }]);
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-id' },
+            prisma,
+        };
+        mocks.hasEntitlement.mockReturnValue(false);
+
+        await expect(createScopedAccessToken({ repoIds: [REPO_A_ID] })).resolves.toEqual({
+            statusCode: 403,
+            errorCode: 'INSUFFICIENT_PERMISSIONS',
+            message: 'Scoped access tokens are not available in your current plan.',
+        });
+        expect(mocks.hasEntitlement).toHaveBeenCalledWith('scoped-access-tokens');
+        expect(prisma.repo.findMany).not.toHaveBeenCalled();
+        expect(mocks.generateScopedAccessToken).not.toHaveBeenCalled();
+        expect(prisma.scopedAccessToken.create).not.toHaveBeenCalled();
+    });
+
     test('creates an API-key-authenticated token with an exact one-hour lifetime', async () => {
         const prisma = createPrismaMock([
             { id: REPO_B_ID },
@@ -176,6 +202,24 @@ describe('createScopedAccessToken', () => {
 });
 
 describe('revokeScopedAccessToken', () => {
+    test('rejects revocation before deletion when the entitlement is unavailable', async () => {
+        const prisma = createPrismaMock([]);
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-id' },
+            prisma,
+        };
+        mocks.hasEntitlement.mockReturnValue(false);
+
+        await expect(revokeScopedAccessToken('token-id')).resolves.toEqual({
+            statusCode: 403,
+            errorCode: 'INSUFFICIENT_PERMISSIONS',
+            message: 'Scoped access tokens are not available in your current plan.',
+        });
+        expect(mocks.hasEntitlement).toHaveBeenCalledWith('scoped-access-tokens');
+        expect(prisma.scopedAccessToken.deleteMany).not.toHaveBeenCalled();
+    });
+
     test('deletes only a token owned by the API-key user in the current org', async () => {
         const prisma = createPrismaMock([]);
         mocks.authContext = {

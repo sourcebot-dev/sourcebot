@@ -123,7 +123,9 @@ beforeEach(() => {
     vi.mocked(userScopedPrismaClientExtension).mockReset();
     mocks.auth.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(new Headers());
-    mocks.hasEntitlement.mockReturnValue(false);
+    mocks.hasEntitlement.mockImplementation(
+        (entitlement: string) => entitlement === 'scoped-access-tokens',
+    );
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
     // getAuthContext fires `prisma.user.update().catch(...)` and
     // `prisma.userToOrg.updateMany().catch(...)` to bump lastActiveAt; without a
@@ -229,6 +231,20 @@ describe('getAuthenticatedUser', () => {
     });
 
     describe('scoped access token Bearer authentication', () => {
+        test('should return undefined before token lookup without the entitlement', async () => {
+            prisma.scopedAccessToken.findUnique.mockResolvedValue(createMockScopedAccessToken());
+            mocks.hasEntitlement.mockReturnValue(false);
+            setMockHeaders(new Headers({ 'Authorization': 'Bearer sbst_scopedtoken' }));
+
+            const result = await getAuthenticatedUser();
+
+            expect(result).toBeUndefined();
+            expect(mocks.hasEntitlement.mock.calls[0]?.[0]).toBe('scoped-access-tokens');
+            expect(prisma.scopedAccessToken.findUnique).not.toHaveBeenCalled();
+            expect(prisma.scopedAccessToken.update).not.toHaveBeenCalled();
+            expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
+        });
+
         test('should return the token creator and scoped access token principal for a valid token', async () => {
             const scopedAccessToken = createMockScopedAccessToken();
             prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);

@@ -1,4 +1,5 @@
 import { ErrorCode } from '@/lib/errorCodes';
+import { hasEntitlement } from '@/lib/entitlements';
 import type { ServiceError } from '@/lib/serviceError';
 import { sew } from '@/middleware/sew';
 import { withAuth } from '@/middleware/withAuth';
@@ -26,10 +27,27 @@ export interface RevokeScopedAccessTokenResponse {
     success: true;
 }
 
+const checkScopedAccessTokenEntitlement = async (): Promise<ServiceError | null> => {
+    if (await hasEntitlement('scoped-access-tokens')) {
+        return null;
+    }
+
+    return {
+        statusCode: StatusCodes.FORBIDDEN,
+        errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        message: 'Scoped access tokens are not available in your current plan.',
+    } satisfies ServiceError;
+};
+
 export const createScopedAccessToken = async (
     request: CreateScopedAccessTokenRequest,
 ): Promise<CreateScopedAccessTokenResponse | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const entitlementError = await checkScopedAccessTokenEntitlement();
+        if (entitlementError) {
+            return entitlementError;
+        }
+
         // Treat duplicate IDs as one scope entry while preserving request order.
         const repositoryIds = [...new Set(request.repoIds)];
         const repositories = await prisma.repo.findMany({
@@ -85,6 +103,11 @@ export const revokeScopedAccessToken = async (
     id: string,
 ): Promise<RevokeScopedAccessTokenResponse | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const entitlementError = await checkScopedAccessTokenEntitlement();
+        if (entitlementError) {
+            return entitlementError;
+        }
+
         const { count } = await prisma.scopedAccessToken.deleteMany({
             where: {
                 id,

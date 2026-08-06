@@ -321,6 +321,10 @@ export const getAuthenticatedUser = async (): Promise<AuthResult | undefined> =>
         }
 
         if (bearerToken.startsWith(SCOPED_ACCESS_TOKEN_PREFIX)) {
+            if (!await hasEntitlement('scoped-access-tokens')) {
+                return undefined;
+            }
+
             const secret = bearerToken.slice(SCOPED_ACCESS_TOKEN_PREFIX.length);
             if (!secret) {
                 return undefined;
