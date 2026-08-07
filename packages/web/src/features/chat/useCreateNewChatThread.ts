@@ -13,6 +13,17 @@ import { AttachmentData, SearchScope, SetChatStatePayload, Source } from "./type
 import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, SET_CHAT_STATE_SESSION_STORAGE_KEY } from "./constants";
 import { useSessionStorage } from "usehooks-ts";
 
+const getStoredDisabledMcpServerIds = (): string[] => {
+    try {
+        const stored = window.localStorage.getItem(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored) as string[];
+        }
+    } catch { /* fall through to [] */ }
+
+    return [];
+}
+
 export const useCreateNewChatThread = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
@@ -31,16 +42,8 @@ export const useCreateNewChatThread = () => {
             }
         } catch { /* fall through to [] */ }
 
-        let storedDisabledMcpServerIds: string[] = [];
-        try {
-            const stored = window.localStorage.getItem(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY);
-            if (stored) {
-                storedDisabledMcpServerIds = JSON.parse(stored) as string[];
-            }
-        } catch { /* fall through to [] */ }
-
         const selectedSearchScopes = overrideSearchScopes ?? storedScopes;
-        const disabledMcpServerIds = overrideDisabledMcpServerIds ?? storedDisabledMcpServerIds;
+        const disabledMcpServerIds = overrideDisabledMcpServerIds ?? getStoredDisabledMcpServerIds();
         const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes, disabledMcpServerIds, attachments);
 
         setIsLoading(true);
@@ -65,11 +68,12 @@ export const useCreateNewChatThread = () => {
     }, [router, toast, setChatState]);
 
     const createChatFromSource = useCallback(async (source: Source) => {
+        const disabledMcpServerIds = getStoredDisabledMcpServerIds();
         const inputMessage = createUIMessage(
             'Explain this selected code.',
             [],
             [],
-            [],
+            disabledMcpServerIds,
             [],
             [source],
         );
@@ -87,7 +91,7 @@ export const useCreateNewChatThread = () => {
         setChatState({
             inputMessage,
             selectedSearchScopes: [],
-            disabledMcpServerIds: [],
+            disabledMcpServerIds,
         });
 
         router.push(`/chat/${response.id}`);
