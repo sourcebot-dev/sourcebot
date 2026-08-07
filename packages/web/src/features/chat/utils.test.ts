@@ -769,6 +769,29 @@ test('repairReferences handles malformed inline code blocks', () => {
 });
 
 describe('createUIMessage', () => {
+    test('includes an explicit ranged file source', () => {
+        const result = createUIMessage('Explain this selected code.', [], [], [], [], [{
+            type: 'file',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            path: 'packages/web/src/auth.ts',
+            name: 'auth.ts',
+            revision: 'main',
+            range: { startLine: 12, endLine: 30 },
+        }]);
+
+        expect(result.parts).toContainEqual({
+            type: 'data-source',
+            data: {
+                type: 'file',
+                repo: 'github.com/sourcebot-dev/sourcebot',
+                path: 'packages/web/src/auth.ts',
+                name: 'auth.ts',
+                revision: 'main',
+                range: { startLine: 12, endLine: 30 },
+            },
+        });
+    });
+
     test('includes disabledMcpServerIds in metadata when provided', () => {
         const result = createUIMessage('hello', [], [], ['server1', 'server2']);
 

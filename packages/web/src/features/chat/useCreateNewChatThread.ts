@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
-import { AttachmentData, SearchScope, SetChatStatePayload } from "./types";
+import { AttachmentData, SearchScope, SetChatStatePayload, Source } from "./types";
 import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, SET_CHAT_STATE_SESSION_STORAGE_KEY } from "./constants";
 import { useSessionStorage } from "usehooks-ts";
 
@@ -64,8 +64,38 @@ export const useCreateNewChatThread = () => {
         router.push(url);
     }, [router, toast, setChatState]);
 
+    const createChatFromSource = useCallback(async (source: Source) => {
+        const inputMessage = createUIMessage(
+            'Explain this selected code.',
+            [],
+            [],
+            [],
+            [],
+            [source],
+        );
+
+        setIsLoading(true);
+        const response = await createChat({ source: 'sourcebot-web-client' });
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to create chat. Reason: ${response.message}`,
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        setChatState({
+            inputMessage,
+            selectedSearchScopes: [],
+            disabledMcpServerIds: [],
+        });
+
+        router.push(`/chat/${response.id}`);
+    }, [router, setChatState, toast]);
+
     return {
         createNewChatThread,
+        createChatFromSource,
         isLoading,
     };
 }
