@@ -929,6 +929,8 @@ const createPrompt = ({
         repo: string;
         language: string;
         revision: string;
+        range?: FileSource['range'];
+        lineOffset: number;
     }[],
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
