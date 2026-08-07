@@ -21,7 +21,7 @@ import {
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
-import { Source } from "@/features/chat/types";
+import { FileSource, Source } from "@/features/chat/types";
 import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
@@ -551,6 +551,29 @@ interface AgentOptions {
     orgId?: number;
 }
 
+export const sliceFileSourceForPrompt = (
+    source: string,
+    range: FileSource['range'],
+): { source: string; lineOffset: number } | undefined => {
+    if (!range) {
+        return { source, lineOffset: 1 };
+    }
+
+    const lines = source.split('\n');
+    if (
+        range.startLine < 1 ||
+        range.endLine < range.startLine ||
+        range.endLine > lines.length
+    ) {
+        return undefined;
+    }
+
+    return {
+        source: lines.slice(range.startLine - 1, range.endLine).join('\n'),
+        lineOffset: range.startLine,
+    };
+};
+
 const createAgentStream = async ({
     model,
     promptCacheStrategy,
@@ -591,12 +614,20 @@ const createAgentStream = async ({
                 return undefined;
             }
 
+            const selectedSource = sliceFileSourceForPrompt(fileSource.source, source.range);
+            if (!selectedSource) {
+                logger.warn(`Ignoring invalid selected range for ${source.repo}:${source.path}`);
+                return undefined;
+            }
+
             return {
                 path: fileSource.path,
-                source: fileSource.source,
+                source: selectedSource.source,
                 repo: fileSource.repo,
                 language: fileSource.language,
                 revision: source.revision,
+                lineOffset: selectedSource.lineOffset,
+                range: source.range,
             };
         }))
     ).filter((source) => source !== undefined);
@@ -898,6 +929,8 @@ const createPrompt = ({
         repo: string;
         language: string;
         revision: string;
+        range?: FileSource['range'];
+        lineOffset: number;
     }[],
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
@@ -999,8 +1032,8 @@ const createPrompt = ({
         <files>
         The user has mentioned the following files, which are automatically included for analysis.
 
-        ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
-            ${addLineNumbers(file.source)}
+        ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}"${file.range ? ` selected_lines="${file.range.startLine}-${file.range.endLine}"` : ''}>
+            ${addLineNumbers(file.source, file.lineOffset)}
             </file>`).join('\n\n')}
         </files>
         `);

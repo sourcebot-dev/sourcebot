@@ -121,7 +121,7 @@ vi.mock('ai', async (importOriginal) => {
     };
 });
 
-const { createMessageStream } = await import('./agent');
+const { createMessageStream, sliceFileSourceForPrompt } = await import('./agent');
 const { getPromptCacheStrategy } = await import('./promptCaching');
 
 // Strategies reused across the prompt-caching tests below.
@@ -134,6 +134,33 @@ const listReposInput = {
     perPage: 30,
     direction: 'asc',
 } as const;
+
+describe('sliceFileSourceForPrompt', () => {
+    test('slices an inclusive range and preserves its original line offset', () => {
+        expect(sliceFileSourceForPrompt('one\ntwo\nthree\nfour', {
+            startLine: 2,
+            endLine: 3,
+        })).toEqual({
+            source: 'two\nthree',
+            lineOffset: 2,
+        });
+    });
+
+    test('keeps the full file when there is no selected range', () => {
+        expect(sliceFileSourceForPrompt('one\ntwo', undefined)).toEqual({
+            source: 'one\ntwo',
+            lineOffset: 1,
+        });
+    });
+
+    test.each([
+        { startLine: 0, endLine: 1 },
+        { startLine: 3, endLine: 2 },
+        { startLine: 1, endLine: 4 },
+    ])('ignores invalid ranges safely', (range) => {
+        expect(sliceFileSourceForPrompt('one\ntwo\nthree', range)).toBeUndefined();
+    });
+});
 
 const dynamicApprovalRespondedPart = {
     type: 'dynamic-tool',
