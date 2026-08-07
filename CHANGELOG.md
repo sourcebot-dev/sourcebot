@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `fast-uri` to `^3.1.5`. [#1541](https://github.com/sourcebot-dev/sourcebot/pull/1541)
 - Upgraded `ip-address` to `^10.4.0`. [#1540](https://github.com/sourcebot-dev/sourcebot/pull/1540)
 - [EE] Fixed Ask MCP connector tools failing to load when their input schemas use JSON Schema 2019-09 or 2020-12. [#1547](https://github.com/sourcebot-dev/sourcebot/pull/1547)
+- Upgraded `js-yaml` to `^4.3.1`. [#1552](https://github.com/sourcebot-dev/sourcebot/pull/1552)
 
 ## [5.1.5] - 2026-07-31
 
