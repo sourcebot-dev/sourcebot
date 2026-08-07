@@ -80,3 +80,35 @@ test("createChatFromSource preserves disabled MCP servers from local storage", a
         disabledMcpServerIds,
     });
 });
+
+test("createChatFromSource ignores duplicate calls while chat creation is pending", async () => {
+    let resolveCreateChat: ((value: { id: string }) => void) | undefined;
+    mocks.createChat.mockImplementation(() => new Promise((resolve) => {
+        resolveCreateChat = resolve;
+    }));
+    mocks.createUIMessage.mockReturnValue({ id: "initial-message" });
+    const { result } = renderHook(() => useCreateNewChatThread());
+    const source: Source = {
+        type: "file",
+        repo: "github.com/sourcebot-dev/sourcebot",
+        path: "packages/web/src/auth.ts",
+        name: "auth.ts",
+        revision: "main",
+    };
+
+    let firstCreate: Promise<void> | undefined;
+    let secondCreate: Promise<void> | undefined;
+    act(() => {
+        firstCreate = result.current.createChatFromSource(source);
+        secondCreate = result.current.createChatFromSource(source);
+    });
+
+    expect(mocks.createChat).toHaveBeenCalledTimes(1);
+
+    resolveCreateChat?.({ id: "chat-1" });
+    await act(async () => {
+        await Promise.all([firstCreate, secondCreate]);
+    });
+
+    expect(mocks.push).toHaveBeenCalledTimes(1);
+});

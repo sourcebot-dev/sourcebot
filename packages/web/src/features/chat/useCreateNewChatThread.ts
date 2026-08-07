@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Descendant } from "slate";
 import { createUIMessage, getAllMentionElements } from "./utils";
 import { slateContentToString } from "./utils";
@@ -26,11 +26,17 @@ const getStoredDisabledMcpServerIds = (): string[] => {
 
 export const useCreateNewChatThread = () => {
     const [isLoading, setIsLoading] = useState(false);
+    const createInFlightRef = useRef(false);
     const { toast } = useToast();
     const router = useRouter();
     const [, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
 
     const createNewChatThread = useCallback(async (children: Descendant[], overrideSearchScopes?: SearchScope[], overrideDisabledMcpServerIds?: string[], attachments: AttachmentData[] = []) => {
+        if (createInFlightRef.current) {
+            return;
+        }
+        createInFlightRef.current = true;
+
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
@@ -53,6 +59,7 @@ export const useCreateNewChatThread = () => {
                 description: `❌ Failed to create chat. Reason: ${response.message}`
             });
             setIsLoading(false);
+            createInFlightRef.current = false;
             return;
         }
 
@@ -68,6 +75,11 @@ export const useCreateNewChatThread = () => {
     }, [router, toast, setChatState]);
 
     const createChatFromSource = useCallback(async (source: Source) => {
+        if (createInFlightRef.current) {
+            return;
+        }
+        createInFlightRef.current = true;
+
         const disabledMcpServerIds = getStoredDisabledMcpServerIds();
         const inputMessage = createUIMessage(
             'Explain this selected code.',
@@ -85,6 +97,7 @@ export const useCreateNewChatThread = () => {
                 description: `❌ Failed to create chat. Reason: ${response.message}`,
             });
             setIsLoading(false);
+            createInFlightRef.current = false;
             return;
         }
 
