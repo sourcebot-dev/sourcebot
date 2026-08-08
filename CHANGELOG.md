@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed Ask MCP connector tools failing to load when their input schemas use JSON Schema 2019-09 or 2020-12. [#1547](https://github.com/sourcebot-dev/sourcebot/pull/1547)
 - Upgraded `js-yaml` to `^4.3.1`. [#1552](https://github.com/sourcebot-dev/sourcebot/pull/1552)
 - Upgraded `reo-census` to `^1.2.10` in `setup-sourcebot`. [#1554](https://github.com/sourcebot-dev/sourcebot/pull/1554)
+- Upgraded `mermaid` to `^11.16.1`. [#1555](https://github.com/sourcebot-dev/sourcebot/pull/1555)
 
 ## [5.1.5] - 2026-07-31
 
