@@ -396,7 +396,7 @@ const options = {
         REDIS_TLS_KEY_PASSPHRASE: z.string().optional(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
-        REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
+        REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(600),
 
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
 
