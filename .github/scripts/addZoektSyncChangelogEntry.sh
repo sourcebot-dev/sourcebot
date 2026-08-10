@@ -18,8 +18,16 @@ if grep -Fq "$pr_url" "$changelog"; then
   exit 0
 fi
 
-temporary_file=$(mktemp)
+changelog_directory=$(dirname "$changelog")
+changelog_basename=$(basename "$changelog")
+temporary_file=$(mktemp "$changelog_directory/.${changelog_basename}.XXXXXX")
 trap 'rm -f "$temporary_file"' EXIT
+
+if changelog_mode=$(stat -f '%Lp' "$changelog" 2> /dev/null); then
+  :
+else
+  changelog_mode=$(stat -c '%a' "$changelog")
+fi
 
 awk -v entry="$entry" '
   function flush_changed_section(    last, i) {
@@ -37,6 +45,7 @@ awk -v entry="$entry" '
 
   $0 == "## [Unreleased]" {
     in_unreleased = 1
+    last_was_blank = 0
     print
     next
   }
@@ -85,11 +94,22 @@ awk -v entry="$entry" '
     next
   }
 
-  { print }
+  {
+    last_was_blank = ($0 == "")
+    print
+  }
 
   END {
     if (in_changed) {
       flush_changed_section()
+      inserted = 1
+    } else if (in_unreleased && !found_changed) {
+      if (!last_was_blank) {
+        print ""
+      }
+      print "### Changed"
+      print entry
+      found_changed = 1
       inserted = 1
     }
     if (!found_changed || !inserted) {
@@ -101,6 +121,7 @@ awk -v entry="$entry" '
   exit 1
 }
 
+chmod "$changelog_mode" "$temporary_file"
 mv "$temporary_file" "$changelog"
 trap - EXIT
 echo "Added the changelog entry for Sourcebot PR #$pr_number."

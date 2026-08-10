@@ -19,7 +19,7 @@ jobs:
       - name: Test CVE remediation discovery
         run: .github/scripts/test-cve-remediation.sh
       - name: Test Zoekt sync automation
-        run: .github/scripts/test-zoekt-sync.sh
+        run: .github/scripts/testZoektSync.sh
 
   test:
     runs-on: ubuntu-latest

@@ -4,9 +4,9 @@ set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repository_root=$(cd "$script_dir/../.." && pwd)
-update_script="$script_dir/update-zoekt-submodule.sh"
-changelog_script="$script_dir/add-zoekt-sync-changelog-entry.sh"
-workflow="$repository_root/.github/workflows/sync-zoekt.yml"
+update_script="$script_dir/updateZoektSubmodule.sh"
+changelog_script="$script_dir/addZoektSyncChangelogEntry.sh"
+workflow="$repository_root/.github/workflows/syncZoekt.yml"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -84,6 +84,8 @@ assert_equals "$current_sha" "$second_sha" \
   "a stale event must not downgrade the Zoekt gitlink"
 git -C "$sourcebot_test" diff --quiet || \
   fail "a stale event should leave the worktree unchanged"
+git -C "$sourcebot_test" diff --cached --quiet || \
+  fail "a stale event should leave the index unchanged"
 
 git -C "$zoekt_upstream" switch --quiet --detach "$first_sha"
 git -C "$zoekt_upstream" switch --quiet -c divergent
@@ -101,7 +103,21 @@ if (
 fi
 assert_contains "$test_root/divergent-error.txt" \
   "is not reachable from origin/main" \
-  "the divergent-history error should explain the rejected target"
+  "the non-main error should explain the rejected target"
+
+git -C "$sourcebot_test/vendor/zoekt" checkout --quiet --detach "$divergent_sha"
+git -C "$sourcebot_test" add vendor/zoekt
+git -C "$sourcebot_test" commit --quiet -m "pin divergent Zoekt commit"
+
+if (
+  cd "$sourcebot_test"
+  "$update_script" "$second_sha"
+) 2> "$test_root/divergent-history-error.txt"; then
+  fail "the updater should reject divergent current and target commits"
+fi
+assert_contains "$test_root/divergent-history-error.txt" \
+  "Refusing to move Zoekt between divergent histories" \
+  "the divergent-history error should explain the rejected update"
 
 if (
   cd "$sourcebot_test"
@@ -131,6 +147,7 @@ cat > "$changelog_fixture" <<'EOF'
 ## [1.0.0]
 EOF
 
+chmod 640 "$changelog_fixture"
 CHANGELOG_PATH="$changelog_fixture" "$changelog_script" 42
 assert_contains "$changelog_fixture" \
   "### Changed" \
@@ -142,6 +159,24 @@ CHANGELOG_PATH="$changelog_fixture" "$changelog_script" 42
 entry_count=$(grep -Fc "sourcebot/pull/42" "$changelog_fixture")
 assert_equals "$entry_count" 1 \
   "the changelog helper should not duplicate an existing PR entry"
+if changelog_mode=$(stat -f '%Lp' "$changelog_fixture" 2> /dev/null); then
+  :
+else
+  changelog_mode=$(stat -c '%a' "$changelog_fixture")
+fi
+assert_equals "$changelog_mode" 640 \
+  "the changelog helper should preserve the target file mode"
+
+empty_changelog_fixture="$test_root/EMPTY_CHANGELOG.md"
+cat > "$empty_changelog_fixture" <<'EOF'
+# Changelog
+
+## [Unreleased]
+EOF
+CHANGELOG_PATH="$empty_changelog_fixture" "$changelog_script" 43
+assert_contains "$empty_changelog_fixture" \
+  "- Updated the bundled Zoekt version. [#43](https://github.com/sourcebot-dev/sourcebot/pull/43)" \
+  "the changelog helper should handle an empty Unreleased section at EOF"
 
 ruby -e 'require "yaml"; YAML.parse_file(ARGV.fetch(0))' "$workflow"
 assert_contains "$workflow" \
@@ -151,10 +186,13 @@ assert_contains "$workflow" \
   'uses: actions/create-github-app-token@v2' \
   "the receiver should use a GitHub App token"
 assert_contains "$workflow" \
+  'permission-pull-requests: write' \
+  "the receiver should restrict its app token to required permissions"
+assert_contains "$workflow" \
   '--force-with-lease=' \
   "the receiver should protect updates to its stable automation branch"
 assert_contains "$workflow" \
-  '.github/scripts/update-zoekt-submodule.sh "$ZOEKT_SHA"' \
+  '.github/scripts/updateZoektSubmodule.sh "$ZOEKT_SHA"' \
   "the receiver should validate and stage the requested Zoekt commit"
 
 echo "All Zoekt sync tests passed."
