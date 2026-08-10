@@ -9,7 +9,11 @@ export interface QueueSpec<TName extends QueueName> {
 
 export type JobOptions = {
     attempts: number;
-    backoff: { type: "fixed" | "exponential"; delayMs: number };
+    backoff: {
+        type: "fixed" | "exponential";
+        delayMs: number;
+        jitter?: number;
+    };
     keepJobs: {
         completed: KeepJobs;
         failed: KeepJobs;
@@ -30,8 +34,12 @@ export const JOB_PRIORITIES = {
 const TWO_WEEKS_IN_SECONDS = 14 * 24 * 60 * 60;
 
 export const DEFAULT_JOB_OPTIONS: JobOptions = {
-    attempts: 2,
-    backoff: { type: "exponential", delayMs: 5000 },
+    attempts: 4,
+    backoff: {
+        type: "exponential",
+        delayMs: 30_000,
+        jitter: 0.5,
+    },
     keepJobs: {
         completed: { age: TWO_WEEKS_IN_SECONDS },
         failed: { age: TWO_WEEKS_IN_SECONDS },

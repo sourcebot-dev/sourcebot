@@ -53,8 +53,12 @@ describe("BullMQClient", () => {
                 name: "connection-sync",
                 data,
                 opts: {
-                    attempts: 2,
-                    backoff: { type: "exponential", delay: 5000 },
+                    attempts: 4,
+                    backoff: {
+                        type: "exponential",
+                        delay: 30_000,
+                        jitter: 0.5,
+                    },
                     removeOnComplete: { age: 1_209_600 },
                     removeOnFail: { age: 1_209_600 },
                     keepLogs: 500,
@@ -75,7 +79,15 @@ describe("BullMQClient", () => {
         expect(mocks.add).toHaveBeenCalledWith(
             "connection-sync",
             { connectionId: 42 },
-            expect.objectContaining({ priority: 1 }),
+            expect.objectContaining({
+                priority: 1,
+                attempts: 4,
+                backoff: {
+                    type: "exponential",
+                    delay: 30_000,
+                    jitter: 0.5,
+                },
+            }),
         );
     });
 

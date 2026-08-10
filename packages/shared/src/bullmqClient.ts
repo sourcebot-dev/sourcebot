@@ -119,6 +119,9 @@ export class BullMQClient {
             backoff: {
                 type: spec.jobOptions.backoff.type,
                 delay: spec.jobOptions.backoff.delayMs,
+                ...(spec.jobOptions.backoff.jitter !== undefined
+                    ? { jitter: spec.jobOptions.backoff.jitter }
+                    : {}),
             },
             removeOnComplete: spec.jobOptions.keepJobs.completed,
             removeOnFail: spec.jobOptions.keepJobs.failed,
@@ -163,6 +166,9 @@ export class BullMQClient {
                     backoff: {
                         type: spec.jobOptions.backoff.type,
                         delay: spec.jobOptions.backoff.delayMs,
+                        ...(spec.jobOptions.backoff.jitter !== undefined
+                            ? { jitter: spec.jobOptions.backoff.jitter }
+                            : {}),
                     },
                     removeOnComplete: spec.jobOptions.keepJobs.completed,
                     removeOnFail: spec.jobOptions.keepJobs.failed,
