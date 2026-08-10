@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `nanoid` to `^3.3.18`. [#1557](https://github.com/sourcebot-dev/sourcebot/pull/1557)
 - Upgraded `dompurify` to `^3.4.13`. [#1556](https://github.com/sourcebot-dev/sourcebot/pull/1556)
 - Upgraded `mermaid` to `^11.16.1`. [#1555](https://github.com/sourcebot-dev/sourcebot/pull/1555)
+- Fixed the automated Zoekt sync workflow to use the existing release GitHub App credentials. [#1561](https://github.com/sourcebot-dev/sourcebot/pull/1561)
 
 ## [5.1.5] - 2026-07-31
 
