@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `nanoid` to `^3.3.18`. [#1557](https://github.com/sourcebot-dev/sourcebot/pull/1557)
 - Upgraded `dompurify` to `^3.4.13`. [#1556](https://github.com/sourcebot-dev/sourcebot/pull/1556)
 - Upgraded `mermaid` to `^11.16.1`. [#1555](https://github.com/sourcebot-dev/sourcebot/pull/1555)
+- [EE] Fixed Ask Sourcebot file reference citations for repositories whose code host URL includes a port. [#1565](https://github.com/sourcebot-dev/sourcebot/pull/1565)
 
 ## [5.1.5] - 2026-07-31
 
