@@ -39,6 +39,7 @@ vi.mock("@sourcebot/shared", () => ({
         },
     },
     JOB_PRIORITIES: {
+        INITIAL: 5,
         SCHEDULED: 10,
     },
     env: {
@@ -269,7 +270,7 @@ describe("connectionWorkload", () => {
                 repoId: 4,
                 type: "INDEX",
             },
-            { priority: 10 },
+            { priority: 5 },
         );
         expect(mocks.connectionUpdate).toHaveBeenCalledWith({
             where: { id: 42 },
@@ -493,7 +494,7 @@ describe("connectionWorkload repo sync helpers", () => {
                 repoId: 4,
                 type: "INDEX",
             },
-            { priority: 10 },
+            { priority: 5 },
         );
         expect(
             mocks.upsertJobScheduler.mock.invocationCallOrder[1],

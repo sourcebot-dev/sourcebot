@@ -23,6 +23,7 @@ export type JobEnqueueOptions = {
 
 export const JOB_PRIORITIES = {
     INTERACTIVE: 1,
+    INITIAL: 5,
     SCHEDULED: 10,
 } as const;
 

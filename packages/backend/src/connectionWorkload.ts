@@ -378,7 +378,7 @@ export const reconcileRepoIndexWork = async ({
                     repoId: id,
                     type: "INDEX",
                 },
-                { priority: JOB_PRIORITIES.SCHEDULED },
+                { priority: JOB_PRIORITIES.INITIAL },
             ),
         ),
     );
