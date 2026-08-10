@@ -40,7 +40,7 @@ zoekt_remote="$test_root/zoekt.git"
 zoekt_upstream="$test_root/zoekt-upstream"
 sourcebot_test="$test_root/sourcebot"
 
-git init --quiet --bare "$zoekt_remote"
+git init --quiet --bare --initial-branch=main "$zoekt_remote"
 git init --quiet --initial-branch=main "$zoekt_upstream"
 git -C "$zoekt_upstream" config user.name "Zoekt Sync Test"
 git -C "$zoekt_upstream" config user.email "zoekt-sync-test@example.com"
