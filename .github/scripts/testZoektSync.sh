@@ -145,6 +145,14 @@ cat > "$changelog_fixture" <<'EOF'
 - Fixed something.
 
 ## [1.0.0]
+
+### Changed
+- Changed something in a released version.
+
+## [0.9.0]
+
+### Changed
+- Changed something in an older released version.
 EOF
 
 chmod 640 "$changelog_fixture"
@@ -155,6 +163,9 @@ assert_contains "$changelog_fixture" \
 assert_contains "$changelog_fixture" \
   "- Updated the bundled Zoekt version. [#42](https://github.com/sourcebot-dev/sourcebot/pull/42)" \
   "the changelog helper should add the generated PR link"
+entry_count=$(grep -Fc "sourcebot/pull/42" "$changelog_fixture")
+assert_equals "$entry_count" 1 \
+  "the changelog helper should add the PR entry only to Unreleased"
 CHANGELOG_PATH="$changelog_fixture" "$changelog_script" 42
 entry_count=$(grep -Fc "sourcebot/pull/42" "$changelog_fixture")
 assert_equals "$entry_count" 1 \

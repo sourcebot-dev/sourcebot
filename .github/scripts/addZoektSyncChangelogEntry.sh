@@ -83,12 +83,14 @@ awk -v entry="$entry" '
     next
   }
 
-  in_unreleased && !found_changed && /^## / {
-    print "### Changed"
-    print entry
-    print ""
-    found_changed = 1
-    inserted = 1
+  in_unreleased && /^## / {
+    if (!found_changed) {
+      print "### Changed"
+      print entry
+      print ""
+      found_changed = 1
+      inserted = 1
+    }
     in_unreleased = 0
     print
     next
