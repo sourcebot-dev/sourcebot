@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [EE] Added guided reconnection for MCP connector authentication failures during Ask Sourcebot agent turns. [#1548](https://github.com/sourcebot-dev/sourcebot/pull/1548)
 
+### Changed
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
+
 ### Removed
 - Removed the Langfuse integration. [#1536](https://github.com/sourcebot-dev/sourcebot/pull/1536)
 
@@ -54,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Reduced Sentry span sampling to 10% outside development. [#1475](https://github.com/sourcebot-dev/sourcebot/pull/1475)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Fixed
 - Authenticated Ask GitHub repository lookups and added recoverable handling for GitHub API rate limits. [#1476](https://github.com/sourcebot-dev/sourcebot/pull/1476)
@@ -91,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Disabled `DELETE /api/ee/user` while SCIM provisioning is enabled, and switched it to an org-scoped membership removal (with last-owner protection) instead of a global account delete. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
 - [EE] Unified the `GET /api/ee/user` and `GET /api/ee/users` response shapes behind a shared mapper; the single-user endpoint is now scoped to org membership, and both include role, membership status, and last activity. [#1425](https://github.com/sourcebot-dev/sourcebot/pull/1425)
 - Browse blob, tree, and commit pages now fetch file sources, folder contents, and diffs client-side via API routes instead of embedding them in the server-rendered page, keeping documents small and event-loop pressure low for large files and commits. [#1426](https://github.com/sourcebot-dev/sourcebot/pull/1426)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
@@ -122,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Added
 - Recorded service ping history locally and added a "Download usage report" button to the offline license settings page, so offline deployments can export their usage and send it to us. [#1348](https://github.com/sourcebot-dev/sourcebot/pull/1348)
@@ -146,6 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed the workspace "Access" page to a "Security" page. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Added
 - Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
@@ -162,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. See the [v5 migration guide](http://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide#identity-providers-must-be-configured-via-the-config-file) for more details. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
 - Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Added
 - [EE] Added prompt caching for Ask Sourcebot. For Anthropic models, the static prompt prefix (tool definitions, system prompt, and conversation history) is marked with a cache breakpoint so it is billed at the provider's discounted cache-read rate on subsequent agent steps and follow-up turns. Toggle with `SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED` (default `true`). [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
@@ -198,6 +206,7 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Added
 - Added ask connectors: connect 3rd party MCP servers to your ask agent. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
@@ -212,6 +221,7 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 
 ### Changed
 - Documented session lifetime, repository visibility refresh behavior, and how permission sync handles transient code-host errors. [#1218](https://github.com/sourcebot-dev/sourcebot/pull/1218)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ### Fixed
 - Fixed issue where claude-opus-4-8 was returning "error occurred "thinking.type.enabled" is not supported for this model". [#1249](https://github.com/sourcebot-dev/sourcebot/pull/1249)
@@ -248,6 +258,7 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 - Improved git history and blame performance on large repositories. [#1198](https://github.com/sourcebot-dev/sourcebot/pull/1198)
 - Upgraded `react-email` to `^6.1.4`. [#1206](https://github.com/sourcebot-dev/sourcebot/pull/1206)
 - Upgraded `@posthog/ai` to `^7.18.7`. [#1207](https://github.com/sourcebot-dev/sourcebot/pull/1207)
+- Updated the bundled Zoekt version. [#1562](https://github.com/sourcebot-dev/sourcebot/pull/1562)
 
 ## [4.17.1] - 2026-05-04
 
