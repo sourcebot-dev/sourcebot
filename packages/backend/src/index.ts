@@ -19,6 +19,8 @@ import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncW
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
 import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
 import { hasEntitlement } from "./entitlements.js";
+import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
+import { createAuditLogPruneWorkload } from "./ee/auditLogPruneWorkload.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -71,11 +73,22 @@ const repoPermissionSyncWorkload = createRepoPermissionSyncWorkload({
     db: prisma,
     settings,
 });
+const attachmentPruneWorkload = createAttachmentPruneWorkload({
+    db: prisma,
+    ttlHours: env.SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS,
+});
+const auditLogPruneWorkload = createAuditLogPruneWorkload({
+    db: prisma,
+    enabled: env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === "true",
+    retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
+});
 
 jobManager.register(connectionWorkload);
 jobManager.register(repoIndexWorkload);
 jobManager.register(accountPermissionSyncWorkload);
 jobManager.register(repoPermissionSyncWorkload);
+jobManager.register(attachmentPruneWorkload);
+jobManager.register(auditLogPruneWorkload);
 
 const api = new Api(promClient, prisma, jobManager);
 

@@ -42,6 +42,8 @@ export type QueueName = keyof QueueRegistry;
 export type DataOf<TName extends QueueName> = QueueRegistry[TName];
 
 interface QueueRegistry {
+    "attachment-prune": Record<string, never>;
+    "audit-log-prune": Record<string, never>;
     "connection-sync": {
         connectionId: number;
     };
@@ -56,6 +58,18 @@ interface QueueRegistry {
         repoId: number;
     };
 }
+
+export const ATTACHMENT_PRUNE_QUEUE: QueueSpec<"attachment-prune"> = {
+    name: "attachment-prune",
+    jobOptions: DEFAULT_JOB_OPTIONS,
+    dedupKey: () => "global",
+};
+
+export const AUDIT_LOG_PRUNE_QUEUE: QueueSpec<"audit-log-prune"> = {
+    name: "audit-log-prune",
+    jobOptions: DEFAULT_JOB_OPTIONS,
+    dedupKey: () => "global",
+};
 
 export const CONNECTION_QUEUE: QueueSpec<"connection-sync"> = {
     name: "connection-sync",

@@ -287,28 +287,3 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
     }
     return url.toString();
 }
-
-
-// setInterval wrapper that ensures async callbacks are not executed concurrently.
-// @see: https://mottaquikarim.github.io/dev/posts/setinterval-that-blocks-on-await/
-export const setIntervalAsync = (target: () => Promise<void>, pollingIntervalMs: number): NodeJS.Timeout => {
-    const setIntervalWithPromise = <T extends (...args: any[]) => Promise<any>>(
-        target: T
-    ): (...args: Parameters<T>) => Promise<void> => {
-        return async function (...args: Parameters<T>): Promise<void> {
-            if ((target as any).isRunning) return;
-
-            (target as any).isRunning = true;
-            try {
-                await target(...args);
-            } finally {
-                (target as any).isRunning = false;
-            }
-        };
-    }
-
-    return setInterval(
-        setIntervalWithPromise(target),
-        pollingIntervalMs
-    );
-}
