@@ -149,6 +149,10 @@ test('fileReferenceToString matches FILE_REFERENCE_REGEX for repos with ports', 
 
     expect(match).not.toBeNull();
     expect(match?.[1]).toBe('git.example.com:8080/org/repo');
+    expect(match?.[2]).toBe(':8080');
+    expect(match?.[3]).toBe('auth.ts');
+    expect(match?.[4]).toBe('45');
+    expect(match?.[5]).toBe('60');
 });
 
 test('slateContentToString serializes command mentions as literal slash commands', () => {
