@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { DisplayDate } from "../../components/DisplayDate"
 import { LoadingButton } from "@/components/ui/loading-button"
-import { indexRepo } from "@/features/workerApi/actions"
+import { indexRepo } from "@/features/repos/actions"
 import { isServiceError } from "@/lib/utils"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
@@ -202,7 +202,7 @@ export const RepoJobsTable = ({
         if (!isServiceError(response)) {
             const { jobId } = response;
             toast({
-                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
+                description: `✅ Repository indexing scheduled. Job ID: ${jobId}`,
             })
             router.refresh();
         } else {

@@ -31,6 +31,7 @@ export {
     base64Decode,
     loadJsonFile,
     getConfigSettings,
+    resolveConfigSettings,
     getRepoPath,
     getRepoIdFromPath,
     isCredentialsLoginEnabled,
@@ -95,15 +96,24 @@ export type { Version } from "./versionUtils.js";
 export type {
     QueueName,
     DataOf,
+    JobEnqueueOptions,
     QueueSpec,
-} from "./queue.js"
+    JobOptions,
+} from "./queue.js";
 export {
     ACCOUNT_PERMISSION_SYNC_QUEUE,
     CONNECTION_QUEUE,
-    RECONCILIATION_QUEUE,
+    DEFAULT_JOB_OPTIONS,
+    JOB_PRIORITIES,
     REPO_INDEX_QUEUE,
     REPO_PERMISSION_SYNC_QUEUE,
 } from "./queue.js";
+export type { Schedule } from "./schedule.js";
+export {
+    ACCOUNT_PERMISSION_SYNC_SCHEDULER_ID_PREFIX,
+    getAccountPermissionSyncSchedulerId,
+    scheduleToMs,
+} from "./schedule.js";
 export {
     BullMQClient,
 } from "./bullmqClient.js";

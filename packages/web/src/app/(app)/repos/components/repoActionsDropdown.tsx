@@ -6,7 +6,7 @@ import { getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
 import { ExternalLink, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { indexRepo } from "@/features/workerApi/actions"
+import { indexRepo } from "@/features/repos/actions"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import type { Repo } from "./reposTable"
@@ -34,7 +34,7 @@ export const RepoActionsDropdown = ({ repo }: RepoActionsDropdownProps) => {
         if (!isServiceError(response)) {
             const { jobId } = response
             toast({
-                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
+                description: `✅ Repository indexing scheduled. Job ID: ${jobId}`,
             })
             router.refresh()
         } else {

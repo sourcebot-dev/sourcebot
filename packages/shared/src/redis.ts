@@ -1,5 +1,5 @@
 import fs from "fs";
-import { Redis } from "ioredis";
+import { Redis, type RedisOptions } from "ioredis";
 import { env } from "./env.server.js";
 
 const buildTlsOptions = (): Record<string, unknown> => {
@@ -43,7 +43,9 @@ const buildTlsOptions = (): Record<string, unknown> => {
     };
 };
 
-export const createRedisClient = () => new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: null,
-    ...buildTlsOptions(),
-});
+export const createRedisClient = (options: RedisOptions = {}) =>
+    new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        ...buildTlsOptions(),
+        ...options,
+    });

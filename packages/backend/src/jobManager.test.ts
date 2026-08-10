@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => {
     };
     return {
         enqueue: vi.fn(),
+        upsertJobScheduler: vi.fn(),
+        getJobSchedulerIds: vi.fn(),
+        removeJobScheduler: vi.fn(),
         producerClose: vi.fn(),
         workerClose: vi.fn(),
         jobLogger,
@@ -33,8 +36,14 @@ vi.mock("@sourcebot/shared", () => ({
         debug: vi.fn(),
     })),
     createBullMQJobLogger: mocks.createBullMQJobLogger,
+    scheduleToMs: vi.fn((schedule: string | number) =>
+        typeof schedule === "number" ? schedule : 300_000,
+    ),
     BullMQClient: class {
         enqueue = mocks.enqueue;
+        upsertJobScheduler = mocks.upsertJobScheduler;
+        getJobSchedulerIds = mocks.getJobSchedulerIds;
+        removeJobScheduler = mocks.removeJobScheduler;
         close = mocks.producerClose;
         getQueue = vi.fn(() => ({
             getJobCounts: vi.fn(),
@@ -72,57 +81,7 @@ vi.mock("bullmq", () => ({
     },
 }));
 
-import {
-    BullMQJobManager,
-    normalizeJobState,
-    parseDuration,
-} from "./jobManager.js";
-
-describe("parseDuration", () => {
-    test.each([
-        ["500ms", 500],
-        ["30s", 30_000],
-        ["5m", 300_000],
-        ["6h", 21_600_000],
-        ["1d", 86_400_000],
-    ])("parses %s", (input, expected) => {
-        expect(parseDuration(input)).toBe(expected);
-    });
-
-    test("trims surrounding whitespace", () => {
-        expect(parseDuration("  10m ")).toBe(600_000);
-    });
-
-    test.each(["", "5", "m", "5x", "1.5h", "-5m", "5 m"])(
-        'throws on malformed "%s"',
-        (input) => {
-            expect(() => parseDuration(input)).toThrow();
-        },
-    );
-});
-
-describe("normalizeJobState", () => {
-    test.each([
-        "waiting",
-        "active",
-        "delayed",
-        "completed",
-        "failed",
-        "paused",
-    ])('passes through "%s"', (state) => {
-        expect(normalizeJobState(state)).toBe(state);
-    });
-
-    test("collapses prioritized and waiting-children to waiting", () => {
-        expect(normalizeJobState("prioritized")).toBe("waiting");
-        expect(normalizeJobState("waiting-children")).toBe("waiting");
-    });
-
-    test("maps anything unrecognized to unknown", () => {
-        expect(normalizeJobState("something-else")).toBe("unknown");
-        expect(normalizeJobState("unknown")).toBe("unknown");
-    });
-});
+import { BullMQJobManager } from "./jobManager.js";
 
 const createWorkload = (
     overrides: Partial<Workload<"connection-sync", { repoCount: number }>> = {},
@@ -133,7 +92,10 @@ const createWorkload = (
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
-            keep: { completed: 50, failed: 50 },
+            keepJobs: {
+                completed: { count: 50 },
+                failed: { count: 50 },
+            },
             keepLogs: 500,
         },
     },
@@ -142,7 +104,7 @@ const createWorkload = (
     ...overrides,
 });
 
-const data = { connectionId: 42, orgId: 1 };
+const data = { connectionId: 42 };
 const job = {
     id: "job-1",
     queueName: "connection-sync",
@@ -158,6 +120,11 @@ describe("BullMQJobManager lifecycle", () => {
         vi.clearAllMocks();
         mocks.workers.length = 0;
         mocks.enqueue.mockResolvedValue("job-1");
+        mocks.upsertJobScheduler.mockResolvedValue("scheduled-job-1");
+        mocks.getJobSchedulerIds.mockResolvedValue([]);
+        mocks.removeJobScheduler.mockResolvedValue(true);
+        mocks.workerClose.mockResolvedValue(undefined);
+        mocks.producerClose.mockResolvedValue(undefined);
     });
 
     test("delegates enqueueing to BullMQClient and returns its job id", async () => {
@@ -165,10 +132,93 @@ describe("BullMQJobManager lifecycle", () => {
         const workload = createWorkload();
         manager.register(workload);
 
-        const result = await manager.trigger("connection-sync", data);
+        const result = await manager.trigger(
+            "connection-sync",
+            data,
+            { priority: 1 },
+        );
 
         expect(result).toBe("job-1");
-        expect(mocks.enqueue).toHaveBeenCalledWith(workload.queueSpec, data);
+        expect(mocks.enqueue).toHaveBeenCalledWith(
+            workload.queueSpec,
+            data,
+            { priority: 1 },
+        );
+    });
+
+    test("manages schedulers through the registered workload", async () => {
+        const manager = new BullMQJobManager({} as Redis);
+        const workload = createWorkload();
+        manager.register(workload);
+
+        await expect(
+            manager.upsertJobScheduler(
+                "connection-sync",
+                "connection-sync-v1-42",
+                60_000,
+                data,
+                { priority: 10 },
+            ),
+        ).resolves.toBe("scheduled-job-1");
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            workload.queueSpec,
+            "connection-sync-v1-42",
+            60_000,
+            data,
+            { priority: 10 },
+        );
+
+        mocks.getJobSchedulerIds.mockResolvedValue(["connection-sync-v1-42"]);
+        await expect(
+            manager.getJobSchedulerIds("connection-sync"),
+        ).resolves.toEqual(["connection-sync-v1-42"]);
+        expect(mocks.getJobSchedulerIds).toHaveBeenCalledWith(
+            workload.queueSpec,
+        );
+
+        await expect(
+            manager.removeJobScheduler(
+                "connection-sync",
+                "connection-sync-v1-42",
+            ),
+        ).resolves.toBe(true);
+        expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
+            workload.queueSpec,
+            "connection-sync-v1-42",
+        );
+    });
+
+    test("upserts a declared workload schedule when starting", async () => {
+        const manager = new BullMQJobManager({} as Redis);
+        const workload = createWorkload({
+            schedule: {
+                interval: "5m",
+                data,
+                options: { priority: 10 },
+            },
+        });
+        manager.register(workload);
+
+        await manager.start();
+
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            workload.queueSpec,
+            "schedule:connection-sync",
+            "5m",
+            data,
+            { priority: 10 },
+        );
+    });
+
+    test("closes workers and producer queues when stopping", async () => {
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload());
+        await manager.start();
+
+        await manager.stop();
+
+        expect(mocks.workerClose).toHaveBeenCalledOnce();
+        expect(mocks.producerClose).toHaveBeenCalledOnce();
     });
 
     test("calls onStarted before processing and onCompleted after completion", async () => {

@@ -24,7 +24,10 @@ vi.mock("@sourcebot/shared", async (importOriginal) => ({
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
-            keep: { completed: 50, failed: 50 },
+            keepJobs: {
+                completed: { count: 50 },
+                failed: { count: 50 },
+            },
             keepLogs: 500,
         },
     },

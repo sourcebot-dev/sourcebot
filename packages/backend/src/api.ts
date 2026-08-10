@@ -1,13 +1,19 @@
-import { createLogger, env } from '@sourcebot/shared';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter.js';
 import { ExpressAdapter } from '@bull-board/express';
-import { Queue } from 'bullmq';
+import { Octokit } from '@octokit/rest';
+import * as Sentry from "@sentry/node";
+import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
+import { createLogger, env, JOB_PRIORITIES } from '@sourcebot/shared';
 import express, { NextFunction, Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
+import z from 'zod';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
+import { isGitHubRateLimitError, isNotFound } from './errors.js';
 import { PromClient } from './promClient.js';
-import * as Sentry from "@sentry/node";
+import { createGitHubRepoRecord } from './repoCompileUtils.js';
+import type { JobManager } from './types.js';
 
 const logger = createLogger('api');
 
@@ -17,7 +23,11 @@ const PORT = Number(workerApiUrl.port) || (workerApiUrl.protocol === "https:" ? 
 export class Api {
     private server: http.Server;
 
-    constructor(promClient: PromClient, queues: Queue[]) {
+    constructor(
+        promClient: PromClient,
+        private prisma: PrismaClient,
+        private jobManager: JobManager,
+    ) {
         const app = express();
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
@@ -25,7 +35,7 @@ export class Api {
         const bullBoardAdapter = new ExpressAdapter();
         bullBoardAdapter.setBasePath('/admin/queues');
         createBullBoard({
-            queues: queues.map(queue => new BullMQAdapter(queue, { readOnlyMode: true })),
+            queues: jobManager.getQueues().map(queue => new BullMQAdapter(queue, { readOnlyMode: true })),
             serverAdapter: bullBoardAdapter,
         });
         app.use('/admin/queues', bullBoardAdapter.getRouter());
@@ -37,6 +47,8 @@ export class Api {
             res.end(metrics);
         });
 
+        app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
+
         app.use((error: unknown, _req: Request, _res: Response, next: NextFunction) => {
             Sentry.captureException(error);
             next(error);
@@ -46,6 +58,70 @@ export class Api {
             logger.debug(`API server is running on port ${PORT}`);
             logger.debug(`Bull Board is available at ${workerApiUrl.origin}/admin/queues`);
         });
+    }
+
+    private async experimental_addGithubRepo(req: Request, res: Response) {
+        const schema = z.object({
+            owner: z.string(),
+            repo: z.string(),
+        }).strict();
+
+        const parsed = schema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({ error: parsed.error.message });
+            return;
+        }
+
+        const octokit = new Octokit({
+            auth: env.EXPERIMENT_ASK_GH_GITHUB_TOKEN,
+        });
+        let response;
+        try {
+            response = await octokit.rest.repos.get({
+                owner: parsed.data.owner,
+                repo: parsed.data.repo,
+            });
+        } catch (error) {
+            if (isNotFound(error)) {
+                res.status(404).json({ error: 'Repository not found on GitHub' });
+                return;
+            }
+            if (isGitHubRateLimitError(error)) {
+                logger.warn(`GitHub API rate limit exceeded while adding ${parsed.data.owner}/${parsed.data.repo}`);
+                res.status(429).json({ error: 'GitHub API rate limit exceeded' });
+                return;
+            }
+            throw error;
+        }
+
+        const record = createGitHubRepoRecord({
+            repo: response.data,
+            hostUrl: 'https://github.com',
+            isAutoCleanupDisabled: true,
+        });
+
+        const repo = await this.prisma.repo.upsert({
+            where: {
+                external_id_external_codeHostUrl_orgId: {
+                    external_id: record.external_id,
+                    external_codeHostUrl: record.external_codeHostUrl,
+                    orgId: SINGLE_TENANT_ORG_ID,
+                }
+            },
+            update: record,
+            create: record,
+        });
+
+        const jobId = await this.jobManager.trigger(
+            'repo-index',
+            {
+                repoId: repo.id,
+                type: RepoIndexingJobType.INDEX,
+            },
+            { priority: JOB_PRIORITIES.INTERACTIVE },
+        );
+
+        res.status(200).json({ jobId, repoId: repo.id });
     }
 
     public async dispose() {

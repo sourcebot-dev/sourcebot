@@ -24,11 +24,8 @@ vi.mock('@/components/hooks/use-toast', () => ({
 }));
 
 vi.mock('@/ee/features/sso/actions', () => ({
-    unlinkLinkedAccountProvider: vi.fn(),
-}));
-
-vi.mock('@/features/workerApi/actions', () => ({
     triggerAccountPermissionSync: mocks.triggerAccountPermissionSync,
+    unlinkLinkedAccountProvider: vi.fn(),
 }));
 
 vi.mock('@/app/api/(client)/client', () => ({

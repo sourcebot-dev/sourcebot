@@ -6,7 +6,15 @@ import {
 } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
-import { DataOf, JobLogSink, QueueName, QueueSpec } from "@sourcebot/shared";
+import {
+    DataOf,
+    JobEnqueueOptions,
+    JobLogSink,
+    QueueName,
+    QueueSpec,
+    Schedule,
+} from "@sourcebot/shared";
+import type { Queue } from "bullmq";
 
 export type Settings = Required<SettingsSchema>;
 
@@ -45,39 +53,28 @@ export interface ProcessContext<TName extends QueueName>
     extends JobLifecycleContext<TName> {
     signal: AbortSignal;
     updateProgress(progress: number | object): Promise<void>;
-    trigger<T extends QueueName>(workload: T, data: DataOf<T>): Promise<string>;
+    trigger<T extends QueueName>(
+        workload: T,
+        data: DataOf<T>,
+        options?: JobEnqueueOptions,
+    ): Promise<string>;
 }
 
-export type Schedule = { every: string } | { pattern: string };
-
-/**
- * A Workload is a single kind of background work, declared
- * as the queue it runs on, the code that processes the job,
- * and how much of it may run at once.
- *
- * Jobs reach a workload's queue in one of two ways: someone calls `trigger`, or - if the
- * workload declares a `schedule` - the JobManager enqueues one on that cadence. A sweep is
- * just a scheduled workload that carries no payload, and whose `process` scans for work and
- * triggers it onto other workloads' queues.
- */
 export interface Workload<TName extends QueueName, TResult = unknown> {
     queueSpec: QueueSpec<TName>;
     concurrency: number;
-    /**
-     * If set, the JobManager enqueues a job on this cadence rather than waiting for someone to
-     * `trigger` one. Scheduled jobs carry no payload, so `TData` should be `void`.
-     */
-    schedule?: Schedule;
+    schedule?: {
+        interval: Schedule;
+        data: DataOf<TName>;
+        options?: JobEnqueueOptions;
+    };
     rateLimit?: { max: number; per: string };
     process(ctx: ProcessContext<TName>): Promise<TResult>;
-    /** Called before `process` on every attempt. */
     onStarted?(ctx: JobLifecycleContext<TName>): Promise<void>;
-    /** Called after BullMQ marks the job as completed. */
     onCompleted?(
         ctx: JobLifecycleContext<TName>,
         result: TResult,
     ): Promise<void>;
-    /** Called after BullMQ exhausts all attempts and marks the job as failed. */
     onTerminalFailure?(
         ctx: JobLifecycleContext<TName>,
         err: Error,
@@ -85,49 +82,27 @@ export interface Workload<TName extends QueueName, TResult = unknown> {
 }
 
 export interface JobManager {
-    register<TName extends QueueName>(w: Workload<TName>): void;
-
+    register<TName extends QueueName>(workload: Workload<TName>): void;
+    getQueues(): Queue[];
     start(): Promise<void>;
     stop(): Promise<void>;
-
     trigger<TName extends QueueName>(
-        workload: TName,
+        workloadName: TName,
         data: DataOf<TName>,
+        options?: JobEnqueueOptions,
     ): Promise<string>;
-}
-
-export interface QueueCounts {
-    waiting: number;
-    active: number;
-    delayed: number;
-    completed: number;
-    failed: number;
-    paused: number;
-    prioritized?: number;
-    "waiting-children"?: number;
-}
-
-export interface JobDetail<TData = unknown, TResult = unknown> {
-    id: string;
-    name: string;
-    state:
-        | "waiting"
-        | "active"
-        | "delayed"
-        | "completed"
-        | "failed"
-        | "paused"
-        | "unknown";
-    data: TData;
-    attemptsMade: number;
-    maxAttempts: number;
-    result?: TResult | null;
-    failedReason?: string | null;
-    stacktrace?: string[];
-    logs: string[];
-    enqueuedAt: number;
-    startedAt: number | null;
-    finishedAt: number | null;
-    waitMs?: number | null;
-    runMs?: number | null;
+    upsertJobScheduler<TName extends QueueName>(
+        workloadName: TName,
+        schedulerId: string,
+        schedule: Schedule,
+        data: DataOf<TName>,
+        options?: JobEnqueueOptions,
+    ): Promise<string>;
+    getJobSchedulerIds<TName extends QueueName>(
+        workloadName: TName,
+    ): Promise<string[]>;
+    removeJobScheduler<TName extends QueueName>(
+        workloadName: TName,
+        schedulerId: string,
+    ): Promise<boolean>;
 }

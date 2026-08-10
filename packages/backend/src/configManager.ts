@@ -1,22 +1,29 @@
 import { Prisma } from "@sourcebot/db";
-import { createLogger, env } from "@sourcebot/shared";
-import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { loadConfig } from "@sourcebot/shared";
+import {
+    createLogger,
+    env,
+    JOB_PRIORITIES,
+    loadConfig,
+    resolveConfigSettings,
+} from "@sourcebot/shared";
+import type { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import chokidar, { FSWatcher } from 'chokidar';
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import isEqual from 'fast-deep-equal';
-import { JobManager } from "./types.js";
 import { prisma } from "./prisma.js";
+import type { JobManager } from "./types.js";
 
 const logger = createLogger('config-manager');
+const getConnectionSyncSchedulerId = (connectionId: number) =>
+    `connection-sync-v1-${connectionId}`;
 
 export class ConfigManager {
     private watcher: FSWatcher;
 
     constructor(
-        private jobManager: JobManager,
-        configPath: string,
+        private readonly jobManager: JobManager,
+        private readonly configPath: string,
     ) {
         this.watcher = chokidar.watch(configPath, {
             ignoreInitial: true,           // Don't fire events for existing files
@@ -28,28 +35,35 @@ export class ConfigManager {
         });
 
         this.watcher.on('change', async () => {
-            logger.debug(`Config file ${configPath} changed. Syncing config.`);
+            logger.debug(`Config file ${this.configPath} changed. Syncing config.`);
             try {
-                await this.syncConfig(configPath);
+                await this.syncConfig();
             } catch (error) {
                 logger.error(`Failed to sync config: ${error}`);
             }
         });
-
-        this.syncConfig(configPath);
     }
 
-    private syncConfig = async (configPath: string) => {
-        const config = await loadConfig(configPath);
+    public syncConfig = async (): Promise<void> => {
+        const config = await loadConfig(this.configPath);
+        const settings = resolveConfigSettings(config);
 
-        await this.syncConnections(config.connections);
+        await this.syncConnections(
+            config.connections,
+            settings.resyncConnectionIntervalMs,
+        );
         await syncSearchContexts({
             contexts: config.contexts,
             orgId: SINGLE_TENANT_ORG_ID,
         });
     }
 
-    private syncConnections = async (connections?: { [key: string]: ConnectionConfig }) => {
+    private syncConnections = async (
+        connections: { [key: string]: ConnectionConfig } | undefined,
+        intervalMs: number,
+    ) => {
+        const connectionIdsToSync: number[] = [];
+
         if (connections) {
             for (const [key, newConnectionConfig] of Object.entries(connections)) {
                 const existingConnection = await prisma.connection.findUnique({
@@ -99,12 +113,18 @@ export class ConfigManager {
                         }
                     });
 
+                if (!existingConnection) {
+                    await this.jobManager.upsertJobScheduler(
+                        "connection-sync",
+                        getConnectionSyncSchedulerId(connection.id),
+                        intervalMs,
+                        { connectionId: connection.id },
+                        { priority: JOB_PRIORITIES.SCHEDULED },
+                    );
+                }
+
                 if (connectionNeedsSyncing) {
-                    logger.debug(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
-                    await this.jobManager.trigger('connection-sync', {
-                        connectionId: connection.id,
-                        orgId: SINGLE_TENANT_ORG_ID,
-                    })
+                    connectionIdsToSync.push(connection.id);
                 }
             }
         }
@@ -120,8 +140,22 @@ export class ConfigManager {
             }
         });
 
+        await Promise.all(
+            connectionIdsToSync.map((connectionId) =>
+                this.jobManager.trigger(
+                    "connection-sync",
+                    { connectionId },
+                    { priority: JOB_PRIORITIES.INTERACTIVE },
+                ),
+            ),
+        );
+
         for (const connection of deletedConnections) {
             logger.debug(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+            await this.jobManager.removeJobScheduler(
+                "connection-sync",
+                getConnectionSyncSchedulerId(connection.id),
+            );
             await prisma.connection.delete({
                 where: {
                     id: connection.id,

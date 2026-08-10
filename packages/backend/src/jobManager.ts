@@ -4,63 +4,21 @@ import {
     createBullMQJobLogger,
     createLogger,
     DataOf,
+    JobEnqueueOptions,
     JobLogSink,
     QueueName,
+    Schedule,
+    scheduleToMs,
 } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
-import {
-    JobDetail,
-    JobManager,
-    Schedule,
-    JobLifecycleContext,
-    Workload,
-} from "./types.js";
+import { JobLifecycleContext, Workload } from "./types.js";
+import type { JobManager } from "./types.js";
 import { prisma } from "./prisma.js";
 
 const LOG_TAG = "job-manager";
 const logger = createLogger(LOG_TAG);
-
-const DURATION_UNITS_MS: Record<string, number> = {
-    ms: 1,
-    s: 1000,
-    m: 1000 * 60,
-    h: 1000 * 60 * 60,
-    d: 1000 * 60 * 60 * 24,
-};
-
-export const parseDuration = (value: string): number => {
-    const match = /^(\d+)(ms|s|m|h|d)$/.exec(value.trim());
-    if (!match) {
-        throw new Error(
-            `Invalid duration "${value}". Expected e.g. "500ms", "30s", "5m", "6h", "1d".`,
-        );
-    }
-    return Number(match[1]) * DURATION_UNITS_MS[match[2]];
-};
-
-export const normalizeJobState = (state: string): JobDetail["state"] => {
-    switch (state) {
-        case "waiting":
-        case "active":
-        case "delayed":
-        case "completed":
-        case "failed":
-        case "paused":
-            return state;
-        case "prioritized":
-        case "waiting-children":
-            return "waiting";
-        default:
-            return "unknown";
-    }
-};
-
-const scheduleToRepeat = (schedule: Schedule) =>
-    "pattern" in schedule
-        ? { pattern: schedule.pattern }
-        : { every: parseDuration(schedule.every) };
 
 export class BullMQJobManager implements JobManager {
     private readonly workloads = new Map<
@@ -109,16 +67,45 @@ export class BullMQJobManager implements JobManager {
     async trigger<TName extends QueueName>(
         workloadName: TName,
         data: DataOf<TName>,
+        options?: JobEnqueueOptions,
     ): Promise<string> {
-        const workload = this.workloads.get(workloadName) as
-            | Workload<TName>
-            | undefined;
-        if (!workload) {
-            throw new Error(
-                `Cannot trigger unknown workload "${workloadName}"`,
-            );
-        }
-        return this.bullmqClient.enqueue(workload.queueSpec, data);
+        const workload = this.getWorkload(workloadName);
+        return this.bullmqClient.enqueue(workload.queueSpec, data, options);
+    }
+
+    async upsertJobScheduler<TName extends QueueName>(
+        workloadName: TName,
+        schedulerId: string,
+        schedule: Schedule,
+        data: DataOf<TName>,
+        options?: JobEnqueueOptions,
+    ): Promise<string> {
+        const workload = this.getWorkload(workloadName);
+        return this.bullmqClient.upsertJobScheduler(
+            workload.queueSpec,
+            schedulerId,
+            schedule,
+            data,
+            options,
+        );
+    }
+
+    async getJobSchedulerIds<TName extends QueueName>(
+        workloadName: TName,
+    ): Promise<string[]> {
+        const workload = this.getWorkload(workloadName);
+        return this.bullmqClient.getJobSchedulerIds(workload.queueSpec);
+    }
+
+    async removeJobScheduler<TName extends QueueName>(
+        workloadName: TName,
+        schedulerId: string,
+    ): Promise<boolean> {
+        const workload = this.getWorkload(workloadName);
+        return this.bullmqClient.removeJobScheduler(
+            workload.queueSpec,
+            schedulerId,
+        );
     }
 
     async stop(): Promise<void> {
@@ -145,8 +132,6 @@ export class BullMQJobManager implements JobManager {
     ): Promise<void> {
         const { queueSpec: spec, concurrency, rateLimit, schedule } = workload;
 
-        const queue = this.bullmqClient.getQueue(spec);
-
         const worker = new Worker(
             spec.name,
             async (job) => {
@@ -165,7 +150,8 @@ export class BullMQJobManager implements JobManager {
                         signal: this.abortController.signal,
                         updateProgress: (progress) =>
                             job.updateProgress(progress),
-                        trigger: (target, data) => this.trigger(target, data),
+                        trigger: (target, data, options) =>
+                            this.trigger(target, data, options),
                     });
                     return result;
                 } catch (error) {
@@ -186,7 +172,7 @@ export class BullMQJobManager implements JobManager {
                     ? {
                           limiter: {
                               max: rateLimit.max,
-                              duration: parseDuration(rateLimit.per),
+                              duration: scheduleToMs(rateLimit.per),
                           },
                       }
                     : {}),
@@ -207,26 +193,29 @@ export class BullMQJobManager implements JobManager {
 
         if (schedule) {
             // @note: jobs produced by BullMQ's scheduler bypass the deduplication check that
-            // `Queue.add` goes through, so a dedup key would be silently ignored here. A
-            // scheduled workload gets its overlap protection from `concurrency` instead: the
+            // `Queue.add` goes through, so a dedup key would be silently ignored here. The
             // next tick's job is only created once the current one goes active, so at most one
             // run is ever queued behind the one in flight.
-            await queue.upsertJobScheduler(
+            await this.upsertJobScheduler(
+                spec.name,
                 `schedule:${spec.name}`,
-                scheduleToRepeat(schedule),
-                {
-                    name: spec.name,
-                    opts: {
-                        attempts: spec.jobOptions.attempts,
-                        removeOnComplete: {
-                            count: spec.jobOptions.keep.completed,
-                        },
-                        removeOnFail: { count: spec.jobOptions.keep.failed },
-                        keepLogs: spec.jobOptions.keepLogs,
-                    },
-                },
+                schedule.interval,
+                schedule.data,
+                schedule.options,
             );
         }
+    }
+
+    private getWorkload<TName extends QueueName>(
+        workloadName: TName,
+    ): Workload<TName> {
+        const workload = this.workloads.get(workloadName) as
+            | Workload<TName>
+            | undefined;
+        if (!workload) {
+            throw new Error(`Unknown workload "${workloadName}"`);
+        }
+        return workload;
     }
 
     private async onWorkloadJobFailed<TName extends QueueName>(

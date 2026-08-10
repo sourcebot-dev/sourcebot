@@ -1,17 +1,22 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { PrismaClient } from "@sourcebot/db";
+import type { RepoData } from "./repoCompileUtils.js";
+import type { JobManager, ProcessContext } from "./types.js";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
     connectionFindUniqueOrThrow: vi.fn(),
     connectionUpdate: vi.fn(),
     connectionSyncJobUpsert: vi.fn(),
     connectionSyncJobUpdate: vi.fn(),
-    repoFindMany: vi.fn(),
-    repoUpsert: vi.fn(),
-    repoToConnectionDeleteMany: vi.fn(),
     compileGithubConfig: vi.fn(),
     loadConfig: vi.fn(),
     syncSearchContexts: vi.fn(),
+    repoFindMany: vi.fn(),
+    repoUpsert: vi.fn(),
+    repoToConnectionDeleteMany: vi.fn(),
+    getJobSchedulerIds: vi.fn(),
+    upsertJobScheduler: vi.fn(),
+    removeJobScheduler: vi.fn(),
 }));
 
 vi.mock("@sentry/node", () => ({
@@ -26,18 +31,32 @@ vi.mock("@sourcebot/shared", () => ({
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
-            keep: { completed: 50, failed: 50 },
+            keepJobs: {
+                completed: { count: 50 },
+                failed: { count: 50 },
+            },
             keepLogs: 500,
         },
     },
-    createLogger: vi.fn(() => ({
-        debug: vi.fn(),
-        error: vi.fn(),
-    })),
+    JOB_PRIORITIES: {
+        SCHEDULED: 10,
+    },
     env: {
         CONFIG_PATH: "/config.json",
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: 60_000,
     },
+    PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: [
+        "github",
+        "gitlab",
+        "bitbucketCloud",
+        "bitbucketServer",
+    ],
+    PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: [
+        "github",
+        "gitlab",
+        "bitbucket-cloud",
+        "bitbucket-server",
+    ],
     loadConfig: mocks.loadConfig,
 }));
 
@@ -55,12 +74,22 @@ vi.mock("./ee/syncSearchContexts.js", () => ({
     syncSearchContexts: mocks.syncSearchContexts,
 }));
 
-import { createConnectionWorkload } from "./connectionWorkload.js";
+import {
+    createConnectionWorkload,
+    persistConnectionRepositories,
+    reconcileRepoIndexWork,
+    reconcileRepoPermissionSyncWork,
+} from "./connectionWorkload.js";
+import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
 
 const db = {
     connection: {
         findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
         update: mocks.connectionUpdate,
+    },
+    connectionSyncJob: {
+        upsert: mocks.connectionSyncJobUpsert,
+        update: mocks.connectionSyncJobUpdate,
     },
     repo: {
         findMany: mocks.repoFindMany,
@@ -69,22 +98,26 @@ const db = {
     repoToConnection: {
         deleteMany: mocks.repoToConnectionDeleteMany,
     },
-    connectionSyncJob: {
-        upsert: mocks.connectionSyncJobUpsert,
-        update: mocks.connectionSyncJobUpdate,
-    },
 } as unknown as PrismaClient;
 
+const jobManager = {
+    getJobSchedulerIds: mocks.getJobSchedulerIds,
+    upsertJobScheduler: mocks.upsertJobScheduler,
+    removeJobScheduler: mocks.removeJobScheduler,
+} as unknown as JobManager;
 const connectionWorkload = createConnectionWorkload({
     db,
+    jobManager,
+    permissionSyncEnabled: true,
     settings: {
         maxConnectionSyncJobConcurrency: 2,
+        reindexIntervalMs: 3_600_000,
+        repoDrivenPermissionSyncIntervalMs: 21_600_000,
     } as never,
 });
 
 const data = {
     connectionId: 42,
-    orgId: 7,
 };
 
 const lifecycleLogger = {
@@ -105,7 +138,15 @@ const lifecycleContext = {
 
 describe("connectionWorkload", () => {
     beforeEach(() => {
+        vi.restoreAllMocks();
         vi.clearAllMocks();
+        mocks.connectionUpdate.mockResolvedValue({});
+        mocks.repoFindMany.mockResolvedValue([]);
+        mocks.getJobSchedulerIds.mockResolvedValue([]);
+        mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
+        mocks.removeJobScheduler.mockResolvedValue(true);
+        mocks.loadConfig.mockResolvedValue({ contexts: undefined });
+        mocks.syncSearchContexts.mockResolvedValue(undefined);
     });
 
     test("declares database-backed lifecycle hooks", () => {
@@ -172,70 +213,130 @@ describe("connectionWorkload", () => {
         });
     });
 
-    test("discovers repositories using the connection provider", async () => {
+    test("orchestrates discovery, persistence, and repo work reconciliation", async () => {
         const config = {
             type: "github" as const,
+        };
+        const discoveredRepo = {
+            external_id: "repo-4",
+            external_codeHostUrl: "https://github.com",
         };
         mocks.connectionFindUniqueOrThrow.mockResolvedValue({
             id: 42,
             name: "github",
+            orgId: 7,
             config,
         });
         mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [],
+            repoData: [discoveredRepo],
             warnings: ["Repository was archived"],
         });
-        mocks.connectionUpdate.mockResolvedValue({});
-        mocks.repoFindMany.mockResolvedValue([]);
-        mocks.loadConfig.mockResolvedValue({ contexts: undefined });
-        mocks.syncSearchContexts.mockResolvedValue(undefined);
+        mocks.repoUpsert.mockResolvedValue({
+            id: 4,
+            name: "github.com/sourcebot/repo-4",
+            indexedAt: null,
+        });
+        const trigger = vi.fn();
         const updateProgress = vi.fn();
-        const logger = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
-            flush: vi.fn(),
-        };
-        const signal = new AbortController().signal;
 
         const result = await connectionWorkload.process({
             ...lifecycleContext,
-            signal,
-            logger,
+            signal: new AbortController().signal,
             updateProgress,
-            trigger: vi.fn(),
+            trigger,
         });
 
         expect(mocks.compileGithubConfig).toHaveBeenCalledWith(
             config,
             42,
-            signal,
+            expect.any(AbortSignal),
         );
-        expect(logger.info).toHaveBeenCalledWith("Discovered 0 repositories", {
-            connectionId: 42,
-            repositoryCount: 0,
-        });
-        expect(updateProgress).not.toHaveBeenCalled();
         expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
+            where: { id: "job-1" },
+            data: { warningMessages: ["Repository was archived"] },
+        });
+        expect(mocks.repoUpsert).toHaveBeenCalledOnce();
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-4",
+            3_600_000,
+            { repoId: 4, type: "INDEX" },
+            { priority: 10 },
+        );
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            {
+                repoId: 4,
+                type: "INDEX",
             },
-            data: {
-                warningMessages: ["Repository was archived"],
-            },
+            { priority: 10 },
+        );
+        expect(mocks.connectionUpdate).toHaveBeenCalledWith({
+            where: { id: 42 },
+            data: { syncedAt: expect.any(Date) },
+        });
+        expect(mocks.syncSearchContexts).toHaveBeenCalledWith({
+            orgId: 7,
+            contexts: undefined,
         });
         expect(result).toEqual({
             reposToCleanup: [],
-            reposToIndex: [],
+            reposToIndex: [
+                { id: 4, name: "github.com/sourcebot/repo-4" },
+            ],
         });
+        expect(updateProgress).not.toHaveBeenCalled();
     });
 
-    test("finds orphaned repositories and repositories needing a first index", async () => {
-        const config = {
-            type: "github" as const,
-        };
-        const existingIndexedAt = new Date("2026-07-30T12:00:00.000Z");
+    test("does not mark the connection synced when repo work reconciliation fails", async () => {
+        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
+            id: 42,
+            name: "github",
+            orgId: 7,
+            config: { type: "github" },
+        });
+        mocks.compileGithubConfig.mockResolvedValue({
+            repoData: [
+                {
+                    external_id: "repo-4",
+                    external_codeHostUrl: "https://github.com",
+                },
+            ],
+            warnings: [],
+        });
+        mocks.repoUpsert.mockResolvedValue({
+            id: 4,
+            name: "github.com/sourcebot/repo-4",
+            indexedAt: null,
+        });
+        mocks.upsertJobScheduler.mockRejectedValueOnce(
+            new Error("Redis unavailable"),
+        );
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: new AbortController().signal,
+                updateProgress: vi.fn(),
+                trigger: vi.fn(),
+            }),
+        ).rejects.toThrow("Redis unavailable");
+
+        expect(mocks.connectionUpdate).not.toHaveBeenCalled();
+        expect(mocks.syncSearchContexts).not.toHaveBeenCalled();
+    });
+});
+
+describe("connectionWorkload repo sync helpers", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mocks.getJobSchedulerIds.mockResolvedValue([]);
+        mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
+        mocks.removeJobScheduler.mockResolvedValue(true);
+    });
+
+    test("persists the discovered repository snapshot", async () => {
+        const indexedAt = new Date("2026-07-30T12:00:00.000Z");
         const existingRepo = {
             external_id: "repo-1",
             external_codeHostUrl: "https://github.com",
@@ -256,55 +357,35 @@ describe("connectionWorkload", () => {
                 },
             },
         };
-
-        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
-            id: 42,
-            name: "github",
-            config,
-        });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [existingRepo, newRepo],
-            warnings: [],
-        });
         mocks.repoFindMany
             .mockResolvedValueOnce([{ id: 1 }, { id: 2 }, { id: 3 }])
-            .mockResolvedValueOnce([{ id: 2, name: "github.com/sourcebot/repo-2" }]);
+            .mockResolvedValueOnce([
+                { id: 2, name: "github.com/sourcebot/repo-2" },
+            ]);
         mocks.repoUpsert
             .mockResolvedValueOnce({
                 id: 1,
                 name: "github.com/sourcebot/repo-1",
-                indexedAt: existingIndexedAt,
+                indexedAt,
             })
             .mockResolvedValueOnce({
                 id: 4,
                 name: "github.com/sourcebot/repo-4",
                 indexedAt: null,
             });
-        mocks.repoToConnectionDeleteMany.mockResolvedValue({ count: 2 });
-        mocks.connectionUpdate.mockResolvedValue({});
-        mocks.loadConfig.mockResolvedValue({ contexts: undefined });
-        mocks.syncSearchContexts.mockResolvedValue(undefined);
-        const trigger = vi.fn();
 
-        const result = await connectionWorkload.process({
-            ...lifecycleContext,
-            signal: new AbortController().signal,
-            updateProgress: vi.fn(),
-            trigger,
+        const result = await persistConnectionRepositories({
+            db,
+            connectionId: 42,
+            orgId: 7,
+            discoveredRepos: [
+                existingRepo,
+                newRepo,
+                newRepo,
+            ] as unknown as RepoData[],
         });
 
-        expect(mocks.repoFindMany).toHaveBeenNthCalledWith(1, {
-            where: {
-                connections: {
-                    some: {
-                        connectionId: 42,
-                    },
-                },
-            },
-            select: {
-                id: true,
-            },
-        });
+        expect(mocks.repoUpsert).toHaveBeenCalledTimes(2);
         expect(mocks.repoUpsert).toHaveBeenNthCalledWith(1, {
             where: {
                 external_id_external_codeHostUrl_orgId: {
@@ -317,9 +398,7 @@ describe("connectionWorkload", () => {
                 ...existingRepo,
                 connections: {
                     createMany: {
-                        data: {
-                            connectionId: 42,
-                        },
+                        data: { connectionId: 42 },
                         skipDuplicates: true,
                     },
                 },
@@ -339,88 +418,176 @@ describe("connectionWorkload", () => {
                 },
             },
         });
-        expect(mocks.repoFindMany).toHaveBeenNthCalledWith(2, {
+        expect(result).toEqual({
+            currentRepos: [
+                {
+                    id: 1,
+                    name: "github.com/sourcebot/repo-1",
+                    indexedAt,
+                },
+                {
+                    id: 4,
+                    name: "github.com/sourcebot/repo-4",
+                    indexedAt: null,
+                },
+            ],
+            unindexedRepos: [
+                { id: 4, name: "github.com/sourcebot/repo-4" },
+            ],
+            orphanedRepos: [
+                { id: 2, name: "github.com/sourcebot/repo-2" },
+            ],
+            affectedRepoIds: [1, 4, 2, 3],
+        });
+    });
+
+    test("reconciles repo indexing schedules and immediate work", async () => {
+        const trigger = vi.fn().mockResolvedValue("job");
+        const indexedAt = new Date("2026-07-30T12:00:00.000Z");
+
+        await reconcileRepoIndexWork({
+            jobManager,
+            trigger: trigger as ProcessContext<"connection-sync">["trigger"],
+            currentRepos: [
+                { id: 1, name: "repo-1", indexedAt },
+                { id: 4, name: "repo-4", indexedAt: null },
+            ],
+            unindexedRepos: [{ id: 4, name: "repo-4" }],
+            orphanedRepos: [{ id: 2, name: "repo-2" }],
+            intervalMs: 3_600_000,
+        });
+
+        expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
+            1,
+            "repo-index",
+            "repo-index-v1-1",
+            3_600_000,
+            { repoId: 1, type: "INDEX" },
+            { priority: 10 },
+        );
+        expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
+            2,
+            "repo-index",
+            "repo-index-v1-4",
+            3_600_000,
+            { repoId: 4, type: "INDEX" },
+            { priority: 10 },
+        );
+        expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-2",
+        );
+        expect(trigger).toHaveBeenNthCalledWith(
+            1,
+            "repo-index",
+            {
+                repoId: 2,
+                type: "CLEANUP",
+            },
+            { priority: 10 },
+        );
+        expect(trigger).toHaveBeenNthCalledWith(
+            2,
+            "repo-index",
+            {
+                repoId: 4,
+                type: "INDEX",
+            },
+            { priority: 10 },
+        );
+        expect(
+            mocks.upsertJobScheduler.mock.invocationCallOrder[1],
+        ).toBeLessThan(trigger.mock.invocationCallOrder[0]);
+    });
+
+    test("reconciles repo permission schedules and immediate work", async () => {
+        const trigger = vi.fn().mockResolvedValue("job");
+        const permissionSyncedAt = new Date("2026-07-30T12:00:00.000Z");
+        mocks.repoFindMany.mockResolvedValue([
+            { id: 1, permissionSyncedAt: null },
+            { id: 4, permissionSyncedAt },
+        ]);
+        mocks.getJobSchedulerIds.mockResolvedValue([
+            "repo-permission-sync-v1-1",
+        ]);
+
+        await reconcileRepoPermissionSyncWork({
+            db,
+            jobManager,
+            trigger: trigger as ProcessContext<"connection-sync">["trigger"],
+            enabled: true,
+            affectedRepoIds: [1, 4, 2, 3],
+            intervalMs: 21_600_000,
+        });
+
+        expect(mocks.repoFindMany).toHaveBeenCalledWith({
             where: {
                 id: {
-                    in: [2, 3],
+                    in: [1, 4, 2, 3],
                 },
-                connections: {
-                    none: {},
-                },
+                ...REPO_PERMISSION_SYNC_WHERE,
             },
             select: {
                 id: true,
-                name: true,
+                permissionSyncedAt: true,
             },
         });
-        expect(result).toEqual({
-            reposToCleanup: [
-                { id: 2, name: "github.com/sourcebot/repo-2" },
-            ],
-            reposToIndex: [
-                { id: 4, name: "github.com/sourcebot/repo-4" },
-            ],
-        });
-        expect(trigger).toHaveBeenNthCalledWith(1, "repo-index", {
-            repoId: 2,
-            type: "CLEANUP",
-        });
-        expect(trigger).toHaveBeenNthCalledWith(2, "repo-index", {
-            repoId: 4,
-            type: "INDEX",
-        });
-        expect(mocks.repoUpsert.mock.invocationCallOrder[1]).toBeLessThan(
-            mocks.repoToConnectionDeleteMany.mock.invocationCallOrder[0],
+        expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
+            1,
+            "repo-permission-sync",
+            "repo-permission-sync-v1-1",
+            21_600_000,
+            { repoId: 1 },
+            { priority: 10 },
         );
-        expect(mocks.repoFindMany.mock.invocationCallOrder[1]).toBeLessThan(
-            trigger.mock.invocationCallOrder[0],
+        expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
+            2,
+            "repo-permission-sync",
+            "repo-permission-sync-v1-4",
+            21_600_000,
+            { repoId: 4 },
+            { priority: 10 },
+        );
+        expect(mocks.removeJobScheduler).toHaveBeenNthCalledWith(
+            1,
+            "repo-permission-sync",
+            "repo-permission-sync-v1-2",
+        );
+        expect(mocks.removeJobScheduler).toHaveBeenNthCalledWith(
+            2,
+            "repo-permission-sync",
+            "repo-permission-sync-v1-3",
+        );
+        expect(trigger).toHaveBeenNthCalledWith(
+            1,
+            "repo-permission-sync",
+            { repoId: 1 },
+            { priority: 10 },
+        );
+        expect(trigger).toHaveBeenNthCalledWith(
+            2,
+            "repo-permission-sync",
+            { repoId: 4 },
+            { priority: 10 },
         );
     });
 
-    test("does not mark the connection synced when scheduling fails", async () => {
-        const config = {
-            type: "github" as const,
-        };
-        const newRepo = {
-            external_id: "repo-4",
-            external_codeHostUrl: "https://github.com",
-            displayName: "sourcebot/repo-4",
-            connections: {
-                create: {
-                    connectionId: 42,
-                },
-            },
-        };
+    test("removes permission schedules without querying eligibility when disabled", async () => {
+        const trigger = vi.fn();
 
-        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
-            id: 42,
-            name: "github",
-            config,
+        await reconcileRepoPermissionSyncWork({
+            db,
+            jobManager,
+            trigger: trigger as ProcessContext<"connection-sync">["trigger"],
+            enabled: false,
+            affectedRepoIds: [1, 2],
+            intervalMs: 21_600_000,
         });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [newRepo],
-            warnings: [],
-        });
-        mocks.repoFindMany.mockResolvedValueOnce([]);
-        mocks.repoUpsert.mockResolvedValueOnce({
-            id: 4,
-            name: "github.com/sourcebot/repo-4",
-            indexedAt: null,
-        });
-        const trigger = vi.fn().mockRejectedValue(new Error("Redis unavailable"));
 
-        await expect(connectionWorkload.process({
-            ...lifecycleContext,
-            signal: new AbortController().signal,
-            updateProgress: vi.fn(),
-            trigger,
-        })).rejects.toThrow("Redis unavailable");
-
-        expect(trigger).toHaveBeenCalledWith("repo-index", {
-            repoId: 4,
-            type: "INDEX",
-        });
-        expect(mocks.connectionUpdate).not.toHaveBeenCalled();
-        expect(mocks.syncSearchContexts).not.toHaveBeenCalled();
+        expect(mocks.repoFindMany).not.toHaveBeenCalled();
+        expect(mocks.getJobSchedulerIds).not.toHaveBeenCalled();
+        expect(mocks.upsertJobScheduler).not.toHaveBeenCalled();
+        expect(mocks.removeJobScheduler).toHaveBeenCalledTimes(2);
+        expect(trigger).not.toHaveBeenCalled();
     });
 });

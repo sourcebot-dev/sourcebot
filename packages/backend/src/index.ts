@@ -11,13 +11,14 @@ import { BullMQJobManager } from "./jobManager.js";
 import { shutdownPosthog } from "./posthog.js";
 import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
-import { createReconciliationWorkload } from "./reconciliationWorkload.js";
 import { redis } from "./redis.js";
 import { createConnectionWorkload } from "./connectionWorkload.js";
 import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
+import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
+import { hasEntitlement } from "./entitlements.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -42,6 +43,9 @@ try {
 
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
+const permissionSyncEnabled =
+    env.PERMISSION_SYNC_ENABLED === "true" &&
+    (await hasEntitlement("permission-syncing"));
 
 const promClient = new PromClient();
 
@@ -49,12 +53,10 @@ logger.info('Worker started.');
 
 const jobManager = new BullMQJobManager(redis);
 
-const reconciliationWorkload = createReconciliationWorkload({
-    db: prisma,
-    settings,
-});
 const connectionWorkload = createConnectionWorkload({
     db: prisma,
+    jobManager,
+    permissionSyncEnabled,
     settings,
 });
 const repoIndexWorkload = createRepoIndexWorkload({
@@ -70,18 +72,26 @@ const repoPermissionSyncWorkload = createRepoPermissionSyncWorkload({
     settings,
 });
 
-jobManager.register(reconciliationWorkload);
 jobManager.register(connectionWorkload);
 jobManager.register(repoIndexWorkload);
 jobManager.register(accountPermissionSyncWorkload);
 jobManager.register(repoPermissionSyncWorkload);
 
-const api = new Api(promClient, jobManager.getQueues());
+const api = new Api(promClient, prisma, jobManager);
 
 await cleanupOrphanedRepoResources(prisma);
-await jobManager.start();
 
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
+await configManager.syncConfig();
+
+await reconcileJobSchedulersAtStartup({
+    db: prisma,
+    jobManager,
+    permissionSyncEnabled,
+    settings,
+});
+
+await jobManager.start();
 
 
 const listenToShutdownSignals = () => {
