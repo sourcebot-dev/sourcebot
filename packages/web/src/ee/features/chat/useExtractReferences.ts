@@ -19,7 +19,7 @@ export const useExtractReferences = (part?: TextUIPart) => {
 
         let match;
         while ((match = FILE_REFERENCE_REGEX.exec(content ?? '')) !== null && match !== null) {
-            const [_, repo, fileName, startLine, endLine] = match;
+            const [, repo, , fileName, startLine, endLine] = match;
 
             const fileReference = createFileReference({
                 repo: repo,

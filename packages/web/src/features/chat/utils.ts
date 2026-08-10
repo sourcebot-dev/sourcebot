@@ -284,7 +284,7 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
 export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string, sources: FileSource[]): string => {
     return text
         .replace(ANSWER_TAG, '')
-        .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
+        .replace(FILE_REFERENCE_REGEX, (_, repo, _port, fileName, startLine, endLine) => {
             const reference = createFileReference({
                 repo,
                 path: fileName,
