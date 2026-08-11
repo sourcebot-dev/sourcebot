@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a manually triggered cloud image release workflow for isolated internal deployments. [#1566](https://github.com/sourcebot-dev/sourcebot/pull/1566)
 
+### Fixed
+- Fixed the web process being capped at a ~4GiB heap regardless of how much memory the container has, which caused multi-second garbage collection pauses on larger deployments. [#1569](https://github.com/sourcebot-dev/sourcebot/pull/1569)
+
 ## [5.1.6] - 2026-08-10
 
 ### Added
