@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added a manually triggered cloud image release workflow for isolated internal deployments. [#1566](https://github.com/sourcebot-dev/sourcebot/pull/1566)
+- Added Prometheus metrics for the web process (heap, garbage collection, and event loop lag), served on `WEB_METRICS_PORT` (default `3070`). [#1570](https://github.com/sourcebot-dev/sourcebot/pull/1570)
 
 ## [5.1.6] - 2026-08-10
 
