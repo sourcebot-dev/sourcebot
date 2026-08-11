@@ -6,12 +6,6 @@ permissions:
 
 on:
   workflow_dispatch:
-    inputs:
-      git_ref:
-        description: Git ref to build for internal.sourcebot.dev
-        required: false
-        default: main
-        type: string
 
 concurrency:
   group: release-cloud-internal
@@ -22,9 +16,10 @@ jobs:
     uses: ./.github/workflows/_build-cloud.yml
     with:
       environment: internal
-      git_ref: ${{ inputs.git_ref || 'main' }}
+      # Pin the checkout and image tags to the same dispatch commit so metadata
+      # can never identify image contents as a different revision.
+      git_ref: ${{ github.sha }}
       require_sentry: false
       docker_tags: |
         type=raw,value=main
-        type=sha,format=long
-    secrets: inherit
+        type=raw,value=sha-${{ github.sha }}
