@@ -1,0 +1,25 @@
+name: Release Sourcebot (Cloud - Internal Demo)
+
+permissions:
+  contents: read
+  id-token: write
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release-cloud-internal
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-cloud.yml
+    with:
+      environment: internal
+      # Pin the checkout and image tags to the same dispatch commit so metadata
+      # can never identify image contents as a different revision.
+      git_ref: ${{ github.sha }}
+      require_sentry: false
+      docker_tags: |
+        type=raw,value=main
+        type=raw,value=sha-${{ github.sha }}
