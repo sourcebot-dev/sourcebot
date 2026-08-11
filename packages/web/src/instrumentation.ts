@@ -12,6 +12,9 @@ export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
         const { startMetricsServer } = await import('./metricsServer');
         startMetricsServer();
+
+        const { startHttpMetrics } = await import('./httpMetrics');
+        startHttpMetrics();
     }
 
     if (process.env.NEXT_RUNTIME === 'nodejs') {
