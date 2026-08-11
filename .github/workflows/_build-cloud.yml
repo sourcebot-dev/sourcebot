@@ -89,7 +89,7 @@ jobs:
       - name: Verify internal GitHub OIDC identity
         if: inputs.environment == 'internal'
         env:
-          EXPECTED_OIDC_SUBJECT: repo:sourcebot-dev@135396723/sourcebot@846729675:environment:internal
+          EXPECTED_OIDC_SUBJECT: repo:sourcebot-dev/sourcebot:environment:internal
         run: |
           response=$(curl --fail --silent --show-error \
             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
