@@ -7,11 +7,12 @@ import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig, writeCommitGraph } from './git.js';
 import { captureEvent } from './posthog.js';
 import { RepoWithConnections, Settings, Workload } from "./types.js";
-import { getAuthCredentialsForRepo, getRepoIdFromShardFileName, getShardPrefix, measure } from './utils.js';
+import { getAuthCredentialsForRepo, getRepoIdFromShardFileName, measure } from './utils.js';
 import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-workload';
 const logger = createLogger(LOG_TAG);
+const REPO_INDEX_LOCK_DURATION_MS = 60_000;
 
 interface Props {
     db: PrismaClient;
@@ -24,28 +25,65 @@ export const createRepoIndexWorkload = ({
 }: Props): Workload<'repo-index'> => ({
     queueSpec: REPO_INDEX_QUEUE,
     concurrency: settings.maxRepoIndexingJobConcurrency,
-    process: async ({ data, logger: jobLogger, signal }) => {
-        const repo = await db.repo.findUniqueOrThrow({
-            where: { id: data.repoId },
-            include: {
-                connections: {
-                    include: {
-                        connection: true,
-                    },
-                },
-            },
+    // This lock is shared with repoPermissionSyncWorkload so indexing, cleanup,
+    // and permission syncing are serialized for the same repository.
+    executionLock: {
+        resource: ({ repoId }) => `sourcebot:lock:repo:${repoId}`,
+        durationMs: REPO_INDEX_LOCK_DURATION_MS,
+    },
+    process: async ({ data, jobId, logger: jobLogger, signal }) => {
+        signal.throwIfAborted();
+        const start = await prepareRepoIndexJob({
+            db,
+            repoId: data.repoId,
+            type: data.type,
+            jobId,
         });
 
+        if (start.action === "skip") {
+            jobLogger.info(
+                `Skipping ${data.type} job for repo ${data.repoId}: ${start.reason}`,
+            );
+
+            if (data.type === "CLEANUP" && start.repoMissing) {
+                signal.throwIfAborted();
+                await cleanupOrphanedRepoResourcesForRepoId(
+                    data.repoId,
+                    jobLogger,
+                );
+            }
+            return;
+        }
+
+        signal.throwIfAborted();
+        const { repo } = start;
         jobLogger.debug(`Running ${data.type} job for repo ${repo.name} (id: ${repo.id})`);
 
-        if (data.type === 'CLEANUP') {
-            await cleanupRepository(repo, jobLogger);
-            await db.repo.delete({
-                where: { id: repo.id },
+        if (data.type === "CLEANUP") {
+            signal.throwIfAborted();
+            const { count } = await db.repo.deleteMany({
+                where: {
+                    id: repo.id,
+                    isAutoCleanupDisabled: false,
+                    connections: {
+                        none: {},
+                    },
+                },
             });
+
+            if (count === 0) {
+                jobLogger.info(
+                    `Skipping CLEANUP job for repo ${repo.id}: repository is no longer eligible for cleanup`,
+                );
+                return;
+            }
+
+            signal.throwIfAborted();
+            await cleanupRepository(repo, jobLogger);
         } else {
             const isFirstIndex = repo.indexedAt === null;
             const revisions = await indexRepository(db, settings, repo, jobLogger, signal);
+            signal.throwIfAborted();
             const { path: repoPath } = getRepoPath(repo);
             const isEmpty = await isRepoEmpty({ path: repoPath });
             const commitHash = isEmpty ? undefined : await getCommitHashForRefName({
@@ -59,6 +97,7 @@ export const createRepoIndexWorkload = ({
                 select: { metadata: true },
             });
 
+            signal.throwIfAborted();
             await db.repo.update({
                 where: { id: repo.id },
                 data: {
@@ -81,43 +120,9 @@ export const createRepoIndexWorkload = ({
             }
         }
     },
-    onStarted: async ({ data: { repoId, type }, jobId }) => {
+    onCompleted: async ({ data: { repoId }, jobId }) => {
         await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.upsert({
-                where: {
-                    id: jobId,
-                },
-                update: {
-                    status: RepoIndexingJobStatus.IN_PROGRESS,
-                    completedAt: null,
-                    errorMessage: null,
-                },
-                create: {
-                    id: jobId,
-                    repoId,
-                    type: RepoIndexingJobType[type],
-                    status: RepoIndexingJobStatus.IN_PROGRESS,
-                },
-            });
-            await tx.repo.update({
-                where: {
-                    id: repoId,
-                },
-                data: {
-                    latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
-                },
-            });
-        });
-    },
-    onCompleted: async ({ data: { repoId, type }, jobId }) => {
-        // A successful cleanup deletes the Repo in `process`, which cascades to its
-        // RepoIndexingJob records. There is no row left to mark as completed.
-        if (type === RepoIndexingJobType.CLEANUP) {
-            return;
-        }
-
-        await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.update({
+            await tx.repoIndexingJob.updateMany({
                 where: {
                     id: jobId,
                 },
@@ -127,9 +132,10 @@ export const createRepoIndexWorkload = ({
                     errorMessage: null,
                 },
             });
-            await tx.repo.update({
+            await tx.repo.updateMany({
                 where: {
                     id: repoId,
+                    latestIndexingJobId: jobId,
                 },
                 data: {
                     latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
@@ -139,7 +145,7 @@ export const createRepoIndexWorkload = ({
     },
     onTerminalFailure: async ({ data: { repoId }, jobId }, error) => {
         await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.update({
+            await tx.repoIndexingJob.updateMany({
                 where: {
                     id: jobId,
                 },
@@ -149,9 +155,10 @@ export const createRepoIndexWorkload = ({
                     errorMessage: error.message,
                 },
             });
-            await tx.repo.update({
+            await tx.repo.updateMany({
                 where: {
                     id: repoId,
+                    latestIndexingJobId: jobId,
                 },
                 data: {
                     latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
@@ -160,6 +167,96 @@ export const createRepoIndexWorkload = ({
         });
     },
 });
+
+type RepoIndexStartDecision =
+    | {
+          action: "run";
+          repo: RepoWithConnections;
+      }
+    | {
+          action: "skip";
+          reason: string;
+          repoMissing: boolean;
+      };
+
+const prepareRepoIndexJob = async ({
+    db,
+    repoId,
+    type,
+    jobId,
+}: {
+    db: PrismaClient;
+    repoId: number;
+    type: "INDEX" | "CLEANUP";
+    jobId: string;
+}): Promise<RepoIndexStartDecision> =>
+    db.$transaction(async (tx) => {
+        const repo = await tx.repo.findUnique({
+            where: { id: repoId },
+            include: {
+                connections: {
+                    include: {
+                        connection: true,
+                    },
+                },
+            },
+        });
+
+        if (!repo) {
+            return {
+                action: "skip",
+                reason: "repository no longer exists",
+                repoMissing: true,
+            };
+        }
+
+        if (type === "CLEANUP" && repo.isAutoCleanupDisabled) {
+            return {
+                action: "skip",
+                reason: "automatic cleanup is disabled",
+                repoMissing: false,
+            };
+        }
+
+        if (type === "CLEANUP" && repo.connections.length > 0) {
+            return {
+                action: "skip",
+                reason: "repository has been reattached to a connection",
+                repoMissing: false,
+            };
+        }
+
+        await tx.repoIndexingJob.upsert({
+            where: {
+                id: jobId,
+            },
+            update: {
+                status: RepoIndexingJobStatus.IN_PROGRESS,
+                completedAt: null,
+                errorMessage: null,
+            },
+            create: {
+                id: jobId,
+                repoId,
+                type: RepoIndexingJobType[type],
+                status: RepoIndexingJobStatus.IN_PROGRESS,
+            },
+        });
+        await tx.repo.update({
+            where: {
+                id: repoId,
+            },
+            data: {
+                latestIndexingJobId: jobId,
+                latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
+            },
+        });
+
+        return {
+            action: "run",
+            repo,
+        };
+    });
 
 const indexRepository = async (
     db: PrismaClient,
@@ -257,6 +354,7 @@ const indexRepository = async (
     // for its full history (either freshly written during clone, or backfilled above
     // during fetch).
     if (!isReadOnly && !metadata.commitGraphChangedPathsBackfilledAt) {
+        signal.throwIfAborted();
         await db.repo.update({
             where: { id: repo.id },
             data: {
@@ -333,10 +431,16 @@ const indexRepository = async (
 
     logger.debug(`Indexing ${repo.name} (id: ${repo.id})...`);
     try {
+        signal.throwIfAborted();
         const { durationMs } = await measure(() => indexGitRepository(repo, settings, revisions, signal));
+        signal.throwIfAborted();
         const indexDuration_s = durationMs / 1000;
         logger.debug(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
     } catch (error) {
+        if (signal.aborted) {
+            throw error;
+        }
+
         // Clean up any temporary shard files left behind by the failed indexing operation.
         // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
         logger.warn(`Indexing failed for ${repo.name} (id: ${repo.id}), cleaning up temp shard files...`);
@@ -354,11 +458,34 @@ const cleanupRepository = async (repo: Repo, logger: JobLogSink) => {
         await rm(repoPath, { recursive: true, force: true });
     }
 
-    const shardPrefix = getShardPrefix(repo.orgId, repo.id);
-    const files = (await readdir(INDEX_CACHE_DIR)).filter(file => file.startsWith(shardPrefix));
+    const files = (await readdir(INDEX_CACHE_DIR)).filter(file => getRepoIdFromShardFileName(file) === repo.id);
     for (const file of files) {
         const filePath = `${INDEX_CACHE_DIR}/${file}`;
         logger.debug(`Deleting shard file ${filePath}`);
+        await rm(filePath, { force: true });
+    }
+};
+
+const cleanupOrphanedRepoResourcesForRepoId = async (
+    repoId: number,
+    logger: JobLogSink,
+) => {
+    const repoPath = `${REPOS_CACHE_DIR}/${repoId}`;
+    if (existsSync(repoPath)) {
+        logger.debug(`Deleting orphaned repo directory ${repoPath}`);
+        await rm(repoPath, { recursive: true, force: true });
+    }
+
+    if (!existsSync(INDEX_CACHE_DIR)) {
+        return;
+    }
+
+    const shardFiles = (await readdir(INDEX_CACHE_DIR)).filter(
+        (file) => getRepoIdFromShardFileName(file) === repoId,
+    );
+    for (const file of shardFiles) {
+        const filePath = `${INDEX_CACHE_DIR}/${file}`;
+        logger.debug(`Deleting orphaned shard file ${filePath}`);
         await rm(filePath, { force: true });
     }
 };

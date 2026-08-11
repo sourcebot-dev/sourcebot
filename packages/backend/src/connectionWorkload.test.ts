@@ -83,6 +83,19 @@ import {
 } from "./connectionWorkload.js";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
 
+const transactionClient = {
+    connection: {
+        update: mocks.connectionUpdate,
+    },
+    connectionSyncJob: {
+        upsert: mocks.connectionSyncJobUpsert,
+    },
+};
+const transaction = vi.fn(
+    (callback: (tx: typeof transactionClient) => Promise<unknown>) =>
+        callback(transactionClient),
+);
+
 const db = {
     connection: {
         findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
@@ -99,6 +112,7 @@ const db = {
     repoToConnection: {
         deleteMany: mocks.repoToConnectionDeleteMany,
     },
+    $transaction: transaction,
 } as unknown as PrismaClient;
 
 const jobManager = {
@@ -156,6 +170,32 @@ describe("connectionWorkload", () => {
         expect(connectionWorkload.onTerminalFailure).toBeTypeOf("function");
     });
 
+    test("uses a distinct execution lock for each connection", () => {
+        expect(connectionWorkload.executionLock).toBeDefined();
+        expect(
+            connectionWorkload.executionLock?.resource({ connectionId: 42 }),
+        ).toBe("sourcebot:lock:connection:42");
+        expect(
+            connectionWorkload.executionLock?.resource({ connectionId: 43 }),
+        ).toBe("sourcebot:lock:connection:43");
+        expect(connectionWorkload.executionLock?.durationMs).toBe(60_000);
+    });
+
+    test("does not start syncing when execution has already been aborted", async () => {
+        const controller = new AbortController();
+        controller.abort(new Error("Connection execution lock was lost"));
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: controller.signal,
+                updateProgress: vi.fn(),
+                trigger: vi.fn(),
+            }),
+        ).rejects.toThrow("Connection execution lock was lost");
+        expect(mocks.connectionFindUniqueOrThrow).not.toHaveBeenCalled();
+    });
+
     test("marks the connection sync job as in progress when started", async () => {
         await connectionWorkload.onStarted?.(lifecycleContext);
 
@@ -176,6 +216,15 @@ describe("connectionWorkload", () => {
                 warningMessages: [],
             },
         });
+        expect(mocks.connectionUpdate).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+            },
+            data: {
+                latestSyncJobId: "job-1",
+            },
+        });
+        expect(transaction).toHaveBeenCalledOnce();
     });
 
     test("marks the connection sync job as completed", async () => {

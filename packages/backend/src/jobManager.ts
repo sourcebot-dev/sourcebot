@@ -13,6 +13,8 @@ import {
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
+import { createExecutionLockRunner } from "./executionLock.js";
+import type { ExecutionLockRunner } from "./executionLock.js";
 import { JobLifecycleContext, Workload } from "./types.js";
 import type { JobManager } from "./types.js";
 import { prisma } from "./prisma.js";
@@ -28,9 +30,11 @@ export class BullMQJobManager implements JobManager {
     private readonly workers = new Map<string, Worker>();
     private readonly bullmqClient: BullMQClient;
     private readonly abortController = new AbortController();
+    private readonly executionLockRunner: ExecutionLockRunner;
 
     constructor(private readonly connection: Redis) {
         this.bullmqClient = new BullMQClient(connection);
+        this.executionLockRunner = createExecutionLockRunner(connection);
     }
 
     register<TName extends QueueName>(workload: Workload<TName>): void {
@@ -130,7 +134,13 @@ export class BullMQJobManager implements JobManager {
     private async startWorkload<TName extends QueueName>(
         workload: Workload<TName>,
     ): Promise<void> {
-        const { queueSpec: spec, concurrency, rateLimit, schedule } = workload;
+        const {
+            queueSpec: spec,
+            concurrency,
+            executionLock,
+            rateLimit,
+            schedule,
+        } = workload;
 
         const worker = new Worker(
             spec.name,
@@ -143,17 +153,52 @@ export class BullMQJobManager implements JobManager {
                     jobLogger,
                 );
 
-                try {
+                const process = async (signal: AbortSignal) => {
                     await workload.onStarted?.(lifecycleContext);
-                    const result = await workload.process({
+                    return workload.process({
                         ...lifecycleContext,
-                        signal: this.abortController.signal,
+                        signal,
                         updateProgress: (progress) =>
                             job.updateProgress(progress),
                         trigger: (target, data, options) =>
                             this.trigger(target, data, options),
                     });
-                    return result;
+                };
+
+                try {
+                    if (executionLock) {
+                        const resource = executionLock.resource(job.data);
+                        const waitStartedAt = Date.now();
+                        return await this.executionLockRunner.using(
+                            resource,
+                            executionLock.durationMs,
+                            this.abortController.signal,
+                            async (signal) => {
+                                const acquiredAt = Date.now();
+                                jobLogger.debug(
+                                    "Acquired workload execution lock",
+                                    {
+                                        resource,
+                                        lockWaitMs: acquiredAt - waitStartedAt,
+                                    },
+                                );
+
+                                try {
+                                    return await process(signal);
+                                } finally {
+                                    jobLogger.debug(
+                                        "Finished work protected by execution lock",
+                                        {
+                                            resource,
+                                            lockHeldMs: Date.now() - acquiredAt,
+                                        },
+                                    );
+                                }
+                            },
+                        );
+                    }
+
+                    return await process(this.abortController.signal);
                 } catch (error) {
                     jobLogger.error(
                         `Workload "${spec.name}" attempt failed`,

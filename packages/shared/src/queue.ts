@@ -89,7 +89,6 @@ export const CONNECTION_QUEUE: QueueSpec<"connection-sync"> = {
 export const REPO_INDEX_QUEUE: QueueSpec<"repo-index"> = {
     name: "repo-index",
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: (data) => `repo:${data.repoId}`,
 };
 
 export const ACCOUNT_PERMISSION_SYNC_QUEUE: QueueSpec<"account-permission-sync"> =

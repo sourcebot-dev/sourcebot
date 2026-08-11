@@ -91,19 +91,38 @@ const account = {
 };
 const accountFindUniqueOrThrow = vi.fn().mockResolvedValue(account);
 const accountUpdate = vi.fn().mockResolvedValue(account);
+const accountUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
 const repoFindMany = vi.fn().mockResolvedValue([]);
 const permissionCreateMany = vi.fn().mockResolvedValue({ count: 0 });
 const permissionDeleteMany = vi.fn().mockResolvedValue({ count: 95 });
 const permissionSyncJobUpsert = vi.fn();
 const permissionSyncJobUpdate = vi.fn().mockResolvedValue({ account });
-const transaction = vi.fn((queries: Array<Promise<unknown>>) =>
-    Promise.all(queries),
+const transactionClient = {
+    account: {
+        update: accountUpdate,
+        updateMany: accountUpdateMany,
+    },
+    accountPermissionSyncJob: {
+        upsert: permissionSyncJobUpsert,
+        update: permissionSyncJobUpdate,
+    },
+};
+const transaction = vi.fn(
+    (
+        queriesOrCallback:
+            | Array<Promise<unknown>>
+            | ((tx: typeof transactionClient) => Promise<unknown>),
+    ) =>
+        typeof queriesOrCallback === "function"
+            ? queriesOrCallback(transactionClient)
+            : Promise.all(queriesOrCallback),
 );
 
 const db = {
     account: {
         findUniqueOrThrow: accountFindUniqueOrThrow,
         update: accountUpdate,
+        updateMany: accountUpdateMany,
     },
     accountToRepoPermission: {
         createMany: permissionCreateMany,
@@ -170,6 +189,7 @@ beforeEach(() => {
     permissionCreateMany.mockResolvedValue({ count: 0 });
     permissionDeleteMany.mockResolvedValue({ count: 95 });
     permissionSyncJobUpdate.mockResolvedValue({ account });
+    accountUpdateMany.mockResolvedValue({ count: 1 });
 });
 
 describe("classifyPermissionSyncFailure", () => {
@@ -259,6 +279,33 @@ describe("accountPermissionSyncWorkload", () => {
         expect(workload.onStarted).toBeTypeOf("function");
         expect(workload.onCompleted).toBeTypeOf("function");
         expect(workload.onTerminalFailure).toBeTypeOf("function");
+    });
+
+    test("uses a distinct execution lock for each account", () => {
+        const workload = createWorkload();
+
+        expect(workload.executionLock).toBeDefined();
+        expect(
+            workload.executionLock?.resource({ accountId: "account_1" }),
+        ).toBe("sourcebot:lock:account:account_1");
+        expect(
+            workload.executionLock?.resource({ accountId: "account_2" }),
+        ).toBe("sourcebot:lock:account:account_2");
+        expect(workload.executionLock?.durationMs).toBe(60_000);
+    });
+
+    test("does not start syncing when execution has already been aborted", async () => {
+        const controller = new AbortController();
+        controller.abort(new Error("Account execution lock was lost"));
+
+        await expect(
+            createWorkload().process({
+                ...processContext,
+                signal: controller.signal,
+            }),
+        ).rejects.toThrow("Account execution lock was lost");
+        expect(mocks.hasEntitlement).not.toHaveBeenCalled();
+        expect(accountFindUniqueOrThrow).not.toHaveBeenCalled();
     });
 
     test("syncs the requested account", async () => {
@@ -374,9 +421,14 @@ describe("accountPermissionSyncWorkload", () => {
                 status: "IN_PROGRESS",
             },
         });
+        expect(accountUpdate).toHaveBeenCalledWith({
+            where: { id: "account_1" },
+            data: { latestPermissionSyncJobId: "job_1" },
+        });
+        expect(transaction).toHaveBeenCalledOnce();
     });
 
-    test("marks a job completed and clears the account issue", async () => {
+    test("marks a job completed and clears the account issue when it is still latest", async () => {
         await createWorkload().onCompleted?.(lifecycleContext, undefined);
 
         expect(permissionSyncJobUpdate).toHaveBeenCalledWith({
@@ -385,13 +437,6 @@ describe("accountPermissionSyncWorkload", () => {
                 status: "COMPLETED",
                 completedAt: expect.any(Date),
                 errorMessage: null,
-                account: {
-                    update: {
-                        permissionSyncedAt: expect.any(Date),
-                        permissionSyncIssue: null,
-                        permissionSyncIssueAt: null,
-                    },
-                },
             },
             select: {
                 account: {
@@ -399,6 +444,18 @@ describe("accountPermissionSyncWorkload", () => {
                 },
             },
         });
+        expect(accountUpdateMany).toHaveBeenCalledWith({
+            where: {
+                id: "account_1",
+                latestPermissionSyncJobId: "job_1",
+            },
+            data: {
+                permissionSyncedAt: expect.any(Date),
+                permissionSyncIssue: null,
+                permissionSyncIssueAt: null,
+            },
+        });
+        expect(transaction).toHaveBeenCalledOnce();
     });
 
     test("marks a job failed after terminal failure", async () => {

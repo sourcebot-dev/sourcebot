@@ -48,6 +48,8 @@ type ProviderConfig<TProvider extends SupportedProvider> = Extract<
     { provider: TProvider }
 >;
 
+const ACCOUNT_PERMISSION_SYNC_LOCK_DURATION_MS = 60_000;
+
 interface ProviderPermissionSyncProps<TProvider extends SupportedProvider> {
     db: PrismaClient;
     account: AccountWithUser;
@@ -135,13 +137,24 @@ export const createAccountPermissionSyncWorkload = ({
     return {
         queueSpec: ACCOUNT_PERMISSION_SYNC_QUEUE,
         concurrency: settings.maxAccountPermissionSyncJobConcurrency,
-        process: async ({ data: { accountId }, logger: jobLogger }) => {
+        executionLock: {
+            resource: ({ accountId }) =>
+                `sourcebot:lock:account:${accountId}`,
+            durationMs: ACCOUNT_PERMISSION_SYNC_LOCK_DURATION_MS,
+        },
+        process: async ({
+            data: { accountId },
+            logger: jobLogger,
+            signal,
+        }) => {
+            signal.throwIfAborted();
             if (!(await hasEntitlement("permission-syncing"))) {
                 throw new Error(
                     "Permission syncing entitlement is not currently available.",
                 );
             }
 
+            signal.throwIfAborted();
             const account = await db.account.findUniqueOrThrow({
                 where: {
                     id: accountId,
@@ -150,6 +163,7 @@ export const createAccountPermissionSyncWorkload = ({
                     user: true,
                 },
             });
+            signal.throwIfAborted();
 
             jobLogger.debug(
                 `Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`,
@@ -158,10 +172,12 @@ export const createAccountPermissionSyncWorkload = ({
             try {
                 // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
                 const accessToken = await ensureFreshAccountToken(account, db);
+                signal.throwIfAborted();
 
                 const idpConfig = await getIdentityProviderConfig(
                     account.providerId,
                 );
+                signal.throwIfAborted();
                 if (!idpConfig) {
                     throw new Error(
                         "Unable to find IDP config in config.json.",
@@ -175,6 +191,7 @@ export const createAccountPermissionSyncWorkload = ({
                     config: idpConfig,
                 });
 
+                signal.throwIfAborted();
                 await db.$transaction([
                     db.account.update({
                         where: {
@@ -195,7 +212,9 @@ export const createAccountPermissionSyncWorkload = ({
                         skipDuplicates: true,
                     }),
                 ]);
+                signal.throwIfAborted();
             } catch (error) {
+                signal.throwIfAborted();
                 // Clear cached permissions only for classified permanent failures.
                 // Ambiguous HTTP errors and transient upstream failures preserve the
                 // last successful permission state.
@@ -204,6 +223,7 @@ export const createAccountPermissionSyncWorkload = ({
                 if (cleanupDecision.action === "clear_permissions") {
                     const details =
                         PERMISSION_CLEANUP_DETAILS[cleanupDecision.reason];
+                    signal.throwIfAborted();
                     const [{ count }] = await db.$transaction([
                         db.accountToRepoPermission.deleteMany({
                             where: { accountId: account.id },
@@ -216,6 +236,7 @@ export const createAccountPermissionSyncWorkload = ({
                             },
                         }),
                     ]);
+                    signal.throwIfAborted();
                     const message =
                         error instanceof Error ? error.message : String(error);
                     jobLogger.warn(
@@ -226,46 +247,67 @@ export const createAccountPermissionSyncWorkload = ({
             }
         },
         onStarted: async ({ data: { accountId }, jobId }) => {
-            await db.accountPermissionSyncJob.upsert({
-                where: {
-                    id: jobId,
-                },
-                update: {
-                    status: AccountPermissionSyncJobStatus.IN_PROGRESS,
-                    completedAt: null,
-                    errorMessage: null,
-                },
-                create: {
-                    id: jobId,
-                    accountId,
-                    status: AccountPermissionSyncJobStatus.IN_PROGRESS,
-                },
+            await db.$transaction(async (tx) => {
+                await tx.accountPermissionSyncJob.upsert({
+                    where: {
+                        id: jobId,
+                    },
+                    update: {
+                        status: AccountPermissionSyncJobStatus.IN_PROGRESS,
+                        completedAt: null,
+                        errorMessage: null,
+                    },
+                    create: {
+                        id: jobId,
+                        accountId,
+                        status: AccountPermissionSyncJobStatus.IN_PROGRESS,
+                    },
+                });
+                await tx.account.update({
+                    where: {
+                        id: accountId,
+                    },
+                    data: {
+                        latestPermissionSyncJobId: jobId,
+                    },
+                });
             });
         },
-        onCompleted: async ({ jobId, logger: jobLogger }) => {
-            const { account } = await db.accountPermissionSyncJob.update({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: AccountPermissionSyncJobStatus.COMPLETED,
-                    completedAt: new Date(),
-                    errorMessage: null,
-                    account: {
-                        update: {
-                            permissionSyncedAt: new Date(),
-                            permissionSyncIssue: null,
-                            permissionSyncIssueAt: null,
+        onCompleted: async ({
+            data: { accountId },
+            jobId,
+            logger: jobLogger,
+        }) => {
+            const account = await db.$transaction(async (tx) => {
+                const { account } = await tx.accountPermissionSyncJob.update({
+                    where: {
+                        id: jobId,
+                    },
+                    data: {
+                        status: AccountPermissionSyncJobStatus.COMPLETED,
+                        completedAt: new Date(),
+                        errorMessage: null,
+                    },
+                    select: {
+                        account: {
+                            include: {
+                                user: true,
+                            },
                         },
                     },
-                },
-                select: {
-                    account: {
-                        include: {
-                            user: true,
-                        },
+                });
+                await tx.account.updateMany({
+                    where: {
+                        id: accountId,
+                        latestPermissionSyncJobId: jobId,
                     },
-                },
+                    data: {
+                        permissionSyncedAt: new Date(),
+                        permissionSyncIssue: null,
+                        permissionSyncIssueAt: null,
+                    },
+                });
+                return account;
             });
 
             jobLogger.debug(

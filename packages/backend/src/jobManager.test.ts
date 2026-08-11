@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
         removeJobScheduler: vi.fn(),
         producerClose: vi.fn(),
         workerClose: vi.fn(),
+        executionLockUsing: vi.fn(),
         jobLogger,
         createBullMQJobLogger: vi.fn(() => jobLogger),
         workers: [] as Array<{
@@ -59,6 +60,12 @@ vi.mock("./constants.js", () => ({
 
 vi.mock("@sentry/node", () => ({
     captureException: vi.fn(),
+}));
+
+vi.mock("./executionLock.js", () => ({
+    createExecutionLockRunner: vi.fn(() => ({
+        using: mocks.executionLockUsing,
+    })),
 }));
 
 vi.mock("bullmq", () => ({
@@ -125,6 +132,10 @@ describe("BullMQJobManager lifecycle", () => {
         mocks.removeJobScheduler.mockResolvedValue(true);
         mocks.workerClose.mockResolvedValue(undefined);
         mocks.producerClose.mockResolvedValue(undefined);
+        mocks.executionLockUsing.mockImplementation(
+            async (_resource, _durationMs, _shutdownSignal, routine) =>
+                routine(new AbortController().signal),
+        );
     });
 
     test("delegates enqueueing to BullMQClient and returns its job id", async () => {
@@ -132,18 +143,14 @@ describe("BullMQJobManager lifecycle", () => {
         const workload = createWorkload();
         manager.register(workload);
 
-        const result = await manager.trigger(
-            "connection-sync",
-            data,
-            { priority: 1 },
-        );
+        const result = await manager.trigger("connection-sync", data, {
+            priority: 1,
+        });
 
         expect(result).toBe("job-1");
-        expect(mocks.enqueue).toHaveBeenCalledWith(
-            workload.queueSpec,
-            data,
-            { priority: 1 },
-        );
+        expect(mocks.enqueue).toHaveBeenCalledWith(workload.queueSpec, data, {
+            priority: 1,
+        });
     });
 
     test("manages schedulers through the registered workload", async () => {
@@ -267,6 +274,68 @@ describe("BullMQJobManager lifecycle", () => {
         await vi.waitFor(() => {
             expect(mocks.jobLogger.flush).toHaveBeenCalledTimes(2);
         });
+    });
+
+    test("runs onStarted and processing while the execution lock is held", async () => {
+        const calls: string[] = [];
+        const workloadSignal = new AbortController().signal;
+        mocks.executionLockUsing.mockImplementation(
+            async (_resource, _durationMs, _shutdownSignal, routine) => {
+                calls.push("lock-acquired");
+                const result = await routine(workloadSignal);
+                calls.push("lock-released");
+                return result;
+            },
+        );
+        const workload = createWorkload({
+            executionLock: {
+                resource: ({ connectionId }) =>
+                    `sourcebot:lock:connection:${connectionId}`,
+                durationMs: 60_000,
+            },
+            onStarted: vi.fn(async () => {
+                calls.push("started");
+            }),
+            process: vi.fn(async ({ signal }) => {
+                expect(signal).toBe(workloadSignal);
+                calls.push("processed");
+                return { repoCount: 3 };
+            }),
+        });
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(workload);
+        await manager.start();
+
+        await expect(
+            mocks.workers[0].processor({ ...job, attemptsMade: 0 }),
+        ).resolves.toEqual({ repoCount: 3 });
+
+        expect(calls).toEqual([
+            "lock-acquired",
+            "started",
+            "processed",
+            "lock-released",
+        ]);
+        expect(mocks.executionLockUsing).toHaveBeenCalledWith(
+            "sourcebot:lock:connection:42",
+            60_000,
+            expect.any(AbortSignal),
+            expect.any(Function),
+        );
+        expect(mocks.jobLogger.debug).toHaveBeenCalledWith(
+            "Acquired workload execution lock",
+            {
+                resource: "sourcebot:lock:connection:42",
+                lockWaitMs: expect.any(Number),
+            },
+        );
+        expect(mocks.jobLogger.debug).toHaveBeenCalledWith(
+            "Finished work protected by execution lock",
+            {
+                resource: "sourcebot:lock:connection:42",
+                lockHeldMs: expect.any(Number),
+            },
+        );
     });
 
     test("provides the structured job logger to the workload processor", async () => {

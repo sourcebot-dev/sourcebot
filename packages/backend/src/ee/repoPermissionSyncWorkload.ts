@@ -39,19 +39,36 @@ interface RepoPermissionSyncWorkloadDependencies {
     settings: Settings;
 }
 
+interface RepoPermissionSyncResult {
+    repoName: string;
+}
+
+const REPO_PERMISSION_SYNC_LOCK_DURATION_MS = 60_000;
+
 export const createRepoPermissionSyncWorkload = ({
     db,
     settings,
-}: RepoPermissionSyncWorkloadDependencies): Workload<"repo-permission-sync"> => ({
+}: RepoPermissionSyncWorkloadDependencies): Workload<
+    "repo-permission-sync",
+    RepoPermissionSyncResult
+> => ({
     queueSpec: REPO_PERMISSION_SYNC_QUEUE,
     concurrency: settings.maxRepoPermissionSyncJobConcurrency,
-    process: async ({ data: { repoId }, logger }) => {
+    // This lock is shared with repoIndexWorkload so indexing, cleanup, and
+    // permission syncing are serialized for the same repository.
+    executionLock: {
+        resource: ({ repoId }) => `sourcebot:lock:repo:${repoId}`,
+        durationMs: REPO_PERMISSION_SYNC_LOCK_DURATION_MS,
+    },
+    process: async ({ data: { repoId }, logger, signal }) => {
+        signal.throwIfAborted();
         if (!(await hasEntitlement("permission-syncing"))) {
             throw new Error(
                 "Permission syncing entitlement is not currently available.",
             );
         }
 
+        signal.throwIfAborted();
         const repo = await db.repo.findUniqueOrThrow({
             where: {
                 id: repoId,
@@ -64,11 +81,13 @@ export const createRepoPermissionSyncWorkload = ({
                 },
             },
         });
+        signal.throwIfAborted();
 
         const id = repo.id;
         logger.debug(`Syncing permissions for repo ${repo.displayName}...`);
 
         const credentials = await getAuthCredentialsForRepo(repo, logger);
+        signal.throwIfAborted();
         if (!credentials) {
             throw new Error(`No credentials found for repo ${id}`);
         }
@@ -81,6 +100,7 @@ export const createRepoPermissionSyncWorkload = ({
                 logger: logger,
             });
 
+        signal.throwIfAborted();
         await db.$transaction([
             db.repo.update({
                 where: {
@@ -107,49 +127,68 @@ export const createRepoPermissionSyncWorkload = ({
                 skipDuplicates: true,
             }),
         ]);
+        signal.throwIfAborted();
+
+        return {
+            repoName: repo.displayName ?? repo.name,
+        };
     },
     onStarted: async ({ data: { repoId }, jobId }) => {
-        await db.repoPermissionSyncJob.upsert({
-            where: {
-                id: jobId,
-            },
-            update: {
-                status: RepoPermissionSyncJobStatus.IN_PROGRESS,
-                completedAt: null,
-                errorMessage: null,
-            },
-            create: {
-                id: jobId,
-                repoId,
-                status: RepoPermissionSyncJobStatus.IN_PROGRESS,
-            },
+        await db.$transaction(async (tx) => {
+            await tx.repoPermissionSyncJob.upsert({
+                where: {
+                    id: jobId,
+                },
+                update: {
+                    status: RepoPermissionSyncJobStatus.IN_PROGRESS,
+                    completedAt: null,
+                    errorMessage: null,
+                },
+                create: {
+                    id: jobId,
+                    repoId,
+                    status: RepoPermissionSyncJobStatus.IN_PROGRESS,
+                },
+            });
+            await tx.repo.update({
+                where: {
+                    id: repoId,
+                },
+                data: {
+                    latestPermissionSyncJobId: jobId,
+                },
+            });
         });
     },
-    onCompleted: async ({ jobId, logger }) => {
-        const { repo } = await db.repoPermissionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: RepoPermissionSyncJobStatus.COMPLETED,
-                completedAt: new Date(),
-                errorMessage: null,
-                repo: {
-                    update: {
-                        permissionSyncedAt: new Date(),
-                    },
+    onCompleted: async (
+        { data: { repoId }, jobId, logger },
+        { repoName },
+    ) => {
+        await db.$transaction(async (tx) => {
+            await tx.repoPermissionSyncJob.updateMany({
+                where: {
+                    id: jobId,
                 },
-            },
-            select: {
-                repo: true,
-            },
+                data: {
+                    status: RepoPermissionSyncJobStatus.COMPLETED,
+                    completedAt: new Date(),
+                    errorMessage: null,
+                },
+            });
+            await tx.repo.updateMany({
+                where: {
+                    id: repoId,
+                    latestPermissionSyncJobId: jobId,
+                },
+                data: {
+                    permissionSyncedAt: new Date(),
+                },
+            });
         });
 
-        logger.debug(
-            `Permissions synced for repo ${repo.displayName ?? repo.name}`,
-        );
+        logger.debug(`Permissions synced for repo ${repoName}`);
     },
-    onTerminalFailure: async ({ jobId, logger }, error) => {
+    onTerminalFailure: async ({ data: { repoId }, jobId, logger }, error) => {
         Sentry.captureException(error, {
             tags: {
                 jobId,
@@ -157,7 +196,7 @@ export const createRepoPermissionSyncWorkload = ({
             },
         });
 
-        const { repo } = await db.repoPermissionSyncJob.update({
+        await db.repoPermissionSyncJob.updateMany({
             where: {
                 id: jobId,
             },
@@ -166,13 +205,10 @@ export const createRepoPermissionSyncWorkload = ({
                 completedAt: new Date(),
                 errorMessage: error.message,
             },
-            select: {
-                repo: true,
-            },
         });
 
         logger.error(
-            `Repo permission sync job failed for repo ${repo.displayName ?? repo.name}: ${error.message}`,
+            `Repo permission sync job failed for repo ${repoId}: ${error.message}`,
         );
     },
 });

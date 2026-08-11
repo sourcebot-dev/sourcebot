@@ -21,6 +21,8 @@ import {
 import type { RepoData } from "./repoCompileUtils.js";
 import { JobManager, ProcessContext, Settings, Workload } from "./types.js";
 
+const CONNECTION_SYNC_LOCK_DURATION_MS = 60_000;
+
 interface Props {
     db: PrismaClient;
     jobManager: JobManager;
@@ -41,6 +43,11 @@ export const createConnectionWorkload = ({
 }: Props): Workload<"connection-sync", ConnectionSyncResult> => ({
     queueSpec: CONNECTION_QUEUE,
     concurrency: settings.maxConnectionSyncJobConcurrency,
+    executionLock: {
+        resource: ({ connectionId }) =>
+            `sourcebot:lock:connection:${connectionId}`,
+        durationMs: CONNECTION_SYNC_LOCK_DURATION_MS,
+    },
     process: async ({
         data: { connectionId },
         logger,
@@ -48,11 +55,13 @@ export const createConnectionWorkload = ({
         jobId,
         trigger,
     }) => {
+        signal.throwIfAborted();
         const connection = await db.connection.findUniqueOrThrow({
             where: {
                 id: connectionId,
             },
         });
+        signal.throwIfAborted();
         const { orgId } = connection;
 
         logger.info(`Syncing connection ${connectionId}`, {
@@ -66,6 +75,7 @@ export const createConnectionWorkload = ({
             signal,
         });
 
+        signal.throwIfAborted();
         await db.connectionSyncJob.update({
             where: {
                 id: jobId,
@@ -80,6 +90,7 @@ export const createConnectionWorkload = ({
             repositoryCount: repoData.length,
         });
 
+        signal.throwIfAborted();
         const repoChanges = await persistConnectionRepositories({
             db,
             connectionId,
@@ -87,6 +98,7 @@ export const createConnectionWorkload = ({
             discoveredRepos: repoData,
         });
 
+        signal.throwIfAborted();
         await reconcileRepoIndexWork({
             jobManager,
             trigger,
@@ -96,6 +108,7 @@ export const createConnectionWorkload = ({
             intervalMs: settings.reindexIntervalMs,
         });
 
+        signal.throwIfAborted();
         await reconcileRepoPermissionSyncWork({
             db,
             jobManager,
@@ -114,6 +127,7 @@ export const createConnectionWorkload = ({
             },
         );
 
+        signal.throwIfAborted();
         await db.connection.update({
             where: {
                 id: connectionId,
@@ -125,6 +139,7 @@ export const createConnectionWorkload = ({
 
         // After a connection has synced, we need to re-sync the org's search contexts as
         // there may be new repos that match the search context's include/exclude patterns.
+        signal.throwIfAborted();
         try {
             const config = await loadConfig(env.CONFIG_PATH);
 
@@ -139,6 +154,7 @@ export const createConnectionWorkload = ({
             );
             Sentry.captureException(error);
         }
+        signal.throwIfAborted();
 
         logger.info(`Connection ${connectionId} sync finished`, {
             connectionId,
@@ -150,22 +166,32 @@ export const createConnectionWorkload = ({
         };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
-        await db.connectionSyncJob.upsert({
-            where: {
-                id: jobId,
-            },
-            update: {
-                status: ConnectionSyncJobStatus.IN_PROGRESS,
-                completedAt: null,
-                errorMessage: null,
-                warningMessages: [],
-            },
-            create: {
-                id: jobId,
-                connectionId,
-                status: ConnectionSyncJobStatus.IN_PROGRESS,
-                warningMessages: [],
-            },
+        await db.$transaction(async (tx) => {
+            await tx.connectionSyncJob.upsert({
+                where: {
+                    id: jobId,
+                },
+                update: {
+                    status: ConnectionSyncJobStatus.IN_PROGRESS,
+                    completedAt: null,
+                    errorMessage: null,
+                    warningMessages: [],
+                },
+                create: {
+                    id: jobId,
+                    connectionId,
+                    status: ConnectionSyncJobStatus.IN_PROGRESS,
+                    warningMessages: [],
+                },
+            });
+            await tx.connection.update({
+                where: {
+                    id: connectionId,
+                },
+                data: {
+                    latestSyncJobId: jobId,
+                },
+            });
         });
     },
     onCompleted: async ({ jobId }) => {

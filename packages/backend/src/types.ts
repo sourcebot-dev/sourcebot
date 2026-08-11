@@ -60,9 +60,15 @@ export interface ProcessContext<TName extends QueueName>
     ): Promise<string>;
 }
 
+export interface WorkloadExecutionLock<TName extends QueueName> {
+    resource(data: DataOf<TName>): string;
+    durationMs: number;
+}
+
 export interface Workload<TName extends QueueName, TResult = unknown> {
     queueSpec: QueueSpec<TName>;
     concurrency: number;
+    executionLock?: WorkloadExecutionLock<TName>;
     schedule?: {
         interval: Schedule;
         data: DataOf<TName>;
