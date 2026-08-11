@@ -1,0 +1,30 @@
+name: Release Sourcebot (Cloud - Internal Demo)
+
+permissions:
+  contents: read
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: Git ref to build for internal.sourcebot.dev
+        required: false
+        default: main
+        type: string
+
+concurrency:
+  group: release-cloud-internal
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-cloud.yml
+    with:
+      environment: internal
+      git_ref: ${{ inputs.git_ref || 'main' }}
+      require_sentry: false
+      docker_tags: |
+        type=raw,value=main
+        type=sha,format=long
+    secrets: inherit
