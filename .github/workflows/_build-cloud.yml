@@ -86,6 +86,30 @@ jobs:
             echo "Sentry wiring is intentionally disabled for the isolated internal demo image."
           fi
 
+      - name: Verify internal GitHub OIDC identity
+        if: inputs.environment == 'internal'
+        env:
+          EXPECTED_OIDC_SUBJECT: repo:sourcebot-dev@135396723/sourcebot@846729675:environment:internal
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
+          token=$(jq -r '.value' <<<"$response")
+          OIDC_TOKEN="$token" node - <<'NODE'
+          const claims = JSON.parse(Buffer.from(process.env.OIDC_TOKEN.split('.')[1], 'base64url'));
+          console.log(JSON.stringify({
+            sub: claims.sub,
+            aud: claims.aud,
+            repository: claims.repository,
+            repository_id: claims.repository_id,
+            job_workflow_ref: claims.job_workflow_ref,
+          }, null, 2));
+          if (claims.sub !== process.env.EXPECTED_OIDC_SUBJECT) {
+            console.error(`Unexpected OIDC subject: ${claims.sub}`);
+            process.exit(1);
+          }
+          NODE
+
       - name: Check Prisma migrations
         uses: ./.github/actions/check-prisma-migrations
 
