@@ -10,6 +10,11 @@ export async function register() {
     }
 
     if (process.env.NEXT_RUNTIME === 'nodejs') {
+        const { startMetricsServer } = await import('./metricsServer');
+        startMetricsServer();
+    }
+
+    if (process.env.NEXT_RUNTIME === 'nodejs') {
         const { initialize } = await import('./initialize');
         await initialize();
     }

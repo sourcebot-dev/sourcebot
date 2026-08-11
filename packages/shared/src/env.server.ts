@@ -174,6 +174,9 @@ const options = {
 
         WORKER_API_URL: z.string().url().default("http://localhost:3060"),
 
+        // Port the web process serves its Prometheus metrics on.
+        WEB_METRICS_PORT: numberSchema.default(3070),
+
         // Auth
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),

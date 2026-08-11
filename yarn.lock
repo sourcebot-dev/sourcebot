@@ -9291,6 +9291,7 @@ __metadata:
     posthog-js: "npm:^1.369.0"
     posthog-node: "npm:^5.24.15"
     pretty-bytes: "npm:^6.1.1"
+    prom-client: "npm:^15.1.3"
     psl: "npm:^1.15.0"
     raw-loader: "npm:^4.0.2"
     react: "npm:19.2.4"
