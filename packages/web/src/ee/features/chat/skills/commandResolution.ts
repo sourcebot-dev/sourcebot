@@ -143,7 +143,7 @@ export const getFileSourcesFromText = (text: string): FileSource[] => {
     FILE_REFERENCE_REGEX.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = FILE_REFERENCE_REGEX.exec(text)) !== null) {
-        const [, repo, path] = match;
+        const [, repo, , path] = match;
         if (!repo || !path) {
             continue;
         }

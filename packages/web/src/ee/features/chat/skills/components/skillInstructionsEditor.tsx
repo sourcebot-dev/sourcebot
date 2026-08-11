@@ -44,7 +44,7 @@ const parseInlineInstructions = (text: string): Descendant[] => {
     FILE_REFERENCE_REGEX.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = FILE_REFERENCE_REGEX.exec(text)) !== null) {
-        const [rawReference, repo, path] = match;
+        const [rawReference, repo, , path] = match;
         if (!repo || !path) {
             continue;
         }

@@ -18,6 +18,8 @@ jobs:
         run: .github/scripts/test-vulnerability-triage.sh
       - name: Test CVE remediation discovery
         run: .github/scripts/test-cve-remediation.sh
+      - name: Test Zoekt sync automation
+        run: .github/scripts/testZoektSync.sh
 
   test:
     runs-on: ubuntu-latest

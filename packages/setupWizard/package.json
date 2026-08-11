@@ -20,7 +20,7 @@
         "chalk": "^5.6.2",
         "inquirer-select-pro": "^1.0.0-alpha.9",
         "ora": "^9.4.0",
-        "reo-census": "^1.2.8"
+        "reo-census": "^1.2.10"
     },
     "devDependencies": {
         "@sourcebot/schemas": "workspace:^",
