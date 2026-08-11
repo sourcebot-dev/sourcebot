@@ -59,7 +59,12 @@ describe('httpMetrics', () => {
         expect(browse).toHaveLength(1);
         expect(browse[0].trim().endsWith('2')).toBe(true);
 
-        // The scrape of the metrics port must not appear at all.
-        expect(counts.some(line => line.includes('route="/metrics"'))).toBe(false);
+        // The scrape of the metrics port must not be recorded. Asserted on the
+        // total observation count rather than on the absence of a `/metrics`
+        // label: `/metrics` is not a known route, so it would land in `other`
+        // and an absent-label check would pass even with the filter removed.
+        const total = counts.reduce((sum, line) => sum + Number(line.trim().split(' ').pop()), 0);
+        expect(total).toBe(3);
+        expect(counts.some(line => line.includes('route="other"'))).toBe(false);
     });
 });
