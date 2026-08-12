@@ -10,14 +10,31 @@ const logger = createLogger('web-http-metrics');
 interface RoutesManifest {
     staticRoutes: { page: string }[];
     dynamicRoutes: { page: string; regex: string }[];
+    rewrites?: {
+        beforeFiles?: { source: string; regex: string }[];
+        afterFiles?: { source: string; regex: string }[];
+        fallback?: { source: string; regex: string }[];
+    };
+}
+
+interface RewriteRoute {
+    source: string;
+    regex: RegExp;
 }
 
 interface RouteTable {
     staticPages: Set<string>;
     dynamicRoutes: { page: string; regex: RegExp }[];
+    beforeFilesRewrites: RewriteRoute[];
+    afterFilesRewrites: RewriteRoute[];
+    fallbackRewrites: RewriteRoute[];
 }
 
 const OTHER_ROUTE = 'other';
+
+const matchRewrite = (pathname: string, rewrites: RewriteRoute[]): string | undefined => {
+    return rewrites.find(rewrite => rewrite.regex.test(pathname))?.source;
+};
 
 /**
  * Builds a route matcher from Next's routes-manifest. The manifest lists every
@@ -26,12 +43,22 @@ const OTHER_ROUTE = 'other';
  * agrees with how the server actually routes the request.
  */
 export const buildRouteTable = (manifest: RoutesManifest): RouteTable => {
+    const buildRewrites = (rewrites: { source: string; regex: string }[] | undefined): RewriteRoute[] => {
+        return (rewrites ?? []).map(rewrite => ({
+            source: rewrite.source,
+            regex: new RegExp(rewrite.regex),
+        }));
+    };
+
     return {
         staticPages: new Set(manifest.staticRoutes.map(route => route.page)),
         dynamicRoutes: manifest.dynamicRoutes.map(route => ({
             page: route.page,
             regex: new RegExp(route.regex),
         })),
+        beforeFilesRewrites: buildRewrites(manifest.rewrites?.beforeFiles),
+        afterFilesRewrites: buildRewrites(manifest.rewrites?.afterFiles),
+        fallbackRewrites: buildRewrites(manifest.rewrites?.fallback),
     };
 };
 
@@ -44,9 +71,9 @@ let routeTable: RouteTable | undefined;
  *
  * Deriving routes from the manifest (rather than a hardcoded list) keeps the
  * label set in sync with the app automatically: new routes appear at build
- * time, and the label is the route pattern itself (`/browse/[...path]`), so
- * cardinality is bounded by the number of defined routes no matter what gets
- * requested.
+ * time, and the label is the route or rewrite pattern itself
+ * (`/browse/[...path]`), so cardinality is bounded by the number of defined
+ * routes and rewrites no matter what gets requested.
  */
 export const initRouteTable = (manifest?: RoutesManifest): boolean => {
     try {
@@ -54,7 +81,12 @@ export const initRouteTable = (manifest?: RoutesManifest): boolean => {
             readFileSync(path.join(process.cwd(), '.next', 'routes-manifest.json'), 'utf-8'),
         ) as RoutesManifest);
         routeTable = buildRouteTable(resolved);
-        logger.info(`Route table loaded: ${routeTable.staticPages.size} static, ${routeTable.dynamicRoutes.length} dynamic routes.`);
+        const rewriteCount = routeTable.beforeFilesRewrites.length
+            + routeTable.afterFilesRewrites.length
+            + routeTable.fallbackRewrites.length;
+        logger.info(
+            `Route table loaded: ${routeTable.staticPages.size} static, ${routeTable.dynamicRoutes.length} dynamic, ${rewriteCount} rewrite routes.`,
+        );
         return true;
     } catch (error) {
         // Fail closed: without a table every request is labelled `other`, which
@@ -69,8 +101,8 @@ export const initRouteTable = (manifest?: RoutesManifest): boolean => {
  * label: repository and file paths are unbounded, so `/browse/...` would mint
  * a new time series for every file anyone views, and unknown paths (scanners,
  * bots) would grow the set without limit. Matching against the app's own
- * routes bounds the label set to the number of defined routes plus `/_next`
- * and `other`.
+ * routes bounds the label set to the number of defined routes and rewrite
+ * sources plus `/_next` and `other`.
  */
 export const normalizeRoute = (pathname: string, table: RouteTable | undefined = routeTable): string => {
     const segments = pathname.split('/').filter(segment => segment.length > 0);
@@ -89,14 +121,32 @@ export const normalizeRoute = (pathname: string, table: RouteTable | undefined =
 
     const canonical = `/${segments.join('/')}`;
 
+    // Preserve Next's routing order. Rewrite source patterns are the stable,
+    // public-facing route labels; resolving destinations here would require
+    // duplicating Next's parameter interpolation and rewrite chaining.
+    const beforeFilesRewrite = matchRewrite(canonical, table.beforeFilesRewrites);
+    if (beforeFilesRewrite) {
+        return beforeFilesRewrite;
+    }
+
     if (table.staticPages.has(canonical)) {
         return canonical;
+    }
+
+    const afterFilesRewrite = matchRewrite(canonical, table.afterFilesRewrites);
+    if (afterFilesRewrite) {
+        return afterFilesRewrite;
     }
 
     for (const route of table.dynamicRoutes) {
         if (route.regex.test(canonical)) {
             return route.page;
         }
+    }
+
+    const fallbackRewrite = matchRewrite(canonical, table.fallbackRewrites);
+    if (fallbackRewrite) {
+        return fallbackRewrite;
     }
 
     return OTHER_ROUTE;

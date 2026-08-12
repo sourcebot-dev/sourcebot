@@ -38,6 +38,9 @@ describe('httpMetrics', () => {
         initRouteTable({
             staticRoutes: [{ page: '/api/health' }],
             dynamicRoutes: [{ page: '/browse/[...path]', regex: '^/browse/(.+?)(?:/)?$' }],
+            rewrites: {
+                afterFiles: [{ source: '/api/mcp', regex: '^/api/mcp(?:/)?$' }],
+            },
         });
 
         // Both servers take an ephemeral port, then the metrics port is published
@@ -51,6 +54,7 @@ describe('httpMetrics', () => {
         await fetch(`http://127.0.0.1:${appPort}/api/health`);
         await fetch(`http://127.0.0.1:${appPort}/browse/github.com/a/b/-/blob/x.ts`);
         await fetch(`http://127.0.0.1:${appPort}/browse/github.com/c/d/-/blob/y.ts`);
+        await fetch(`http://127.0.0.1:${appPort}/api/mcp`);
         await fetch(`http://127.0.0.1:${metricsPort}/metrics`);
 
         // The finish channel fires after the response is flushed to the client.
@@ -60,6 +64,7 @@ describe('httpMetrics', () => {
         const counts = countLines(metrics);
 
         expect(counts.some(line => line.includes('route="/api/health"'))).toBe(true);
+        expect(counts.some(line => line.includes('route="/api/mcp"'))).toBe(true);
         expect(counts.some(line => line.includes('status="200"'))).toBe(true);
 
         // Two distinct file paths must collapse to the single route-pattern series.
@@ -78,7 +83,7 @@ describe('httpMetrics', () => {
         // label: `/metrics` is not a known route, so it would land in `other`
         // and an absent-label check would pass even with the filter removed.
         const total = counts.reduce((sum, line) => sum + Number(line.trim().split(' ').pop()), 0);
-        expect(total).toBe(3);
+        expect(total).toBe(4);
         expect(counts.some(line => line.includes('route="other"'))).toBe(false);
     });
 });

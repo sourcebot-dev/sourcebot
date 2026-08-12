@@ -20,9 +20,24 @@ const table = buildRouteTable({
         { page: '/settings/[...slug]', regex: '^/settings/(.+?)(?:/)?$' },
         { page: '/[...slug]', regex: '^/(.+?)(?:/)?$' },
     ],
+    rewrites: {
+        afterFiles: [
+            { source: '/ingest/:path*', regex: '^/ingest(?:/(.+?))?(?:/)?$' },
+            { source: '/.well-known/oauth-authorization-server', regex: '^/\\.well-known/oauth-authorization-server(?:/)?$' },
+            { source: '/.well-known/oauth-protected-resource/:path*', regex: '^/\\.well-known/oauth-protected-resource(?:/(.+?))?(?:/)?$' },
+            { source: '/register', regex: '^/register(?:/)?$' },
+            { source: '/api/mcp', regex: '^/api/mcp(?:/)?$' },
+            { source: '/scim/v2/:path*', regex: '^/scim/v2(?:/(.+?))?(?:/)?$' },
+        ],
+    },
 });
 
-const maxLabels = table.staticPages.size + table.dynamicRoutes.length + 2; // + '/_next', 'other'
+const maxLabels = table.staticPages.size
+    + table.dynamicRoutes.length
+    + table.beforeFilesRewrites.length
+    + table.afterFilesRewrites.length
+    + table.fallbackRewrites.length
+    + 2; // + '/_next', 'other'
 
 describe('normalizeRoute', () => {
     it('maps the root path', () => {
@@ -46,6 +61,41 @@ describe('normalizeRoute', () => {
         expect(normalizeRoute('/api/auth/session', table)).toBe('/api/auth/[...nextauth]');
         // Unknown API paths fall through to the catch-all that actually serves them.
         expect(normalizeRoute('/api/not-a-real-route', table)).toBe('/api/[...slug]');
+    });
+
+    it('labels rewritten paths with their public source pattern', () => {
+        expect(normalizeRoute('/api/mcp', table)).toBe('/api/mcp');
+        expect(normalizeRoute('/scim/v2/Users/42', table)).toBe('/scim/v2/:path*');
+        expect(normalizeRoute('/.well-known/oauth-authorization-server', table))
+            .toBe('/.well-known/oauth-authorization-server');
+        expect(normalizeRoute('/.well-known/oauth-protected-resource/api/mcp', table))
+            .toBe('/.well-known/oauth-protected-resource/:path*');
+        expect(normalizeRoute('/register', table)).toBe('/register');
+        expect(normalizeRoute('/ingest/events', table)).toBe('/ingest/:path*');
+    });
+
+    it('matches rewrites in Next routing order', () => {
+        const precedenceTable = buildRouteTable({
+            staticRoutes: [
+                { page: '/docs' },
+                { page: '/api/health' },
+            ],
+            dynamicRoutes: [
+                { page: '/api/[...slug]', regex: '^/api/(.+?)(?:/)?$' },
+                { page: '/browse/[...path]', regex: '^/browse/(.+?)(?:/)?$' },
+            ],
+            rewrites: {
+                beforeFiles: [{ source: '/docs/:path*', regex: '^/docs(?:/(.+?))?(?:/)?$' }],
+                afterFiles: [{ source: '/api/:path*', regex: '^/api/(.+?)(?:/)?$' }],
+                fallback: [{ source: '/:path*', regex: '^/(.+?)(?:/)?$' }],
+            },
+        });
+
+        expect(normalizeRoute('/docs', precedenceTable)).toBe('/docs/:path*');
+        expect(normalizeRoute('/api/health', precedenceTable)).toBe('/api/health');
+        expect(normalizeRoute('/api/mcp', precedenceTable)).toBe('/api/:path*');
+        expect(normalizeRoute('/browse/org/repo', precedenceTable)).toBe('/browse/[...path]');
+        expect(normalizeRoute('/unmatched', precedenceTable)).toBe('/:path*');
     });
 
     it('collapses unbounded repository and file paths to one label', () => {
@@ -107,6 +157,7 @@ describe('normalizeRoute', () => {
             const paths = [
                 '/', '/search', '/repos', '/browse/a/b/c', '/api/health',
                 '/api/commits', '/api/auth/session', '/_next/static/x.js',
+                '/api/mcp', '/scim/v2/Users/42', '/ingest/events',
                 '/wp-admin', '/api/bogus', '/random', '/..%2f', '/a/b/c/d/e',
             ];
             for (let i = 0; i < 500; i++) {
