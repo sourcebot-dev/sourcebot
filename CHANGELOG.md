@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed the web process being capped at a ~4GiB heap regardless of how much memory the container has, which caused multi-second garbage collection pauses on larger deployments. [#1569](https://github.com/sourcebot-dev/sourcebot/pull/1569)
 - Upgraded `@sentry/*` to `^10.70.0`, fixing memory leaks where spans retained request data indefinitely. [#1572](https://github.com/sourcebot-dev/sourcebot/pull/1572)
+- Fixed the `grep` and `glob` agent tools mis-parsing structured search inputs containing spaces, commas, or quotes. [#1573](https://github.com/sourcebot-dev/sourcebot/pull/1573)
 
 ## [5.1.6] - 2026-08-10
 
