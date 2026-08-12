@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { createServer, Server } from 'node:http';
-import { startHttpMetrics } from './httpMetrics';
+import { initRouteTable, startHttpMetrics } from './httpMetrics';
 import { registry } from './promClient';
 
 const app = createServer((_req, res) => {
@@ -32,7 +32,14 @@ const countLines = (output: string): string[] => {
 };
 
 describe('httpMetrics', () => {
-    it('records durations per normalized route and ignores the metrics port', async () => {
+    it('records durations per route pattern and ignores the metrics port', async () => {
+        // The table is injected rather than read from disk so the test doesn't
+        // depend on a prior `next build` having produced routes-manifest.json.
+        initRouteTable({
+            staticRoutes: [{ page: '/api/health' }],
+            dynamicRoutes: [{ page: '/browse/[...path]', regex: '^/browse/(.+?)(?:/)?$' }],
+        });
+
         // Both servers take an ephemeral port, then the metrics port is published
         // to env before subscribing, so the test never depends on a fixed port.
         const metricsPort = await listen(metricsServer);
@@ -54,8 +61,8 @@ describe('httpMetrics', () => {
         expect(counts.some(line => line.includes('route="/api/health"'))).toBe(true);
         expect(counts.some(line => line.includes('status="200"'))).toBe(true);
 
-        // Two distinct file paths must collapse to a single /browse series.
-        const browse = counts.filter(line => line.includes('route="/browse"'));
+        // Two distinct file paths must collapse to the single route-pattern series.
+        const browse = counts.filter(line => line.includes('route="/browse/[...path]"'));
         expect(browse).toHaveLength(1);
         expect(browse[0].trim().endsWith('2')).toBe(true);
 
