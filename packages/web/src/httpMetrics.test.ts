@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRouteTable, normalizeRoute } from './httpMetrics';
+import { buildRouteTable, initRouteTable, normalizeRoute } from './httpMetrics';
 
 // Mirrors the shape and ordering of the real .next/routes-manifest.json:
 // dynamic routes are listed in Next's resolution priority, with catch-alls
@@ -40,6 +40,20 @@ const maxLabels = table.staticPages.size
     + 2; // + '/_next', 'other'
 
 describe('normalizeRoute', () => {
+    it('discards a previously loaded table when initialization fails', () => {
+        expect(initRouteTable({
+            staticRoutes: [{ page: '/api/health' }],
+            dynamicRoutes: [],
+        })).toBe(true);
+        expect(normalizeRoute('/api/health')).toBe('/api/health');
+
+        expect(initRouteTable({
+            staticRoutes: [],
+            dynamicRoutes: [{ page: '/broken', regex: '[' }],
+        })).toBe(false);
+        expect(normalizeRoute('/api/health')).toBe('other');
+    });
+
     it('maps the root path', () => {
         expect(normalizeRoute('/', table)).toBe('/');
         expect(normalizeRoute('', table)).toBe('/');

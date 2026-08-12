@@ -91,6 +91,7 @@ export const initRouteTable = (manifest?: RoutesManifest): boolean => {
     } catch (error) {
         // Fail closed: without a table every request is labelled `other`, which
         // loses granularity but can never grow the label set.
+        routeTable = undefined;
         logger.error(`Failed to load routes-manifest; all routes will be reported as '${OTHER_ROUTE}': ${error}`);
         return false;
     }
