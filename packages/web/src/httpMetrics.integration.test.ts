@@ -56,7 +56,8 @@ describe('httpMetrics', () => {
         // The finish channel fires after the response is flushed to the client.
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const counts = countLines(await registry.metrics());
+        const metrics = await registry.metrics();
+        const counts = countLines(metrics);
 
         expect(counts.some(line => line.includes('route="/api/health"'))).toBe(true);
         expect(counts.some(line => line.includes('status="200"'))).toBe(true);
@@ -65,6 +66,12 @@ describe('httpMetrics', () => {
         const browse = counts.filter(line => line.includes('route="/browse/[...path]"'));
         expect(browse).toHaveLength(1);
         expect(browse[0].trim().endsWith('2')).toBe(true);
+
+        // Keep enough resolution to distinguish the long-tail stalls this
+        // metric is intended to expose rather than collapsing them into +Inf.
+        for (const upperBound of [15, 20, 30, 60]) {
+            expect(metrics).toContain(`le="${upperBound}"`);
+        }
 
         // The scrape of the metrics port must not be recorded. Asserted on the
         // total observation count rather than on the absence of a `/metrics`
