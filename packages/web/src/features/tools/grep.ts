@@ -1,24 +1,19 @@
 import { z } from "zod";
-import globToRegexp from "glob-to-regexp";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
-import escapeStringRegexp from "escape-string-regexp";
+import type { QueryIR } from "@/features/search/ir";
 import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
 import { CodeHostType } from "@sourcebot/db";
 import { getRepoInfoByName } from "@/actions";
+import { buildGrepSearchQuery } from "./searchQuery";
 
 const DEFAULT_LIMIT = 100;
 const DEFAULT_GROUP_BY_REPO_LIMIT = 10_000;
 const MAX_LINE_LENGTH = 2000;
 const MAX_LINE_SUFFIX = `... (line truncated to ${MAX_LINE_LENGTH} chars)`;
 const TRUNCATION_MESSAGE = `(Results truncated. Consider using a more specific path or pattern, specifying a repo, or increasing the limit.)`;
-
-function globToFileRegexp(glob: string): string {
-    const re = globToRegexp(glob, { extended: true, globstar: true });
-    return re.source.replace(/^\^/, '');
-}
 
 const grepShape = {
     pattern: z
@@ -66,7 +61,7 @@ export type GrepRepoInfo = {
 export type GrepMetadata = {
     files: GrepFile[];
     pattern: string;
-    query: string;
+    query: QueryIR;
     matchCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GrepRepoInfo>;
@@ -95,35 +90,21 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
 
         logger.debug('grep', { pattern, path, include, repo, ref, limit, groupByRepo });
 
-        const quotedPattern = `"${pattern.replace(/"/g, '\\"')}"`;
-        let query = quotedPattern;
-
-        if (path) {
-            query += ` file:${escapeStringRegexp(path)}`;
-        }
-
-        if (include) {
-            query += ` file:${globToFileRegexp(include)}`;
-        }
-
-        if (repo) {
-            query += ` repo:${escapeStringRegexp(repo)}`;
-        } else if (context.selectedRepos && context.selectedRepos.length > 0) {
-            query += ` reposet:${context.selectedRepos.join(',')}`;
-        }
-
-        if (ref) {
-            query += ` rev:${ref}`;
-        }
+        const query = buildGrepSearchQuery({
+            pattern,
+            path,
+            include,
+            repo,
+            ref,
+            selectedRepos: context.selectedRepos,
+        });
 
         const response = await search({
-            queryType: 'string',
+            queryType: 'ir',
             query,
             options: {
                 matches: limit,
                 contextLines: 0,
-                isCaseSensitivityEnabled: true,
-                isRegexEnabled: true,
             },
             source: context.source,
         });
