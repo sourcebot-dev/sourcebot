@@ -9,11 +9,13 @@ import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 interface FileMatchProps {
     match: SearchResultChunk;
     file: SearchResultFile;
+    onOpenPreview: () => void;
 }
 
 export const FileMatch = ({
     match,
     file,
+    onOpenPreview,
 }: FileMatchProps) => {
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
@@ -24,6 +26,7 @@ export const FileMatch = ({
         <Link
             tabIndex={0}
             className="cursor-pointer focus:ring-inset focus:ring-4 bg-background hover:bg-editor-lineHighlight"
+            prefetch={false}
             href={getBrowsePath({
                 repoName: file.repository,
                 revisionName: file.branches?.[0] ?? 'HEAD',
@@ -38,6 +41,22 @@ export const FileMatch = ({
                     }
                 }
             })}
+            onClick={(event) => {
+                if (!event.metaKey && !event.ctrlKey) {
+                    return;
+                }
+
+                event.preventDefault();
+                onOpenPreview();
+            }}
+            onKeyDown={(event) => {
+                if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)) {
+                    return;
+                }
+
+                event.preventDefault();
+                onOpenPreview();
+            }}
             title="open file: click, open file preview: cmd/ctrl + click"
         >
             <LightweightCodeHighlighter

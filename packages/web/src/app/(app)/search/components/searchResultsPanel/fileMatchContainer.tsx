@@ -123,6 +123,12 @@ export const FileMatchContainer = ({
                     <FileMatch
                         match={match}
                         file={file}
+                        onOpenPreview={() => {
+                            const matchIndex = matches.slice(0, index).reduce((acc, previousMatch) => {
+                                return acc + previousMatch.matchRanges.length;
+                            }, 0);
+                            onOpenFilePreview(matchIndex);
+                        }}
                     />
                     {(index !== matches.length - 1 || isMoreContentButtonVisible) && (
                         <Separator className="bg-accent" />
