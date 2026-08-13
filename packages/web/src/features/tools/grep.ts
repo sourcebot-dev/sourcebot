@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
-import type { QueryIR } from "@/features/search/ir";
 import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
@@ -61,7 +60,6 @@ export type GrepRepoInfo = {
 export type GrepMetadata = {
     files: GrepFile[];
     pattern: string;
-    query: QueryIR;
     matchCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GrepRepoInfo>;
@@ -142,7 +140,6 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
         const metadata: GrepMetadata = {
             files,
             pattern,
-            query,
             matchCount: response.stats.actualMatchCount,
             repoCount: new Set(files.map((f) => f.repo)).size,
             repoInfoMap,

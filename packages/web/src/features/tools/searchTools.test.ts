@@ -39,7 +39,7 @@ describe('agent search tools', () => {
     });
 
     it('executes grep with QueryIR', async () => {
-        await grepDefinition.execute({
+        const result = await grepDefinition.execute({
             pattern: 'needle',
             path: 'src/my dir',
             limit: 25,
@@ -61,10 +61,11 @@ describe('agent search tools', () => {
             },
             source: 'test',
         });
+        expect(result.metadata).not.toHaveProperty('query');
     });
 
     it('executes glob with QueryIR', async () => {
-        await globDefinition.execute({
+        const result = await globDefinition.execute({
             pattern: 'My Folder/**/*.ts',
             ref: 'feature/my feature',
         }, {
@@ -85,5 +86,6 @@ describe('agent search tools', () => {
             },
             source: 'test',
         });
+        expect(result.metadata).not.toHaveProperty('query');
     });
 });

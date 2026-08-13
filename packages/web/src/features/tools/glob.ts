@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
-import type { QueryIR } from "@/features/search/ir";
 import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./glob.txt";
@@ -50,7 +49,6 @@ export type GlobRepoInfo = {
 export type GlobMetadata = {
     files: GlobFile[];
     pattern: string;
-    query: QueryIR;
     fileCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GlobRepoInfo>;
@@ -129,7 +127,6 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
         const metadata: GlobMetadata = {
             files,
             pattern,
-            query,
             fileCount: files.length,
             repoCount: new Set(files.map((f) => f.repo)).size,
             repoInfoMap,
