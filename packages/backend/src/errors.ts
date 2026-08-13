@@ -68,10 +68,9 @@ export const isGitHubRateLimitError = (err: unknown): boolean => {
         return true;
     }
 
-    const responseHeaders = (err as { response?: { headers?: Record<string, string | undefined> } }).response?.headers;
     const message = (err as { message?: unknown }).message;
 
-    return responseHeaders?.['x-ratelimit-remaining'] === '0'
-        || responseHeaders?.['retry-after'] !== undefined
+    return getErrorHeader(err, 'x-ratelimit-remaining') === '0'
+        || getErrorHeader(err, 'retry-after') !== undefined
         || (typeof message === 'string' && /rate limit/i.test(message));
 };

@@ -284,7 +284,7 @@ describe('isGitHubRateLimitError', () => {
 
     test('recognizes a secondary rate limit response with retry-after', () => {
         const error = createRequestError('Forbidden', 403, {
-            'retry-after': '60',
+            'Retry-After': '60',
         });
 
         expect(isGitHubRateLimitError(error)).toBe(true);

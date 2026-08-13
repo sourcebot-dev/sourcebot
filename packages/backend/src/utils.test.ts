@@ -163,12 +163,28 @@ describe('fetchWithRetry', () => {
         const result = await resultPromise;
         expect(result).toBe('success');
         expect(fetchFn).toHaveBeenCalledTimes(2);
-        expect(logger.warn).toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Rate limit exceeded for test'),
+            {
+                httpStatus: 429,
+                responseHeaders: {},
+            },
+        );
     });
 
-    test('retries on 403 (Forbidden) and succeeds', async () => {
+    test('retries on an unrelated 403 without classifying it as rate limited', async () => {
         const logger = createMockLogger();
-        const error = { status: 403, message: 'Forbidden' };
+        const resetTime = Math.floor((Date.now() + 60_000) / 1000);
+        const error = {
+            status: 403,
+            message: 'Resource not accessible',
+            response: {
+                headers: {
+                    'x-ratelimit-remaining': '4999',
+                    'x-ratelimit-reset': String(resetTime),
+                },
+            },
+        };
         const fetchFn = vi.fn()
             .mockRejectedValueOnce(error)
             .mockResolvedValueOnce('success');
@@ -180,6 +196,16 @@ describe('fetchWithRetry', () => {
         const result = await resultPromise;
         expect(result).toBe('success');
         expect(fetchFn).toHaveBeenCalledTimes(2);
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Request failed for test with status 403'),
+            {
+                httpStatus: 403,
+                responseHeaders: {
+                    'x-ratelimit-remaining': '4999',
+                    'x-ratelimit-reset': String(resetTime),
+                },
+            },
+        );
     });
 
     test('retries on 503 (Service Unavailable) and succeeds', async () => {
@@ -196,6 +222,13 @@ describe('fetchWithRetry', () => {
         const result = await resultPromise;
         expect(result).toBe('success');
         expect(fetchFn).toHaveBeenCalledTimes(2);
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Request failed for test with status 503'),
+            {
+                httpStatus: 503,
+                responseHeaders: {},
+            },
+        );
     });
 
     test('retries on 500 (Internal Server Error) and succeeds', async () => {
@@ -253,7 +286,7 @@ describe('fetchWithRetry', () => {
         expect(result).toBe('success');
     });
 
-    test('respects x-ratelimit-reset header for Octokit errors', async () => {
+    test('respects x-ratelimit-reset when the primary rate limit is exhausted', async () => {
         const logger = createMockLogger();
         const now = Date.now();
         const resetTime = Math.floor((now + 5000) / 1000); // 5 seconds from now
@@ -261,7 +294,12 @@ describe('fetchWithRetry', () => {
         const error = new RequestError('Rate limit exceeded', 429, {
             response: {
                 headers: {
+                    'x-ratelimit-limit': '5000',
+                    'x-ratelimit-remaining': '0',
+                    'x-ratelimit-used': '5000',
+                    'x-ratelimit-resource': 'core',
                     'x-ratelimit-reset': String(resetTime),
+                    'x-github-request-id': 'ABC1:DEF2:1234:5678',
                 },
                 status: 429,
                 url: 'https://api.github.com/test',
@@ -285,6 +323,52 @@ describe('fetchWithRetry', () => {
 
         const result = await resultPromise;
         expect(result).toBe('success');
+        expect(fetchFn).toHaveBeenCalledTimes(2);
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Rate limit exceeded for test'),
+            {
+                httpStatus: 429,
+                responseHeaders: {
+                    'x-ratelimit-limit': '5000',
+                    'x-ratelimit-remaining': '0',
+                    'x-ratelimit-used': '5000',
+                    'x-ratelimit-resource': 'core',
+                    'x-ratelimit-reset': String(resetTime),
+                    'x-github-request-id': 'ABC1:DEF2:1234:5678',
+                },
+            },
+        );
+    });
+
+    test('respects retry-after for secondary rate limits', async () => {
+        const logger = createMockLogger();
+        const error = new RequestError('You have exceeded a secondary rate limit.', 403, {
+            response: {
+                headers: {
+                    'retry-after': '30',
+                    'x-ratelimit-remaining': '42',
+                },
+                status: 403,
+                url: 'https://api.github.com/test',
+                data: {},
+            },
+            request: {
+                method: 'GET',
+                url: 'https://api.github.com/test',
+                headers: {},
+            },
+        });
+        const fetchFn = vi.fn()
+            .mockRejectedValueOnce(error)
+            .mockResolvedValueOnce('success');
+
+        const resultPromise = fetchWithRetry(fetchFn, 'test', logger);
+
+        await vi.advanceTimersByTimeAsync(29_999);
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+
+        await expect(resultPromise).resolves.toBe('success');
         expect(fetchFn).toHaveBeenCalledTimes(2);
     });
 
@@ -317,7 +401,11 @@ describe('fetchWithRetry', () => {
 
         expect(logger.warn).toHaveBeenCalledTimes(1);
         expect(logger.warn).toHaveBeenCalledWith(
-            expect.stringContaining('test-identifier')
+            expect.stringContaining('test-identifier'),
+            {
+                httpStatus: 429,
+                responseHeaders: {},
+            },
         );
     });
 });
