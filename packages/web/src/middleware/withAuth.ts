@@ -1,5 +1,5 @@
 import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
-import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
+import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, SCOPED_ACCESS_TOKEN_PREFIX, env } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
@@ -22,6 +22,7 @@ type RequiredAuthContext = {
     role: OrgRole;
     org: Org;
     prisma: PrismaClient;
+    principal: AuthPrincipal;
 };
 
 type OptionalAuthContext =
@@ -31,10 +32,31 @@ type OptionalAuthContext =
         role?: undefined;
         org: Org;
         prisma: PrismaClient;
+        principal?: AuthPrincipal;
     };
+
+export type AuthPrincipal =
+    | { source: 'session' }
+    | { source: 'oauth'; oauthScopes: string[] }
+    | { source: 'api_key' }
+    | {
+        source: 'scoped_access_token';
+        credentialId: string;
+        orgId: number;
+        repositoryIds: number[];
+        expiresAt: Date;
+    };
+
+export type AuthSource = AuthPrincipal['source'];
+
+export type AuthResult = {
+    user: UserWithAccounts;
+    principal: AuthPrincipal;
+};
 
 type AuthOptions = {
     requiredOAuthScopes?: readonly string[];
+    requiredAuthSource?: AuthSource;
 };
 
 export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, options: AuthOptions = {}) => {
@@ -44,13 +66,13 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
         return authContext;
     }
 
-    const { user, org, role, prisma } = authContext;
+    const { user, org, role, prisma, principal } = authContext;
 
-    if (!user || !role) {
+    if (!user || !role || !principal) {
         return notAuthenticated();
     }
 
-    return fn({ user, org, role, prisma });
+    return fn({ user, org, role, prisma, principal });
 };
 
 export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, options: AuthOptions = {}) => {
@@ -88,6 +110,13 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
         return notFound("Organization not found");
     }
 
+    if (
+        authResult?.principal.source === 'scoped_access_token' &&
+        authResult.principal.orgId !== org.id
+    ) {
+        return notAuthenticated();
+    }
+
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
@@ -104,7 +133,7 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
-        authResult?.source === 'api_key' &&
+        authResult?.principal.source === 'api_key' &&
         role !== OrgRole.OWNER
     ) {
         return {
@@ -115,14 +144,31 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     }
 
     if (
-        authResult?.source === 'oauth' &&
+        authResult &&
+        options.requiredAuthSource &&
+        authResult.principal.source !== options.requiredAuthSource
+    ) {
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "This operation cannot be performed with the current authentication method.",
+        } satisfies ServiceError;
+    }
+
+    if (
+        authResult?.principal.source === 'oauth' &&
         options.requiredOAuthScopes?.length &&
-        !hasRequiredOAuthScopes(authResult.oauthScopes ?? [], options.requiredOAuthScopes)
+        !hasRequiredOAuthScopes(authResult.principal.oauthScopes, options.requiredOAuthScopes)
     ) {
         return insufficientOAuthScope(options.requiredOAuthScopes);
     }
 
-    const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
+    const repositoryIds = authResult?.principal.source === 'scoped_access_token'
+        ? authResult.principal.repositoryIds
+        : undefined;
+    const prisma = __unsafePrisma.$extends(
+        await userScopedPrismaClientExtension(user, repositoryIds),
+    ) as PrismaClient;
 
     if (user) {
         updateUserLastActiveAt(user);
@@ -145,10 +191,10 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
         updateMembershipLastActiveAt(membership);
     }
 
-    if (user && role) {
-        return { user, org, role, prisma };
+    if (user && role && authResult) {
+        return { user, org, role, prisma, principal: authResult.principal };
     }
-    return { user, org, prisma };
+    return { user, org, prisma, principal: authResult?.principal };
 };
 
 const updateUserLastActiveAt = (user: UserWithAccounts) => {
@@ -195,9 +241,7 @@ const updateMembershipLastActiveAt = (membership: UserToOrg) => {
         .catch(() => { /* updating the lastActiveAt is best effort. */ });
 };
 
-type AuthSource = 'session' | 'oauth' | 'api_key';
-
-export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource, oauthScopes?: string[] } | undefined> => {
+export const getAuthenticatedUser = async (): Promise<AuthResult | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -211,7 +255,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
             }
         });
 
-        return user ? { user, source: 'session' } : undefined;
+        return user ? { user, principal: { source: 'session' } } : undefined;
     }
 
     const currentRequest = getCurrentRequest();
@@ -264,14 +308,60 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                 });
                 return {
                     user: oauthToken.user,
-                    source: 'oauth',
-                    oauthScopes: parseOAuthScopeString(oauthToken.scope)
+                    principal: {
+                        source: 'oauth',
+                        oauthScopes: parseOAuthScopeString(oauthToken.scope),
+                    },
                 };
             }
         }
 
         if (authorization.scheme !== 'Bearer') {
             return undefined;
+        }
+
+        if (bearerToken.startsWith(SCOPED_ACCESS_TOKEN_PREFIX)) {
+            if (!await hasEntitlement('scoped-access-tokens')) {
+                return undefined;
+            }
+
+            const secret = bearerToken.slice(SCOPED_ACCESS_TOKEN_PREFIX.length);
+            if (!secret) {
+                return undefined;
+            }
+
+            const hash = hashSecret(secret);
+            const scopedAccessToken = await __unsafePrisma.scopedAccessToken.findUnique({
+                where: { hash },
+                include: {
+                    createdBy: {
+                        include: { accounts: true },
+                    },
+                    repos: {
+                        select: { repoId: true },
+                    },
+                },
+            });
+
+            if (!scopedAccessToken || scopedAccessToken.expiresAt <= new Date()) {
+                return undefined;
+            }
+
+            await __unsafePrisma.scopedAccessToken.update({
+                where: { hash },
+                data: { lastUsedAt: new Date() },
+            });
+
+            return {
+                user: scopedAccessToken.createdBy,
+                principal: {
+                    source: 'scoped_access_token',
+                    credentialId: scopedAccessToken.id,
+                    orgId: scopedAccessToken.orgId,
+                    repositoryIds: scopedAccessToken.repos.map(({ repoId }) => repoId),
+                    expiresAt: scopedAccessToken.expiresAt,
+                },
+            };
         }
 
         // API key Bearer token (sourcebot-<hex>)
@@ -286,7 +376,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                     where: { hash: apiKey.hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return { user, source: 'api_key' };
+                return { user, principal: { source: 'api_key' } };
             }
         }
     }
@@ -323,7 +413,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
             },
         });
 
-        return { user, source: 'api_key' };
+        return { user, principal: { source: 'api_key' } };
     }
 
     return undefined;
