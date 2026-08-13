@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a server-side memory leak where a single shared react-query cache retained state from every server render; the cache is now created per-request. [#1575](https://github.com/sourcebot-dev/sourcebot/pull/1575)
 - Fixed code host retry warnings to include the HTTP response status. [#1576](https://github.com/sourcebot-dev/sourcebot/pull/1576)
 - Fixed streamed code search updates silently cancelling in-flight result navigation. [#1577](https://github.com/sourcebot-dev/sourcebot/pull/1577)
+- Fixed the `grep` and `glob` agent tools mis-parsing structured search inputs containing spaces, commas, or quotes. [#1573](https://github.com/sourcebot-dev/sourcebot/pull/1573)
 
 ## [5.1.6] - 2026-08-10
 
