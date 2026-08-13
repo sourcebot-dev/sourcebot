@@ -124,7 +124,6 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `chat.visibility_updated`             | `user` | `chat` |
 | `user.created_ask_chat`               | `user` | `org` |
 | `user.creation_failed`                | `user` | `user` |
-| `user.delete`                         | `user` | `user` |
 | `user.fetched_file_blame`             | `user` | `org` |
 | `user.fetched_file_source`            | `user` | `org` |
 | `user.fetched_file_tree`              | `user` | `org` |
@@ -143,11 +142,44 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `user.read`                           | `user` | `user` |
 | `user.signed_in`                      | `user` | `user` |
 | `user.signed_out`                     | `user` | `user` |
+| `org.member_added`                    | `user` | `user` |
+| `org.member_deactivated`              | `user` | `user` |
+| `org.member_left`                     | `user` | `user` |
+| `org.member_reactivated`              | `user` | `user` |
+| `org.member_removed`                  | `user` | `user` |
 | `org.member_promoted_to_owner`        | `user` | `user` |
 | `org.owner_demoted_to_member`         | `user` | `user` |
-| `org.member_added`                    | `user` | `user` |
-| `org.member_removed`                  | `user` | `user` |
-| `org.member_left`                     | `user` | `user` |
+| `scim_token.created`                  | `user` | `scim_token` |
+| `scim_token.deleted`                  | `user` | `scim_token` |
+
+
+## Query parameters and response headers
+
+The endpoint is paginated and accepts a time range filter.
+
+### Query parameters
+
+| Parameter  | Type | Default | Description |
+| :------- | :------ | :------ | :------ |
+| `page`    | positive integer | `1` | Page number. |
+| `perPage` | positive integer, max `100` | `50` | Number of records per page. |
+| `since`   | ISO 8601 timestamp | — | Return records at or after this timestamp (inclusive). |
+| `until`   | ISO 8601 timestamp | — | Return records at or before this timestamp (inclusive). |
+
+`since` must be strictly before `until` if both are supplied; otherwise the endpoint returns `400`.
+
+### Response headers
+
+| Header  | Description |
+| :------- | :------ |
+| `X-Total-Count` | Total number of audit records matching the current `since` / `until` filter across all pages. |
+| `Link`          | Pagination links (`rel="first"`, `rel="prev"`, `rel="next"`, `rel="last"`) formatted per [RFC 8288](https://datatracker.ietf.org/doc/html/rfc8288). Only set when more than one page of results exists. |
+
+```bash icon="terminal" Fetch audit logs for a time range, then page
+curl --request GET '$SOURCEBOT_URL/api/ee/audit?since=2026-08-01T00:00:00Z&until=2026-08-13T23:59:59Z&perPage=25' \
+  --header 'X-Org-Domain: ~' \
+  --header 'X-Sourcebot-Api-Key: $SOURCEBOT_OWNER_API_KEY'
+```
 
 
 ## Response schema
@@ -194,7 +226,7 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
       },
       "targetType": {
         "type": "string",
-        "enum": ["user", "org", "file", "api_key", "account_join_request", "invite", "chat"]
+        "enum": ["user", "org", "file", "api_key", "account_join_request", "invite", "chat", "scim_token"]
       },
       "sourcebotVersion": {
         "type": "string"
@@ -207,7 +239,8 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
               "message": { "type": "string" },
               "api_key": { "type": "string" },
               "emails": { "type": "string" },
-              "source": { "type": "string" }
+              "source": { "type": "string" },
+              "scim_token": { "type": "string" }
             },
             "additionalProperties": false
           },
