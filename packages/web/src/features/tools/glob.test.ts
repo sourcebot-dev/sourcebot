@@ -22,8 +22,7 @@ vi.mock('./logger', () => ({
 }));
 
 import { globDefinition } from './glob';
-import { grepDefinition } from './grep';
-import { buildGlobSearchQuery, buildGrepSearchQuery } from './searchQuery';
+import { buildGlobSearchQuery } from './searchQuery';
 
 const emptySearchResponse = {
     files: [],
@@ -32,39 +31,13 @@ const emptySearchResponse = {
     isSearchExhaustive: true,
 };
 
-describe('agent search tools', () => {
+describe('glob', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.search.mockResolvedValue(emptySearchResponse);
     });
 
-    it('executes grep with QueryIR', async () => {
-        const result = await grepDefinition.execute({
-            pattern: 'needle',
-            path: 'src/my dir',
-            limit: 25,
-        }, {
-            source: 'test',
-            selectedRepos: ['Repo One'],
-        });
-
-        expect(mocks.search).toHaveBeenCalledWith({
-            queryType: 'ir',
-            query: buildGrepSearchQuery({
-                pattern: 'needle',
-                path: 'src/my dir',
-                selectedRepos: ['Repo One'],
-            }),
-            options: {
-                matches: 25,
-                contextLines: 0,
-            },
-            source: 'test',
-        });
-        expect(result.metadata).not.toHaveProperty('query');
-    });
-
-    it('executes glob with QueryIR', async () => {
+    it('executes with QueryIR', async () => {
         const result = await globDefinition.execute({
             pattern: 'My Folder/**/*.ts',
             ref: 'feature/my feature',
