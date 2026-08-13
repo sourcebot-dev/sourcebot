@@ -99,7 +99,7 @@ export const fetchWithRetry = async <T>(
                 })();
 
                 const waitTime = Math.max(0, resetDateMs - Date.now());
-                logger.warn(`Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
+                logger.warn(`Request failed for ${identifier} with status ${e.status}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
 
                 await new Promise(resolve => setTimeout(resolve, waitTime));
                 continue;

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `@sentry/*` to `^10.70.0`, fixing memory leaks where spans retained request data indefinitely. [#1572](https://github.com/sourcebot-dev/sourcebot/pull/1572)
 - Fixed code search result links occasionally getting stuck during navigation and restored Cmd/Ctrl-click to open matches in preview. [#1574](https://github.com/sourcebot-dev/sourcebot/pull/1574)
 - Fixed a server-side memory leak where a single shared react-query cache retained state from every server render; the cache is now created per-request. [#1575](https://github.com/sourcebot-dev/sourcebot/pull/1575)
+- Fixed code host retry warnings to include the HTTP response status. [#1576](https://github.com/sourcebot-dev/sourcebot/pull/1576)
 
 ## [5.1.6] - 2026-08-10
 
