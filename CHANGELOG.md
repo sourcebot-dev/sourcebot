@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added service accounts: non-human identities that own their own API keys for programmatic access, managed under Settings -> Service Accounts. [#1583](https://github.com/sourcebot-dev/sourcebot/pull/1583)
+
 ## [5.1.7] - 2026-08-13
 
 ### Added
