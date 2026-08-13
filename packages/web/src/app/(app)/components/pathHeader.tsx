@@ -230,6 +230,7 @@ export const PathHeader = ({
 
             <Link
                 className={cn("font-medium cursor-pointer hover:underline", repoNameClassName)}
+                prefetch={false}
                 href={getBrowsePath({
                     repoName: repo.name,
                     path: '/',
@@ -249,6 +250,7 @@ export const PathHeader = ({
                 >
                     <span className="mr-0.5">@</span>
                     <Link
+                        prefetch={false}
                         href={getBrowsePath({
                             repoName: repo.name,
                             path: '',
@@ -286,6 +288,7 @@ export const PathHeader = ({
                                 <DropdownMenuContent align="start" className="min-w-[200px]">
                                     {hiddenSegments.map((segment) => (
                                         <Link
+                                            prefetch={false}
                                             href={getBrowsePath({
                                                 repoName: repo.name,
                                                 path: segment.fullPath,
@@ -317,6 +320,7 @@ export const PathHeader = ({
                                 <VscodeFileIcon fileName={segment.name} className="h-4 w-4 mr-1 flex-shrink-0" />
                             )}
                             <Link
+                                prefetch={false}
                                 className={cn(
                                     "font-mono text-sm min-w-0 truncate cursor-pointer hover:underline",
                                 )}

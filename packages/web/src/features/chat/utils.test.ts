@@ -134,6 +134,27 @@ test('fileReferenceToString matches FILE_REFERENCE_REGEX', () => {
     }))).toBe(true);
 });
 
+test('fileReferenceToString matches FILE_REFERENCE_REGEX for repos with ports', () => {
+    const reference = fileReferenceToString({
+        repo: 'git.example.com:8080/org/repo',
+        path: 'auth.ts',
+        range: {
+            startLine: 45,
+            endLine: 60,
+        },
+    });
+
+    FILE_REFERENCE_REGEX.lastIndex = 0;
+    const match = FILE_REFERENCE_REGEX.exec(reference);
+
+    expect(match).not.toBeNull();
+    expect(match?.[1]).toBe('git.example.com:8080/org/repo');
+    expect(match?.[2]).toBe(':8080');
+    expect(match?.[3]).toBe('auth.ts');
+    expect(match?.[4]).toBe('45');
+    expect(match?.[5]).toBe('60');
+});
+
 test('slateContentToString serializes command mentions as literal slash commands', () => {
     const children = [{
         type: 'paragraph',

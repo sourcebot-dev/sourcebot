@@ -49,7 +49,7 @@ function remarkReferencesPlugin() {
     return function (tree: Nodes) {
         findAndReplace(tree, [
             FILE_REFERENCE_REGEX,
-            (_, repo: string, fileName: string, startLine?: string, endLine?: string) => {
+            (_, repo: string, _port: string | undefined, fileName: string, startLine?: string, endLine?: string) => {
                 // Create display text
                 let displayText = fileName.split('/').pop() ?? fileName;
 

@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: us-west-1
+      require_sentry:
+        description: "Require complete Sentry build configuration and source-map upload credentials"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -58,13 +63,14 @@ jobs:
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_WEBAPP_PROJECT: ${{ vars.SENTRY_WEBAPP_PROJECT }}
           SENTRY_BACKEND_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}
+          REQUIRE_SENTRY: ${{ inputs.require_sentry }}
         run: |
           missing=0
-          for name in SENTRY_AUTH_TOKEN AWS_ECR_ROLE_ARN \
-                      NEXT_PUBLIC_SENTRY_ENVIRONMENT \
-                      NEXT_PUBLIC_SENTRY_WEBAPP_DSN \
-                      NEXT_PUBLIC_SENTRY_BACKEND_DSN \
-                      SENTRY_ORG SENTRY_WEBAPP_PROJECT SENTRY_BACKEND_PROJECT; do
+          required_names="AWS_ECR_ROLE_ARN"
+          if [ "$REQUIRE_SENTRY" = "true" ]; then
+            required_names="$required_names SENTRY_AUTH_TOKEN NEXT_PUBLIC_SENTRY_ENVIRONMENT NEXT_PUBLIC_SENTRY_WEBAPP_DSN NEXT_PUBLIC_SENTRY_BACKEND_DSN SENTRY_ORG SENTRY_WEBAPP_PROJECT SENTRY_BACKEND_PROJECT"
+          fi
+          for name in $required_names; do
             if [ -z "${!name}" ]; then
               echo "::error::${name} is not set on the '${ENVIRONMENT}' environment (or the repository)."
               missing=1
@@ -73,9 +79,36 @@ jobs:
             fi
           done
           if [ "$missing" -ne 0 ]; then
-            echo "::error::Refusing to build: the image would ship without Sentry wiring."
+            echo "::error::Refusing to build: required environment configuration is missing."
             exit 1
           fi
+          if [ "$REQUIRE_SENTRY" != "true" ]; then
+            echo "Sentry wiring is intentionally disabled for the isolated internal demo image."
+          fi
+
+      - name: Verify internal GitHub OIDC identity
+        if: inputs.environment == 'internal'
+        env:
+          EXPECTED_OIDC_SUBJECT: repo:sourcebot-dev/sourcebot:environment:internal
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
+          token=$(jq -r '.value' <<<"$response")
+          OIDC_TOKEN="$token" node - <<'NODE'
+          const claims = JSON.parse(Buffer.from(process.env.OIDC_TOKEN.split('.')[1], 'base64url'));
+          console.log(JSON.stringify({
+            sub: claims.sub,
+            aud: claims.aud,
+            repository: claims.repository,
+            repository_id: claims.repository_id,
+            job_workflow_ref: claims.job_workflow_ref,
+          }, null, 2));
+          if (claims.sub !== process.env.EXPECTED_OIDC_SUBJECT) {
+            console.error(`Unexpected OIDC subject: ${claims.sub}`);
+            process.exit(1);
+          }
+          NODE
 
       - name: Check Prisma migrations
         uses: ./.github/actions/check-prisma-migrations
@@ -128,8 +161,7 @@ jobs:
             SENTRY_RELEASE=${{ steps.commit.outputs.sha }}
           # Passed as a secret, not a build-arg: build args are recorded in layer
           # metadata that `mode=max` exports to the cache. @see: Dockerfile
-          secrets: |
-            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          secrets: ${{ inputs.require_sentry && format('sentry_auth_token={0}', secrets.SENTRY_AUTH_TOKEN) || '' }}
           # Cache scope is per-environment, and distinct from the OSS build's
           # (which is keyed on platform alone). Sharing a scope would let a build
           # that never sees SENTRY_AUTH_TOKEN restore layers from one that did.
@@ -141,7 +173,12 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
           COMMIT_SHA: ${{ steps.commit.outputs.sha }}
           TAGS: ${{ steps.meta.outputs.tags }}
+          REQUIRE_SENTRY: ${{ inputs.require_sentry }}
         run: |
+          sentry_summary="disabled"
+          if [ "$REQUIRE_SENTRY" = "true" ]; then
+            sentry_summary="$COMMIT_SHA"
+          fi
           {
             echo "### Pushed to ECR"
             echo
@@ -149,7 +186,7 @@ jobs:
             echo "|---|---|"
             echo "| Environment | \`${ENVIRONMENT}\` |"
             echo "| Commit | \`${COMMIT_SHA}\` |"
-            echo "| Sentry release | \`${COMMIT_SHA}\` |"
+            echo "| Sentry | \`${sentry_summary}\` |"
             echo
             echo '```'
             echo "$TAGS"

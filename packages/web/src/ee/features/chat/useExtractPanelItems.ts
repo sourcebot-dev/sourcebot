@@ -70,7 +70,7 @@ export const useExtractPanelItems = (
         const combined = new RegExp(`${MERMAID_BLOCK_REGEX.source}|${FILE_REFERENCE_REGEX.source}`, 'g');
         let match: RegExpExecArray | null;
         while ((match = combined.exec(text)) !== null) {
-            // match[1]: mermaid body. match[2..5]: file reference repo/path/start/end.
+            // match[1]: mermaid body. match[2..6]: file reference repo/port/path/start/end.
             if (match[1] !== undefined) {
                 const code = match[1].trim();
                 if (!code) {
@@ -85,8 +85,8 @@ export const useExtractPanelItems = (
                 const diagramIndex = diagrams.length;
                 diagrams.push(diagram);
                 orderedItems.push({ kind: 'diagram', diagram, diagramIndex });
-            } else if (match[2] !== undefined && match[3] !== undefined) {
-                const reference = createFileReference({ repo: match[2], path: match[3], startLine: match[4], endLine: match[5] });
+            } else if (match[2] !== undefined && match[4] !== undefined) {
+                const reference = createFileReference({ repo: match[2], path: match[4], startLine: match[5], endLine: match[6] });
                 const source = tryResolveFileReference(reference, referencedFileSources);
                 if (!source) {
                     continue;

@@ -8,8 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added a manually triggered cloud image release workflow for isolated internal deployments. [#1566](https://github.com/sourcebot-dev/sourcebot/pull/1566)
+- Added Prometheus metrics for the web process, served on `WEB_METRICS_PORT` (default `3070`). [#1570](https://github.com/sourcebot-dev/sourcebot/pull/1570)
+- Added an `http_request_duration_seconds` metric recording web request latency by route, method, and status. [#1571](https://github.com/sourcebot-dev/sourcebot/pull/1571)
 - [EE] Added one-hour repository-scoped access tokens with public mint and revoke APIs. [#1549](https://github.com/sourcebot-dev/sourcebot/pull/1549)
+
+### Fixed
+- Fixed the web process being capped at a ~4GiB heap regardless of how much memory the container has, which caused multi-second garbage collection pauses on larger deployments. [#1569](https://github.com/sourcebot-dev/sourcebot/pull/1569)
+- Upgraded `@sentry/*` to `^10.70.0`, fixing memory leaks where spans retained request data indefinitely. [#1572](https://github.com/sourcebot-dev/sourcebot/pull/1572)
+- Fixed code search result links occasionally getting stuck during navigation and restored Cmd/Ctrl-click to open matches in preview. [#1574](https://github.com/sourcebot-dev/sourcebot/pull/1574)
+- Fixed a server-side memory leak where a single shared react-query cache retained state from every server render; the cache is now created per-request. [#1575](https://github.com/sourcebot-dev/sourcebot/pull/1575)
+- Fixed code host retry warnings to include the HTTP response status. [#1576](https://github.com/sourcebot-dev/sourcebot/pull/1576)
+
+## [5.1.6] - 2026-08-10
+
+### Added
 - [EE] Added guided reconnection for MCP connector authentication failures during Ask Sourcebot agent turns. [#1548](https://github.com/sourcebot-dev/sourcebot/pull/1548)
+
+### Changed
+- Updated the bundled Zoekt version. [#1564](https://github.com/sourcebot-dev/sourcebot/pull/1564)
 
 ### Removed
 - Removed the Langfuse integration. [#1536](https://github.com/sourcebot-dev/sourcebot/pull/1536)
@@ -27,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `fast-uri` to `^3.1.5`. [#1541](https://github.com/sourcebot-dev/sourcebot/pull/1541)
 - Upgraded `ip-address` to `^10.4.0`. [#1540](https://github.com/sourcebot-dev/sourcebot/pull/1540)
 - [EE] Fixed Ask MCP connector tools failing to load when their input schemas use JSON Schema 2019-09 or 2020-12. [#1547](https://github.com/sourcebot-dev/sourcebot/pull/1547)
+- Upgraded `js-yaml` to `^4.3.1`. [#1552](https://github.com/sourcebot-dev/sourcebot/pull/1552)
+- Upgraded `reo-census` to `^1.2.10` in `setup-sourcebot`. [#1554](https://github.com/sourcebot-dev/sourcebot/pull/1554)
+- Upgraded `nanoid` to `^3.3.18`. [#1557](https://github.com/sourcebot-dev/sourcebot/pull/1557)
+- Upgraded `dompurify` to `^3.4.13`. [#1556](https://github.com/sourcebot-dev/sourcebot/pull/1556)
+- Upgraded `mermaid` to `^11.16.1`. [#1555](https://github.com/sourcebot-dev/sourcebot/pull/1555)
+- [EE] Fixed Ask Sourcebot file reference citations for repositories whose code host URL includes a port. [#1565](https://github.com/sourcebot-dev/sourcebot/pull/1565)
 
 ## [5.1.5] - 2026-07-31
 

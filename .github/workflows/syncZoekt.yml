@@ -1,0 +1,229 @@
+name: Sync Zoekt Submodule
+
+on:
+  repository_dispatch:
+    types: [zoekt-pr-merged]
+  workflow_dispatch:
+    inputs:
+      zoekt_sha:
+        description: Full Zoekt commit SHA to sync.
+        required: true
+        type: string
+      zoekt_pr_number:
+        description: Merged Zoekt pull request number associated with the SHA.
+        required: true
+        type: number
+
+concurrency:
+  group: sync-zoekt-submodule
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      AUTOMATION_BRANCH: automation/sync-zoekt
+      ZOEKT_SHA: ${{ github.event.client_payload.zoekt_sha || inputs.zoekt_sha }}
+      ZOEKT_PR_NUMBER: ${{ github.event.client_payload.zoekt_pr_number || inputs.zoekt_pr_number }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: sourcebot-dev
+          repositories: sourcebot
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout Sourcebot
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Initialize public Zoekt submodule
+        run: git submodule update --init --recursive vendor/zoekt
+
+      - name: Configure automation git identity
+        run: |
+          git config user.name "sourcebot-sync[bot]"
+          git config user.email "sourcebot-sync[bot]@users.noreply.github.com"
+
+      - name: Validate dispatch payload
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$ZOEKT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected a full lowercase Zoekt commit SHA, got: $ZOEKT_SHA" >&2
+            exit 1
+          fi
+          if [[ ! "$ZOEKT_PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Expected a Zoekt pull request number, got: $ZOEKT_PR_NUMBER" >&2
+            exit 1
+          fi
+
+      - name: Prepare automation branch
+        id: branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          open_pr_url=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --head "$AUTOMATION_BRANCH" \
+            --json url \
+            --jq '.[0].url // ""')
+          remote_sha=$(git ls-remote \
+            --heads origin "refs/heads/$AUTOMATION_BRANCH" \
+            | awk '{print $1}')
+          branch_changed=false
+
+          if [[ -n "$open_pr_url" ]]; then
+            if [[ -z "$remote_sha" ]]; then
+              echo "Open sync PR $open_pr_url has no remote branch." >&2
+              exit 1
+            fi
+            git fetch origin \
+              "refs/heads/$AUTOMATION_BRANCH:refs/remotes/origin/$AUTOMATION_BRANCH"
+            git switch -C "$AUTOMATION_BRANCH" "origin/$AUTOMATION_BRANCH"
+            git rebase origin/main
+            if [[ "$(git rev-parse HEAD)" != "$remote_sha" ]]; then
+              branch_changed=true
+            fi
+          else
+            git switch -c "$AUTOMATION_BRANCH"
+          fi
+
+          {
+            echo "open_pr_url=$open_pr_url"
+            echo "remote_sha=$remote_sha"
+            echo "changed=$branch_changed"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update Zoekt submodule
+        id: update
+        run: |
+          set -euo pipefail
+
+          current_sha=$(git rev-parse HEAD:vendor/zoekt)
+          .github/scripts/updateZoektSubmodule.sh "$ZOEKT_SHA"
+          if git diff --cached --quiet -- vendor/zoekt; then
+            {
+              echo "changed=false"
+              if [[ "$current_sha" == "$ZOEKT_SHA" ]]; then
+                echo "target_applied=true"
+              else
+                echo "target_applied=false"
+              fi
+            } >> "$GITHUB_OUTPUT"
+            echo "Sourcebot already contains Zoekt $ZOEKT_SHA." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git commit -m "chore: sync zoekt after upstream PR #$ZOEKT_PR_NUMBER"
+          {
+            echo "changed=true"
+            echo "target_applied=true"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Push automation branch
+        if: steps.update.outputs.changed == 'true' || steps.branch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REMOTE_SHA: ${{ steps.branch.outputs.remote_sha }}
+        run: |
+          set -euo pipefail
+
+          gh auth setup-git
+          if [[ -n "$REMOTE_SHA" ]]; then
+            git push \
+              --force-with-lease="refs/heads/$AUTOMATION_BRANCH:$REMOTE_SHA" \
+              origin "HEAD:refs/heads/$AUTOMATION_BRANCH"
+          else
+            git push --set-upstream origin \
+              "HEAD:refs/heads/$AUTOMATION_BRANCH"
+          fi
+
+      - name: Create or update pull request
+        if: >-
+          steps.update.outputs.changed == 'true' ||
+          steps.branch.outputs.changed == 'true' ||
+          (steps.update.outputs.target_applied == 'true' &&
+          steps.branch.outputs.open_pr_url != '')
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OPEN_PR_URL: ${{ steps.branch.outputs.open_pr_url }}
+          TARGET_APPLIED: ${{ steps.update.outputs.target_applied }}
+        run: |
+          set -euo pipefail
+
+          body_file=$(mktemp)
+          trap 'rm -f "$body_file"' EXIT
+          cat > "$body_file" <<EOF
+          ## Summary
+
+          - advance \`vendor/zoekt\` to \`$ZOEKT_SHA\`
+          - include Zoekt changes through [sourcebot-dev/zoekt#$ZOEKT_PR_NUMBER](https://github.com/sourcebot-dev/zoekt/pull/$ZOEKT_PR_NUMBER)
+
+          This pull request is maintained automatically and may be updated when additional Zoekt pull requests merge.
+          EOF
+
+          if [[ -n "$OPEN_PR_URL" ]]; then
+            pr_url="$OPEN_PR_URL"
+            if [[ "$TARGET_APPLIED" == "true" ]]; then
+              gh pr edit "$pr_url" \
+                --title "chore: update bundled Zoekt" \
+                --body-file "$body_file"
+            fi
+          else
+            pr_url=$(gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$AUTOMATION_BRANCH" \
+              --title "chore: update bundled Zoekt" \
+              --body-file "$body_file")
+          fi
+
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Add changelog entry
+        if: steps.pull-request.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ steps.pull-request.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+
+          pr_number=${PR_URL##*/}
+          .github/scripts/addZoektSyncChangelogEntry.sh "$pr_number"
+          if git diff --quiet -- CHANGELOG.md; then
+            exit 0
+          fi
+
+          git add CHANGELOG.md
+          git commit -m "chore: update changelog for #$pr_number"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$AUTOMATION_BRANCH"
+
+      - name: Summarize pull request
+        if: steps.pull-request.outputs.pr_url != ''
+        env:
+          PR_URL: ${{ steps.pull-request.outputs.pr_url }}
+        run: |
+          synced_sha=$(git rev-parse HEAD:vendor/zoekt)
+          {
+            echo "## Zoekt sync"
+            echo
+            echo "Updated \`vendor/zoekt\` to \`$synced_sha\`."
+            echo
+            echo "Sourcebot pull request: $PR_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
