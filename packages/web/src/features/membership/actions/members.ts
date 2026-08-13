@@ -2,6 +2,8 @@
 
 import { membershipManagedByIdpError } from "@/features/membership/errors";
 import { removeMember, setMembershipSuspended } from "@/features/membership/membership.service";
+import { humanMembershipWhere } from "@/features/membership/utils";
+import { auditActorForUser } from "@/ee/features/audit/utils";
 import { isScimEnabled } from "@/features/scim/utils";
 import { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -18,7 +20,7 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
             }
 
             const result = await removeMember(org.id, memberId, {
-                actor: { id: user.id, type: "user" },
+                actor: auditActorForUser(user),
             });
 
             if (isServiceError(result)) {
@@ -37,7 +39,7 @@ export const suspendMember = async (memberId: string): Promise<{ success: boolea
             }
 
             const result = await setMembershipSuspended(org.id, memberId, true, {
-                actor: { id: user.id, type: "user" },
+                actor: auditActorForUser(user),
             });
 
             if (isServiceError(result)) {
@@ -56,7 +58,7 @@ export const reactivateMember = async (memberId: string): Promise<{ success: boo
             }
 
             const result = await setMembershipSuspended(org.id, memberId, false, {
-                actor: { id: user.id, type: "user" },
+                actor: auditActorForUser(user),
             });
 
             if (isServiceError(result)) {
@@ -91,9 +93,12 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
 export const getOrgMembers = async () => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            // Service accounts have their own management surface (Settings ->
+            // Service Accounts) and must not appear in the human members list.
             const members = await prisma.userToOrg.findMany({
                 where: {
                     orgId: org.id,
+                    ...humanMembershipWhere(),
                 },
                 include: {
                     user: true,

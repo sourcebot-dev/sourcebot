@@ -2,13 +2,13 @@ import { z } from "zod";
 
 export const auditActorSchema = z.object({
     id: z.string(),
-    type: z.enum(["user", "api_key", "scim_token"]),
+    type: z.enum(["user", "api_key", "scim_token", "service_account"]),
 })
 export type AuditActor = z.infer<typeof auditActorSchema>;
 
 export const auditTargetSchema = z.object({
     id: z.string(),
-    type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite", "chat", "scim_token"]),
+    type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite", "chat", "scim_token", "service_account"]),
 })
 export type AuditTarget = z.infer<typeof auditTargetSchema>;
 

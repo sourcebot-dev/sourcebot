@@ -11,7 +11,7 @@ import {
 import { withScimAuth } from '@/ee/features/scim/withScimAuth';
 import { ErrorCode } from '@/lib/errorCodes';
 import { isServiceError } from '@/lib/utils';
-import { OrgRole } from '@sourcebot/db';
+import { OrgRole, UserType } from '@sourcebot/db';
 import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 
@@ -37,9 +37,15 @@ export const GET = apiHandler(async (request: NextRequest) =>
             return scimJson(toScimListResponse([], 0, startIndex), 200);
         }
 
+        // Service accounts are not IdP-managed identities and must never sync
+        // to/from SCIM. Inlined (rather than spread from `humanMembershipWhere`)
+        // alongside the `userName` filter below, since both target the `user`
+        // relation and a naive spread would let one clobber the other.
         const where = {
             orgId: org.id,
-            ...(filter?.attribute === 'userName' ? { user: { email: { equals: filter.value, mode: 'insensitive' as const } } } : {}),
+            ...(filter?.attribute === 'userName'
+                ? { user: { type: UserType.HUMAN, email: { equals: filter.value, mode: 'insensitive' as const } } }
+                : { user: { type: UserType.HUMAN } }),
             ...(filter?.attribute === 'externalId' ? { scimExternalId: filter.value } : {}),
         };
 

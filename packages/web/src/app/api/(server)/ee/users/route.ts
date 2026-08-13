@@ -1,6 +1,8 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
+import { auditActorForUser } from "@/ee/features/audit/utils";
+import { humanMembershipWhere } from "@/features/membership/utils";
 import { toPublicUser } from "../utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { serviceErrorResponse } from "@/lib/serviceError";
@@ -27,9 +29,12 @@ export const GET = apiHandler(async () => {
     const result = await withAuth(async ({ prisma, org, role, user }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
+                // Service accounts are managed separately and must not leak
+                // into this org-management-facing user listing.
                 const memberships = await prisma.userToOrg.findMany({
                     where: {
                         orgId: org.id,
+                        ...humanMembershipWhere(),
                     },
                     include: {
                         user: true,
@@ -40,10 +45,7 @@ export const GET = apiHandler(async () => {
 
                 await createAudit({
                     action: "user.list",
-                    actor: {
-                        id: user.id,
-                        type: "user"
-                    },
+                    actor: auditActorForUser(user),
                     target: {
                         id: org.id.toString(),
                         type: "org"

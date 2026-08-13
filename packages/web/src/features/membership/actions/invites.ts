@@ -15,7 +15,7 @@ import { getAuthenticatedUser, withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { __unsafePrisma } from "@/prisma";
 import { render } from "@react-email/components";
-import { OrgRole } from "@sourcebot/db";
+import { OrgRole, UserType } from "@sourcebot/db";
 import { env, getSMTPConnectionURL, isMemberApprovalRequired } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { createTransport } from "nodemailer";
@@ -93,13 +93,17 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                 } satisfies ServiceError;
             }
 
-            // Check for members that are already in the org
+            // Check for members that are already in the org. Excludes
+            // service accounts: their synthetic emails can't collide with a
+            // real invite address, but this keeps the check symmetric with
+            // every other member-listing call site.
             const existingMembers = await prisma.userToOrg.findMany({
                 where: {
                     user: {
+                        type: UserType.HUMAN,
                         email: {
                             in: emails,
-                        }
+                        },
                     },
                     orgId: org.id,
                 },

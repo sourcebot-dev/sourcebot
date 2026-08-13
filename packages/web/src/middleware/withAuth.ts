@@ -1,6 +1,6 @@
 import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, SCOPED_ACCESS_TOKEN_PREFIX, env } from "@sourcebot/shared";
-import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserWithAccounts } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserType, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
 import { insufficientOAuthScope, notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
@@ -131,6 +131,9 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
     // API-key auth, which bypasses the JWT `sessionVersion` logout check.
     const role = (membership && membership.suspendedAt == null) ? membership.role : undefined;
 
+    // Applies uniformly to human and service-account API keys: a service
+    // account's OrgRole (via its own UserToOrg row) gates its key exactly
+    // like a human member's role gates theirs.
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
         authResult?.principal.source === 'api_key' &&
@@ -254,6 +257,13 @@ export const getAuthenticatedUser = async (): Promise<AuthResult | undefined> =>
                 accounts: true,
             }
         });
+
+        // Belt-and-braces: nothing today mints a session for a service
+        // account (it can only authenticate via API key), but reject one
+        // outright if it ever shows up here rather than silently trusting it.
+        if (user?.type === UserType.SERVICE) {
+            return undefined;
+        }
 
         return user ? { user, principal: { source: 'session' } } : undefined;
     }

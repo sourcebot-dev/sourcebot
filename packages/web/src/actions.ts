@@ -1,6 +1,7 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
+import { auditActorForUser } from "@/ee/features/audit/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
@@ -54,10 +55,7 @@ export const createApiKey = async (name: string): Promise<{ key: string } | Serv
         if (existingApiKey) {
             await createAudit({
                 action: "api_key.creation_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
+                actor: auditActorForUser(user),
                 target: {
                     id: org.id.toString(),
                     type: "org"
@@ -87,10 +85,7 @@ export const createApiKey = async (name: string): Promise<{ key: string } | Serv
 
         await createAudit({
             action: "api_key.created",
-            actor: {
-                id: user.id,
-                type: "user"
-            },
+            actor: auditActorForUser(user),
             target: {
                 id: apiKey.hash,
                 type: "api_key"
@@ -115,10 +110,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
         if (!apiKey) {
             await createAudit({
                 action: "api_key.deletion_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
+                actor: auditActorForUser(user),
                 target: {
                     id: org.id.toString(),
                     type: "org"
@@ -144,10 +136,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
 
         await createAudit({
             action: "api_key.deleted",
-            actor: {
-                id: user.id,
-                type: "user"
-            },
+            actor: auditActorForUser(user),
             target: {
                 id: apiKey.hash,
                 type: "api_key"
