@@ -151,6 +151,8 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `org.owner_demoted_to_member`         | `user` | `user` |
 | `scim_token.created`                  | `user` | `scim_token` |
 | `scim_token.deleted`                  | `user` | `scim_token` |
+| `scim.enabled`                        | `user` | `org` |
+| `scim.disabled`                       | `user` | `org` |
 
 
 ## Query parameters and response headers
@@ -163,8 +165,8 @@ The endpoint is paginated and accepts a time range filter.
 | :------- | :------ | :------ | :------ |
 | `page`    | positive integer | `1` | Page number. |
 | `perPage` | positive integer, max `100` | `50` | Number of records per page. |
-| `since`   | ISO 8601 timestamp | — | Return records at or after this timestamp (inclusive). |
-| `until`   | ISO 8601 timestamp | — | Return records at or before this timestamp (inclusive). |
+| `since`   | ISO 8601 timestamp | Not set | Return records at or after this timestamp (inclusive). |
+| `until`   | ISO 8601 timestamp | Not set | Return records at or before this timestamp (inclusive). |
 
 `since` must be strictly before `until` if both are supplied; otherwise the endpoint returns `400`.
 
@@ -176,9 +178,9 @@ The endpoint is paginated and accepts a time range filter.
 | `Link`          | Pagination links (`rel="first"`, `rel="prev"`, `rel="next"`, `rel="last"`) formatted per [RFC 8288](https://datatracker.ietf.org/doc/html/rfc8288). Only set when more than one page of results exists. |
 
 ```bash icon="terminal" Fetch audit logs for a time range, then page
-curl --request GET '$SOURCEBOT_URL/api/ee/audit?since=2026-08-01T00:00:00Z&until=2026-08-13T23:59:59Z&perPage=25' \
+curl --request GET "$SOURCEBOT_URL/api/ee/audit?since=2026-08-01T00:00:00Z&until=2026-08-13T23:59:59Z&perPage=25" \
   --header 'X-Org-Domain: ~' \
-  --header 'X-Sourcebot-Api-Key: $SOURCEBOT_OWNER_API_KEY'
+  --header "X-Sourcebot-Api-Key: $SOURCEBOT_OWNER_API_KEY"
 ```
 
 
