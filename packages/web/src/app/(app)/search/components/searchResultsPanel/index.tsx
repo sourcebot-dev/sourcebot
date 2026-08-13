@@ -99,14 +99,16 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
     // Save the scroll state to the history stack.
     const debouncedScrollOffset = useDebounce(virtualizer.scrollOffset, 500);
     useEffect(() => {
+        // Keep Next.js's internal state and omit the URL so its patched
+        // replaceState does not dispatch a route restore during navigation.
         history.replaceState(
             {
+                ...history.state,
                 scrollOffset: debouncedScrollOffset ?? undefined,
                 measurementsCache: virtualizer.measurementsCache,
                 showAllMatchesMap: Array.from(showAllMatchesMap.entries()),
             } satisfies ScrollHistoryState,
-            '',
-            window.location.href
+            ''
         );
     }, [debouncedScrollOffset, virtualizer.measurementsCache, showAllMatchesMap]);
 

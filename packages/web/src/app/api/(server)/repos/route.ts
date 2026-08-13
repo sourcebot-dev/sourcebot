@@ -20,7 +20,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(queryParamsSchemaValidationError(parseResult.error));
     }
 
-    const { page, perPage, sort, direction, query } = parseResult.data;
+    const { page, perPage, sort, direction, query, connectionId } = parseResult.data;
 
     const response = await listRepos({
         page,
@@ -28,6 +28,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         sort,
         direction,
         query,
+        connectionId,
     })
 
     if (isServiceError(response)) {
@@ -47,6 +48,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
             sort,
             direction,
             ...(query ? { query } : {}),
+            ...(connectionId !== undefined ? { connectionId: connectionId.toString() } : {}),
         },
     });
     if (linkHeader) headers.set('Link', linkHeader);

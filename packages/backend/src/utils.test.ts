@@ -317,7 +317,7 @@ describe('fetchWithRetry', () => {
 
         expect(logger.warn).toHaveBeenCalledTimes(1);
         expect(logger.warn).toHaveBeenCalledWith(
-            expect.stringContaining('test-identifier')
+            expect.stringContaining('test-identifier with status 429')
         );
     });
 });

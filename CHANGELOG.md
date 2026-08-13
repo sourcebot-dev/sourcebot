@@ -10,10 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a manually triggered cloud image release workflow for isolated internal deployments. [#1566](https://github.com/sourcebot-dev/sourcebot/pull/1566)
 - Added Prometheus metrics for the web process, served on `WEB_METRICS_PORT` (default `3070`). [#1570](https://github.com/sourcebot-dev/sourcebot/pull/1570)
+- Added an `http_request_duration_seconds` metric recording web request latency by route, method, and status. [#1571](https://github.com/sourcebot-dev/sourcebot/pull/1571)
+- [EE] Added one-hour repository-scoped access tokens with public mint and revoke APIs. [#1549](https://github.com/sourcebot-dev/sourcebot/pull/1549)
+- Added public connection listing and connection-based repository filtering APIs. [#1550](https://github.com/sourcebot-dev/sourcebot/pull/1550)
 
 ### Fixed
 - Fixed the web process being capped at a ~4GiB heap regardless of how much memory the container has, which caused multi-second garbage collection pauses on larger deployments. [#1569](https://github.com/sourcebot-dev/sourcebot/pull/1569)
 - Upgraded `@sentry/*` to `^10.70.0`, fixing memory leaks where spans retained request data indefinitely. [#1572](https://github.com/sourcebot-dev/sourcebot/pull/1572)
+- Fixed code search result links occasionally getting stuck during navigation and restored Cmd/Ctrl-click to open matches in preview. [#1574](https://github.com/sourcebot-dev/sourcebot/pull/1574)
+- Fixed a server-side memory leak where a single shared react-query cache retained state from every server render; the cache is now created per-request. [#1575](https://github.com/sourcebot-dev/sourcebot/pull/1575)
+- Fixed code host retry warnings to include the HTTP response status. [#1576](https://github.com/sourcebot-dev/sourcebot/pull/1576)
+- Fixed streamed code search updates silently cancelling in-flight result navigation. [#1577](https://github.com/sourcebot-dev/sourcebot/pull/1577)
 - Fixed the `grep` and `glob` agent tools mis-parsing structured search inputs containing spaces, commas, or quotes. [#1573](https://github.com/sourcebot-dev/sourcebot/pull/1573)
 
 ## [5.1.6] - 2026-08-10
