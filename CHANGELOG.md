@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Prometheus metrics for the web process, served on `WEB_METRICS_PORT` (default `3070`). [#1570](https://github.com/sourcebot-dev/sourcebot/pull/1570)
 - Added an `http_request_duration_seconds` metric recording web request latency by route, method, and status. [#1571](https://github.com/sourcebot-dev/sourcebot/pull/1571)
 - [EE] Added one-hour repository-scoped access tokens with public mint and revoke APIs. [#1549](https://github.com/sourcebot-dev/sourcebot/pull/1549)
+- Added public connection listing and connection-based repository filtering APIs. [#1550](https://github.com/sourcebot-dev/sourcebot/pull/1550)
 
 ### Fixed
 - Fixed the web process being capped at a ~4GiB heap regardless of how much memory the container has, which caused multi-second garbage collection pauses on larger deployments. [#1569](https://github.com/sourcebot-dev/sourcebot/pull/1569)
