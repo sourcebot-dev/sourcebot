@@ -399,6 +399,16 @@ enum OrgRole {
   MEMBER
 }
 
+/// Discriminates a normal human account from a non-interactive service
+/// account. Service accounts never authenticate via session/OAuth — only
+/// via API key — and are excluded from seat counts and member-facing
+/// listings (see `humanMembershipWhere` and its call sites in
+/// `features/membership`).
+enum UserType {
+  HUMAN
+  SERVICE
+}
+
 enum McpServerClientInfoSource {
   DYNAMIC
   STATIC
@@ -569,6 +579,20 @@ model User {
   /// Last time the user performed an authenticated action.
   lastActiveAt DateTime?
 
+  /// Discriminates a human account from a service account. See `UserType`.
+  type UserType @default(HUMAN)
+
+  /// Free-text description shown in the Service Accounts settings UI. Unused
+  /// for HUMAN users.
+  description String?
+
+  /// The human member who created this service account, kept for
+  /// attribution/display only (never used in an auth check). Null for HUMAN
+  /// users, and for SERVICE users whose creator was later removed.
+  createdBy   User?  @relation("ServiceAccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+
+  createdServiceAccounts User[] @relation("ServiceAccountCreatedBy")
 }
 
 enum AccountPermissionSyncJobStatus {

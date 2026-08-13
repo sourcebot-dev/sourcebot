@@ -2,13 +2,14 @@
 
 import { sew } from "@/middleware/sew";
 import { createAudit } from "@/ee/features/audit/audit";
+import { auditActorForUser } from "@/ee/features/audit/utils";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { captureEvent } from "@/lib/posthog";
 import { notFound } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { SBChatMessage } from "./types";
-import { activeMembershipWhere } from "../membership/utils";
+import { activeMembershipWhere, humanMembershipWhere } from "../membership/utils";
 import { checkAskEntitlement, deleteOrphanedAttachments, isChatSharedWithUser, isOwnerOfChat, resolveChatAccess } from "./utils.server";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
@@ -37,10 +38,7 @@ export const createChat = async ({ source }: { source?: string } = {}) => sew(()
         if (!isGuestUser) {
             await createAudit({
                 action: "user.created_ask_chat",
-                actor: {
-                    id: user.id,
-                    type: "user",
-                },
+                actor: auditActorForUser(user),
                 target: {
                     id: org.id.toString(),
                     type: "org",
@@ -164,7 +162,7 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
 
         await createAudit({
             action: "chat.visibility_updated",
-            actor: { id: user.id, type: "user" },
+            actor: auditActorForUser(user),
             target: { id: chatId, type: "chat" },
             orgId: org.id,
             metadata: { message: `Visibility changed to ${visibility}` },
@@ -215,7 +213,7 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
 
         await createAudit({
             action: "chat.deleted",
-            actor: { id: user.id, type: "user" },
+            actor: auditActorForUser(user),
             target: { id: chatId, type: "chat" },
             orgId: org.id,
         });
@@ -402,10 +400,13 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
         }
 
 
+        // Excludes service accounts, so a service-account id slipped into
+        // `userIds` can't silently pass validation and receive chat access.
         const memberships = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
                 ...activeMembershipWhere(),
+                ...humanMembershipWhere(),
                 userId: {
                     in: userIds,
                 },
@@ -426,7 +427,7 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
 
         await createAudit({
             action: "chat.shared_with_users",
-            actor: { id: user.id, type: "user" },
+            actor: auditActorForUser(user),
             target: { id: chatId, type: "chat" },
             orgId: org.id,
             metadata: { message: userIds.join(", ") },
@@ -471,7 +472,7 @@ export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, 
 
         await createAudit({
             action: "chat.unshared_with_user",
-            actor: { id: user.id, type: "user" },
+            actor: auditActorForUser(user),
             target: { id: chatId, type: "chat" },
             orgId: org.id,
             metadata: { message: userId },

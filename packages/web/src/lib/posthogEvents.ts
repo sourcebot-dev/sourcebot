@@ -184,6 +184,12 @@ export type PosthogEventMap = {
     wa_api_key_created: {},
     wa_api_key_creation_fail: {},
     //////////////////////////////////////////////////////////////////
+    wa_service_account_created: {},
+    wa_service_account_creation_fail: {},
+    wa_service_account_removed: {},
+    wa_service_account_api_key_created: {},
+    wa_service_account_api_key_creation_fail: {},
+    //////////////////////////////////////////////////////////////////
     wa_chat_feedback_submitted: {
         feedback: 'like' | 'dislike',
         chatId: string,

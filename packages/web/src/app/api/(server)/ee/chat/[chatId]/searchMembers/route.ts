@@ -9,6 +9,7 @@ import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { activeMembershipWhere } from "@/features/membership/utils";
+import { UserType } from "@sourcebot/db";
 
 const searchMembersQueryParamsSchema = z.object({
     query: z.string().default(''),
@@ -99,7 +100,8 @@ export const GET = apiHandler(async (
             ...sharedWithUsers.map((s) => s.userId),
         ]);
 
-        // Search org members
+        // Search org members. Excludes service accounts — nobody should be
+        // able to "share a chat with" a service account.
         const members = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
@@ -108,6 +110,7 @@ export const GET = apiHandler(async (
                     notIn: Array.from(excludeUserIds),
                 },
                 user: {
+                    type: UserType.HUMAN,
                     OR: [
                         { name: { contains: query, mode: 'insensitive' } },
                         { email: { contains: query, mode: 'insensitive' } },

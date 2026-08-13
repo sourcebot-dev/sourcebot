@@ -22,6 +22,7 @@ vi.mock('@/features/membership/utils', () => ({
     activeMembershipWhere: () => ({ suspendedAt: null, lastActiveAt: { not: null } }),
     pendingMembershipWhere: () => ({ suspendedAt: null, lastActiveAt: null }),
     unsuspendedMembershipWhere: () => ({ suspendedAt: null }),
+    humanMembershipWhere: () => ({ user: { type: 'HUMAN' } }),
 }));
 vi.mock('@/features/billing/servicePing', () => ({ syncWithLighthouse: mocks.syncWithLighthouse }));
 vi.mock('@/ee/features/audit/audit', () => ({ createAudit: mocks.createAudit }));
@@ -252,6 +253,19 @@ describe('removeMember', () => {
         expect(prisma.userToOrg.delete).not.toHaveBeenCalled();
     });
 
+    test('excludes service accounts when counting active owners (a lone service-account owner still blocks removal)', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
+        prisma.userToOrg.count.mockResolvedValue(1);
+
+        await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
+
+        expect(prisma.userToOrg.count).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ user: { type: 'HUMAN' } }),
+            }),
+        );
+    });
+
     test('allows removing an owner when others remain', async () => {
         prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
         prisma.userToOrg.count.mockResolvedValue(2);
@@ -269,6 +283,16 @@ describe('removeMember', () => {
 
         expect(result).toBeNull();
         expect(mocks.createAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'org.member_left' }));
+    });
+
+    test('audits with the caller-supplied targetType (used by service-account removal)', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership());
+
+        await removeMember(ORG_ID, USER_ID, { actor: ACTOR, targetType: 'service_account' });
+
+        expect(mocks.createAudit).toHaveBeenCalledWith(
+            expect.objectContaining({ target: { id: USER_ID, type: 'service_account' } }),
+        );
     });
 });
 

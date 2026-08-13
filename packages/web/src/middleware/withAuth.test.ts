@@ -3,7 +3,7 @@ import { Session } from 'next-auth';
 import { NextRequest } from 'next/server';
 import { notAuthenticated } from '../lib/serviceError';
 import { getAuthContext, getAuthenticatedUser, withAuth, withOptionalAuth } from './withAuth';
-import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from '../__mocks__/prisma';
+import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_SERVICE_ACCOUNT_USER, MOCK_USER_WITH_ACCOUNTS, prisma } from '../__mocks__/prisma';
 import { OrgRole } from '@sourcebot/db';
 import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
@@ -178,6 +178,33 @@ describe('getAuthenticatedUser', () => {
                 lastUsedAt: expect.any(Date),
             },
         });
+    });
+
+    test('should return a service account exactly like a human user for a valid api key', async () => {
+        prisma.user.findUnique.mockResolvedValue(MOCK_SERVICE_ACCOUNT_USER);
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: MOCK_SERVICE_ACCOUNT_USER.id,
+        });
+
+        setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+        const result = await getAuthenticatedUser();
+
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(MOCK_SERVICE_ACCOUNT_USER.id);
+        expect(result?.user.type).toBe('SERVICE');
+        // No special-casing: resolution is identical to a human's api_key path.
+        expect(result?.principal).toStrictEqual({ source: 'api_key' });
+    });
+
+    test('should reject a service account presenting a session (belt-and-braces -- nothing mints one for a service account today)', async () => {
+        setMockSession(createMockSession({ user: { id: MOCK_SERVICE_ACCOUNT_USER.id } }));
+        prisma.user.findUnique.mockResolvedValue(MOCK_SERVICE_ACCOUNT_USER);
+
+        const result = await getAuthenticatedUser();
+
+        expect(result).toBeUndefined();
     });
 
     test('should return a user object if a valid api key with the new sbk_ prefix is present', async () => {
@@ -707,6 +734,7 @@ describe('getAuthContext', () => {
                 orgId: MOCK_ORG.id,
                 suspendedAt: null,
                 lastActiveAt: { not: null },
+                user: { type: 'HUMAN' },
             },
         });
         expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(MOCK_ORG.id);
@@ -1003,6 +1031,48 @@ describe('getAuthContext', () => {
             const authContext = await getAuthContext();
             expect(authContext).toStrictEqual({
                 user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
+                org: MOCK_ORG,
+                role: OrgRole.OWNER,
+                prisma: undefined,
+                principal: { source: 'api_key' },
+            });
+        });
+
+        test('gates a service account api key by its own OrgRole exactly like a human member', async () => {
+            mocks.env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS = 'true';
+            prisma.user.findUnique.mockResolvedValue(MOCK_SERVICE_ACCOUNT_USER);
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId: MOCK_SERVICE_ACCOUNT_USER.id,
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: new Date(),
+                role: OrgRole.MEMBER,
+            });
+            prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: MOCK_SERVICE_ACCOUNT_USER.id });
+            setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+
+            // MEMBER-role service account: denied, same as a MEMBER-role human.
+            expect(await getAuthContext()).toStrictEqual({
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.API_KEY_USAGE_DISABLED,
+                message: 'API key usage is disabled for non-admin users.',
+            });
+
+            // OWNER-role service account: allowed, same as an OWNER-role human.
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId: MOCK_SERVICE_ACCOUNT_USER.id,
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: new Date(),
+                role: OrgRole.OWNER,
+            });
+            expect(await getAuthContext()).toStrictEqual({
+                user: MOCK_SERVICE_ACCOUNT_USER,
                 org: MOCK_ORG,
                 role: OrgRole.OWNER,
                 prisma: undefined,

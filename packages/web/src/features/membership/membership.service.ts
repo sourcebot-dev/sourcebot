@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { createAudit } from "@/ee/features/audit/audit";
-import { type AuditActor } from "@/ee/features/audit/types";
+import { type AuditActor, type AuditTarget } from "@/ee/features/audit/types";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
-import { activeMembershipWhere, orgHasAvailability, pendingMembershipWhere } from "@/features/membership/utils";
+import { activeMembershipWhere, humanMembershipWhere, orgHasAvailability, pendingMembershipWhere } from "@/features/membership/utils";
 import { notFound, type ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma as prisma } from "@/prisma";
@@ -139,6 +139,10 @@ export const ensureActiveMember = async (
 export interface RemoveMemberOptions {
     actor: AuditActor;
     reason?: "removed" | "left";
+    /** Audit target type for `userId`. Defaults to "user"; the service-account
+     * management flows pass "service_account" here so their own removals are
+     * attributed correctly, since this function is shared by both. */
+    targetType?: AuditTarget['type'];
 }
 
 /**
@@ -150,7 +154,7 @@ export const removeMember = async (
     userId: string,
     options: RemoveMemberOptions,
 ): Promise<ServiceError | null> => {
-    const { actor, reason = "removed" } = options;
+    const { actor, reason = "removed", targetType = "user" } = options;
 
     const result = await prisma.$transaction(async (tx) => {
         const target = await tx.userToOrg.findUnique({
@@ -180,7 +184,7 @@ export const removeMember = async (
         await createAudit({
             action: reason === "left" ? "org.member_left" : "org.member_removed",
             actor,
-            target: { id: userId, type: "user" },
+            target: { id: userId, type: targetType },
             orgId,
         });
     }
@@ -191,6 +195,8 @@ export const removeMember = async (
 
 export interface SetMemberRoleOptions {
     actor: AuditActor;
+    /** See `RemoveMemberOptions.targetType`. */
+    targetType?: AuditTarget['type'];
 }
 
 /**
@@ -204,7 +210,7 @@ export const setMemberRole = async (
     role: OrgRole,
     options: SetMemberRoleOptions,
 ): Promise<ServiceError | null> => {
-    const { actor } = options;
+    const { actor, targetType = "user" } = options;
 
     let didChange = false;
 
@@ -244,7 +250,7 @@ export const setMemberRole = async (
         await createAudit({
             action: role === OrgRole.OWNER ? "org.member_promoted_to_owner" : "org.owner_demoted_to_member",
             actor,
-            target: { id: userId, type: "user" },
+            target: { id: userId, type: targetType },
             orgId,
         });
     }
@@ -255,6 +261,8 @@ export const setMemberRole = async (
 export interface SetMembershipSuspendedOptions {
     actor: AuditActor;
     scimExternalId?: string;
+    /** See `RemoveMemberOptions.targetType`. */
+    targetType?: AuditTarget['type'];
 }
 
 /**
@@ -268,7 +276,7 @@ export const setMembershipSuspended = async (
     suspended: boolean,
     options: SetMembershipSuspendedOptions,
 ): Promise<ServiceError | UserToOrg> => {
-    const { actor, scimExternalId } = options;
+    const { actor, scimExternalId, targetType = "user" } = options;
 
     if (suspended) {
         let didChange = false;
@@ -305,7 +313,7 @@ export const setMembershipSuspended = async (
             await createAudit({
                 action: "org.member_deactivated",
                 actor,
-                target: { id: userId, type: "user" },
+                target: { id: userId, type: targetType },
                 orgId,
             });
         }
@@ -353,7 +361,7 @@ export const setMembershipSuspended = async (
             await createAudit({
                 action: "org.member_reactivated",
                 actor,
-                target: { id: userId, type: "user" },
+                target: { id: userId, type: targetType },
                 orgId,
             });
         }
@@ -362,11 +370,15 @@ export const setMembershipSuspended = async (
     }
 };
 
+// Excludes service accounts: a service account holding OWNER doesn't count
+// towards "at least one human owner remains", since it can't sign into the
+// settings UI to administer the org.
 const countActiveOwners = (tx: Prisma.TransactionClient, orgId: number): Promise<number> =>
     tx.userToOrg.count({
         where: {
             orgId,
             ...activeMembershipWhere(),
+            ...humanMembershipWhere(),
             role: OrgRole.OWNER,
         },
     });

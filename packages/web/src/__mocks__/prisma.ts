@@ -1,5 +1,5 @@
 import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_NAME } from '@/lib/constants';
-import { Account, ApiKey, OAuthRefreshToken, OAuthToken, Org, PrismaClient, User } from '@prisma/client';
+import { Account, ApiKey, OAuthRefreshToken, OAuthToken, Org, PrismaClient, User, UserType } from '@prisma/client';
 import { beforeEach, vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 
@@ -46,6 +46,26 @@ export const MOCK_USER_WITH_ACCOUNTS: User & { accounts: Account[] } = {
     lastActiveAt: null,
     image: null,
     sessionVersion: 0,
+    type: UserType.HUMAN,
+    description: null,
+    createdById: null,
+    accounts: [],
+}
+
+export const MOCK_SERVICE_ACCOUNT_USER: User & { accounts: Account[] } = {
+    id: 'service-1',
+    name: 'Test Service Account',
+    email: 'svc+service-1@service.internal',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    hashedPassword: null,
+    emailVerified: null,
+    lastActiveAt: new Date(),
+    image: null,
+    sessionVersion: 0,
+    type: UserType.SERVICE,
+    description: 'A test service account',
+    createdById: MOCK_USER_WITH_ACCOUNTS.id,
     accounts: [],
 }
 

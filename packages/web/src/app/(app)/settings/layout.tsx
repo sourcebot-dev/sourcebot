@@ -117,6 +117,12 @@ export const getSidebarNavGroups = async () =>
                         icon: "users" as const,
                     },
                     {
+                        title: "Service Accounts",
+                        href: `/settings/serviceAccounts`,
+                        hrefRegex: `/settings/serviceAccounts(/.*)?$`,
+                        icon: "server" as const,
+                    },
+                    {
                         title: "Connections",
                         href: `/settings/connections`,
                         hrefRegex: `/settings/connections(/[^/]+)?$`,
