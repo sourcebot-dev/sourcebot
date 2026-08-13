@@ -7,7 +7,7 @@ import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, 
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { hasEntitlement } from "./entitlements.js";
 import { StatusCodes } from "http-status-codes";
-import { getErrorHeader, getErrorStatus, isGitHubRateLimitError } from "./errors.js";
+import { isOctokitRequestError } from "./github.js";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -80,61 +80,26 @@ export const fetchWithRetry = async <T>(
             Sentry.captureException(e);
 
             attempts++;
-            const status = getErrorStatus(e);
-            const isRateLimitError = isGitHubRateLimitError(e);
-            const isServerError = status !== null && status >= 500 && status < 600;
             if (
                 (
-                    isServerError ||
-                    status === StatusCodes.FORBIDDEN ||
-                    status === StatusCodes.TOO_MANY_REQUESTS
+                    (e.status >= 500 && e.status < 600) ||
+                    e.status === StatusCodes.FORBIDDEN ||
+                    e.status === StatusCodes.TOO_MANY_REQUESTS
                 ) && attempts < maxAttempts
             ) {
-                const now = Date.now();
-                const retryAfter = getErrorHeader(e, 'retry-after');
-                const rateLimitRemaining = getErrorHeader(e, 'x-ratelimit-remaining');
-                const rateLimitReset = getErrorHeader(e, 'x-ratelimit-reset');
                 const resetDateMs = (() => {
-                    if (isRateLimitError && retryAfter) {
-                        const retryAfterSeconds = Number(retryAfter);
-                        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
-                            return now + retryAfterSeconds * 1000;
-                        }
+                    // First, try to see if we have a reset date specified in the response headers
+                    if (isOctokitRequestError(e) && e.response?.headers['x-ratelimit-reset']) {
+                        return parseInt(e.response.headers['x-ratelimit-reset']) * 1000;
                     }
 
-                    if (isRateLimitError && rateLimitRemaining === '0' && rateLimitReset) {
-                        const resetTimeSeconds = Number(rateLimitReset);
-                        if (Number.isFinite(resetTimeSeconds)) {
-                            return resetTimeSeconds * 1000;
-                        }
-                    }
-
-                    // Default to an exponential backoff approach.
+                    // Default to a exponential backoff approach
                     const defaultWaitTime = 3000 * Math.pow(2, attempts - 1);
-                    return now + defaultWaitTime;
+                    return Date.now() + defaultWaitTime;
                 })();
 
-                const waitTime = Math.max(0, resetDateMs - now);
-                const responseHeaders = Object.fromEntries([
-                    'x-ratelimit-limit',
-                    'x-ratelimit-remaining',
-                    'x-ratelimit-used',
-                    'x-ratelimit-resource',
-                    'x-ratelimit-reset',
-                    'retry-after',
-                    'x-github-request-id',
-                ].flatMap((header) => {
-                    const value = getErrorHeader(e, header);
-                    return value === undefined ? [] : [[header, value]];
-                }));
-                const message = isRateLimitError
-                    ? `Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`
-                    : `Request failed for ${identifier} with status ${status}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`;
-
-                logger.warn(message, {
-                    httpStatus: status,
-                    responseHeaders,
-                });
+                const waitTime = Math.max(0, resetDateMs - Date.now());
+                logger.warn(`Request failed for ${identifier} with status ${e.status}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
 
                 await new Promise(resolve => setTimeout(resolve, waitTime));
                 continue;
