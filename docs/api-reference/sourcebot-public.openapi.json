@@ -2423,7 +2423,7 @@
           "Scoped Access Tokens"
         ],
         "summary": "Create a scoped access token",
-        "description": "Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories. Repository IDs are validated atomically against the API-key owner's current access; the request fails if any ID is missing or inaccessible. Repository IDs are returned by GET /api/repos.\n\nThis endpoint requires a Sourcebot API key. Scoped access tokens, OAuth tokens, and browser sessions cannot mint another scoped access token. The returned token is independent of the API key after issuance and cannot be refreshed.",
+        "description": "Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories.",
         "security": [
           {
             "bearerToken": []
@@ -2432,6 +2432,9 @@
             "apiKeyHeader": []
           }
         ],
+        "x-mint": {
+          "content": "<Info>\nThe scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).\n</Info>"
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -2503,7 +2506,7 @@
           "Scoped Access Tokens"
         ],
         "summary": "Revoke a scoped access token",
-        "description": "Immediately revokes a scoped access token created by the authenticated API-key owner. This endpoint requires a Sourcebot API key.",
+        "description": "Immediately revokes a scoped access token created by the authenticated API-key owner.",
         "security": [
           {
             "bearerToken": []
@@ -2512,6 +2515,9 @@
             "apiKeyHeader": []
           }
         ],
+        "x-mint": {
+          "content": "<Info>\nThe scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).\n</Info>"
+        },
         "parameters": [
           {
             "schema": {

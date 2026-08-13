@@ -50,6 +50,12 @@ This API is only available with an active Sourcebot license. [More information](
 </Note>
 `;
 
+const SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO = dedent`
+<Info>
+The scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).
+</Info>
+`;
+
 const publicFileTreeNodeSchema: SchemaObject = {
     type: 'object',
     properties: {
@@ -456,9 +462,7 @@ export function createPublicOpenApiDocument(version: string) {
         tags: [scopedAccessTokensTag.name],
         summary: 'Create a scoped access token',
         description: dedent`
-            Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories. Repository IDs are validated atomically against the API-key owner's current access; the request fails if any ID is missing or inaccessible. Repository IDs are returned by GET /api/repos.
-
-            This endpoint requires a Sourcebot API key. Scoped access tokens, OAuth tokens, and browser sessions cannot mint another scoped access token. The returned token is independent of the API key after issuance and cannot be refreshed.
+            Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories.
         `,
         security: [
             { [securitySchemeNames.bearerToken]: [] },
@@ -480,6 +484,9 @@ export function createPublicOpenApiDocument(version: string) {
             403: errorJson('The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.'),
             500: errorJson('Unexpected token creation failure.'),
         },
+        'x-mint': {
+            content: SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO,
+        },
     });
 
     registry.registerPath({
@@ -488,7 +495,7 @@ export function createPublicOpenApiDocument(version: string) {
         operationId: 'revokeScopedAccessToken',
         tags: [scopedAccessTokensTag.name],
         summary: 'Revoke a scoped access token',
-        description: 'Immediately revokes a scoped access token created by the authenticated API-key owner. This endpoint requires a Sourcebot API key.',
+        description: 'Immediately revokes a scoped access token created by the authenticated API-key owner.',
         security: [
             { [securitySchemeNames.bearerToken]: [] },
             { [securitySchemeNames.apiKeyHeader]: [] },
@@ -506,6 +513,9 @@ export function createPublicOpenApiDocument(version: string) {
             403: errorJson('The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.'),
             404: errorJson('Scoped access token not found.'),
             500: errorJson('Unexpected token revocation failure.'),
+        },
+        'x-mint': {
+            content: SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO,
         },
     });
 
