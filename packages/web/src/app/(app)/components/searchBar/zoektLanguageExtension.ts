@@ -1,7 +1,9 @@
 import { LanguageSupport, StreamLanguage } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
-export const zoekt = () => {
+// StreamLanguage permanently registers a document NodeType, so this must be a
+// module singleton rather than one instance per SearchBar render.
+const zoektLanguageSupport = (() => {
     const zoektLanguage = StreamLanguage.define({
         startState() {
             return {
@@ -75,4 +77,6 @@ export const zoekt = () => {
     });
 
     return new LanguageSupport(zoektLanguage);
-};
+})();
+
+export const zoekt = () => zoektLanguageSupport;
