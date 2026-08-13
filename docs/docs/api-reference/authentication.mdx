@@ -35,6 +35,10 @@ curl -X POST https://your-sourcebot-instance.com/api/search \
 
 ## Using a scoped access token
 
+<Info>
+The scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).
+</Info>
+
 Scoped access tokens are short-lived bearer credentials intended for clients that should only access a specific set of repositories. Create one with a Sourcebot API key by calling `POST /api/ee/scoped_access_token` with repository names:
 
 ```bash
