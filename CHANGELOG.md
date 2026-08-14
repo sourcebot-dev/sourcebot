@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed memory leak attributed to CodeMirror allocating objects on heap that were never freed. [#1580](https://github.com/sourcebot-dev/sourcebot/pull/1580)
 - Kept Git provider credentials out of subprocess arguments and on-disk configuration by using isolated in-memory credential caches. [#1584](https://github.com/sourcebot-dev/sourcebot/pull/1584)
+- Disabled Sentry server performance tracing and profiling in production to prevent completed request contexts from being retained, while keeping error reporting enabled. [#1593](https://github.com/sourcebot-dev/sourcebot/pull/1593)
 
 ## [5.1.7] - 2026-08-13
 
