@@ -138,6 +138,9 @@ const createAuthenticatedGitServer = async ({
             response.end();
         });
 
+        backend.stdin.on('error', () => {
+            // The child process error and close handlers report the actionable failure.
+        });
         request.pipe(backend.stdin);
     });
 

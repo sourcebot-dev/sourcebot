@@ -8,6 +8,7 @@ import type { GitHttpCredentials } from './types.js';
 // a crash backstop and must be long enough for large clones and fetches.
 const CACHE_TIMEOUT_SECONDS = 60 * 60;
 const CACHE_EXIT_TIMEOUT_MS = 5_000;
+const GIT_CREDENTIAL_COMMAND_TIMEOUT_MS = 30_000;
 const CREDENTIAL_CACHE_DIRECTORY_PREFIX = 'sourcebot-git-credential-';
 
 type GitCredentialSessionOptions<T> = {
@@ -117,13 +118,15 @@ const runGit = async ({
     environment,
     input,
     signal,
-    timeoutMs,
+    timeoutMs = GIT_CREDENTIAL_COMMAND_TIMEOUT_MS,
+    sensitiveValues = [],
 }: {
     args: string[];
     environment: NodeJS.ProcessEnv;
     input?: string;
     signal?: AbortSignal;
     timeoutMs?: number;
+    sensitiveValues?: string[];
 }) => {
     await new Promise<void>((resolve, reject) => {
         const child = spawn('git', args, {
@@ -133,21 +136,24 @@ const runGit = async ({
                 GIT_TERMINAL_PROMPT: '0',
             },
             signal,
-            stdio: ['pipe', 'ignore', 'ignore'],
+            stdio: ['pipe', 'ignore', 'pipe'],
         });
+        const stderr: Buffer[] = [];
         let settled = false;
-        const timeout = timeoutMs === undefined
-            ? undefined
-            : setTimeout(() => child.kill('SIGKILL'), timeoutMs);
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+            timedOut = true;
+            child.kill('SIGKILL');
+        }, timeoutMs);
+
+        child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
 
         const settle = (callback: () => void) => {
             if (settled) {
                 return;
             }
             settled = true;
-            if (timeout) {
-                clearTimeout(timeout);
-            }
+            clearTimeout(timeout);
             callback();
         };
 
@@ -157,7 +163,20 @@ const runGit = async ({
                 resolve();
                 return;
             }
-            reject(new Error(`Git credential command failed with ${childSignal ? `signal ${childSignal}` : `exit code ${code}`}`));
+            const failure = timedOut
+                ? `timed out after ${timeoutMs}ms`
+                : childSignal
+                    ? `signal ${childSignal}`
+                    : `exit code ${code}`;
+            const diagnostic = sensitiveValues
+                .filter(Boolean)
+                .reduce(
+                    (value, sensitiveValue) => value.replaceAll(sensitiveValue, '[REDACTED]'),
+                    Buffer.concat(stderr).toString('utf8').trim(),
+                );
+            reject(new Error(
+                `Git credential command failed with ${failure}${diagnostic ? `: ${diagnostic}` : ''}`,
+            ));
         }));
 
         child.stdin.on('error', () => {
@@ -201,6 +220,7 @@ export const withGitCredentialSession = async <T>({
             environment,
             input: credentialDescription,
             signal,
+            sensitiveValues: [credentials.password],
         });
         return await operation(environment);
     } finally {

@@ -241,6 +241,48 @@ describe('withGitCredentialSession', () => {
         expect(argvLog).not.toContain('@example.com');
     });
 
+    test('reports credential command stderr without exposing the password', async () => {
+        const wrapperDirectory = await mkdtemp(join(tmpdir(), 'sourcebot-git-wrapper-'));
+        temporaryPaths.push(wrapperDirectory);
+        const wrapperPath = join(wrapperDirectory, 'git');
+        await writeFile(wrapperPath, [
+            '#!/bin/sh',
+            'input=$(cat)',
+            'printf "%s\\n" "$input" >&2',
+            'exit 1',
+            '',
+        ].join('\n'));
+        await chmod(wrapperPath, 0o700);
+
+        const previousPath = process.env.PATH;
+        process.env.PATH = `${wrapperDirectory}:${previousPath ?? ''}`;
+        const token = `sourcebot-test-token-${randomUUID()}`;
+        let error: unknown;
+        try {
+            await withGitCredentialSession({
+                cloneUrl: 'https://example.com/org/repo.git',
+                credentials: {
+                    username: 'test-user',
+                    password: token,
+                },
+                operation: async () => undefined,
+            });
+        } catch (caughtError) {
+            error = caughtError;
+        } finally {
+            if (previousPath === undefined) {
+                delete process.env.PATH;
+            } else {
+                process.env.PATH = previousPath;
+            }
+        }
+
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toContain('protocol=https');
+        expect((error as Error).message).toContain('password=[REDACTED]');
+        expect((error as Error).message).not.toContain(token);
+    });
+
     test('rejects clone URLs that already contain credentials', async () => {
         await expect(withGitCredentialSession({
             cloneUrl: 'https://embedded:secret@example.com/org/repo.git',
