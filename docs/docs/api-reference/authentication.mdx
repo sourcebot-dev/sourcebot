@@ -43,14 +43,14 @@ Scoped access tokens are short-lived bearer credentials intended for clients tha
 
 ### Step 1: resolve repository IDs
 
-The `repoIds` field on the request body is an array of integer `Repo.id` values. The fastest way to look them up is `GET /api/repos`, which returns each repository's integer `id` alongside its `name` and `displayName`.
+The `repoIds` field on the request body is an array of integer `Repo.id` values. The fastest way to look them up is `GET /api/repos`, which returns each repository's integer `repoId` alongside its `repoName` and `repoDisplayName`.
 
 ```bash
 curl https://your-sourcebot-instance.com/api/repos \
   -H "Authorization: Bearer <your-api-key>"
 ```
 
-The response is a paginated list; pick the `id` values for the repositories you want to bind to the token.
+The response is a paginated list; pick the `repoId` values for the repositories you want to bind to the token.
 
 ### Step 2: create the token
 
