@@ -39,19 +39,38 @@ curl -X POST https://your-sourcebot-instance.com/api/search \
 The scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).
 </Info>
 
-Scoped access tokens are short-lived bearer credentials intended for clients that should only access a specific set of repositories. Create one with a Sourcebot API key by calling `POST /api/ee/scoped_access_token` with repository names:
+Scoped access tokens are short-lived bearer credentials intended for clients that should only access a specific set of repositories. Call `GET /api/repos` to find the integer `id` for each repository you want to include. Then create a token with a Sourcebot API key by calling `POST /api/ee/scoped_access_token` with those IDs:
 
 ```bash
 curl -X POST https://your-sourcebot-instance.com/api/ee/scoped_access_token \
   -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
-  -d '{"repos": ["github.com/acme/frontend", "github.com/acme/backend"]}'
+  -d '{"repoIds": [1, 2, 3]}'
 ```
 
-The response contains an opaque token beginning with `sbst_`. It expires exactly one hour after issuance, cannot be refreshed, and is returned only once. Use it as a Bearer token with public API endpoints or the Sourcebot MCP server:
+The response includes the scoped access token and its ID:
+
+```json
+{
+  "id": "scoped-token-id",
+  "token": "sbst_...",
+  "createdAt": "2026-08-14T18:00:00.000Z",
+  "expiresAt": "2026-08-14T19:00:00.000Z",
+  "repoIds": [1, 2, 3]
+}
+```
+
+The opaque token begins with `sbst_`. It expires exactly one hour after issuance, cannot be refreshed, and is returned only once. Use it as a Bearer token with public API endpoints or the Sourcebot MCP server:
 
 ```bash
 Authorization: Bearer <your-scoped-access-token>
+```
+
+Save the `id` from the create response. Use it to revoke the token with your Sourcebot API key:
+
+```bash
+curl -X DELETE https://your-sourcebot-instance.com/api/ee/scoped_access_token/<scoped-token-id> \
+  -H "Authorization: Bearer <your-api-key>"
 ```
 
 Repository scope is bound internally to repository IDs and is also intersected with the creating user's current repository permissions. Creating and revoking scoped access tokens requires an API key; a scoped access token cannot mint or revoke tokens.
