@@ -1,0 +1,64 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+    search: vi.fn(),
+    getRepoInfoByName: vi.fn(),
+}));
+
+vi.mock('@/features/search', () => ({
+    search: mocks.search,
+}));
+
+vi.mock('@/actions', () => ({
+    getRepoInfoByName: mocks.getRepoInfoByName,
+}));
+
+vi.mock('@/lib/utils', () => ({
+    isServiceError: () => false,
+}));
+
+vi.mock('./logger', () => ({
+    logger: { debug: vi.fn() },
+}));
+
+import { globDefinition } from './glob';
+import { buildGlobSearchQuery } from './searchQuery';
+
+const emptySearchResponse = {
+    files: [],
+    repositoryInfo: [],
+    stats: { actualMatchCount: 0 },
+    isSearchExhaustive: true,
+};
+
+describe('glob', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mocks.search.mockResolvedValue(emptySearchResponse);
+    });
+
+    it('executes with QueryIR', async () => {
+        const result = await globDefinition.execute({
+            pattern: 'My Folder/**/*.ts',
+            ref: 'feature/my feature',
+        }, {
+            source: 'test',
+            selectedRepos: ['Repo One'],
+        });
+
+        expect(mocks.search).toHaveBeenCalledWith({
+            queryType: 'ir',
+            query: buildGlobSearchQuery({
+                pattern: 'My Folder/**/*.ts',
+                ref: 'feature/my feature',
+                selectedRepos: ['Repo One'],
+            }),
+            options: {
+                matches: 100,
+                contextLines: 0,
+            },
+            source: 'test',
+        });
+        expect(result.metadata).not.toHaveProperty('query');
+    });
+});

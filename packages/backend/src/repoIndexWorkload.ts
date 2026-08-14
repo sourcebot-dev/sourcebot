@@ -270,8 +270,7 @@ const indexRepository = async (
     const metadata = repoMetadataSchema.parse(repo.metadata);
 
     const credentials = await getAuthCredentialsForRepo(repo, logger);
-    const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
-    const authHeader = credentials?.authHeader ?? undefined;
+    const gitHttpCredentials = credentials?.gitHttpCredentials;
 
     // If the repo path exists but it is not a valid git repository root, this indicates
     // that the repository is in a bad state. To fix, we remove the directory and perform
@@ -303,8 +302,8 @@ const indexRepository = async (
 
         logger.debug(`Fetching ${repo.name} (id: ${repo.id})...`);
         const { durationMs } = await measure(() => fetchRepository({
-            cloneUrl: cloneUrlMaybeWithToken,
-            authHeader,
+            cloneUrl: repo.cloneUrl,
+            credentials: gitHttpCredentials,
             path: repoPath,
             onProgress: ({ method, stage, progress }) => {
                 logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.name} (id: ${repo.id})`)
@@ -331,8 +330,8 @@ const indexRepository = async (
         logger.debug(`Cloning ${repo.name} (id: ${repo.id})...`);
 
         const { durationMs } = await measure(() => cloneRepository({
-            cloneUrl: cloneUrlMaybeWithToken,
-            authHeader,
+            cloneUrl: repo.cloneUrl,
+            credentials: gitHttpCredentials,
             path: repoPath,
             onProgress: ({ method, stage, progress }) => {
                 logger.debug(`git.${method} ${stage} stage ${progress}% complete for ${repo.name} (id: ${repo.id})`)

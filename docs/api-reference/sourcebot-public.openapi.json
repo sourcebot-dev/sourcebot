@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v5.1.6",
+    "version": "v5.1.7",
     "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access."
   },
   "tags": [
@@ -11,12 +11,20 @@
       "description": "Code search and symbol navigation endpoints."
     },
     {
+      "name": "Connections",
+      "description": "Code host connection metadata."
+    },
+    {
       "name": "Repositories",
       "description": "Repository listing and metadata endpoints."
     },
     {
       "name": "Git",
       "description": "Git history, diff, and file content endpoints."
+    },
+    {
+      "name": "Scoped Access Tokens",
+      "description": "Mint and revoke short-lived credentials restricted to specific repositories."
     },
     {
       "name": "System",
@@ -509,6 +517,37 @@
             "webUrl",
             "isFork",
             "isArchived"
+          ]
+        }
+      },
+      "PublicListConnectionsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "connectionType": {
+              "type": "string",
+              "enum": [
+                "github",
+                "gitlab",
+                "gitea",
+                "gerrit",
+                "bitbucket",
+                "azuredevops",
+                "git"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "connectionType"
           ]
         }
       },
@@ -1090,6 +1129,63 @@
           "$ref": "#/components/schemas/PublicCommitAuthor"
         }
       },
+      "PublicCreateScopedAccessTokenResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier used to revoke the token."
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^sbst_",
+            "description": "Opaque bearer token. This value is returned only when the token is created."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "repoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "createdAt",
+          "expiresAt",
+          "repoIds"
+        ]
+      },
+      "PublicCreateScopedAccessTokenRequest": {
+        "type": "object",
+        "properties": {
+          "repoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "minItems": 1,
+            "description": "Repository IDs to bind to the token. Every ID must identify a repository accessible to the API-key owner."
+          }
+        },
+        "required": [
+          "repoIds"
+        ],
+        "additionalProperties": false
+      },
       "PublicEeUser": {
         "type": "object",
         "properties": {
@@ -1253,7 +1349,7 @@
       "bearerToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key."
+        "description": "Bearer authentication header of the form `Bearer <token>`. The token may be a Sourcebot API key, OAuth access token, or scoped access token, subject to endpoint requirements."
       },
       "apiKeyHeader": {
         "type": "apiKey",
@@ -1384,6 +1480,18 @@
             "required": false,
             "name": "query",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "description": "Filter repositories to those associated with this connection ID. IDs are returned by GET /api/connections."
+            },
+            "required": false,
+            "description": "Filter repositories to those associated with this connection ID. IDs are returned by GET /api/connections.",
+            "name": "connectionId",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1425,6 +1533,48 @@
           },
           "500": {
             "description": "Unexpected repository listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connections": {
+      "get": {
+        "operationId": "listConnections",
+        "tags": [
+          "Connections"
+        ],
+        "summary": "List connections",
+        "description": "Returns unique code host connections associated with at least one repository visible to the caller. Connection configuration and credentials are never included.",
+        "responses": {
+          "200": {
+            "description": "Connections associated with visible repositories.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListConnectionsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required when anonymous access is disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected connection listing failure.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2255,6 +2405,167 @@
           },
           "500": {
             "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/scoped_access_token": {
+      "post": {
+        "operationId": "createScopedAccessToken",
+        "tags": [
+          "Scoped Access Tokens"
+        ],
+        "summary": "Create a scoped access token",
+        "description": "Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories.",
+        "security": [
+          {
+            "bearerToken": []
+          },
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "x-mint": {
+          "content": "<Info>\nThe scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).\n</Info>"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicCreateScopedAccessTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scoped access token created. The opaque token value is returned only in this response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCreateScopedAccessTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or repository scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected token creation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/scoped_access_token/{id}": {
+      "delete": {
+        "operationId": "revokeScopedAccessToken",
+        "tags": [
+          "Scoped Access Tokens"
+        ],
+        "summary": "Revoke a scoped access token",
+        "description": "Immediately revokes a scoped access token created by the authenticated API-key owner.",
+        "security": [
+          {
+            "bearerToken": []
+          },
+          {
+            "apiKeyHeader": []
+          }
+        ],
+        "x-mint": {
+          "content": "<Info>\nThe scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).\n</Info>"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Identifier returned when the scoped access token was created."
+            },
+            "required": true,
+            "description": "Identifier returned when the scoped access token was created.",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scoped access token revoked."
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scoped access token not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected token revocation failure.",
             "content": {
               "application/json": {
                 "schema": {

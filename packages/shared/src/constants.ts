@@ -12,6 +12,7 @@ export const API_KEY_PREFIX = 'sbk_';
 export const OAUTH_ACCESS_TOKEN_PREFIX = 'sboa_';
 export const OAUTH_REFRESH_TOKEN_PREFIX = 'sbor_';
 export const SCIM_TOKEN_PREFIX = 'sbscim_';
+export const SCOPED_ACCESS_TOKEN_PREFIX = 'sbst_';
 
 /**
  * Default settings.

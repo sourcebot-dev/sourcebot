@@ -1,4 +1,5 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { ConnectionType } from '@sourcebot/db';
 import z from 'zod';
 import {
     findRelatedSymbolsRequestSchema,
@@ -45,6 +46,11 @@ export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('
 export const publicFileBlameRequestSchema = fileBlameRequestSchema.openapi('PublicFileBlameRequest');
 export const publicFileBlameResponseSchema = fileBlameResponseSchema.openapi('PublicFileBlameResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
+export const publicListConnectionsResponseSchema = z.array(z.object({
+    id: z.number().int(),
+    name: z.string(),
+    connectionType: z.nativeEnum(ConnectionType),
+})).openapi('PublicListConnectionsResponse');
 export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
 export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
 export const publicGetDiffRequestSchema = getDiffRequestSchema.openapi('PublicGetDiffRequest');
@@ -105,3 +111,18 @@ export const publicEeAuditRecordSchema = z.object({
 }).openapi('PublicEeAuditRecord');
 
 export const publicEeAuditResponseSchema = z.array(publicEeAuditRecordSchema).openapi('PublicEeAuditResponse');
+
+// EE: Scoped Access Tokens
+export const publicCreateScopedAccessTokenRequestSchema = z.object({
+    repoIds: z.array(z.number().int().positive()).min(1)
+        .describe('Repository IDs to bind to the token. Every ID must identify a repository accessible to the API-key owner.'),
+}).strict().openapi('PublicCreateScopedAccessTokenRequest');
+
+export const publicCreateScopedAccessTokenResponseSchema = z.object({
+    id: z.string().describe('Identifier used to revoke the token.'),
+    token: z.string().regex(/^sbst_/)
+        .describe('Opaque bearer token. This value is returned only when the token is created.'),
+    createdAt: z.string().datetime(),
+    expiresAt: z.string().datetime(),
+    repoIds: z.array(z.number().int().positive()).min(1),
+}).openapi('PublicCreateScopedAccessTokenResponse');

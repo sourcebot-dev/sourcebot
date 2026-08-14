@@ -32,3 +32,26 @@ curl -X POST https://your-sourcebot-instance.com/api/search \
   -H "Content-Type: application/json" \
   -d '{"query": "hello world", "matches": 10}'
 ```
+
+## Using a scoped access token
+
+<Info>
+The scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).
+</Info>
+
+Scoped access tokens are short-lived bearer credentials intended for clients that should only access a specific set of repositories. Create one with a Sourcebot API key by calling `POST /api/ee/scoped_access_token` with repository names:
+
+```bash
+curl -X POST https://your-sourcebot-instance.com/api/ee/scoped_access_token \
+  -H "Authorization: Bearer <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"repos": ["github.com/acme/frontend", "github.com/acme/backend"]}'
+```
+
+The response contains an opaque token beginning with `sbst_`. It expires exactly one hour after issuance, cannot be refreshed, and is returned only once. Use it as a Bearer token with public API endpoints or the Sourcebot MCP server:
+
+```bash
+Authorization: Bearer <your-scoped-access-token>
+```
+
+Repository scope is bound internally to repository IDs and is also intersected with the creating user's current repository permissions. Creating and revoking scoped access tokens requires an API key; a scoped access token cannot mint or revoke tokens.

@@ -22,6 +22,10 @@ import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 
 const logger = createLogger("zoekt-searcher");
 
+export type RepoSearchScope =
+    | { kind: 'all' }
+    | { kind: 'repos'; repos: string[] };
+
 /**
  * Creates a ZoektGrpcSearchRequest given a query IR.
  */
@@ -36,8 +40,7 @@ export const createZoektSearchRequest = async ({
         contextLines?: number,
         whole?: boolean,
     };
-    // Allows the caller to scope the search to a specific set of repositories.
-    repoSearchScope?: string[];
+    repoSearchScope: RepoSearchScope;
 }) => {
     // Find if there are any `rev:` filters in the query.
     const containsRevExpression = someInQueryIR(query, (q) => isBranchQuery(q));
@@ -54,9 +57,9 @@ export const createZoektSearchRequest = async ({
                             exact: true,
                         }
                     }] : []),
-                    ...(repoSearchScope ? [{
+                    ...(repoSearchScope.kind === 'repos' ? [{
                         repo_set: {
-                            set: repoSearchScope.reduce((acc, repo) => {
+                            set: repoSearchScope.repos.reduce((acc, repo) => {
                                 acc[repo] = true;
                                 return acc;
                             }, {} as Record<string, boolean>)

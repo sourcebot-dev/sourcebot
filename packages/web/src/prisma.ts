@@ -28,25 +28,33 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = __unsafePrisma
  * Creates a prisma client extension that scopes queries to striclty information
  * a given user should be able to access.
  */
-export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) => {
+export const userScopedPrismaClientExtension = async (
+    user?: UserWithAccounts,
+    repositoryIds?: readonly number[],
+) => {
     const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true';
+    const repoPermissionFilter = getEffectiveRepoPermissionFilter({
+        user,
+        hasPermissionSyncing,
+        repositoryIds,
+    });
 
     return Prisma.defineExtension(
         (prisma) => {
             return prisma.$extends({
                 query: {
                     ...getMcpPrismaQueryExtension(user),
-                    ...(hasPermissionSyncing ? {
+                    ...(repoPermissionFilter ? {
                         repo: {
                             async $allOperations({ args, query }) {
                                 const argsWithWhere = args as Record<string, unknown> & {
                                     where?: Prisma.RepoWhereInput;
                                 }
 
-                                argsWithWhere.where = {
-                                    ...(argsWithWhere.where || {}),
-                                    ...getRepoPermissionFilterForUser(user),
-                                };
+                                argsWithWhere.where = intersectRepoWhere(
+                                    argsWithWhere.where,
+                                    repoPermissionFilter,
+                                );
 
                                 return query(args);
                             }
@@ -55,7 +63,7 @@ export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) =
                             async $allOperations({ args, query }) {
                                 injectRepoPermissionFilterIntoRelation(
                                     args as Record<string, unknown>,
-                                    getRepoPermissionFilterForUser(user),
+                                    repoPermissionFilter,
                                 );
 
                                 return query(args);
@@ -66,6 +74,58 @@ export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) =
             })
         })
 }
+
+export const intersectRepoWhere = (
+    where: Prisma.RepoWhereInput | undefined,
+    repoPermissionFilter: Prisma.RepoWhereInput,
+): Prisma.RepoWhereInput => {
+    if (!where) {
+        return repoPermissionFilter;
+    }
+
+    const { AND: existingAnd, ...topLevelWhere } = where;
+    const existingAndFilters = existingAnd === undefined
+        ? []
+        : Array.isArray(existingAnd)
+            ? existingAnd
+            : [existingAnd];
+
+    return {
+        ...topLevelWhere,
+        AND: [...existingAndFilters, repoPermissionFilter],
+    };
+};
+
+export const getEffectiveRepoPermissionFilter = ({
+    user,
+    hasPermissionSyncing,
+    repositoryIds,
+}: {
+    user?: UserWithAccounts;
+    hasPermissionSyncing: boolean;
+    repositoryIds?: readonly number[];
+}): Prisma.RepoWhereInput | undefined => {
+    const filters: Prisma.RepoWhereInput[] = [];
+
+    if (hasPermissionSyncing) {
+        filters.push(getRepoPermissionFilterForUser(user));
+    }
+    if (repositoryIds) {
+        filters.push({
+            id: {
+                in: [...repositoryIds],
+            },
+        });
+    }
+
+    if (filters.length === 0) {
+        return undefined;
+    }
+    if (filters.length === 1) {
+        return filters[0];
+    }
+    return { AND: filters };
+};
 
 /**
  * Injects a `Repo` permission filter into a nested `repos` relation referenced

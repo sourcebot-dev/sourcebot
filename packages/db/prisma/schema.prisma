@@ -71,6 +71,7 @@ model Repo {
   defaultBranch         String?
 
   permittedAccounts  AccountToRepoPermission[]
+  scopedAccessTokens ScopedAccessTokenToRepo[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
   latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest repo state.
@@ -289,6 +290,7 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  scopedAccessTokens ScopedAccessToken[]
   scimTokens  ScimToken[]
   attachments Attachment[]
   isOnboarded Boolean      @default(false)
@@ -457,6 +459,37 @@ model ApiKey {
   createdById String
 }
 
+model ScopedAccessToken {
+  id   String @id @default(cuid())
+  hash String @unique
+
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  repos ScopedAccessTokenToRepo[]
+
+  @@index([createdById, orgId, expiresAt])
+  @@index([expiresAt])
+}
+
+model ScopedAccessTokenToRepo {
+  token   ScopedAccessToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  tokenId String
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  @@id([tokenId, repoId])
+  @@index([repoId])
+}
+
 /// Org-scoped bearer token presented by an IdP (Okta, Entra) to authenticate
 /// against the SCIM provisioning endpoints. Unlike `ApiKey`, a SCIM token is
 /// not tied to a user — it acts on behalf of the SCIM integration for the
@@ -512,6 +545,7 @@ model User {
   invites Invite[]
 
   apiKeys ApiKey[]
+  scopedAccessTokens ScopedAccessToken[]
 
   chats Chat[]
   sharedChats ChatAccess[]

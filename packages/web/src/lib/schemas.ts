@@ -38,6 +38,8 @@ export const listReposQueryParamsSchema = z.object({
     sort: z.enum(['name', 'pushed']).default('name'),
     direction: z.enum(['asc', 'desc']).default('asc'),
     query: z.string().optional(),
+    connectionId: z.coerce.number().int().positive().optional()
+        .describe('Filter repositories to those associated with this connection ID. IDs are returned by GET /api/connections.'),
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();

@@ -32,11 +32,17 @@ export type RepoWithConnections = Repo & {
     connections: (RepoToConnection & { connection: Connection })[];
 };
 
+export type GitHttpCredentials = {
+    username: string;
+    password: string;
+    proactiveAuth?: "basic";
+};
+
 export type RepoAuthCredentials = {
     hostUrl?: string;
     token: string;
-    cloneUrlWithToken?: string;
-    authHeader?: string;
+    gitHttpCredentials?: GitHttpCredentials;
+    /** The connection that configured the credentials for this repo. */
     connectionConfig?: ConnectionConfig;
 };
 

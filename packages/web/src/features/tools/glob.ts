@@ -1,21 +1,15 @@
 import { z } from "zod";
-import globToRegexp from "glob-to-regexp";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
-import escapeStringRegexp from "escape-string-regexp";
 import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./glob.txt";
 import { CodeHostType } from "@sourcebot/db";
 import { getRepoInfoByName } from "@/actions";
+import { buildGlobSearchQuery } from "./searchQuery";
 
 const DEFAULT_LIMIT = 100;
 const TRUNCATION_MESSAGE = `(Results truncated. Consider using a more specific pattern, specifying a repo, or increasing the limit.)`;
-
-function globToFileRegexp(glob: string): string {
-    const re = globToRegexp(glob, { extended: true, globstar: true });
-    return re.source.replace(/^\^/, '');
-}
 
 const globShape = {
     pattern: z
@@ -55,7 +49,6 @@ export type GlobRepoInfo = {
 export type GlobMetadata = {
     files: GlobFile[];
     pattern: string;
-    query: string;
     fileCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GlobRepoInfo>;
@@ -81,30 +74,20 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
 
         logger.debug('glob', { pattern, repo, ref, path, limit });
 
-        let query = `file:${globToFileRegexp(pattern)}`;
-
-        if (path) {
-            query += ` file:${escapeStringRegexp(path)}`;
-        }
-
-        if (repo) {
-            query += ` repo:${escapeStringRegexp(repo)}`;
-        } else if (context.selectedRepos && context.selectedRepos.length > 0) {
-            query += ` reposet:${context.selectedRepos.join(',')}`;
-        }
-
-        if (ref) {
-            query += ` rev:${ref}`;
-        }
+        const query = buildGlobSearchQuery({
+            pattern,
+            path,
+            repo,
+            ref,
+            selectedRepos: context.selectedRepos,
+        });
 
         const response = await search({
-            queryType: 'string',
+            queryType: 'ir',
             query,
             options: {
                 matches: limit,
                 contextLines: 0,
-                isCaseSensitivityEnabled: true,
-                isRegexEnabled: true,
             },
             source: context.source,
         });
@@ -144,7 +127,6 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
         const metadata: GlobMetadata = {
             files,
             pattern,
-            query,
             fileCount: files.length,
             repoCount: new Set(files.map((f) => f.repo)).size,
             repoInfoMap,

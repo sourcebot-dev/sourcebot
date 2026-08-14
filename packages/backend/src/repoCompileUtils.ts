@@ -711,7 +711,9 @@ export const compileGenericGitHostConfig_url = async (
     const warnings: string[] = [];
 
     // Validate that we are dealing with a valid git repo.
-    const isGitRepo = await isUrlAValidGitRepo(remoteUrl.toString());
+    const isGitRepo = await isUrlAValidGitRepo({
+        cloneUrl: remoteUrl.toString(),
+    });
     if (!isGitRepo) {
         const warning = `Skipping ${remoteUrl.toString()} - not a git repository.`;
         logger.warn(warning);

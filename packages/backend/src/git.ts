@@ -1,9 +1,11 @@
-import { env, createLogger } from "@sourcebot/shared";
+import { createLogger } from "@sourcebot/shared";
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 import { parseEnv } from '@simple-git/argv-parser';
+import { withGitCredentialSession } from './gitCredentialSession.js';
+import type { GitHttpCredentials } from './types.js';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
@@ -34,20 +36,29 @@ if (envVulnerabilities.length > 0) {
  * Creates a simple-git client that has it's working directory
  * set to the given path.
  */
-const createGitClientForPath = (path: string, onProgress?: onProgressFn, signal?: AbortSignal) => {
+const createGitClientForPath = (
+    path: string,
+    onProgress?: onProgressFn,
+    signal?: AbortSignal,
+    environment: NodeJS.ProcessEnv = {},
+    additionalUnsafe: typeof unsafe = {},
+) => {
     if (!existsSync(path)) {
         throw new Error(`Path ${path} does not exist`);
     }
 
     const parentPath = resolve(dirname(path));
-
     const git = simpleGit({
         progress: onProgress,
         abort: signal,
-        unsafe,
+        unsafe: {
+            ...unsafe,
+            ...additionalUnsafe,
+        },
     })
         .env({
             ...process.env,
+            ...environment,
             /**
              * @note on some inside-baseball on why this is necessary: The specific
              * issue we saw was that a `git clone` would fail without throwing, and
@@ -73,16 +84,56 @@ const createGitClientForPath = (path: string, onProgress?: onProgressFn, signal?
     return git;
 }
 
+/**
+ * Runs a remote Git operation with a client scoped to an isolated credential session.
+ */
+const withRemoteGitClient = async <T>({
+    path,
+    cloneUrl,
+    credentials,
+    onProgress,
+    signal,
+    operation,
+}: {
+    path: string;
+    cloneUrl: string;
+    credentials?: GitHttpCredentials;
+    onProgress?: onProgressFn;
+    signal?: AbortSignal;
+    operation: (git: ReturnType<typeof createGitClientForPath>) => Promise<T>;
+}): Promise<T> => withGitCredentialSession({
+    cloneUrl,
+    credentials,
+    signal,
+    operation: async (environment) => {
+        const credentialSessionUnsafe: typeof unsafe = credentials === undefined
+            ? {}
+            : {
+                allowUnsafeConfigEnvCount: true,
+                allowUnsafeCredentialHelper: true,
+                allowUnsafeAskPass: true,
+            };
+        const git = createGitClientForPath(
+            path,
+            onProgress,
+            signal,
+            environment,
+            credentialSessionUnsafe,
+        );
+        return operation(git);
+    },
+});
+
 export const cloneRepository = async (
     {
         cloneUrl,
-        authHeader,
+        credentials,
         path,
         onProgress,
         signal,
     }: {
         cloneUrl: string,
-        authHeader?: string,
+        credentials?: GitHttpCredentials,
         path: string,
         onProgress?: onProgressFn
         signal?: AbortSignal
@@ -91,14 +142,16 @@ export const cloneRepository = async (
     try {
         await mkdir(path, { recursive: true });
 
-        const git = createGitClientForPath(path, onProgress, signal);
-
-        const cloneArgs = [
-            "--bare",
-            ...(authHeader ? ["-c", `http.extraHeader=${authHeader}`] : [])
-        ];
-
-        await git.clone(cloneUrl, path, cloneArgs);
+        await withRemoteGitClient({
+            path,
+            cloneUrl,
+            credentials,
+            onProgress,
+            signal,
+            operation: async (git) => {
+                await git.clone(cloneUrl, path, ['--bare']);
+            },
+        });
 
         await unsetGitConfig({
             path,
@@ -108,10 +161,7 @@ export const cloneRepository = async (
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
 
-        if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
-            // Avoid printing the remote URL (that may contain credentials) to logs by default.
-            throw new Error(`${baseLog}. Set environment variable SOURCEBOT_LOG_LEVEL=debug to see the full error message.`);
-        } else if (error instanceof Error) {
+        if (error instanceof Error) {
             throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
             throw new Error(`${baseLog}. Error: ${error}`);
@@ -122,54 +172,54 @@ export const cloneRepository = async (
 export const fetchRepository = async (
     {
         cloneUrl,
-        authHeader,
+        credentials,
         path,
         onProgress,
         signal,
     }: {
         cloneUrl: string,
-        authHeader?: string,
+        credentials?: GitHttpCredentials,
         path: string,
         onProgress?: onProgressFn,
         signal?: AbortSignal
     }
 ) => {
-    const git = createGitClientForPath(path, onProgress, signal);
     try {
-        if (authHeader) {
-            await git.addConfig("http.extraHeader", authHeader);
-        }
-
-        await git.fetch([
+        await withRemoteGitClient({
+            path,
             cloneUrl,
-            "+refs/heads/*:refs/heads/*",
-            "--prune",
-            "--progress",
-        ]);
+            credentials,
+            onProgress,
+            signal,
+            operation: async (git) => {
+                await git.fetch([
+                    cloneUrl,
+                    "+refs/heads/*:refs/heads/*",
+                    "--prune",
+                    "--progress",
+                ]);
+            },
+        });
 
         // Update HEAD to match the remote's default branch. This handles the case where the remote's
         // default branch changes.
         const remoteDefaultBranch = await getRemoteDefaultBranch({
             path,
             cloneUrl,
+            credentials,
+            signal,
         });
 
         if (remoteDefaultBranch) {
+            const git = createGitClientForPath(path, onProgress, signal);
             await git.raw(['symbolic-ref', 'HEAD', `refs/heads/${remoteDefaultBranch}`]);
         }
     } catch (error: unknown) {
         const baseLog = `Failed to fetch repository: ${path}`;
-        if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
-            // Avoid printing the remote URL (that may contain credentials) to logs by default.
-            throw new Error(`${baseLog}. Set environment variable SOURCEBOT_LOG_LEVEL=debug to see the full error message.`);
-        } else if (error instanceof Error) {
+        if (error instanceof Error) {
             throw new Error(`${baseLog}. Reason: ${error.message}`);
         } else {
             throw new Error(`${baseLog}. Error: ${error}`);
-        }
-    } finally {
-        if (authHeader) {
-            await git.raw(["config", "--unset", "http.extraHeader", authHeader]);
         }
     }
 }
@@ -272,12 +322,23 @@ export const isPathAValidGitRepoRoot = async ({
     }
 }
 
-export const isUrlAValidGitRepo = async (url: string) => {
-    const git = simpleGit();
-
+export const isUrlAValidGitRepo = async ({
+    cloneUrl,
+    credentials,
+}: {
+    cloneUrl: string;
+    credentials?: GitHttpCredentials;
+}) => {
     // List the remote heads. If an exception is thrown, the URL is not a valid git repo.
     try {
-        const result = await git.listRemote(['--heads', url]);
+        const result = await withRemoteGitClient({
+            path: process.cwd(),
+            cloneUrl,
+            credentials,
+            operation: async (git) => {
+                return git.listRemote(['--heads', cloneUrl]);
+            },
+        });
         return result.trim().length > 0;
     } catch (error: unknown) {
         return false;
@@ -376,13 +437,24 @@ export const getCommitHashForRefName = async ({
 export const getRemoteDefaultBranch = async ({
     path,
     cloneUrl,
+    credentials,
+    signal,
 }: {
     path: string,
     cloneUrl: string,
+    credentials?: GitHttpCredentials,
+    signal?: AbortSignal,
 }) => {
-    const git = createGitClientForPath(path);
     try {
-        const remoteHead = await git.raw(['ls-remote', '--symref', cloneUrl, 'HEAD']);
+        const remoteHead = await withRemoteGitClient({
+            path,
+            cloneUrl,
+            credentials,
+            signal,
+            operation: async (git) => {
+                return git.raw(['ls-remote', '--symref', cloneUrl, 'HEAD']);
+            },
+        });
         const match = remoteHead.match(/^ref: refs\/heads\/(\S+)\s+HEAD/m);
         if (match) {
             return match[1];

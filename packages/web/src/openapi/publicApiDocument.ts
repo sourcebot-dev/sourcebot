@@ -5,6 +5,8 @@ import z from 'zod';
 import {
     publicEeAuditQuerySchema,
     publicEeAuditResponseSchema,
+    publicCreateScopedAccessTokenRequestSchema,
+    publicCreateScopedAccessTokenResponseSchema,
     publicEeDeleteUserResponseSchema,
     publicEeUserSchema,
     publicEeUsersResponseSchema,
@@ -24,6 +26,7 @@ import {
     publicListCommitAuthorsResponseSchema,
     publicListCommitsQuerySchema,
     publicListCommitsResponseSchema,
+    publicListConnectionsResponseSchema,
     publicListReposQueryParamsSchema,
     publicListReposResponseSchema,
     publicSearchRequestSchema,
@@ -34,15 +37,23 @@ import {
 import dedent from 'dedent';
 
 const searchTag = { name: 'Search & Navigation', description: 'Code search and symbol navigation endpoints.' };
+const connectionsTag = { name: 'Connections', description: 'Code host connection metadata.' };
 const reposTag = { name: 'Repositories', description: 'Repository listing and metadata endpoints.' };
 const gitTag = { name: 'Git', description: 'Git history, diff, and file content endpoints.' };
 const systemTag = { name: 'System', description: 'System health and version endpoints.' };
 const eeTag = { name: 'Enterprise (EE)', description: 'Enterprise endpoints for user management and audit logging.' };
+const scopedAccessTokensTag = { name: 'Scoped Access Tokens', description: 'Mint and revoke short-lived credentials restricted to specific repositories.' };
 
 const EE_LICENSE_KEY_NOTE = dedent`
 <Note>
 This API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).
 </Note>
+`;
+
+const SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO = dedent`
+<Info>
+The scoped access token APIs require a custom entitlement. To request access, contact [team@sourcebot.dev](mailto:team@sourcebot.dev).
+</Info>
 `;
 
 const publicFileTreeNodeSchema: SchemaObject = {
@@ -78,7 +89,7 @@ const securitySchemes: Record<keyof typeof securitySchemeNames, SecuritySchemeOb
     [securitySchemeNames.bearerToken]: {
         type: 'http',
         scheme: 'bearer',
-        description: 'Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key.',
+        description: 'Bearer authentication header of the form `Bearer <token>`. The token may be a Sourcebot API key, OAuth access token, or scoped access token, subject to endpoint requirements.',
     },
     [securitySchemeNames.apiKeyHeader]: {
         type: 'apiKey',
@@ -169,6 +180,23 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Invalid query parameters.'),
             500: errorJson('Unexpected repository listing failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/connections',
+        operationId: 'listConnections',
+        tags: [connectionsTag.name],
+        summary: 'List connections',
+        description: 'Returns unique code host connections associated with at least one repository visible to the caller. Connection configuration and credentials are never included.',
+        responses: {
+            200: {
+                description: 'Connections associated with visible repositories.',
+                content: jsonContent(publicListConnectionsResponseSchema),
+            },
+            401: errorJson('Authentication is required when anonymous access is disabled.'),
+            500: errorJson('Unexpected connection listing failure.'),
         },
     });
 
@@ -426,6 +454,71 @@ export function createPublicOpenApiDocument(version: string) {
         },
     });
 
+    // EE: Scoped Access Tokens
+    registry.registerPath({
+        method: 'post',
+        path: '/api/ee/scoped_access_token',
+        operationId: 'createScopedAccessToken',
+        tags: [scopedAccessTokensTag.name],
+        summary: 'Create a scoped access token',
+        description: dedent`
+            Creates an opaque bearer token that expires exactly one hour after issuance and is restricted to the requested repositories.
+        `,
+        security: [
+            { [securitySchemeNames.bearerToken]: [] },
+            { [securitySchemeNames.apiKeyHeader]: [] },
+        ],
+        request: {
+            body: {
+                required: true,
+                content: jsonContent(publicCreateScopedAccessTokenRequestSchema),
+            },
+        },
+        responses: {
+            201: {
+                description: 'Scoped access token created. The opaque token value is returned only in this response.',
+                content: jsonContent(publicCreateScopedAccessTokenResponseSchema),
+            },
+            400: errorJson('Invalid request body or repository scope.'),
+            401: errorJson('Missing or invalid authentication.'),
+            403: errorJson('The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.'),
+            500: errorJson('Unexpected token creation failure.'),
+        },
+        'x-mint': {
+            content: SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO,
+        },
+    });
+
+    registry.registerPath({
+        method: 'delete',
+        path: '/api/ee/scoped_access_token/{id}',
+        operationId: 'revokeScopedAccessToken',
+        tags: [scopedAccessTokensTag.name],
+        summary: 'Revoke a scoped access token',
+        description: 'Immediately revokes a scoped access token created by the authenticated API-key owner.',
+        security: [
+            { [securitySchemeNames.bearerToken]: [] },
+            { [securitySchemeNames.apiKeyHeader]: [] },
+        ],
+        request: {
+            params: z.object({
+                id: z.string().describe('Identifier returned when the scoped access token was created.'),
+            }),
+        },
+        responses: {
+            204: {
+                description: 'Scoped access token revoked.',
+            },
+            401: errorJson('Missing or invalid authentication.'),
+            403: errorJson('The current authentication method is not an API key, or the API-key owner is not permitted to perform this operation.'),
+            404: errorJson('Scoped access token not found.'),
+            500: errorJson('Unexpected token revocation failure.'),
+        },
+        'x-mint': {
+            content: SCOPED_ACCESS_TOKEN_ENTITLEMENT_INFO,
+        },
+    });
+
     // EE: User Management
     registry.registerPath({
         method: 'get',
@@ -545,7 +638,7 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access.',
         },
-        tags: [searchTag, reposTag, gitTag, systemTag, eeTag],
+        tags: [searchTag, connectionsTag, reposTag, gitTag, scopedAccessTokensTag, systemTag, eeTag],
         security: [
             { [securitySchemeNames.bearerToken]: [] },
             { [securitySchemeNames.apiKeyHeader]: [] },
