@@ -68,7 +68,7 @@ describe('githubPushPrReviews', () => {
 
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, SINGLE_REVIEW);
 
-        const call = octokit.rest.pulls.createReviewComment.mock.calls[0][0];
+        const call = vi.mocked(octokit.rest.pulls.createReviewComment).mock.calls[0][0];
         expect(call).toHaveProperty('line', 10);
         expect(call).not.toHaveProperty('start_line');
     });
@@ -84,7 +84,7 @@ describe('githubPushPrReviews', () => {
 
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, multiLineReviews);
 
-        const call = octokit.rest.pulls.createReviewComment.mock.calls[0][0];
+        const call = vi.mocked(octokit.rest.pulls.createReviewComment).mock.calls[0][0];
         expect(call).toHaveProperty('start_line', 5);
         expect(call).toHaveProperty('line', 15);
         expect(call).toHaveProperty('start_side', 'RIGHT');
