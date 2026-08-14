@@ -18,21 +18,6 @@ type GitCredentialSessionOptions<T> = {
     operation: (environment: NodeJS.ProcessEnv) => Promise<T>;
 };
 
-const assertNoEmbeddedHttpCredentials = (cloneUrl: string) => {
-    let url: URL;
-    try {
-        url = new URL(cloneUrl);
-    } catch {
-        return;
-    }
-    if (
-        (url.protocol === 'http:' || url.protocol === 'https:') &&
-        (url.username || url.password)
-    ) {
-        throw new Error('Authenticated Git operations require a clone URL without embedded credentials');
-    }
-};
-
 const validateCredentialField = (name: string, value: string) => {
     if (value.includes('\n') || value.includes('\r') || value.includes('\0')) {
         throw new Error(`Git credential ${name} contains an unsupported control character`);
@@ -49,7 +34,6 @@ const getCredentialDescription = (cloneUrl: string, credentials: GitHttpCredenti
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         throw new Error('Git HTTP credentials can only be used with HTTP(S) clone URLs');
     }
-    assertNoEmbeddedHttpCredentials(cloneUrl);
 
     validateCredentialField('username', credentials.username);
     validateCredentialField('password', credentials.password);

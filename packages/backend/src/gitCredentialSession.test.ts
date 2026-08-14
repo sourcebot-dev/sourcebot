@@ -283,15 +283,21 @@ describe('withGitCredentialSession', () => {
         expect((error as Error).message).not.toContain(token);
     });
 
-    test('rejects clone URLs that already contain credentials', async () => {
-        await expect(withGitCredentialSession({
-            cloneUrl: 'https://embedded:secret@example.com/org/repo.git',
+    test('supports a clone URL with an embedded username', async () => {
+        const cloneUrl = 'https://test-user@example.com/org/repo.git';
+        const token = `sourcebot-test-token-${randomUUID()}`;
+
+        const credential = await withGitCredentialSession({
+            cloneUrl,
             credentials: {
                 username: 'test-user',
-                password: 'test-password',
+                password: token,
             },
-            operation: async () => undefined,
-        })).rejects.toThrow('clone URL without embedded credentials');
+            operation: async (environment) => fillCredential({ environment, cloneUrl }),
+        });
+
+        expect(credential).toContain('username=test-user');
+        expect(credential).toContain(`password=${token}`);
     });
 
     test('preserves a user-configured URL when no separate credential is provided', async () => {
