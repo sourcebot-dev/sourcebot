@@ -122,13 +122,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
         return {
             hostUrl: repo.external_codeHostUrl,
             token,
-            cloneUrlWithToken: createGitCloneUrlWithToken(
-                repo.cloneUrl,
-                {
-                    username: 'x-access-token',
-                    password: token,
-                }
-            ),
+            gitHttpCredentials: {
+                username: 'x-access-token',
+                password: token,
+            },
         };
     }
 
@@ -154,13 +151,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 return {
                     hostUrl: repo.external_codeHostUrl,
                     token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            username: 'x-access-token',
-                            password: token
-                        }
-                    ),
+                    gitHttpCredentials: {
+                        username: 'x-access-token',
+                        password: token,
+                    },
                 }
             }
         }
@@ -174,12 +168,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 return {
                     hostUrl: config.url,
                     token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            password: token,
-                        }
-                    ),
+                    gitHttpCredentials: {
+                        username: 'x-access-token',
+                        password: token,
+                    },
                     connectionConfig: config,
                 }
             }
@@ -190,13 +182,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 return {
                     hostUrl: config.url,
                     token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            username: 'oauth2',
-                            password: token
-                        }
-                    ),
+                    gitHttpCredentials: {
+                        username: 'oauth2',
+                        password: token,
+                    },
                     connectionConfig: config,
                 }
             }
@@ -207,12 +196,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 return {
                     hostUrl: config.url,
                     token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            password: token
-                        }
-                    ),
+                    gitHttpCredentials: {
+                        username: token,
+                        password: '',
+                    },
                     connectionConfig: config,
                 }
             }
@@ -224,13 +211,10 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                 return {
                     hostUrl: config.url,
                     token,
-                    cloneUrlWithToken: createGitCloneUrlWithToken(
-                        repo.cloneUrl,
-                        {
-                            username,
-                            password: token
-                        }
-                    ),
+                    gitHttpCredentials: {
+                        username,
+                        password: token,
+                    },
                     connectionConfig: config,
                 }
             }
@@ -239,55 +223,26 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
             if (config.token) {
                 const token = await getTokenFromConfig(config.token);
 
-                // For ADO server, multiple auth schemes may be supported. If the ADO deployment supports NTLM, the git clone will default
-                // to this over basic auth. As a result, we cannot embed the token in the clone URL and must force basic auth by passing in the token
-                // appropriately in the header. To do this, we set the authHeader field here
-                if (config.deploymentType === 'server') {
-                    return {
-                        hostUrl: config.url,
-                        token,
-                        authHeader: "Authorization: Basic " + Buffer.from(`:${token}`).toString('base64')
-                    }
-                } else {
-                    return {
-                        hostUrl: config.url,
-                        token,
-                        cloneUrlWithToken: createGitCloneUrlWithToken(
-                            repo.cloneUrl,
-                            {
-                                // @note: If we don't provide a username, the password will be set as the username. This seems to work
-                                // for ADO cloud but not for ADO server. To fix this, we set a placeholder username to ensure the password
-                                // is set correctly
-                                username: 'user',
-                                password: token
-                            }
-                        ),
-                        connectionConfig: config,
-                    }
-                }
+                // ADO Server may advertise NTLM alongside Basic authentication. Force
+                // proactive Basic auth there so libcurl does not select NTLM first.
+                return {
+                    hostUrl: config.url,
+                    token,
+                    gitHttpCredentials: {
+                        username: 'user',
+                        password: token,
+                        ...(config.deploymentType === 'server' ? {
+                            proactiveAuth: 'basic' as const,
+                        } : {}),
+                    },
+                    connectionConfig: config,
+                };
             }
         }
     }
 
     return undefined;
 }
-
-const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: string, password: string }) => {
-    const url = new URL(cloneUrl);
-    // @note: URL has a weird behavior where if you set the password but
-    // _not_ the username, the ":" delimiter will still be present in the
-    // URL (e.g., https://:password@example.com). To get around this, if
-    // we only have a password, we set the username to the password.
-    // @see: https://www.typescriptlang.org/play/?#code/MYewdgzgLgBArgJwDYwLwzAUwO4wKoBKAMgBQBEAFlFAA4QBcA9I5gB4CGAtjUpgHShOZADQBKANwAoREj412ECNhAIAJmhhl5i5WrJTQkELz5IQAcxIy+UEAGUoCAJZhLo0UA
-    if (!credentials.username) {
-        url.username = credentials.password;
-    } else {
-        url.username = credentials.username;
-        url.password = credentials.password;
-    }
-    return url.toString();
-}
-
 
 // setInterval wrapper that ensures async callbacks are not executed concurrently.
 // @see: https://mottaquikarim.github.io/dev/posts/setinterval-that-blocks-on-await/

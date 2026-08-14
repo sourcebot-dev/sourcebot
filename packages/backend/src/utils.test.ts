@@ -18,9 +18,11 @@ const createMockLogger = (): Logger => ({
 
 describe('getAuthCredentialsForRepo', () => {
     const originalAskGithubToken = env.EXPERIMENT_ASK_GH_GITHUB_TOKEN;
+    const azureDevOpsTokenEnvironment = 'SOURCEBOT_TEST_AZURE_DEVOPS_TOKEN';
 
     afterEach(() => {
         env.EXPERIMENT_ASK_GH_GITHUB_TOKEN = originalAskGithubToken;
+        delete process.env[azureDevOpsTokenEnvironment];
     });
 
     test('uses the Ask GitHub PAT before other GitHub credentials', async () => {
@@ -31,14 +33,52 @@ describe('getAuthCredentialsForRepo', () => {
             external_codeHostUrl: 'https://github.com',
             cloneUrl: 'https://github.com/codemirror/dev.git',
             connections: [],
-        } as RepoWithConnections;
+        } as unknown as RepoWithConnections;
 
         const credentials = await getAuthCredentialsForRepo(repo);
 
         expect(credentials).toEqual({
             hostUrl: 'https://github.com',
             token: 'github-pat-token',
-            cloneUrlWithToken: 'https://x-access-token:github-pat-token@github.com/codemirror/dev.git',
+            gitHttpCredentials: {
+                username: 'x-access-token',
+                password: 'github-pat-token',
+            },
+        });
+    });
+
+    test('uses proactive Basic authentication for Azure DevOps Server', async () => {
+        const connectionConfig = {
+            type: 'azuredevops',
+            url: 'https://azure-devops.example.com',
+            deploymentType: 'server',
+            token: {
+                env: azureDevOpsTokenEnvironment,
+            },
+        } as const;
+        process.env[azureDevOpsTokenEnvironment] = 'azure-devops-test-token';
+        const repo = {
+            external_codeHostType: 'azuredevops',
+            cloneUrl: 'https://azure-devops.example.com/project/_git/repo',
+            connections: [{
+                connection: {
+                    connectionType: 'azuredevops',
+                    config: connectionConfig,
+                },
+            }],
+        } as unknown as RepoWithConnections;
+
+        const credentials = await getAuthCredentialsForRepo(repo);
+
+        expect(credentials).toEqual({
+            hostUrl: 'https://azure-devops.example.com',
+            token: 'azure-devops-test-token',
+            gitHttpCredentials: {
+                username: 'user',
+                password: 'azure-devops-test-token',
+                proactiveAuth: 'basic',
+            },
+            connectionConfig,
         });
     });
 });
