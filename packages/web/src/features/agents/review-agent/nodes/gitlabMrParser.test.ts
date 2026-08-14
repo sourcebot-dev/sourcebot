@@ -48,7 +48,11 @@ const MOCK_MR_API_RESPONSE = {
     },
 };
 
-function makeMockGitlabClient(allDiffsResult: unknown, mrOverrides: Partial<typeof MOCK_MR_API_RESPONSE> = {}) {
+type MockMrApiResponseOverrides = Omit<Partial<typeof MOCK_MR_API_RESPONSE>, 'description'> & {
+    description?: string | null;
+};
+
+function makeMockGitlabClient(allDiffsResult: unknown, mrOverrides: MockMrApiResponseOverrides = {}) {
     return {
         MergeRequests: {
             show: vi.fn().mockResolvedValue({ ...MOCK_MR_API_RESPONSE, ...mrOverrides }),
