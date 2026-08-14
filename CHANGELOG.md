@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed memory leak attributed to CodeMirror allocating objects on heap that were never freed. [#1580](https://github.com/sourcebot-dev/sourcebot/pull/1580)
 - Kept Git provider credentials out of subprocess arguments and on-disk configuration by using isolated in-memory credential caches. [#1584](https://github.com/sourcebot-dev/sourcebot/pull/1584)
+- Upgraded the Go toolchain used to build Zoekt to `1.26`. [#1586](https://github.com/sourcebot-dev/sourcebot/pull/1586)
 
 ## [5.1.7] - 2026-08-13
 
