@@ -1053,6 +1053,9 @@ describe('getAuthContext', () => {
                 userId,
                 orgId: MOCK_ORG.id,
                 role: OrgRole.MEMBER,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: null,
             });
             setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
 
@@ -1080,6 +1083,9 @@ describe('getAuthContext', () => {
                 userId,
                 orgId: MOCK_ORG.id,
                 role: OrgRole.MEMBER,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: null,
             });
             setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
 
@@ -1101,6 +1107,9 @@ describe('getAuthContext', () => {
                 userId,
                 orgId: MOCK_ORG.id,
                 role: OrgRole.MEMBER,
+                suspendedAt: null,
+                scimExternalId: null,
+                lastActiveAt: null,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
             setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));

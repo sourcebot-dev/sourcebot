@@ -20,6 +20,7 @@ afterEach(() => {
 // A minimal underlying App Router for the guard library to wrap. Without an
 // outer router there is nothing to intercept, so the guard never engages.
 const makeMockRouter = (): AppRouterInstance => ({
+    bfcacheId: "test",
     push: vi.fn(),
     replace: vi.fn(),
     refresh: vi.fn(),
