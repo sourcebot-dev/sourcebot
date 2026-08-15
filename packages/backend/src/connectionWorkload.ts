@@ -3,6 +3,7 @@ import { ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import {
     CONNECTION_QUEUE,
+    createLogger,
     env,
     JOB_PRIORITIES,
     loadConfig,
@@ -22,6 +23,7 @@ import type { RepoData } from "./repoCompileUtils.js";
 import { JobManager, ProcessContext, Settings, Workload } from "./types.js";
 
 const CONNECTION_SYNC_LOCK_DURATION_MS = 60_000;
+const logger = createLogger("connection-workload");
 
 interface Props {
     db: PrismaClient;
@@ -50,7 +52,6 @@ export const createConnectionWorkload = ({
     },
     process: async ({
         data: { connectionId },
-        logger,
         signal,
         jobId,
         trigger,
@@ -64,7 +65,7 @@ export const createConnectionWorkload = ({
         signal.throwIfAborted();
         const { orgId } = connection;
 
-        logger.info(`Syncing connection ${connectionId}`, {
+        logger.debug(`Syncing connection ${connectionId}`, {
             connectionId,
             orgId,
         });
@@ -85,7 +86,7 @@ export const createConnectionWorkload = ({
             },
         });
 
-        logger.info(`Discovered ${repoData.length} repositories`, {
+        logger.debug(`Discovered ${repoData.length} repositories`, {
             connectionId,
             repositoryCount: repoData.length,
         });
@@ -118,7 +119,7 @@ export const createConnectionWorkload = ({
             intervalMs: settings.repoDrivenPermissionSyncIntervalMs,
         });
 
-        logger.info(
+        logger.debug(
             `Stored ${repoChanges.currentRepos.length} repositories`,
             {
                 connectionId,
@@ -156,7 +157,7 @@ export const createConnectionWorkload = ({
         }
         signal.throwIfAborted();
 
-        logger.info(`Connection ${connectionId} sync finished`, {
+        logger.debug(`Connection ${connectionId} sync finished`, {
             connectionId,
         });
 

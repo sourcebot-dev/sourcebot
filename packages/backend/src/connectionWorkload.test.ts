@@ -17,6 +17,12 @@ const mocks = vi.hoisted(() => ({
     getJobSchedulerIds: vi.fn(),
     upsertJobScheduler: vi.fn(),
     removeJobScheduler: vi.fn(),
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
 }));
 
 vi.mock("@sentry/node", () => ({
@@ -58,6 +64,7 @@ vi.mock("@sourcebot/shared", () => ({
         "bitbucket-cloud",
         "bitbucket-server",
     ],
+    createLogger: vi.fn(() => mocks.logger),
     loadConfig: mocks.loadConfig,
 }));
 
@@ -135,20 +142,12 @@ const data = {
     connectionId: 42,
 };
 
-const lifecycleLogger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
-
 const lifecycleContext = {
     data,
     jobId: "job-1",
     attemptsMade: 0,
     maxAttempts: 2,
     prisma: db,
-    logger: lifecycleLogger,
 };
 
 describe("connectionWorkload", () => {

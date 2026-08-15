@@ -5,7 +5,7 @@ import {
     RepoPermissionSyncJobStatus,
 } from "@sourcebot/db";
 import {
-    JobLogSink,
+    createLogger,
     REPO_PERMISSION_SYNC_QUEUE,
     repoMetadataSchema,
 } from "@sourcebot/shared";
@@ -44,6 +44,7 @@ interface RepoPermissionSyncResult {
 }
 
 const REPO_PERMISSION_SYNC_LOCK_DURATION_MS = 60_000;
+const logger = createLogger("repo-permission-sync-workload");
 
 export const createRepoPermissionSyncWorkload = ({
     db,
@@ -54,13 +55,12 @@ export const createRepoPermissionSyncWorkload = ({
 > => ({
     queueSpec: REPO_PERMISSION_SYNC_QUEUE,
     concurrency: settings.maxRepoPermissionSyncJobConcurrency,
-    // This lock is shared with repoIndexWorkload so indexing, cleanup, and
-    // permission syncing are serialized for the same repository.
     executionLock: {
-        resource: ({ repoId }) => `sourcebot:lock:repo:${repoId}`,
+        resource: ({ repoId }) =>
+            `sourcebot:lock:repo-permission-sync:${repoId}`,
         durationMs: REPO_PERMISSION_SYNC_LOCK_DURATION_MS,
     },
-    process: async ({ data: { repoId }, logger, signal }) => {
+    process: async ({ data: { repoId }, signal }) => {
         signal.throwIfAborted();
         if (!(await hasEntitlement("permission-syncing"))) {
             throw new Error(
@@ -97,7 +97,6 @@ export const createRepoPermissionSyncWorkload = ({
                 db,
                 repo,
                 credentials,
-                logger: logger,
             });
 
         signal.throwIfAborted();
@@ -161,7 +160,7 @@ export const createRepoPermissionSyncWorkload = ({
         });
     },
     onCompleted: async (
-        { data: { repoId }, jobId, logger },
+        { data: { repoId }, jobId },
         { repoName },
     ) => {
         await db.$transaction(async (tx) => {
@@ -188,7 +187,7 @@ export const createRepoPermissionSyncWorkload = ({
 
         logger.debug(`Permissions synced for repo ${repoName}`);
     },
-    onTerminalFailure: async ({ data: { repoId }, jobId, logger }, error) => {
+    onTerminalFailure: async ({ data: { repoId }, jobId }, error) => {
         Sentry.captureException(error, {
             tags: {
                 jobId,
@@ -217,7 +216,6 @@ interface ProviderPermissionSyncProps {
     db: PrismaClient;
     repo: RepoWithConnections;
     credentials: RepoAuthCredentials;
-    logger: JobLogSink;
 }
 
 interface PermissionSyncResult {
@@ -248,7 +246,6 @@ const getGitHubPermissionSyncResult = async ({
     db,
     repo,
     credentials,
-    logger,
 }: ProviderPermissionSyncProps): Promise<PermissionSyncResult> => {
     const isGitHubCloud = credentials.hostUrl
         ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME

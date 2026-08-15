@@ -125,7 +125,7 @@ export type {
     WorkloadJobStatus,
 } from "./bullmqClient.js";
 export {
-    createBullMQJobLogger,
+    createBullMQJobLogSink,
     DEFAULT_JOB_LOGS_MAX_ENTRIES,
     parseJobLogEntry,
     readBullMQJobLogs,
@@ -135,7 +135,13 @@ export type {
     JobLogEntry,
     JobLogFields,
     JobLogLevel,
-    JobLogger,
     JobLogs,
     JobLogSink,
 } from "./jobLogger.js";
+export {
+    getJobLogContext,
+    runWithJobLogContext,
+} from "./jobLogContext.js";
+export type {
+    JobLogContext,
+} from "./jobLogContext.js";

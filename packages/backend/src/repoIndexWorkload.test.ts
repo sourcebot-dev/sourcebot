@@ -1,11 +1,22 @@
 import type { PrismaClient } from "@sourcebot/db";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 
 const fsMocks = vi.hoisted(() => ({
     existsSync: vi.fn(),
     readdir: vi.fn(),
     rm: vi.fn(),
+}));
+
+const lifecycleLogger = vi.hoisted(() => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+}));
+
+vi.mock("@sourcebot/shared", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@sourcebot/shared")>()),
+    createLogger: vi.fn(() => lifecycleLogger),
 }));
 
 vi.mock("fs", () => ({
@@ -16,6 +27,8 @@ vi.mock("fs/promises", () => ({
     readdir: fsMocks.readdir,
     rm: fsMocks.rm,
 }));
+
+import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 
 const repoFindUnique = vi.fn();
 const repoDeleteMany = vi.fn();
@@ -52,13 +65,6 @@ const workload = createRepoIndexWorkload({
     } as never,
 });
 
-const lifecycleLogger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
-
 const lifecycleContext = {
     data: {
         repoId: 42,
@@ -68,7 +74,6 @@ const lifecycleContext = {
     attemptsMade: 0,
     maxAttempts: 2,
     prisma: db,
-    logger: lifecycleLogger,
 };
 
 const processContext = {
@@ -199,7 +204,7 @@ describe("repoIndexWorkload", () => {
         expect(repoIndexingJobUpsert).not.toHaveBeenCalled();
         expect(repoDeleteMany).not.toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
-        expect(lifecycleLogger.info).toHaveBeenCalledWith(
+        expect(lifecycleLogger.debug).toHaveBeenCalledWith(
             "Skipping INDEX job for repo 42: repository no longer exists",
         );
     });
@@ -254,7 +259,7 @@ describe("repoIndexWorkload", () => {
         expect(repoIndexingJobUpsert).not.toHaveBeenCalled();
         expect(repoDeleteMany).not.toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
-        expect(lifecycleLogger.info).toHaveBeenCalledWith(
+        expect(lifecycleLogger.debug).toHaveBeenCalledWith(
             `Skipping CLEANUP job for repo 42: ${reason}`,
         );
     });
@@ -270,7 +275,7 @@ describe("repoIndexWorkload", () => {
         expect(repoIndexingJobUpsert).toHaveBeenCalled();
         expect(repoDeleteMany).toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
-        expect(lifecycleLogger.info).toHaveBeenCalledWith(
+        expect(lifecycleLogger.debug).toHaveBeenCalledWith(
             "Skipping CLEANUP job for repo 42: repository is no longer eligible for cleanup",
         );
     });

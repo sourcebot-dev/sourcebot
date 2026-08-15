@@ -1,5 +1,5 @@
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, getRepoPath, JobLogSink, getRepoIdFromPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
+import { createLogger, getRepoPath, getRepoIdFromPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import micromatch from 'micromatch';
@@ -25,13 +25,13 @@ export const createRepoIndexWorkload = ({
 }: Props): Workload<'repo-index'> => ({
     queueSpec: REPO_INDEX_QUEUE,
     concurrency: settings.maxRepoIndexingJobConcurrency,
-    // This lock is shared with repoPermissionSyncWorkload so indexing, cleanup,
-    // and permission syncing are serialized for the same repository.
+    // Indexing and cleanup share this lock because both operate on the same
+    // repository path and search index.
     executionLock: {
         resource: ({ repoId }) => `sourcebot:lock:repo:${repoId}`,
         durationMs: REPO_INDEX_LOCK_DURATION_MS,
     },
-    process: async ({ data, jobId, logger: jobLogger, signal }) => {
+    process: async ({ data, jobId, signal }) => {
         signal.throwIfAborted();
         const start = await prepareRepoIndexJob({
             db,
@@ -41,23 +41,20 @@ export const createRepoIndexWorkload = ({
         });
 
         if (start.action === "skip") {
-            jobLogger.info(
+            logger.debug(
                 `Skipping ${data.type} job for repo ${data.repoId}: ${start.reason}`,
             );
 
             if (data.type === "CLEANUP" && start.repoMissing) {
                 signal.throwIfAborted();
-                await cleanupOrphanedRepoResourcesForRepoId(
-                    data.repoId,
-                    jobLogger,
-                );
+                await cleanupOrphanedRepoResourcesForRepoId(data.repoId);
             }
             return;
         }
 
         signal.throwIfAborted();
         const { repo } = start;
-        jobLogger.debug(`Running ${data.type} job for repo ${repo.name} (id: ${repo.id})`);
+        logger.debug(`Running ${data.type} job for repo ${repo.name} (id: ${repo.id})`);
 
         if (data.type === "CLEANUP") {
             signal.throwIfAborted();
@@ -72,17 +69,17 @@ export const createRepoIndexWorkload = ({
             });
 
             if (count === 0) {
-                jobLogger.info(
+                logger.debug(
                     `Skipping CLEANUP job for repo ${repo.id}: repository is no longer eligible for cleanup`,
                 );
                 return;
             }
 
             signal.throwIfAborted();
-            await cleanupRepository(repo, jobLogger);
+            await cleanupRepository(repo);
         } else {
             const isFirstIndex = repo.indexedAt === null;
-            const revisions = await indexRepository(db, settings, repo, jobLogger, signal);
+            const revisions = await indexRepository(db, settings, repo, signal);
             signal.throwIfAborted();
             const { path: repoPath } = getRepoPath(repo);
             const isEmpty = await isRepoEmpty({ path: repoPath });
@@ -262,7 +259,6 @@ const indexRepository = async (
     db: PrismaClient,
     settings: Settings,
     repo: RepoWithConnections,
-    logger: JobLogSink,
     signal: AbortSignal,
 ) => {
     const { path: repoPath, isReadOnly } = getRepoPath(repo);
@@ -450,7 +446,7 @@ const indexRepository = async (
     return revisions;
 };
 
-const cleanupRepository = async (repo: Repo, logger: JobLogSink) => {
+const cleanupRepository = async (repo: Repo) => {
     const { path: repoPath, isReadOnly } = getRepoPath(repo);
     if (existsSync(repoPath) && !isReadOnly) {
         logger.debug(`Deleting repo directory ${repoPath}`);
@@ -467,7 +463,6 @@ const cleanupRepository = async (repo: Repo, logger: JobLogSink) => {
 
 const cleanupOrphanedRepoResourcesForRepoId = async (
     repoId: number,
-    logger: JobLogSink,
 ) => {
     const repoPath = `${REPOS_CACHE_DIR}/${repoId}`;
     if (existsSync(repoPath)) {

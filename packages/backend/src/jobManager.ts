@@ -1,14 +1,14 @@
 import * as Sentry from "@sentry/node";
 import {
     BullMQClient,
-    createBullMQJobLogger,
+    createBullMQJobLogSink,
     createLogger,
     DataOf,
     JobEnqueueOptions,
-    JobLogSink,
     QueueName,
     Schedule,
     scheduleToMs,
+    runWithJobLogContext,
 } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
@@ -145,13 +145,9 @@ export class BullMQJobManager implements JobManager {
         const worker = new Worker(
             spec.name,
             async (job) => {
-                const jobLogger = createBullMQJobLogger(job, {
-                    label: `${LOG_TAG}:${spec.name}:job:${job.id ?? "unknown"}`,
-                });
-                const lifecycleContext = this.jobLifecycleContext<TName>(
-                    job,
-                    jobLogger,
-                );
+                const label = `${LOG_TAG}:${spec.name}:job:${job.id ?? "unknown"}`;
+                const jobLogSink = createBullMQJobLogSink(job, { label });
+                const lifecycleContext = this.jobLifecycleContext<TName>(job);
 
                 const process = async (signal: AbortSignal) => {
                     await workload.onStarted?.(lifecycleContext);
@@ -165,49 +161,59 @@ export class BullMQJobManager implements JobManager {
                     });
                 };
 
-                try {
-                    if (executionLock) {
-                        const resource = executionLock.resource(job.data);
-                        const waitStartedAt = Date.now();
-                        return await this.executionLockRunner.using(
-                            resource,
-                            executionLock.durationMs,
-                            this.abortController.signal,
-                            async (signal) => {
-                                const acquiredAt = Date.now();
-                                jobLogger.debug(
-                                    "Acquired workload execution lock",
-                                    {
-                                        resource,
-                                        lockWaitMs: acquiredAt - waitStartedAt,
+                return runWithJobLogContext(
+                    {
+                        jobId: job.id ?? "",
+                        queueName: spec.name,
+                        attempt: job.attemptsMade + 1,
+                        sink: jobLogSink,
+                    },
+                    async () => {
+                        try {
+                            if (executionLock) {
+                                const resource = executionLock.resource(job.data);
+                                const waitStartedAt = Date.now();
+                                return await this.executionLockRunner.using(
+                                    resource,
+                                    executionLock.durationMs,
+                                    this.abortController.signal,
+                                    async (signal) => {
+                                        const acquiredAt = Date.now();
+                                        logger.debug(
+                                            "Acquired workload execution lock",
+                                            {
+                                                resource,
+                                                lockWaitMs: acquiredAt - waitStartedAt,
+                                            },
+                                        );
+
+                                        try {
+                                            return await process(signal);
+                                        } finally {
+                                            logger.debug(
+                                                "Finished work protected by execution lock",
+                                                {
+                                                    resource,
+                                                    lockHeldMs: Date.now() - acquiredAt,
+                                                },
+                                            );
+                                        }
                                     },
                                 );
+                            }
 
-                                try {
-                                    return await process(signal);
-                                } finally {
-                                    jobLogger.debug(
-                                        "Finished work protected by execution lock",
-                                        {
-                                            resource,
-                                            lockHeldMs: Date.now() - acquiredAt,
-                                        },
-                                    );
-                                }
-                            },
-                        );
-                    }
-
-                    return await process(this.abortController.signal);
-                } catch (error) {
-                    jobLogger.error(
-                        `Workload "${spec.name}" attempt failed`,
-                        error,
-                    );
-                    throw error;
-                } finally {
-                    await jobLogger.flush();
-                }
+                            return await process(this.abortController.signal);
+                        } catch (error) {
+                            logger.error(
+                                `Workload "${spec.name}" attempt failed`,
+                                error,
+                            );
+                            throw error;
+                        } finally {
+                            await jobLogSink.flush();
+                        }
+                    },
+                );
             },
             {
                 connection: this.connection,
@@ -283,28 +289,36 @@ export class BullMQJobManager implements JobManager {
             `Workload "${workload.queueSpec.name}" job ${job.id} failed terminally after ${job.attemptsMade} attempt(s): ${error.message}`,
         );
 
-        const jobLogger = createBullMQJobLogger(job, {
-            label: `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`,
-            attempt: Math.max(job.attemptsMade, 1),
+        const label = `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`;
+        const attempt = Math.max(job.attemptsMade, 1);
+        const jobLogSink = createBullMQJobLogSink(job, {
+            label,
+            attempt,
         });
-        try {
-            await workload.onTerminalFailure?.(
-                this.jobLifecycleContext<TName>(job, jobLogger),
-                error,
-            );
-        } catch (hookError) {
-            Sentry.captureException(hookError);
-            jobLogger.error(
-                `onTerminalFailure for workload "${workload.queueSpec.name}" threw`,
-                hookError,
-            );
-            logger.error(
-                `onTerminalFailure for workload "${workload.queueSpec.name}" threw:`,
-                hookError,
-            );
-        } finally {
-            await jobLogger.flush();
-        }
+        await runWithJobLogContext(
+            {
+                jobId: job.id ?? "",
+                queueName: workload.queueSpec.name,
+                attempt,
+                sink: jobLogSink,
+            },
+            async () => {
+                try {
+                    await workload.onTerminalFailure?.(
+                        this.jobLifecycleContext<TName>(job),
+                        error,
+                    );
+                } catch (hookError) {
+                    Sentry.captureException(hookError);
+                    logger.error(
+                        `onTerminalFailure for workload "${workload.queueSpec.name}" threw`,
+                        hookError,
+                    );
+                } finally {
+                    await jobLogSink.flush();
+                }
+            },
+        );
     }
 
     private async onWorkloadJobCompleted<TName extends QueueName, TResult>(
@@ -312,33 +326,40 @@ export class BullMQJobManager implements JobManager {
         job: Job,
         result: TResult,
     ): Promise<void> {
-        const jobLogger = createBullMQJobLogger(job, {
-            label: `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`,
-            attempt: Math.max(job.attemptsMade, 1),
+        const label = `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`;
+        const attempt = Math.max(job.attemptsMade, 1);
+        const jobLogSink = createBullMQJobLogSink(job, {
+            label,
+            attempt,
         });
-        try {
-            await workload.onCompleted?.(
-                this.jobLifecycleContext<TName>(job, jobLogger),
-                result,
-            );
-        } catch (hookError) {
-            Sentry.captureException(hookError);
-            jobLogger.error(
-                `onCompleted for workload "${workload.queueSpec.name}" threw`,
-                hookError,
-            );
-            logger.error(
-                `onCompleted for workload "${workload.queueSpec.name}" threw:`,
-                hookError,
-            );
-        } finally {
-            await jobLogger.flush();
-        }
+        await runWithJobLogContext(
+            {
+                jobId: job.id ?? "",
+                queueName: workload.queueSpec.name,
+                attempt,
+                sink: jobLogSink,
+            },
+            async () => {
+                try {
+                    await workload.onCompleted?.(
+                        this.jobLifecycleContext<TName>(job),
+                        result,
+                    );
+                } catch (hookError) {
+                    Sentry.captureException(hookError);
+                    logger.error(
+                        `onCompleted for workload "${workload.queueSpec.name}" threw`,
+                        hookError,
+                    );
+                } finally {
+                    await jobLogSink.flush();
+                }
+            },
+        );
     }
 
     private jobLifecycleContext<TName extends QueueName>(
         job: Job,
-        logger: JobLogSink,
     ): JobLifecycleContext<TName> {
         return {
             data: job.data,
@@ -346,7 +367,6 @@ export class BullMQJobManager implements JobManager {
             attemptsMade: job.attemptsMade,
             maxAttempts: job.opts.attempts ?? 1,
             prisma,
-            logger,
         };
     }
 }

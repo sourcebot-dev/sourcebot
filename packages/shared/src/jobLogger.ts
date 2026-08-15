@@ -1,4 +1,5 @@
 import type { Job, Queue } from "bullmq";
+import { runWithoutJobLogContext } from "./jobLogContext.js";
 import { createLogger } from "./logger.js";
 
 export const DEFAULT_JOB_LOGS_MAX_ENTRIES = 500;
@@ -20,10 +21,6 @@ export interface JobLogSink {
     info(message: string, fields?: unknown): void;
     warn(message: string, fields?: unknown): void;
     error(message: string, fields?: unknown): void;
-}
-
-export interface JobLogger extends JobLogSink {
-    flush(): Promise<void>;
 }
 
 export interface GetJobLogsOptions {
@@ -169,17 +166,16 @@ export const readBullMQJobLogs = async (
     };
 };
 
-export const createBullMQJobLogger = (
+export const createBullMQJobLogSink = (
     job: BullMQLogJob,
     options: {
         label?: string;
         attempt?: number;
     } = {},
-): JobLogger => {
+) => {
     const label =
         options.label ?? `${job.queueName}:job:${job.id ?? "unknown"}`;
     const attempt = options.attempt ?? job.attemptsMade + 1;
-    const applicationLogger = createLogger(label);
     const pendingWrites = new Set<Promise<void>>();
 
     const write = (
@@ -188,7 +184,6 @@ export const createBullMQJobLogger = (
         rawFields?: unknown,
     ): void => {
         const fields = sanitizeFields(rawFields);
-        applicationLogger.log(level, message, fields);
 
         const entry: JobLogEntry = {
             version: 1,
@@ -202,9 +197,11 @@ export const createBullMQJobLogger = (
             .log(JSON.stringify(entry))
             .then(() => undefined)
             .catch((error: unknown) => {
-                applicationLogger.error(
-                    `Failed to persist a BullMQ log entry for job ${job.id ?? "unknown"}`,
-                    error,
+                runWithoutJobLogContext(() =>
+                    createLogger(label).error(
+                        `Failed to persist a BullMQ log entry for job ${job.id ?? "unknown"}`,
+                        error,
+                    ),
                 );
             });
 
@@ -215,12 +212,16 @@ export const createBullMQJobLogger = (
     };
 
     return {
-        debug: (message, fields) => write("debug", message, fields),
-        info: (message, fields) => write("info", message, fields),
-        warn: (message, fields) => write("warn", message, fields),
-        error: (message, fields) => write("error", message, fields),
+        debug: (message: string, fields?: unknown) =>
+            write("debug", message, fields),
+        info: (message: string, fields?: unknown) =>
+            write("info", message, fields),
+        warn: (message: string, fields?: unknown) =>
+            write("warn", message, fields),
+        error: (message: string, fields?: unknown) =>
+            write("error", message, fields),
         flush: async () => {
             await Promise.all([...pendingWrites]);
         },
-    };
+    } satisfies JobLogSink & { flush(): Promise<void> };
 };

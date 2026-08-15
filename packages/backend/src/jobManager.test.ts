@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { ProcessContext, Workload } from "./types.js";
 
 const mocks = vi.hoisted(() => {
-    const jobLogger = {
+    const logger = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    };
+    const jobLogSink = {
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
@@ -18,8 +24,12 @@ const mocks = vi.hoisted(() => {
         producerClose: vi.fn(),
         workerClose: vi.fn(),
         executionLockUsing: vi.fn(),
-        jobLogger,
-        createBullMQJobLogger: vi.fn(() => jobLogger),
+        logger,
+        jobLogSink,
+        createBullMQJobLogSink: vi.fn(() => jobLogSink),
+        runWithJobLogContext: vi.fn(
+            (_context: unknown, callback: () => unknown) => callback(),
+        ),
         workers: [] as Array<{
             processor: (job: unknown) => Promise<unknown>;
             handlers: Map<string, (...args: unknown[]) => void>;
@@ -30,13 +40,9 @@ const mocks = vi.hoisted(() => {
 // The module under test creates a logger at import time; stub it so importing pure helpers
 // has no side effects (mirrors repoIndexManager.test.ts).
 vi.mock("@sourcebot/shared", () => ({
-    createLogger: vi.fn(() => ({
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-    })),
-    createBullMQJobLogger: mocks.createBullMQJobLogger,
+    createLogger: vi.fn(() => mocks.logger),
+    createBullMQJobLogSink: mocks.createBullMQJobLogSink,
+    runWithJobLogContext: mocks.runWithJobLogContext,
     scheduleToMs: vi.fn((schedule: string | number) =>
         typeof schedule === "number" ? schedule : 300_000,
     ),
@@ -231,16 +237,14 @@ describe("BullMQJobManager lifecycle", () => {
     test("calls onStarted before processing and onCompleted after completion", async () => {
         const calls: string[] = [];
         const workload = createWorkload({
-            onStarted: vi.fn(async ({ logger }) => {
-                logger.info("Lifecycle started");
+            onStarted: vi.fn(async () => {
                 calls.push("started");
             }),
             process: vi.fn(async () => {
                 calls.push("processed");
                 return { repoCount: 3 };
             }),
-            onCompleted: vi.fn(async ({ logger }) => {
-                logger.info("Lifecycle completed");
+            onCompleted: vi.fn(async () => {
                 calls.push("completed");
             }),
         });
@@ -263,16 +267,14 @@ describe("BullMQJobManager lifecycle", () => {
                 data,
                 jobId: "job-1",
                 maxAttempts: 2,
-                logger: mocks.jobLogger,
             }),
             { repoCount: 3 },
         );
-        expect(mocks.jobLogger.info).toHaveBeenCalledWith("Lifecycle started");
-        expect(mocks.jobLogger.info).toHaveBeenCalledWith(
-            "Lifecycle completed",
-        );
+        expect(
+            vi.mocked(workload.onCompleted!).mock.calls[0][0],
+        ).not.toHaveProperty("logger");
         await vi.waitFor(() => {
-            expect(mocks.jobLogger.flush).toHaveBeenCalledTimes(2);
+            expect(mocks.jobLogSink.flush).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -322,14 +324,14 @@ describe("BullMQJobManager lifecycle", () => {
             expect.any(AbortSignal),
             expect.any(Function),
         );
-        expect(mocks.jobLogger.debug).toHaveBeenCalledWith(
+        expect(mocks.logger.debug).toHaveBeenCalledWith(
             "Acquired workload execution lock",
             {
                 resource: "sourcebot:lock:connection:42",
                 lockWaitMs: expect.any(Number),
             },
         );
-        expect(mocks.jobLogger.debug).toHaveBeenCalledWith(
+        expect(mocks.logger.debug).toHaveBeenCalledWith(
             "Finished work protected by execution lock",
             {
                 resource: "sourcebot:lock:connection:42",
@@ -338,10 +340,10 @@ describe("BullMQJobManager lifecycle", () => {
         );
     });
 
-    test("provides the structured job logger to the workload processor", async () => {
+    test("does not expose the internal job log sink to the workload processor", async () => {
         const process = vi.fn(
             async (context: ProcessContext<"connection-sync">) => {
-                context.logger.info("Processing connection");
+                expect(context).not.toHaveProperty("logger");
                 return { repoCount: 3 };
             },
         );
@@ -351,21 +353,12 @@ describe("BullMQJobManager lifecycle", () => {
 
         await mocks.workers[0].processor({ ...job, attemptsMade: 0 });
 
-        expect(process).toHaveBeenCalledWith(
-            expect.objectContaining({
-                logger: mocks.jobLogger,
-            }),
-        );
-        expect(mocks.jobLogger.info).toHaveBeenCalledWith(
-            "Processing connection",
-        );
-        expect(mocks.jobLogger.flush).toHaveBeenCalled();
+        expect(process).toHaveBeenCalledOnce();
+        expect(mocks.jobLogSink.flush).toHaveBeenCalled();
     });
 
     test("reports lifecycle metadata after terminal failure", async () => {
-        const onTerminalFailure = vi.fn(async ({ logger }) => {
-            logger.error("Lifecycle failed");
-        });
+        const onTerminalFailure = vi.fn(async () => undefined);
         const workload = createWorkload({ onTerminalFailure });
         const manager = new BullMQJobManager({} as Redis);
         manager.register(workload);
@@ -381,16 +374,17 @@ describe("BullMQJobManager lifecycle", () => {
                     jobId: "job-1",
                     attemptsMade: 2,
                     maxAttempts: 2,
-                    logger: mocks.jobLogger,
                 }),
                 error,
             );
         });
-        expect(mocks.jobLogger.error).toHaveBeenCalledWith("Lifecycle failed");
+        expect(onTerminalFailure.mock.calls[0][0]).not.toHaveProperty(
+            "logger",
+        );
         await vi.waitFor(() => {
-            expect(mocks.jobLogger.flush).toHaveBeenCalledOnce();
+            expect(mocks.jobLogSink.flush).toHaveBeenCalledOnce();
         });
-        expect(mocks.createBullMQJobLogger).toHaveBeenCalledWith(
+        expect(mocks.createBullMQJobLogSink).toHaveBeenCalledWith(
             expect.objectContaining({ id: "job-1", attemptsMade: 2 }),
             expect.objectContaining({ attempt: 2 }),
         );

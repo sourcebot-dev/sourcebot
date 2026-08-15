@@ -8,8 +8,8 @@ import {
 } from "@sourcebot/db";
 import {
     ACCOUNT_PERMISSION_SYNC_QUEUE,
+    createLogger,
     getIdentityProviderConfig,
-    JobLogSink,
 } from "@sourcebot/shared";
 import {
     createBitbucketCloudClient,
@@ -49,6 +49,7 @@ type ProviderConfig<TProvider extends SupportedProvider> = Extract<
 >;
 
 const ACCOUNT_PERMISSION_SYNC_LOCK_DURATION_MS = 60_000;
+const logger = createLogger("account-permission-sync-workload");
 
 interface ProviderPermissionSyncProps<TProvider extends SupportedProvider> {
     db: PrismaClient;
@@ -144,7 +145,6 @@ export const createAccountPermissionSyncWorkload = ({
         },
         process: async ({
             data: { accountId },
-            logger: jobLogger,
             signal,
         }) => {
             signal.throwIfAborted();
@@ -165,7 +165,7 @@ export const createAccountPermissionSyncWorkload = ({
             });
             signal.throwIfAborted();
 
-            jobLogger.debug(
+            logger.debug(
                 `Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`,
             );
 
@@ -239,7 +239,7 @@ export const createAccountPermissionSyncWorkload = ({
                     signal.throwIfAborted();
                     const message =
                         error instanceof Error ? error.message : String(error);
-                    jobLogger.warn(
+                    logger.warn(
                         `Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? "unknown"}) — fail-closed cleanup triggered by ${details.message}: ${message}`,
                     );
                 }
@@ -276,7 +276,6 @@ export const createAccountPermissionSyncWorkload = ({
         onCompleted: async ({
             data: { accountId },
             jobId,
-            logger: jobLogger,
         }) => {
             const account = await db.$transaction(async (tx) => {
                 const { account } = await tx.accountPermissionSyncJob.update({
@@ -310,12 +309,12 @@ export const createAccountPermissionSyncWorkload = ({
                 return account;
             });
 
-            jobLogger.debug(
+            logger.debug(
                 `Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`,
             );
         },
         onTerminalFailure: async (
-            { data: { accountId }, jobId, logger: jobLogger },
+            { data: { accountId }, jobId },
             error,
         ) => {
             Sentry.captureException(error, {
@@ -343,7 +342,7 @@ export const createAccountPermissionSyncWorkload = ({
                 },
             });
 
-            jobLogger.error(
+            logger.error(
                 `Account permission sync job failed for account (id: ${accountId}) for user ${account.user.email ?? "unknown user (email not found)"}: ${error.message}`,
             );
         },

@@ -1,5 +1,4 @@
 import type { PrismaClient } from "@sourcebot/db";
-import type { JobLogger } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +13,12 @@ const mocks = vi.hoisted(() => ({
     getRepoCollaborators: vi.fn(),
     getUserPermissionsForServerRepo: vi.fn(),
     hasEntitlement: vi.fn(),
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
 }));
 
 vi.mock("@sentry/node", () => ({
@@ -34,6 +39,7 @@ vi.mock("@sourcebot/shared", async (importOriginal) => ({
             keepLogs: 500,
         },
     },
+    createLogger: vi.fn(() => mocks.logger),
 }));
 
 vi.mock("../entitlements.js", () => ({
@@ -122,14 +128,6 @@ const db = {
     $transaction: transaction,
 } as unknown as PrismaClient;
 
-const jobLogger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    flush: vi.fn(),
-} satisfies JobLogger;
-
 const createWorkload = () =>
     createRepoPermissionSyncWorkload({
         db,
@@ -146,7 +144,6 @@ const lifecycleContext = {
     attemptsMade: 0,
     maxAttempts: 2,
     prisma: db,
-    logger: jobLogger,
 };
 
 const processContext = {
@@ -184,12 +181,12 @@ describe("repoPermissionSyncWorkload", () => {
         expect(workload.onTerminalFailure).toBeTypeOf("function");
     });
 
-    test("shares the repository execution lock with indexing and cleanup", () => {
+    test("uses a dedicated per-repo permission sync lock", () => {
         const workload = createWorkload();
 
         expect(workload.executionLock).toBeDefined();
         expect(workload.executionLock?.resource({ repoId: 42 })).toBe(
-            "sourcebot:lock:repo:42",
+            "sourcebot:lock:repo-permission-sync:42",
         );
         expect(workload.executionLock?.durationMs).toBe(60_000);
     });
@@ -223,7 +220,7 @@ describe("repoPermissionSyncWorkload", () => {
         });
         expect(mocks.getAuthCredentialsForRepo).toHaveBeenCalledWith(
             repo,
-            jobLogger,
+            mocks.logger,
         );
         expect(mocks.createOctokitFromToken).toHaveBeenCalledWith({
             token: "token",

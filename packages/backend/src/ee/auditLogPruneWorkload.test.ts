@@ -1,11 +1,23 @@
 import type { PrismaClient } from "@sourcebot/db";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createAuditLogPruneWorkload } from "./auditLogPruneWorkload.js";
 
-const mocks = {
+const mocks = vi.hoisted(() => ({
     findMany: vi.fn(),
     deleteMany: vi.fn(),
-};
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
+vi.mock("@sourcebot/shared", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@sourcebot/shared")>()),
+    createLogger: vi.fn(() => mocks.logger),
+}));
+
+import { createAuditLogPruneWorkload } from "./auditLogPruneWorkload.js";
 
 const db = {
     audit: {
@@ -14,12 +26,7 @@ const db = {
     },
 } as unknown as PrismaClient;
 
-const logger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const logger = mocks.logger;
 
 const processWorkload = ({
     enabled = true,
@@ -34,7 +41,6 @@ const processWorkload = ({
         attemptsMade: 0,
         maxAttempts: 2,
         prisma: db,
-        logger,
         signal: new AbortController().signal,
         updateProgress: vi.fn(),
         trigger: vi.fn(),

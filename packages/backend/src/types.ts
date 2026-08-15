@@ -9,7 +9,6 @@ import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 import {
     DataOf,
     JobEnqueueOptions,
-    JobLogSink,
     QueueName,
     QueueSpec,
     Schedule,
@@ -52,7 +51,6 @@ export interface JobLifecycleContext<TName extends QueueName> {
     attemptsMade: number;
     maxAttempts: number;
     prisma: PrismaClient;
-    logger: JobLogSink;
 }
 
 export interface ProcessContext<TName extends QueueName>

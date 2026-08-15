@@ -1,14 +1,26 @@
 import type { PrismaClient } from "@sourcebot/db";
 import type { StorageBackend } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
 
-const mocks = {
+const mocks = vi.hoisted(() => ({
     updateMany: vi.fn(),
     findMany: vi.fn(),
     deleteMany: vi.fn(),
     storageDelete: vi.fn(),
-};
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
+vi.mock("@sourcebot/shared", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@sourcebot/shared")>()),
+    createLogger: vi.fn(() => mocks.logger),
+}));
+
+import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
 
 const db = {
     attachment: {
@@ -22,12 +34,7 @@ const storage = {
     delete: mocks.storageDelete,
 } as unknown as StorageBackend;
 
-const logger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const logger = mocks.logger;
 
 const processWorkload = (ttlHours = 24) =>
     createAttachmentPruneWorkload({ db, storage, ttlHours }).process({
@@ -36,7 +43,6 @@ const processWorkload = (ttlHours = 24) =>
         attemptsMade: 0,
         maxAttempts: 2,
         prisma: db,
-        logger,
         signal: new AbortController().signal,
         updateProgress: vi.fn(),
         trigger: vi.fn(),

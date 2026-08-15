@@ -1,12 +1,14 @@
 import type { PrismaClient } from "@sourcebot/db";
 import {
     AUDIT_LOG_PRUNE_QUEUE,
+    createLogger,
     JOB_PRIORITIES,
 } from "@sourcebot/shared";
 import type { Workload } from "../types.js";
 
 const BATCH_SIZE = 10_000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const logger = createLogger("audit-log-prune-workload");
 
 interface Props {
     db: PrismaClient;
@@ -34,7 +36,7 @@ export const createAuditLogPruneWorkload = ({
               },
           }
         : {}),
-    process: async ({ logger }) => {
+    process: async () => {
         if (!enabled || retentionDays <= 0) {
             logger.debug("Audit log pruning is disabled.");
             return { deleted: 0 };

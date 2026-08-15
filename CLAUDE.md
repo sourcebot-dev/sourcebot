@@ -24,7 +24,7 @@ Use the workload system in `packages/backend` for background work. Define the qu
 
 ### Execution locks
 
-- Key an execution lock by the logical resource being mutated, not by the job ID. Workloads that mutate the same resource must use the exact same lock key. For example, repo indexing, repo cleanup, and repo permission syncing share the per-repo lock.
+- Key an execution lock by the logical resource being mutated, not by the job ID. Workloads that mutate the same resource must use the exact same lock key. For example, repo indexing and repo cleanup share the per-repo filesystem and search-index lock, while repo permission syncing uses a separate per-repo permission lock.
 - An execution lock serializes work but does not deduplicate it. Multiple jobs for one resource may still be queued and will execute one at a time.
 - The lock lease is extended automatically while work is running. The workload's `AbortSignal` is aborted if extension fails or the worker shuts down.
 - Abortion is cooperative. Call `signal.throwIfAborted()` before side effects and after long-running or external operations so work stops promptly after losing the lock. The signal cannot cancel an operation that has already been submitted.

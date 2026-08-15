@@ -1,6 +1,7 @@
 import { AttachmentStatus, type PrismaClient } from "@sourcebot/db";
 import {
     ATTACHMENT_PRUNE_QUEUE,
+    createLogger,
     getStorageBackend,
     JOB_PRIORITIES,
     type StorageBackend,
@@ -9,6 +10,7 @@ import type { Workload } from "./types.js";
 
 const BATCH_SIZE = 1_000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const logger = createLogger("attachment-prune-workload");
 
 interface Props {
     db: PrismaClient;
@@ -57,7 +59,7 @@ export const createAttachmentPruneWorkload = ({
               },
           }
         : {}),
-    process: async ({ logger }) => {
+    process: async () => {
         if (ttlHours <= 0) {
             logger.debug("Attachment orphan pruning is disabled.");
             return {

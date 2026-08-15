@@ -1,5 +1,4 @@
 import type { PrismaClient } from "@sourcebot/db";
-import type { JobLogger } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -11,6 +10,12 @@ const mocks = vi.hoisted(() => ({
     getReposForAuthenticatedBitbucketCloudUser: vi.fn(),
     getReposForAuthenticatedBitbucketServerUser: vi.fn(),
     hasEntitlement: vi.fn(),
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
 }));
 
 vi.mock("@sentry/node", () => ({
@@ -31,6 +36,7 @@ vi.mock("@sourcebot/shared", async (importOriginal) => ({
             keepLogs: 500,
         },
     },
+    createLogger: vi.fn(() => mocks.logger),
     getIdentityProviderConfig: mocks.getIdentityProviderConfig,
 }));
 
@@ -138,14 +144,6 @@ const db = {
     $transaction: transaction,
 } as unknown as PrismaClient;
 
-const jobLogger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    flush: vi.fn(),
-} satisfies JobLogger;
-
 const createWorkload = () =>
     createAccountPermissionSyncWorkload({
         db,
@@ -162,7 +160,6 @@ const lifecycleContext = {
     attemptsMade: 0,
     maxAttempts: 2,
     prisma: db,
-    logger: jobLogger,
 };
 
 const processContext = {
