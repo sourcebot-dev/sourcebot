@@ -278,7 +278,7 @@ export const createAccountPermissionSyncWorkload = ({
             jobId,
         }) => {
             const account = await db.$transaction(async (tx) => {
-                const { account } = await tx.accountPermissionSyncJob.update({
+                await tx.accountPermissionSyncJob.updateMany({
                     where: {
                         id: jobId,
                     },
@@ -286,13 +286,6 @@ export const createAccountPermissionSyncWorkload = ({
                         status: AccountPermissionSyncJobStatus.COMPLETED,
                         completedAt: new Date(),
                         errorMessage: null,
-                    },
-                    select: {
-                        account: {
-                            include: {
-                                user: true,
-                            },
-                        },
                     },
                 });
                 await tx.account.updateMany({
@@ -306,12 +299,21 @@ export const createAccountPermissionSyncWorkload = ({
                         permissionSyncIssueAt: null,
                     },
                 });
-                return account;
+                return tx.account.findUnique({
+                    where: {
+                        id: accountId,
+                    },
+                    include: {
+                        user: true,
+                    },
+                });
             });
 
-            logger.debug(
-                `Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`,
-            );
+            if (account) {
+                logger.debug(
+                    `Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`,
+                );
+            }
         },
         onTerminalFailure: async (
             { data: { accountId }, jobId },
@@ -324,7 +326,7 @@ export const createAccountPermissionSyncWorkload = ({
                 },
             });
 
-            const { account } = await db.accountPermissionSyncJob.update({
+            await db.accountPermissionSyncJob.updateMany({
                 where: {
                     id: jobId,
                 },
@@ -333,17 +335,18 @@ export const createAccountPermissionSyncWorkload = ({
                     completedAt: new Date(),
                     errorMessage: error.message,
                 },
-                select: {
-                    account: {
-                        include: {
-                            user: true,
-                        },
-                    },
+            });
+            const account = await db.account.findUnique({
+                where: {
+                    id: accountId,
+                },
+                include: {
+                    user: true,
                 },
             });
 
             logger.error(
-                `Account permission sync job failed for account (id: ${accountId}) for user ${account.user.email ?? "unknown user (email not found)"}: ${error.message}`,
+                `Account permission sync job failed for account (id: ${accountId}) for user ${account?.user.email ?? "unknown user (email not found)"}: ${error.message}`,
             );
         },
     };

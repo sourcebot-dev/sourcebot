@@ -96,21 +96,23 @@ const account = {
     user: { email: "user@example.com" },
 };
 const accountFindUniqueOrThrow = vi.fn().mockResolvedValue(account);
+const accountFindUnique = vi.fn().mockResolvedValue(account);
 const accountUpdate = vi.fn().mockResolvedValue(account);
 const accountUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
 const repoFindMany = vi.fn().mockResolvedValue([]);
 const permissionCreateMany = vi.fn().mockResolvedValue({ count: 0 });
 const permissionDeleteMany = vi.fn().mockResolvedValue({ count: 95 });
 const permissionSyncJobUpsert = vi.fn();
-const permissionSyncJobUpdate = vi.fn().mockResolvedValue({ account });
+const permissionSyncJobUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
 const transactionClient = {
     account: {
+        findUnique: accountFindUnique,
         update: accountUpdate,
         updateMany: accountUpdateMany,
     },
     accountPermissionSyncJob: {
         upsert: permissionSyncJobUpsert,
-        update: permissionSyncJobUpdate,
+        updateMany: permissionSyncJobUpdateMany,
     },
 };
 const transaction = vi.fn(
@@ -126,6 +128,7 @@ const transaction = vi.fn(
 
 const db = {
     account: {
+        findUnique: accountFindUnique,
         findUniqueOrThrow: accountFindUniqueOrThrow,
         update: accountUpdate,
         updateMany: accountUpdateMany,
@@ -139,7 +142,7 @@ const db = {
     },
     accountPermissionSyncJob: {
         upsert: permissionSyncJobUpsert,
-        update: permissionSyncJobUpdate,
+        updateMany: permissionSyncJobUpdateMany,
     },
     $transaction: transaction,
 } as unknown as PrismaClient;
@@ -182,10 +185,11 @@ beforeEach(() => {
         .mockReset()
         .mockResolvedValue([]);
     accountFindUniqueOrThrow.mockResolvedValue(account);
+    accountFindUnique.mockResolvedValue(account);
     repoFindMany.mockResolvedValue([]);
     permissionCreateMany.mockResolvedValue({ count: 0 });
     permissionDeleteMany.mockResolvedValue({ count: 95 });
-    permissionSyncJobUpdate.mockResolvedValue({ account });
+    permissionSyncJobUpdateMany.mockResolvedValue({ count: 1 });
     accountUpdateMany.mockResolvedValue({ count: 1 });
 });
 
@@ -428,17 +432,12 @@ describe("accountPermissionSyncWorkload", () => {
     test("marks a job completed and clears the account issue when it is still latest", async () => {
         await createWorkload().onCompleted?.(lifecycleContext, undefined);
 
-        expect(permissionSyncJobUpdate).toHaveBeenCalledWith({
+        expect(permissionSyncJobUpdateMany).toHaveBeenCalledWith({
             where: { id: "job_1" },
             data: {
                 status: "COMPLETED",
                 completedAt: expect.any(Date),
                 errorMessage: null,
-            },
-            select: {
-                account: {
-                    include: { user: true },
-                },
             },
         });
         expect(accountUpdateMany).toHaveBeenCalledWith({
@@ -452,6 +451,10 @@ describe("accountPermissionSyncWorkload", () => {
                 permissionSyncIssueAt: null,
             },
         });
+        expect(accountFindUnique).toHaveBeenCalledWith({
+            where: { id: "account_1" },
+            include: { user: true },
+        });
         expect(transaction).toHaveBeenCalledOnce();
     });
 
@@ -460,7 +463,7 @@ describe("accountPermissionSyncWorkload", () => {
 
         await createWorkload().onTerminalFailure?.(lifecycleContext, error);
 
-        expect(permissionSyncJobUpdate).toHaveBeenCalledWith(
+        expect(permissionSyncJobUpdateMany).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: { id: "job_1" },
                 data: {
@@ -476,5 +479,31 @@ describe("accountPermissionSyncWorkload", () => {
                 queue: "account-permission-sync",
             },
         });
+        expect(accountFindUnique).toHaveBeenCalledWith({
+            where: { id: "account_1" },
+            include: { user: true },
+        });
+    });
+
+    test("completion tolerates a cascaded job and account row", async () => {
+        permissionSyncJobUpdateMany.mockResolvedValue({ count: 0 });
+        accountUpdateMany.mockResolvedValue({ count: 0 });
+        accountFindUnique.mockResolvedValue(null);
+
+        await expect(
+            createWorkload().onCompleted?.(lifecycleContext, undefined),
+        ).resolves.toBeUndefined();
+    });
+
+    test("terminal failure tolerates a cascaded job and account row", async () => {
+        permissionSyncJobUpdateMany.mockResolvedValue({ count: 0 });
+        accountFindUnique.mockResolvedValue(null);
+
+        await expect(
+            createWorkload().onTerminalFailure?.(
+                lifecycleContext,
+                new Error("Upstream unavailable"),
+            ),
+        ).resolves.toBeUndefined();
     });
 });
