@@ -7,7 +7,7 @@ vi.mock("./entitlements.js", () => ({
     isPermissionSyncEnabled,
 }));
 
-import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
+import { reconcileJobSchedulers } from "./reconcileJobSchedulers.js";
 import type { JobManager } from "./types.js";
 
 const mocks = {
@@ -34,7 +34,7 @@ const db = {
 
 const jobManager = mocks as unknown as JobManager;
 
-describe("reconcileJobSchedulersAtStartup", () => {
+describe("reconcileJobSchedulers", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.accountFindMany.mockResolvedValue([
@@ -55,7 +55,7 @@ describe("reconcileJobSchedulersAtStartup", () => {
     });
 
     test("reconciles connection, repository, and permission schedulers", async () => {
-        await reconcileJobSchedulersAtStartup({
+        await reconcileJobSchedulers({
             db,
             jobManager,
             settings: {
@@ -166,7 +166,7 @@ describe("reconcileJobSchedulersAtStartup", () => {
                 : [],
         );
 
-        await reconcileJobSchedulersAtStartup({
+        await reconcileJobSchedulers({
             db,
             jobManager,
             settings: {
@@ -217,7 +217,7 @@ describe("reconcileJobSchedulersAtStartup", () => {
             return [];
         });
 
-        await reconcileJobSchedulersAtStartup({
+        await reconcileJobSchedulers({
             db,
             jobManager,
             settings: {

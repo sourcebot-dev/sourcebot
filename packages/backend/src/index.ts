@@ -17,7 +17,7 @@ import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoInd
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
-import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
+import { reconcileJobSchedulers } from "./reconcileJobSchedulers.js";
 import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
 import { createAuditLogPruneWorkload } from "./ee/auditLogPruneWorkload.js";
 
@@ -91,7 +91,7 @@ await cleanupOrphanedRepoResources(prisma);
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
 await configManager.syncConfig();
 
-await reconcileJobSchedulersAtStartup({
+await reconcileJobSchedulers({
     db: prisma,
     jobManager,
     settings,
