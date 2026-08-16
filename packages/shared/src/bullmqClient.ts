@@ -1,6 +1,7 @@
 import { Queue } from "bullmq";
 import { randomUUID } from "crypto";
 import { Redis } from "ioredis";
+import { isDeepStrictEqual } from "node:util";
 import type {
     DataOf,
     JobEnqueueOptions,
@@ -146,6 +147,42 @@ export class BullMQClient {
     ): Promise<string> {
         const queue = this.getQueue(spec);
         const intervalMs = scheduleToMs(schedule);
+        const template = {
+            name: spec.name,
+            data,
+            opts: {
+                ...(options.priority !== undefined
+                    ? { priority: options.priority }
+                    : {}),
+                attempts: spec.jobOptions.attempts,
+                backoff: {
+                    type: spec.jobOptions.backoff.type,
+                    delay: spec.jobOptions.backoff.delayMs,
+                    ...(spec.jobOptions.backoff.jitter !== undefined
+                        ? { jitter: spec.jobOptions.backoff.jitter }
+                        : {}),
+                },
+                removeOnComplete: spec.jobOptions.keepJobs.completed,
+                removeOnFail: spec.jobOptions.keepJobs.failed,
+                keepLogs: spec.jobOptions.keepLogs,
+            },
+        };
+
+        const existingScheduler = await queue.getJobScheduler(schedulerId);
+        // `startDate` and `next` are scheduler state, not configuration. Avoiding an
+        // unchanged upsert preserves the next run instead of moving it forward.
+        if (
+            existingScheduler?.next !== undefined &&
+            existingScheduler.name === template.name &&
+            existingScheduler.every === intervalMs &&
+            isDeepStrictEqual(
+                existingScheduler.template?.data,
+                template.data,
+            ) &&
+            isDeepStrictEqual(existingScheduler.template?.opts, template.opts)
+        ) {
+            return `repeat:${schedulerId}:${existingScheduler.next}`;
+        }
 
         // @note: jobs produced by BullMQ's scheduler bypass the deduplication check that
         // `Queue.add` goes through, so a dedup key would be silently ignored here.
@@ -156,24 +193,7 @@ export class BullMQClient {
                 startDate: Date.now() + intervalMs,
             },
             {
-                name: spec.name,
-                data,
-                opts: {
-                    ...(options.priority !== undefined
-                        ? { priority: options.priority }
-                        : {}),
-                    attempts: spec.jobOptions.attempts,
-                    backoff: {
-                        type: spec.jobOptions.backoff.type,
-                        delay: spec.jobOptions.backoff.delayMs,
-                        ...(spec.jobOptions.backoff.jitter !== undefined
-                            ? { jitter: spec.jobOptions.backoff.jitter }
-                            : {}),
-                    },
-                    removeOnComplete: spec.jobOptions.keepJobs.completed,
-                    removeOnFail: spec.jobOptions.keepJobs.failed,
-                    keepLogs: spec.jobOptions.keepLogs,
-                },
+                ...template,
             },
         );
 
