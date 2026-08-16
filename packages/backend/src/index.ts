@@ -18,7 +18,6 @@ import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
 import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
-import { hasEntitlement } from "./entitlements.js";
 import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
 import { createAuditLogPruneWorkload } from "./ee/auditLogPruneWorkload.js";
 
@@ -45,10 +44,6 @@ try {
 
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
-const permissionSyncEnabled =
-    env.PERMISSION_SYNC_ENABLED === "true" &&
-    (await hasEntitlement("permission-syncing"));
-
 const promClient = new PromClient();
 
 logger.info('Worker started.');
@@ -58,7 +53,6 @@ const jobManager = new BullMQJobManager(redis);
 const connectionWorkload = createConnectionWorkload({
     db: prisma,
     jobManager,
-    permissionSyncEnabled,
     settings,
 });
 const repoIndexWorkload = createRepoIndexWorkload({
@@ -100,7 +94,6 @@ await configManager.syncConfig();
 await reconcileJobSchedulersAtStartup({
     db: prisma,
     jobManager,
-    permissionSyncEnabled,
     settings,
 });
 

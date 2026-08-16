@@ -14,6 +14,7 @@ import {
     ACCOUNT_PERMISSION_SYNC_WHERE,
     REPO_PERMISSION_SYNC_WHERE,
 } from "./ee/permissionSyncEligibility.js";
+import { isPermissionSyncEnabled } from "./entitlements.js";
 import type { JobManager, Settings } from "./types.js";
 
 interface SchedulerTarget<TName extends QueueName> {
@@ -87,23 +88,43 @@ interface Props {
         | "resyncConnectionIntervalMs"
         | "userDrivenPermissionSyncIntervalMs"
     >;
-    permissionSyncEnabled: boolean;
 }
 
 export const reconcileJobSchedulersAtStartup = async ({
     db,
     jobManager,
     settings,
-    permissionSyncEnabled,
 }: Props): Promise<void> => {
-    const [connections, repos, accountsForPermissionSync, reposForPermissionSync] =
-        await Promise.all([
+    const permissionSyncEnabled = await isPermissionSyncEnabled();
+    const [
+        connections,
+        repos,
+        orphanedReposToCleanup,
+        accountsForPermissionSync,
+        reposForPermissionSync,
+    ] = await Promise.all([
             db.connection.findMany({
                 select: {
                     id: true,
                 },
             }),
             db.repo.findMany({
+                where: {
+                    connections: {
+                        some: {},
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            }),
+            db.repo.findMany({
+                where: {
+                    connections: {
+                        none: {},
+                    },
+                    isAutoCleanupDisabled: false,
+                },
                 select: {
                     id: true,
                 },
@@ -172,4 +193,14 @@ export const reconcileJobSchedulersAtStartup = async ({
             jobOptions: { priority: JOB_PRIORITIES.SCHEDULED },
         }),
     ]);
+
+    await Promise.all(
+        orphanedReposToCleanup.map(({ id }) =>
+            jobManager.trigger(
+                "repo-index",
+                { repoId: id, type: "CLEANUP" },
+                { priority: JOB_PRIORITIES.SCHEDULED },
+            ),
+        ),
+    );
 };

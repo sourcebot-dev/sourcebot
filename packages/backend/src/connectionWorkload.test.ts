@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     getJobSchedulerIds: vi.fn(),
     upsertJobScheduler: vi.fn(),
     removeJobScheduler: vi.fn(),
+    isPermissionSyncEnabled: vi.fn(),
     logger: {
         debug: vi.fn(),
         info: vi.fn(),
@@ -27,6 +28,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@sentry/node", () => ({
     captureException: vi.fn(),
+}));
+
+vi.mock("./entitlements.js", () => ({
+    isPermissionSyncEnabled: mocks.isPermissionSyncEnabled,
 }));
 
 vi.mock("@sourcebot/shared", () => ({
@@ -84,7 +89,7 @@ vi.mock("./ee/syncSearchContexts.js", () => ({
 
 import {
     createConnectionWorkload,
-    persistConnectionRepositories,
+    replaceConnectionRepositories,
     reconcileRepoIndexWork,
     reconcileRepoPermissionSyncWork,
 } from "./connectionWorkload.js";
@@ -130,7 +135,6 @@ const jobManager = {
 const connectionWorkload = createConnectionWorkload({
     db,
     jobManager,
-    permissionSyncEnabled: true,
     settings: {
         maxConnectionSyncJobConcurrency: 2,
         reindexIntervalMs: 3_600_000,
@@ -159,6 +163,7 @@ describe("connectionWorkload", () => {
         mocks.getJobSchedulerIds.mockResolvedValue([]);
         mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
         mocks.removeJobScheduler.mockResolvedValue(true);
+        mocks.isPermissionSyncEnabled.mockResolvedValue(true);
         mocks.loadConfig.mockResolvedValue({ contexts: undefined });
         mocks.syncSearchContexts.mockResolvedValue(undefined);
     });
@@ -382,6 +387,7 @@ describe("connectionWorkload repo sync helpers", () => {
         mocks.getJobSchedulerIds.mockResolvedValue([]);
         mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
         mocks.removeJobScheduler.mockResolvedValue(true);
+        mocks.isPermissionSyncEnabled.mockResolvedValue(true);
     });
 
     test("persists the discovered repository snapshot", async () => {
@@ -423,7 +429,7 @@ describe("connectionWorkload repo sync helpers", () => {
                 indexedAt: null,
             });
 
-        const result = await persistConnectionRepositories({
+        const result = await replaceConnectionRepositories({
             db,
             connectionId: 42,
             orgId: 7,
@@ -564,7 +570,6 @@ describe("connectionWorkload repo sync helpers", () => {
             db,
             jobManager,
             trigger: trigger as ProcessContext<"connection-sync">["trigger"],
-            enabled: true,
             affectedRepoIds: [1, 4, 2, 3],
             intervalMs: 21_600_000,
         });
@@ -623,12 +628,12 @@ describe("connectionWorkload repo sync helpers", () => {
 
     test("removes permission schedules without querying eligibility when disabled", async () => {
         const trigger = vi.fn();
+        mocks.isPermissionSyncEnabled.mockResolvedValue(false);
 
         await reconcileRepoPermissionSyncWork({
             db,
             jobManager,
             trigger: trigger as ProcessContext<"connection-sync">["trigger"],
-            enabled: false,
             affectedRepoIds: [1, 2],
             intervalMs: 21_600_000,
         });

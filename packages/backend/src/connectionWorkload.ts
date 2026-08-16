@@ -9,6 +9,7 @@ import {
     loadConfig,
 } from "@sourcebot/shared";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
+import { isPermissionSyncEnabled } from "./entitlements.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import {
     compileAzureDevOpsConfig,
@@ -28,7 +29,6 @@ const logger = createLogger("connection-workload");
 interface Props {
     db: PrismaClient;
     jobManager: JobManager;
-    permissionSyncEnabled: boolean;
     settings: Settings;
 }
 
@@ -40,7 +40,6 @@ interface ConnectionSyncResult {
 export const createConnectionWorkload = ({
     db,
     jobManager,
-    permissionSyncEnabled,
     settings,
 }: Props): Workload<"connection-sync", ConnectionSyncResult> => ({
     queueSpec: CONNECTION_QUEUE,
@@ -92,7 +91,7 @@ export const createConnectionWorkload = ({
         });
 
         signal.throwIfAborted();
-        const repoChanges = await persistConnectionRepositories({
+        const repoChanges = await replaceConnectionRepositories({
             db,
             connectionId,
             orgId,
@@ -114,7 +113,6 @@ export const createConnectionWorkload = ({
             db,
             jobManager,
             trigger,
-            enabled: permissionSyncEnabled,
             affectedRepoIds: repoChanges.affectedRepoIds,
             intervalMs: settings.repoDrivenPermissionSyncIntervalMs,
         });
@@ -248,7 +246,7 @@ const deduplicateRepos = (repos: RepoData[]): RepoData[] =>
             ),
     );
 
-export const persistConnectionRepositories = async ({
+export const replaceConnectionRepositories = async ({
     db,
     connectionId,
     orgId,
@@ -415,19 +413,19 @@ export const reconcileRepoPermissionSyncWork = async ({
     db,
     jobManager,
     trigger,
-    enabled,
     affectedRepoIds,
     intervalMs,
 }: {
     db: PrismaClient;
     jobManager: JobManager;
     trigger: Trigger;
-    enabled: boolean;
     affectedRepoIds: number[];
     intervalMs: number;
 }): Promise<void> => {
+    const permissionSyncEnabled =
+        affectedRepoIds.length > 0 && (await isPermissionSyncEnabled());
     const [eligibleRepos, existingSchedulerIds] =
-        enabled && affectedRepoIds.length > 0
+        permissionSyncEnabled
             ? await Promise.all([
                   db.repo.findMany({
                       where: {

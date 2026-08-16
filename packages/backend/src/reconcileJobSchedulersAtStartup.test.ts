@@ -1,5 +1,12 @@
 import type { PrismaClient } from "@sourcebot/db";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+
+const isPermissionSyncEnabled = vi.hoisted(() => vi.fn());
+
+vi.mock("./entitlements.js", () => ({
+    isPermissionSyncEnabled,
+}));
+
 import { reconcileJobSchedulersAtStartup } from "./reconcileJobSchedulersAtStartup.js";
 import type { JobManager } from "./types.js";
 
@@ -10,6 +17,7 @@ const mocks = {
     getJobSchedulerIds: vi.fn(),
     upsertJobScheduler: vi.fn(),
     removeJobScheduler: vi.fn(),
+    trigger: vi.fn(),
 };
 
 const db = {
@@ -34,17 +42,22 @@ describe("reconcileJobSchedulersAtStartup", () => {
             { id: "account-2" },
         ]);
         mocks.connectionFindMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
-        mocks.repoFindMany.mockResolvedValue([{ id: 42 }, { id: 84 }]);
+        mocks.repoFindMany.mockImplementation(async ({ where }) =>
+            where?.isAutoCleanupDisabled === false
+                ? []
+                : [{ id: 42 }, { id: 84 }],
+        );
         mocks.getJobSchedulerIds.mockResolvedValue([]);
         mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
         mocks.removeJobScheduler.mockResolvedValue(true);
+        mocks.trigger.mockResolvedValue("triggered-job");
+        isPermissionSyncEnabled.mockResolvedValue(true);
     });
 
     test("reconciles connection, repository, and permission schedulers", async () => {
         await reconcileJobSchedulersAtStartup({
             db,
             jobManager,
-            permissionSyncEnabled: true,
             settings: {
                 resyncConnectionIntervalMs: 86_400_000,
                 reindexIntervalMs: 3_600_000,
@@ -57,6 +70,20 @@ describe("reconcileJobSchedulersAtStartup", () => {
             select: { id: true },
         });
         expect(mocks.repoFindMany).toHaveBeenCalledWith({
+            where: {
+                connections: {
+                    some: {},
+                },
+            },
+            select: { id: true },
+        });
+        expect(mocks.repoFindMany).toHaveBeenCalledWith({
+            where: {
+                connections: {
+                    none: {},
+                },
+                isAutoCleanupDisabled: false,
+            },
             select: { id: true },
         });
         expect(mocks.accountFindMany).toHaveBeenCalledWith({
@@ -123,7 +150,63 @@ describe("reconcileJobSchedulersAtStartup", () => {
         );
     });
 
+    test("removes index schedulers and cleans up orphaned repos", async () => {
+        mocks.repoFindMany.mockImplementation(async ({ where }) => {
+            if (where?.isAutoCleanupDisabled === false) {
+                return [{ id: 84 }];
+            }
+            if (where?.isPublic === false) {
+                return [];
+            }
+            return [{ id: 42 }];
+        });
+        mocks.getJobSchedulerIds.mockImplementation(async (workloadName) =>
+            workloadName === "repo-index"
+                ? ["repo-index-v1-42", "repo-index-v1-84"]
+                : [],
+        );
+
+        await reconcileJobSchedulersAtStartup({
+            db,
+            jobManager,
+            settings: {
+                resyncConnectionIntervalMs: 86_400_000,
+                reindexIntervalMs: 3_600_000,
+                userDrivenPermissionSyncIntervalMs: 43_200_000,
+                repoDrivenPermissionSyncIntervalMs: 21_600_000,
+            },
+        });
+
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-42",
+            3_600_000,
+            { repoId: 42, type: "INDEX" },
+            { priority: 10 },
+        );
+        expect(mocks.upsertJobScheduler).not.toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-84",
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+        );
+        expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-84",
+        );
+        expect(mocks.trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 84, type: "CLEANUP" },
+            { priority: 10 },
+        );
+        expect(
+            mocks.removeJobScheduler.mock.invocationCallOrder[0],
+        ).toBeLessThan(mocks.trigger.mock.invocationCallOrder[0]);
+    });
+
     test("removes permission schedulers when permission syncing is disabled", async () => {
+        isPermissionSyncEnabled.mockResolvedValue(false);
         mocks.getJobSchedulerIds.mockImplementation(async (workloadName) => {
             if (workloadName === "account-permission-sync") {
                 return ["account-permission-sync-v1-account-1"];
@@ -137,7 +220,6 @@ describe("reconcileJobSchedulersAtStartup", () => {
         await reconcileJobSchedulersAtStartup({
             db,
             jobManager,
-            permissionSyncEnabled: false,
             settings: {
                 resyncConnectionIntervalMs: 86_400_000,
                 reindexIntervalMs: 3_600_000,
@@ -147,7 +229,7 @@ describe("reconcileJobSchedulersAtStartup", () => {
         });
 
         expect(mocks.accountFindMany).not.toHaveBeenCalled();
-        expect(mocks.repoFindMany).toHaveBeenCalledOnce();
+        expect(mocks.repoFindMany).toHaveBeenCalledTimes(2);
         expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
             "account-permission-sync",
             "account-permission-sync-v1-account-1",

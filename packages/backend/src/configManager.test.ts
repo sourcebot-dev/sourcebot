@@ -15,18 +15,24 @@ const mocks = vi.hoisted(() => {
         syncSearchContexts: vi.fn(),
         trigger: vi.fn(),
         upsertJobScheduler: vi.fn(),
+        getJobSchedulerIds: vi.fn(),
         removeJobScheduler: vi.fn(),
         connectionFindUnique: vi.fn(),
         connectionCreate: vi.fn(),
         connectionUpdate: vi.fn(),
         connectionFindMany: vi.fn(),
         connectionDelete: vi.fn(),
+        repoFindMany: vi.fn(),
+        repoToConnectionDeleteMany: vi.fn(),
+        isPermissionSyncEnabled: vi.fn(),
     };
 });
 
 vi.mock("@sourcebot/shared", () => ({
     createLogger: vi.fn(() => ({
         debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
         error: vi.fn(),
     })),
     env: {
@@ -37,6 +43,18 @@ vi.mock("@sourcebot/shared", () => ({
         INTERACTIVE: 1,
         SCHEDULED: 10,
     },
+    PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: [
+        "github",
+        "gitlab",
+        "bitbucketCloud",
+        "bitbucketServer",
+    ],
+    PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: [
+        "github",
+        "gitlab",
+        "bitbucket-cloud",
+        "bitbucket-server",
+    ],
     loadConfig: mocks.loadConfig,
     resolveConfigSettings: mocks.resolveConfigSettings,
 }));
@@ -51,6 +69,10 @@ vi.mock("./ee/syncSearchContexts.js", () => ({
     syncSearchContexts: mocks.syncSearchContexts,
 }));
 
+vi.mock("./entitlements.js", () => ({
+    isPermissionSyncEnabled: mocks.isPermissionSyncEnabled,
+}));
+
 vi.mock("./prisma.js", () => ({
     prisma: {
         connection: {
@@ -60,6 +82,12 @@ vi.mock("./prisma.js", () => ({
             findMany: mocks.connectionFindMany,
             delete: mocks.connectionDelete,
         },
+        repo: {
+            findMany: mocks.repoFindMany,
+        },
+        repoToConnection: {
+            deleteMany: mocks.repoToConnectionDeleteMany,
+        },
     },
 }));
 
@@ -68,6 +96,7 @@ import { ConfigManager } from "./configManager.js";
 const jobManager = {
     trigger: mocks.trigger,
     upsertJobScheduler: mocks.upsertJobScheduler,
+    getJobSchedulerIds: mocks.getJobSchedulerIds,
     removeJobScheduler: mocks.removeJobScheduler,
 } as unknown as JobManager;
 
@@ -78,6 +107,8 @@ describe("ConfigManager", () => {
         mocks.watcher.on.mockReturnValue(mocks.watcher);
         mocks.resolveConfigSettings.mockReturnValue({
             resyncConnectionIntervalMs: 86_400_000,
+            reindexIntervalMs: 3_600_000,
+            repoDrivenPermissionSyncIntervalMs: 86_400_000,
         });
         mocks.syncSearchContexts.mockResolvedValue(undefined);
         mocks.trigger.mockResolvedValue("triggered-job");
@@ -88,6 +119,10 @@ describe("ConfigManager", () => {
         mocks.connectionUpdate.mockResolvedValue({ id: 42 });
         mocks.connectionFindMany.mockResolvedValue([]);
         mocks.connectionDelete.mockResolvedValue(undefined);
+        mocks.repoFindMany.mockResolvedValue([]);
+        mocks.repoToConnectionDeleteMany.mockResolvedValue({ count: 0 });
+        mocks.getJobSchedulerIds.mockResolvedValue([]);
+        mocks.isPermissionSyncEnabled.mockResolvedValue(false);
     });
 
     test("triggers a new connection during config sync", async () => {
@@ -145,6 +180,72 @@ describe("ConfigManager", () => {
         );
         expect(
             mocks.removeJobScheduler.mock.invocationCallOrder[0],
+        ).toBeLessThan(mocks.connectionDelete.mock.invocationCallOrder[0]);
+    });
+
+    test("cleans up orphaned repos and reconciles shared repos before deleting a connection", async () => {
+        mocks.loadConfig.mockResolvedValue({});
+        mocks.connectionFindMany.mockResolvedValue([
+            { id: 42, name: "removed-connection", orgId: 1 },
+        ]);
+        mocks.repoFindMany
+            .mockResolvedValueOnce([{ id: 1 }, { id: 2 }])
+            .mockResolvedValueOnce([{ id: 1, name: "orphaned-repo" }])
+            .mockResolvedValueOnce([
+                { id: 2, permissionSyncedAt: new Date("2026-08-15") },
+            ]);
+        mocks.getJobSchedulerIds.mockResolvedValue([
+            "repo-permission-sync-v1-2",
+        ]);
+        mocks.isPermissionSyncEnabled.mockResolvedValue(true);
+        const manager = new ConfigManager(jobManager, "/config.json");
+
+        await manager.syncConfig();
+
+        expect(mocks.repoToConnectionDeleteMany).toHaveBeenCalledWith({
+            where: {
+                connectionId: 42,
+                repoId: { in: [1, 2] },
+            },
+        });
+        expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-1",
+        );
+        expect(mocks.removeJobScheduler).not.toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-2",
+        );
+        expect(mocks.trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 1, type: "CLEANUP" },
+            { priority: 10 },
+        );
+        expect(mocks.trigger).not.toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 2, type: "CLEANUP" },
+            expect.anything(),
+        );
+        expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
+            "repo-permission-sync",
+            "repo-permission-sync-v1-1",
+        );
+        expect(mocks.removeJobScheduler).not.toHaveBeenCalledWith(
+            "repo-permission-sync",
+            "repo-permission-sync-v1-2",
+        );
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            "repo-permission-sync",
+            "repo-permission-sync-v1-2",
+            86_400_000,
+            { repoId: 2 },
+            { priority: 10 },
+        );
+        expect(mocks.connectionDelete).toHaveBeenCalledWith({
+            where: { id: 42 },
+        });
+        expect(
+            mocks.trigger.mock.invocationCallOrder[0],
         ).toBeLessThan(mocks.connectionDelete.mock.invocationCallOrder[0]);
     });
 

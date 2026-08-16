@@ -8,11 +8,16 @@ import {
 } from "@sourcebot/shared";
 import type { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import chokidar, { FSWatcher } from 'chokidar';
+import {
+    reconcileRepoIndexWork,
+    reconcileRepoPermissionSyncWork,
+    replaceConnectionRepositories,
+} from "./connectionWorkload.js";
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import isEqual from 'fast-deep-equal';
 import { prisma } from "./prisma.js";
-import type { JobManager } from "./types.js";
+import type { JobManager, Settings } from "./types.js";
 
 const logger = createLogger('config-manager');
 const getConnectionSyncSchedulerId = (connectionId: number) =>
@@ -50,7 +55,7 @@ export class ConfigManager {
 
         await this.syncConnections(
             config.connections,
-            settings.resyncConnectionIntervalMs,
+            settings,
         );
         await syncSearchContexts({
             contexts: config.contexts,
@@ -60,7 +65,7 @@ export class ConfigManager {
 
     private syncConnections = async (
         connections: { [key: string]: ConnectionConfig } | undefined,
-        intervalMs: number,
+        settings: Settings,
     ) => {
         const connectionIdsToSync: number[] = [];
 
@@ -117,7 +122,7 @@ export class ConfigManager {
                     await this.jobManager.upsertJobScheduler(
                         "connection-sync",
                         getConnectionSyncSchedulerId(connection.id),
-                        intervalMs,
+                        settings.resyncConnectionIntervalMs,
                         { connectionId: connection.id },
                         { priority: JOB_PRIORITIES.SCHEDULED },
                     );
@@ -151,11 +156,38 @@ export class ConfigManager {
         );
 
         for (const connection of deletedConnections) {
-            logger.debug(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+            logger.info(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
             await this.jobManager.removeJobScheduler(
                 "connection-sync",
                 getConnectionSyncSchedulerId(connection.id),
             );
+
+            const repoChanges = await replaceConnectionRepositories({
+                db: prisma,
+                connectionId: connection.id,
+                orgId: connection.orgId,
+                discoveredRepos: [],
+            });
+
+            await reconcileRepoIndexWork({
+                jobManager: this.jobManager,
+                trigger: (workloadName, data, options) =>
+                    this.jobManager.trigger(workloadName, data, options),
+                currentRepos: repoChanges.currentRepos,
+                unindexedRepos: repoChanges.unindexedRepos,
+                orphanedRepos: repoChanges.orphanedRepos,
+                intervalMs: settings.reindexIntervalMs,
+            });
+
+            await reconcileRepoPermissionSyncWork({
+                db: prisma,
+                jobManager: this.jobManager,
+                trigger: (workloadName, data, options) =>
+                    this.jobManager.trigger(workloadName, data, options),
+                affectedRepoIds: repoChanges.affectedRepoIds,
+                intervalMs: settings.repoDrivenPermissionSyncIntervalMs,
+            });
+
             await prisma.connection.delete({
                 where: {
                     id: connection.id,
