@@ -84,7 +84,7 @@ jobManager.register(repoPermissionSyncWorkload);
 jobManager.register(attachmentPruneWorkload);
 jobManager.register(auditLogPruneWorkload);
 
-const api = new Api(promClient, prisma, jobManager);
+const api = new Api(promClient, prisma, jobManager, redis);
 
 await cleanupOrphanedRepoResources(prisma);
 
@@ -115,11 +115,11 @@ const listenToShutdownSignals = () => {
             logger.info(`Received ${signal}, cleaning up...`);
 
             await configManager.dispose()
+            await api.dispose();
             await jobManager.stop();
 
             await prisma.$disconnect();
             await redis.quit();
-            await api.dispose();
             await shutdownPosthog();
 
             logger.info('All workers shut down gracefully');

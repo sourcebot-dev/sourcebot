@@ -1355,35 +1355,53 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bull-board/api@npm:6.11.2":
-  version: 6.11.2
-  resolution: "@bull-board/api@npm:6.11.2"
+"@bull-board/api@npm:9.0.0":
+  version: 9.0.0
+  resolution: "@bull-board/api@npm:9.0.0"
   dependencies:
     redis-info: "npm:^3.1.0"
   peerDependencies:
-    "@bull-board/ui": 6.11.2
-  checksum: 10c0/d6a82bdd598d41c4e09dd4e8a001f49e87ed40aa535ca841c5430590f0df206ae49ac8835c2832b00cd6bdb413ef89ea7083a5ffc1b779a307744ea69d83c76d
+    "@bull-board/ui": 9.0.0
+    bull: ^4.16.5
+    bullmq: ^5.79.2 || ^6.0.0
+  peerDependenciesMeta:
+    bull:
+      optional: true
+    bullmq:
+      optional: true
+  checksum: 10c0/00a5e5e03a52f268901d74ff3ad6ece93967577b892ae6e3c5b4137f7e894b739bbc46bfd43b35de60830ec90647c9daaf8ca0756f5114c4a922e1f11ff39688
   languageName: node
   linkType: hard
 
-"@bull-board/express@npm:6.11.2":
-  version: 6.11.2
-  resolution: "@bull-board/express@npm:6.11.2"
+"@bull-board/express@npm:9.0.0":
+  version: 9.0.0
+  resolution: "@bull-board/express@npm:9.0.0"
   dependencies:
-    "@bull-board/api": "npm:6.11.2"
-    "@bull-board/ui": "npm:6.11.2"
-    ejs: "npm:^3.1.10"
-    express: "npm:^4.21.1 || ^5.0.0"
-  checksum: 10c0/36cf6fb63f51f095934ba6167be8704f45d881c882d56e11e34f9b60e0dac16bc989553292942797af0f62beac2c10f116a852988dadb1bc07cd06d48e1b8ae3
+    "@bull-board/api": "npm:9.0.0"
+    "@bull-board/ui": "npm:9.0.0"
+    ejs: "npm:^6.0.1"
+    express: "npm:^5.2.1"
+  checksum: 10c0/47e9c20e6f781bfe9f29e8cf41fea8c15f89f6134d57e3df981c35a9cedfe16ab5e83e885451ba5d130518585ca4b0fbf2775a207e661cdad361fd816589dbeb
   languageName: node
   linkType: hard
 
-"@bull-board/ui@npm:6.11.2":
-  version: 6.11.2
-  resolution: "@bull-board/ui@npm:6.11.2"
+"@bull-board/metrics@npm:9.0.0":
+  version: 9.0.0
+  resolution: "@bull-board/metrics@npm:9.0.0"
   dependencies:
-    "@bull-board/api": "npm:6.11.2"
-  checksum: 10c0/7ddcb49222c09f32f63d9a55f000445cd59dd6c73620f5e30ffcf04cfa8727c91918485a7c3d17c709d2b721b4a8d32d2026c2a7f208953cd3facd602e595f03
+    "@bull-board/api": "npm:9.0.0"
+  peerDependencies:
+    ioredis: ^5.0.0 || ^6.0.0
+  checksum: 10c0/303665fd0b49eb51bacc042e66a5ec0e7edf088302384e51d68b2bc5da97801f30e5e1e9a0ff6d43324735cf8240a023813080c64d462245c7d96be7b1ec4ff5
+  languageName: node
+  linkType: hard
+
+"@bull-board/ui@npm:9.0.0":
+  version: 9.0.0
+  resolution: "@bull-board/ui@npm:9.0.0"
+  dependencies:
+    "@bull-board/api": "npm:9.0.0"
+  checksum: 10c0/1e21d822dfbac020d474661a6dea2be15434dcb76d9d4c34165d7fb292be75348771e09d02cf84e2ed4c54041f69212a6ea62f2bc0a1c0697e5a022d0a835fb1
   languageName: node
   linkType: hard
 
@@ -8801,9 +8819,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/backend@workspace:packages/backend"
   dependencies:
-    "@bull-board/api": "npm:6.11.2"
-    "@bull-board/express": "npm:6.11.2"
-    "@bull-board/ui": "npm:6.11.2"
+    "@bull-board/api": "npm:9.0.0"
+    "@bull-board/express": "npm:9.0.0"
+    "@bull-board/metrics": "npm:9.0.0"
+    "@bull-board/ui": "npm:9.0.0"
     "@coderabbitai/bitbucket": "npm:^1.1.3"
     "@gitbeaker/rest": "npm:^40.5.1"
     "@octokit/app": "npm:^16.1.1"
@@ -11188,7 +11207,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"async@npm:^3.2.3, async@npm:^3.2.6":
+"async@npm:^3.2.3":
   version: 3.2.6
   resolution: "async@npm:3.2.6"
   checksum: 10c0/36484bb15ceddf07078688d95e27076379cc2f87b10c03b6dd8a83e89475a3c8df5848859dd06a4c95af1e4c16fc973de0171a77f18ea00be899aca2a4f85e70
@@ -11444,7 +11463,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"brace-expansion@npm:^2.0.1, brace-expansion@npm:^2.0.3":
+"brace-expansion@npm:^2.0.3":
   version: 2.1.4
   resolution: "brace-expansion@npm:2.1.4"
   dependencies:
@@ -13379,14 +13398,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ejs@npm:^3.1.10":
-  version: 3.1.10
-  resolution: "ejs@npm:3.1.10"
-  dependencies:
-    jake: "npm:^10.8.5"
+"ejs@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "ejs@npm:6.0.1"
   bin:
     ejs: bin/cli.js
-  checksum: 10c0/52eade9e68416ed04f7f92c492183340582a36482836b11eab97b159fcdcfdedc62233a1bf0bf5e5e1851c501f2dca0e2e9afd111db2599e4e7f53ee29429ae1
+  checksum: 10c0/475665efdab9deb01448a0b136129d138483228520138b2fba7991330255e4e1050eae145124c26101ff1ab158bf5f506f19a8dae5996054fc7e76bb94a12ebd
   languageName: node
   linkType: hard
 
@@ -14403,42 +14420,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express@npm:^4.21.1 || ^5.0.0, express@npm:^5.2.1":
-  version: 5.2.1
-  resolution: "express@npm:5.2.1"
-  dependencies:
-    accepts: "npm:^2.0.0"
-    body-parser: "npm:^2.2.1"
-    content-disposition: "npm:^1.0.0"
-    content-type: "npm:^1.0.5"
-    cookie: "npm:^0.7.1"
-    cookie-signature: "npm:^1.2.1"
-    debug: "npm:^4.4.0"
-    depd: "npm:^2.0.0"
-    encodeurl: "npm:^2.0.0"
-    escape-html: "npm:^1.0.3"
-    etag: "npm:^1.8.1"
-    finalhandler: "npm:^2.1.0"
-    fresh: "npm:^2.0.0"
-    http-errors: "npm:^2.0.0"
-    merge-descriptors: "npm:^2.0.0"
-    mime-types: "npm:^3.0.0"
-    on-finished: "npm:^2.4.1"
-    once: "npm:^1.4.0"
-    parseurl: "npm:^1.3.3"
-    proxy-addr: "npm:^2.0.7"
-    qs: "npm:^6.14.0"
-    range-parser: "npm:^1.2.1"
-    router: "npm:^2.2.0"
-    send: "npm:^1.1.0"
-    serve-static: "npm:^2.2.0"
-    statuses: "npm:^2.0.1"
-    type-is: "npm:^2.0.1"
-    vary: "npm:^1.1.2"
-  checksum: 10c0/45e8c841ad188a41402ddcd1294901e861ee0819f632fb494f2ed344ef9c43315d294d443fb48d594e6586a3b779785120f43321417adaef8567316a55072949
-  languageName: node
-  linkType: hard
-
 "express@npm:^4.22.2":
   version: 4.22.2
   resolution: "express@npm:4.22.2"
@@ -14475,6 +14456,42 @@ __metadata:
     utils-merge: "npm:1.0.1"
     vary: "npm:~1.1.2"
   checksum: 10c0/d06dd4379fd217440b30f8abbe45f0e74931114c1395034f03e7d635196ecdab530d4835a1962a6aa34838d61967dc6f1f77846999bba3032373e9e714222c44
+  languageName: node
+  linkType: hard
+
+"express@npm:^5.2.1":
+  version: 5.2.1
+  resolution: "express@npm:5.2.1"
+  dependencies:
+    accepts: "npm:^2.0.0"
+    body-parser: "npm:^2.2.1"
+    content-disposition: "npm:^1.0.0"
+    content-type: "npm:^1.0.5"
+    cookie: "npm:^0.7.1"
+    cookie-signature: "npm:^1.2.1"
+    debug: "npm:^4.4.0"
+    depd: "npm:^2.0.0"
+    encodeurl: "npm:^2.0.0"
+    escape-html: "npm:^1.0.3"
+    etag: "npm:^1.8.1"
+    finalhandler: "npm:^2.1.0"
+    fresh: "npm:^2.0.0"
+    http-errors: "npm:^2.0.0"
+    merge-descriptors: "npm:^2.0.0"
+    mime-types: "npm:^3.0.0"
+    on-finished: "npm:^2.4.1"
+    once: "npm:^1.4.0"
+    parseurl: "npm:^1.3.3"
+    proxy-addr: "npm:^2.0.7"
+    qs: "npm:^6.14.0"
+    range-parser: "npm:^1.2.1"
+    router: "npm:^2.2.0"
+    send: "npm:^1.1.0"
+    serve-static: "npm:^2.2.0"
+    statuses: "npm:^2.0.1"
+    type-is: "npm:^2.0.1"
+    vary: "npm:^1.1.2"
+  checksum: 10c0/45e8c841ad188a41402ddcd1294901e861ee0819f632fb494f2ed344ef9c43315d294d443fb48d594e6586a3b779785120f43321417adaef8567316a55072949
   languageName: node
   linkType: hard
 
@@ -14695,15 +14712,6 @@ __metadata:
   dependencies:
     tslib: "npm:^2.7.0"
   checksum: 10c0/fe827e0e95410aacfcc3eabc38c29cc36055257f03c1c06b631a2b5af9730c142ad2c52f5d64724d02231709617bda984701f52bd1f4b7aca50fb6585a27c1d2
-  languageName: node
-  linkType: hard
-
-"filelist@npm:^1.0.4":
-  version: 1.0.6
-  resolution: "filelist@npm:1.0.6"
-  dependencies:
-    minimatch: "npm:^5.0.1"
-  checksum: 10c0/6ee725bec3e1936d680a45f14439b224d9f7c71658c145addcf551dd82f03d608522eb6b191aa086b392bc3e52ed4ce0ed8d78e24b203e6c5e867560a05d1121
   languageName: node
   linkType: hard
 
@@ -16383,19 +16391,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jake@npm:^10.8.5":
-  version: 10.9.4
-  resolution: "jake@npm:10.9.4"
-  dependencies:
-    async: "npm:^3.2.6"
-    filelist: "npm:^1.0.4"
-    picocolors: "npm:^1.1.1"
-  bin:
-    jake: bin/cli.js
-  checksum: 10c0/bb52f000340d4a32f1a3893b9abe56ef2b77c25da4dbf2c0c874a8159d082dddda50a5ad10e26060198bd645b928ba8dba3b362710f46a247e335321188c5a9c
-  languageName: node
-  linkType: hard
-
 "jiti@npm:2.4.2":
   version: 2.4.2
   resolution: "jiti@npm:2.4.2"
@@ -18010,15 +18005,6 @@ __metadata:
   dependencies:
     brace-expansion: "npm:^1.1.7"
   checksum: 10c0/2ecbdc0d33f07bddb0315a8b5afbcb761307a8778b48f0b312418ccbced99f104a2d17d8aca7573433c70e8ccd1c56823a441897a45e384ea76ef401a26ace70
-  languageName: node
-  linkType: hard
-
-"minimatch@npm:^5.0.1":
-  version: 5.1.9
-  resolution: "minimatch@npm:5.1.9"
-  dependencies:
-    brace-expansion: "npm:^2.0.1"
-  checksum: 10c0/4202718683815a7288b13e470160a4f9560cf392adef4f453927505817e01ef6b3476ecde13cfcaed17e7326dd3b69ad44eb2daeb19a217c5500f9277893f1d6
   languageName: node
   linkType: hard
 

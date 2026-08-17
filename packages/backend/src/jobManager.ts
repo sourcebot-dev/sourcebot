@@ -10,7 +10,7 @@ import {
     scheduleToMs,
     runWithJobLogContext,
 } from "@sourcebot/shared";
-import { Job, Queue, Worker } from "bullmq";
+import { Job, MetricsTime, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 import { createExecutionLockRunner } from "./executionLock.js";
@@ -220,6 +220,7 @@ export class BullMQJobManager implements JobManager {
                 connection: this.connection,
                 concurrency,
                 maxStalledCount: 1,
+                metrics: { maxDataPoints: MetricsTime.ONE_WEEK },
                 ...(rateLimit
                     ? {
                           limiter: {
