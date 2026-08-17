@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
+    getIdentityProviderConfigs: vi.fn(),
     hasEntitlement: vi.fn(),
     removeAccountPermissionSyncScheduler: vi.fn(),
     scheduleAndTriggerAccountPermissionSync: vi.fn(),
@@ -38,13 +39,14 @@ vi.mock('@sourcebot/shared', () => ({
     doesIdpSupportPermissionSyncing: () => true,
     env: { PERMISSION_SYNC_ENABLED: 'true' },
     getIdentityProviderConfig: vi.fn(),
-    getIdentityProviderConfigs: vi.fn(),
+    getIdentityProviderConfigs: mocks.getIdentityProviderConfigs,
 }));
 vi.mock('next/headers', () => ({
     cookies: vi.fn(),
 }));
 
 const {
+    getLinkedAccounts,
     triggerAccountPermissionSync,
     unlinkLinkedAccountProvider,
 } = await import('./actions');
@@ -56,6 +58,8 @@ beforeEach(() => {
     mocks.scheduleAndTriggerAccountPermissionSync.mockResolvedValue({
         jobId: 'job-1',
     });
+    // Default: empty identity provider config; specific tests override.
+    mocks.getIdentityProviderConfigs.mockResolvedValue({});
 });
 
 describe('triggerAccountPermissionSync', () => {
@@ -152,5 +156,98 @@ describe('unlinkLinkedAccountProvider', () => {
             unlinkLinkedAccountProvider('github'),
         ).rejects.toThrow('Redis unavailable');
         expect(deleteMany).not.toHaveBeenCalled();
+    });
+});
+
+describe('getLinkedAccounts', () => {
+    test('merges linked accounts with unlinked account_linking providers from config', async () => {
+        const findMany = vi.fn().mockResolvedValue([
+            {
+                id: 'account-1',
+                providerType: 'github',
+                providerId: 'github',
+                providerAccountId: 'gh-1',
+                permissionSyncIssue: null,
+            },
+        ]);
+        mocks.authContext = {
+            prisma: { account: { findMany } },
+            role: 'MEMBER',
+            user: { id: 'user-1' },
+        };
+        mocks.getIdentityProviderConfigs.mockResolvedValue({
+            github: {
+                provider: 'github',
+                displayName: 'GitHub',
+                purpose: 'account_linking',
+                accountLinkingRequired: false,
+            },
+            'gitlab-corp': {
+                provider: 'gitlab',
+                displayName: 'GitLab Corp',
+                purpose: 'account_linking',
+                accountLinkingRequired: true,
+            },
+        });
+
+        const result = await getLinkedAccounts();
+
+        // The single linked account (from the DB) is included.
+        expect(result).toContainEqual(
+            expect.objectContaining({
+                providerId: 'github',
+                providerType: 'github',
+                displayName: 'GitHub',
+                isLinked: true,
+                accountId: 'account-1',
+                providerAccountId: 'gh-1',
+                isAccountLinkingProvider: true,
+                required: false,
+                supportsPermissionSync: true,
+            }),
+        );
+        // The unlinked account_linking provider from config is also surfaced.
+        expect(result).toContainEqual(
+            expect.objectContaining({
+                providerId: 'gitlab-corp',
+                providerType: 'gitlab',
+                displayName: 'GitLab Corp',
+                isLinked: false,
+                isAccountLinkingProvider: true,
+                required: true,
+            }),
+        );
+        // Linked accounts come before unlinked entries (preserves existing order).
+        expect(result.map((r) => r.providerId)).toEqual([
+            'github',
+            'gitlab-corp',
+        ]);
+    });
+
+    test('loads the identity provider config exactly once regardless of account count', async () => {
+        // Regression test for the N+1 in getIdentityProviderConfig -> getIdentityProviderConfigs
+        // -> loadConfig. With five linked accounts, the config should be loaded
+        // once, not five times.
+        const findMany = vi.fn().mockResolvedValue(
+            ['github', 'gitlab', 'google', 'azure-ad', 'okta'].map(
+                (providerId, index) => ({
+                    id: `account-${index + 1}`,
+                    providerType: providerId,
+                    providerId,
+                    providerAccountId: `${providerId}-1`,
+                    permissionSyncIssue: null,
+                }),
+            ),
+        );
+        mocks.authContext = {
+            prisma: { account: { findMany } },
+            role: 'MEMBER',
+            user: { id: 'user-1' },
+        };
+        mocks.getIdentityProviderConfigs.mockResolvedValue({});
+
+        await getLinkedAccounts();
+
+        expect(mocks.getIdentityProviderConfigs).toHaveBeenCalledTimes(1);
     });
 });

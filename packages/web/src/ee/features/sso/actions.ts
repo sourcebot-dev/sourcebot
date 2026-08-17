@@ -6,7 +6,7 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole, type AccountPermissionSyncIssue } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
-import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfig, getIdentityProviderConfigs } from "@sourcebot/shared";
+import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfigs } from "@sourcebot/shared";
 import { cookies } from "next/headers";
 import { removeAccountPermissionSyncScheduler, scheduleAndTriggerAccountPermissionSync } from "@/ee/features/permissionSync/accountPermissionSyncQueue.server";
 import { unexpectedError } from "@/lib/serviceError";
@@ -50,11 +50,18 @@ export const getLinkedAccounts = async () => sew(() =>
                 env.PERMISSION_SYNC_ENABLED === 'true' &&
                 await hasEntitlement('permission-syncing');
 
+            // getIdentityProviderConfig re-invokes getIdentityProviderConfigs
+            // (and therefore loadConfig) on every call, so calling it inside the
+            // loop below would re-read the config file once per linked account.
+            // Hoist the lookup to a single call before the loop, mirroring the
+            // pattern already used by the second loop in this function.
+            const identityProviders = await getIdentityProviderConfigs();
+
             const result: LinkedAccount[] = [];
 
             // All connected accounts (from DB), enriched with config data where available
             for (const account of accounts) {
-                const providerConfig = await getIdentityProviderConfig(account.providerId);
+                const providerConfig = identityProviders[account.providerId];
                 const isAccountLinking = providerConfig?.purpose === 'account_linking';
 
                 result.push({
@@ -71,8 +78,8 @@ export const getLinkedAccounts = async () => sew(() =>
                 });
             }
 
-            // Unlinked account_linking providers from config (not yet connected)
-            const identityProviders = await getIdentityProviderConfigs();
+            // Unlinked account_linking providers from config (not yet connected).
+            // Reuses the `identityProviders` map loaded once above.
             for (const [id, providerConfig] of Object.entries(identityProviders)) {
                 const account = accounts.find((account) => account.providerId === id);
                 if (!account) {
