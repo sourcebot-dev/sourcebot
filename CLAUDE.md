@@ -18,6 +18,26 @@ To build a specific package:
 yarn workspace @sourcebot/<package-name> build
 ```
 
+## Backend Workloads
+
+Use the workload system in `packages/backend` for background work. Define the queue payload and default job behavior in the shared queue registry, implement a `Workload`, and register it with the `JobManager`.
+
+### Execution locks
+
+- Key an execution lock by the logical resource being mutated, not by the job ID. Workloads that mutate the same resource must use the exact same lock key. For example, repo indexing and repo cleanup share the per-repo filesystem and search-index lock, while repo permission syncing uses a separate per-repo permission lock.
+- An execution lock serializes work but does not deduplicate it. Multiple jobs for one resource may still be queued and will execute one at a time.
+- The lock lease is extended automatically while work is running. The workload's `AbortSignal` is aborted if extension fails or the worker shuts down.
+- Abortion is cooperative. Call `signal.throwIfAborted()` before side effects and after long-running or external operations so work stops promptly after losing the lock. The signal cannot cancel an operation that has already been submitted.
+- `onStarted` runs after the execution lock is acquired and immediately before `process`. `onCompleted` and `onTerminalFailure` are BullMQ event hooks and run after the processor has returned and released the lock.
+
+### Lifecycle state
+
+- In `onStarted`, upsert the workload-specific job row as `IN_PROGRESS`. If the parent resource tracks a `latest...JobId`, update that pointer in the same database transaction.
+- Completion and terminal-failure hooks must always update their own historical job row by job ID. Do not condition that update on the job still being latest. Every job row should record its actual outcome.
+- `onTerminalFailure` only runs after the job exhausts all retry attempts. Intermediate failures are retried without marking the lifecycle row as terminally failed.
+- If a completion or failure hook publishes state onto the parent resource, use a conditional `updateMany` keyed by both the resource ID and its `latest...JobId`. This prevents an older hook from overwriting state belonging to a newer job after the execution lock has been released.
+- Parent-resource state written inside `process` is already serialized by the execution lock. It does not need a latest-job conditional merely because the resource tracks the latest job ID.
+
 ## File Naming
 
 Files should use camelCase starting with a lowercase letter:

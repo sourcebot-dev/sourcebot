@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
-import { getConfigSettings } from './utils.js';
+import { getConfigSettings, resolveConfigSettings } from './utils.js';
 
 // Mock fs/promises so loadConfig doesn't hit the filesystem.
 // The config schema has no required fields, so '{}' is valid.
@@ -93,5 +93,20 @@ describe('getConfigSettings', () => {
                 DEFAULT_CONFIG_SETTINGS.userDrivenPermissionSyncIntervalMs
             );
         });
+    });
+});
+
+describe('resolveConfigSettings', () => {
+    test('resolves settings from an already-loaded config', () => {
+        const result = resolveConfigSettings({
+            settings: {
+                resyncConnectionIntervalMs: 12_345,
+            },
+        });
+
+        expect(result.resyncConnectionIntervalMs).toBe(12_345);
+        expect(result.reindexIntervalMs).toBe(
+            DEFAULT_CONFIG_SETTINGS.reindexIntervalMs,
+        );
     });
 });

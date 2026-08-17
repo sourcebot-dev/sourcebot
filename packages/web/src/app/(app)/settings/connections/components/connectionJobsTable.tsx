@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { DisplayDate } from "@/app/(app)/components/DisplayDate"
 import { LoadingButton } from "@/components/ui/loading-button"
-import { syncConnection } from "@/features/workerApi/actions"
+import { syncConnection } from "@/features/connections/actions"
 import { isServiceError } from "@/lib/utils"
 
 
@@ -199,7 +199,7 @@ export const ConnectionJobsTable = ({ data, connectionId }: { data: ConnectionSy
         if (!isServiceError(response)) {
             const { jobId } = response;
             toast({
-                description: `✅ Connection synced successfully. Job ID: ${jobId}`,
+                description: `✅ Connection sync scheduled. Job ID: ${jobId}`,
             })
             router.refresh();
         } else {

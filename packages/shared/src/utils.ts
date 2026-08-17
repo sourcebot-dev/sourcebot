@@ -4,9 +4,9 @@ import { z } from "zod";
 import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
 import { ConfigSettings } from "./types.js";
 import { Org, Repo } from "@sourcebot/db";
+import type { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import path from "path";
 import { env, isRemotePath, loadConfig } from "./env.server.js";
-import { isAnonymousAccessAvailable } from './entitlements.js';
 
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
 export const base64Decode = (base64: string): string => {
@@ -75,14 +75,8 @@ export const loadJsonFile = async <T>(
 }
 
 
-export const getConfigSettings = async (configPath?: string): Promise<ConfigSettings> => {
-    if (!configPath) {
-        return DEFAULT_CONFIG_SETTINGS;
-    }
-
-    const config = await loadConfig(configPath);
-
-    return {
+export const resolveConfigSettings = (config: SourcebotConfig): ConfigSettings =>
+    ({
         ...DEFAULT_CONFIG_SETTINGS,
         ...config.settings,
         // Fall back to deprecated experiment_ variants if new keys are not set.
@@ -94,7 +88,14 @@ export const getConfigSettings = async (configPath?: string): Promise<ConfigSett
             config.settings?.userDrivenPermissionSyncIntervalMs
             ?? config.settings?.experiment_userDrivenPermissionSyncIntervalMs
             ?? DEFAULT_CONFIG_SETTINGS.userDrivenPermissionSyncIntervalMs,
+    });
+
+export const getConfigSettings = async (configPath?: string): Promise<ConfigSettings> => {
+    if (!configPath) {
+        return DEFAULT_CONFIG_SETTINGS;
     }
+
+    return resolveConfigSettings(await loadConfig(configPath));
 }
 
 export const getRepoIdFromPath = (repoPath: string): number | undefined => {

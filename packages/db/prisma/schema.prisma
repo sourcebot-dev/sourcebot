@@ -74,10 +74,12 @@ model Repo {
   scopedAccessTokens ScopedAccessTokenToRepo[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
+  latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest repo state.
 
   jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
   indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobId String? /// The job allowed to publish the latest indexing status.
   latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
   pushedAt           DateTime? /// The timestamp of the most recent commit across all branches.
 
@@ -185,6 +187,7 @@ model Connection {
   syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
+  latestSyncJobId    String? /// The most recently started connection sync job.
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -645,6 +648,7 @@ model Account {
 
   permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
+  latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest account state.
 
   /// Set when permission syncing fails closed and user action is required.
   /// Cleared after a subsequent permission sync completes successfully.

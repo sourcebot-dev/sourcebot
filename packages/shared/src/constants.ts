@@ -26,7 +26,7 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     reindexRepoPollingIntervalMs: 1000 * 1, // 1 second
     maxConnectionSyncJobConcurrency: 8,
     maxRepoIndexingJobConcurrency: 8,
-    maxRepoGarbageCollectionJobConcurrency: 8,
+    maxRepoGarbageCollectionJobConcurrency: 2,
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
     enablePublicAccess: false, // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead

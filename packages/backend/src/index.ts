@@ -2,22 +2,24 @@ import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 import { createLogger, env, getConfigSettings } from "@sourcebot/shared";
-import { prisma } from "./prisma.js";
 import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
-import { Api } from "./api.js";
-import { AttachmentPruner } from "./attachmentPruner.js";
 import { ConfigManager } from "./configManager.js";
-import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
-import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
-import { AuditLogPruner } from "./ee/auditLogPruner.js";
-import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
+import { BullMQJobManager } from "./jobManager.js";
 import { shutdownPosthog } from "./posthog.js";
+import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
-import { RepoIndexManager } from "./repoIndexManager.js";
 import { redis } from "./redis.js";
+import { createConnectionWorkload } from "./connectionWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
+import { Api } from "./api.js";
+import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
+import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
+import { reconcileJobSchedulers } from "./reconcileJobSchedulers.js";
+import { createAttachmentPruneWorkload } from "./attachmentPruneWorkload.js";
+import { createAuditLogPruneWorkload } from "./ee/auditLogPruneWorkload.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -40,39 +42,63 @@ try {
     process.exit(1);
 }
 
-const promClient = new PromClient();
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
-
-const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
-const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
-const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
-const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
-const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
-const auditLogPruner = new AuditLogPruner(prisma);
-const attachmentPruner = new AttachmentPruner(prisma);
-
-connectionManager.startScheduler();
-await repoIndexManager.startScheduler();
-auditLogPruner.startScheduler();
-attachmentPruner.startScheduler();
-
-if (env.PERMISSION_SYNC_ENABLED === 'true') {
-    if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
-        await repoPermissionSyncer.startScheduler();
-    }
-    await accountPermissionSyncer.startScheduler();
-}
-
-const api = new Api(
-    promClient,
-    prisma,
-    connectionManager,
-    repoIndexManager,
-    accountPermissionSyncer,
-);
+const promClient = new PromClient();
 
 logger.info('Worker started.');
+
+const jobManager = new BullMQJobManager(redis);
+
+const connectionWorkload = createConnectionWorkload({
+    db: prisma,
+    jobManager,
+    settings,
+});
+const repoIndexWorkload = createRepoIndexWorkload({
+    db: prisma,
+    settings,
+});
+const accountPermissionSyncWorkload = createAccountPermissionSyncWorkload({
+    db: prisma,
+    settings,
+});
+const repoPermissionSyncWorkload = createRepoPermissionSyncWorkload({
+    db: prisma,
+    settings,
+});
+const attachmentPruneWorkload = createAttachmentPruneWorkload({
+    db: prisma,
+    ttlHours: env.SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS,
+});
+const auditLogPruneWorkload = createAuditLogPruneWorkload({
+    db: prisma,
+    enabled: env.SOURCEBOT_EE_AUDIT_LOGGING_ENABLED === "true",
+    retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
+});
+
+jobManager.register(connectionWorkload);
+jobManager.register(repoIndexWorkload);
+jobManager.register(accountPermissionSyncWorkload);
+jobManager.register(repoPermissionSyncWorkload);
+jobManager.register(attachmentPruneWorkload);
+jobManager.register(auditLogPruneWorkload);
+
+const api = new Api(promClient, prisma, jobManager);
+
+await cleanupOrphanedRepoResources(prisma);
+
+const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
+await configManager.syncConfig();
+
+await reconcileJobSchedulers({
+    db: prisma,
+    jobManager,
+    settings,
+});
+
+await jobManager.start();
+
 
 const listenToShutdownSignals = () => {
     const signals = SHUTDOWN_SIGNALS;
@@ -88,13 +114,8 @@ const listenToShutdownSignals = () => {
 
             logger.info(`Received ${signal}, cleaning up...`);
 
-            await repoIndexManager.dispose()
-            await connectionManager.dispose()
-            await repoPermissionSyncer.dispose()
-            await accountPermissionSyncer.dispose()
-            await auditLogPruner.dispose()
-            await attachmentPruner.dispose()
             await configManager.dispose()
+            await jobManager.stop();
 
             await prisma.$disconnect();
             await redis.quit();

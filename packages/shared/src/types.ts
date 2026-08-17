@@ -63,15 +63,6 @@ export const repoMetadataSchema = z.object({
 
 export type RepoMetadata = z.infer<typeof repoMetadataSchema>;
 
-export const repoIndexingJobMetadataSchema = z.object({
-    /**
-     * A list of revisions that were indexed for the repo.
-     */
-    indexedRevisions: z.array(z.string()).optional(),
-});
-
-export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
-
 export type IdentityProviderType = IdentityProviderConfig['provider'];
 
 // @see: https://docs.stripe.com/api/subscriptions/object#subscription_object-status

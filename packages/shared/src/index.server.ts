@@ -21,18 +21,17 @@ export type {
 export * from './lighthouseTypes.js';
 export type {
     RepoMetadata,
-    RepoIndexingJobMetadata,
     IdentityProviderType,
     LicenseStatus,
 } from "./types.js";
 export {
     repoMetadataSchema,
-    repoIndexingJobMetadataSchema,
 } from "./types.js";
 export {
     base64Decode,
     loadJsonFile,
     getConfigSettings,
+    resolveConfigSettings,
     getRepoPath,
     getRepoIdFromPath,
     isCredentialsLoginEnabled,
@@ -95,3 +94,54 @@ export {
     compareVersions,
 } from "./versionUtils.js";
 export type { Version } from "./versionUtils.js";
+export type {
+    QueueName,
+    DataOf,
+    JobEnqueueOptions,
+    QueueSpec,
+    JobOptions,
+} from "./queue.js";
+export {
+    ACCOUNT_PERMISSION_SYNC_QUEUE,
+    ATTACHMENT_PRUNE_QUEUE,
+    AUDIT_LOG_PRUNE_QUEUE,
+    CONNECTION_QUEUE,
+    DEFAULT_JOB_OPTIONS,
+    JOB_PRIORITIES,
+    REPO_INDEX_QUEUE,
+    REPO_PERMISSION_SYNC_QUEUE,
+} from "./queue.js";
+export type { Schedule } from "./schedule.js";
+export {
+    ACCOUNT_PERMISSION_SYNC_SCHEDULER_ID_PREFIX,
+    getAccountPermissionSyncSchedulerId,
+    scheduleToMs,
+} from "./schedule.js";
+export {
+    BullMQClient,
+} from "./bullmqClient.js";
+export type {
+    WorkloadJob,
+    WorkloadJobStatus,
+} from "./bullmqClient.js";
+export {
+    createBullMQJobLogSink,
+    DEFAULT_JOB_LOGS_MAX_ENTRIES,
+    parseJobLogEntry,
+    readBullMQJobLogs,
+} from "./jobLogger.js";
+export type {
+    GetJobLogsOptions,
+    JobLogEntry,
+    JobLogFields,
+    JobLogLevel,
+    JobLogs,
+    JobLogSink,
+} from "./jobLogger.js";
+export {
+    getJobLogContext,
+    runWithJobLogContext,
+} from "./jobLogContext.js";
+export type {
+    JobLogContext,
+} from "./jobLogContext.js";
