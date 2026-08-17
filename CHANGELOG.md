@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded Next.js to 16.3.1 to bound memory retained by high-cardinality dynamic route cache entries. [#1594](https://github.com/sourcebot-dev/sourcebot/pull/1594)
 - Fixed memory leak attributed to CodeMirror allocating objects on heap that were never freed. [#1580](https://github.com/sourcebot-dev/sourcebot/pull/1580)
 - Kept Git provider credentials out of subprocess arguments and on-disk configuration by using isolated in-memory credential caches. [#1584](https://github.com/sourcebot-dev/sourcebot/pull/1584)
+- Upgraded `postcss` to `^8.5.26`. [#1599](https://github.com/sourcebot-dev/sourcebot/pull/1599)
 
 ## [5.1.7] - 2026-08-13
 
