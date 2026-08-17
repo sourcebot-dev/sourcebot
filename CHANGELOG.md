@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added historical job throughput and latency metrics to Bull Board. [#1604](https://github.com/sourcebot-dev/sourcebot/pull/1604)
-
 ### Changed
 - Migrated connection syncing, repository indexing, permission syncing, and background pruning from in-process managers and pollers to BullMQ workloads with retries and per-resource execution locking. [#1427](https://github.com/sourcebot-dev/sourcebot/pull/1427)
 

@@ -44,7 +44,7 @@ export class Api {
         bullBoardAdapter.setBasePath('/admin/queues');
         const queueAdapters = jobManager
             .getQueues()
-            .map(queue => new BullMQAdapter(queue, { readOnlyMode: true }));
+            .map(queue => new BullMQAdapter(queue));
         this.metricsHistoryProvider = new RedisMetricsHistoryProvider({
             connection: redis,
         });
