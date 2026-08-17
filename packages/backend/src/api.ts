@@ -18,7 +18,7 @@ import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import { isGitHubRateLimitError, isNotFound } from './errors.js';
 import { PromClient } from './promClient.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
-import type { JobManager } from './types.js';
+import type { JobManager, Settings } from './types.js';
 
 const logger = createLogger('api');
 
@@ -35,6 +35,7 @@ export class Api {
         private prisma: PrismaClient,
         private jobManager: JobManager,
         redis: Redis,
+        private settings: Settings,
     ) {
         const app = express();
         app.use(express.json());
@@ -138,14 +139,11 @@ export class Api {
             create: record,
         });
 
-        const jobId = await this.jobManager.trigger(
-            'repo-index',
-            {
-                repoId: repo.id,
-                type: RepoIndexingJobType.INDEX,
-            },
-            { priority: JOB_PRIORITIES.INTERACTIVE },
-        );
+        const jobId = await scheduleAndTriggerRepoIndexing({
+            jobManager: this.jobManager,
+            repoId: repo.id,
+            reindexIntervalMs: this.settings.reindexIntervalMs,
+        });
 
         res.status(200).json({ jobId, repoId: repo.id });
     }
@@ -162,3 +160,33 @@ export class Api {
         });
     }
 }
+
+const scheduleAndTriggerRepoIndexing = async ({
+    jobManager,
+    repoId,
+    reindexIntervalMs,
+}: {
+    jobManager: JobManager;
+    repoId: number;
+    reindexIntervalMs: number;
+}): Promise<string> => {
+    await jobManager.upsertJobScheduler(
+        "repo-index",
+        `repo-index-v1-${repoId}`,
+        reindexIntervalMs,
+        {
+            repoId,
+            type: RepoIndexingJobType.INDEX,
+        },
+        { priority: JOB_PRIORITIES.SCHEDULED },
+    );
+
+    return jobManager.trigger(
+        "repo-index",
+        {
+            repoId,
+            type: RepoIndexingJobType.INDEX,
+        },
+        { priority: JOB_PRIORITIES.INTERACTIVE },
+    );
+};

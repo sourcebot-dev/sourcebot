@@ -84,7 +84,7 @@ jobManager.register(repoPermissionSyncWorkload);
 jobManager.register(attachmentPruneWorkload);
 jobManager.register(auditLogPruneWorkload);
 
-const api = new Api(promClient, prisma, jobManager, redis);
+const api = new Api(promClient, prisma, jobManager, redis, settings);
 
 await cleanupOrphanedRepoResources(prisma);
 
