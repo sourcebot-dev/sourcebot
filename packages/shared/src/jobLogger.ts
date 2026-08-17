@@ -177,12 +177,17 @@ export const createBullMQJobLogSink = (
         options.label ?? `${job.queueName}:job:${job.id ?? "unknown"}`;
     const attempt = options.attempt ?? job.attemptsMade + 1;
     const pendingWrites = new Set<Promise<void>>();
+    let closed = false;
 
     const write = (
         level: JobLogLevel,
         message: string,
         rawFields?: unknown,
     ): void => {
+        if (closed) {
+            return;
+        }
+
         const fields = sanitizeFields(rawFields);
 
         const entry: JobLogEntry = {
@@ -221,7 +226,10 @@ export const createBullMQJobLogSink = (
         error: (message: string, fields?: unknown) =>
             write("error", message, fields),
         flush: async () => {
-            await Promise.all([...pendingWrites]);
+            closed = true;
+            while (pendingWrites.size > 0) {
+                await Promise.all([...pendingWrites]);
+            }
         },
     } satisfies JobLogSink & { flush(): Promise<void> };
 };

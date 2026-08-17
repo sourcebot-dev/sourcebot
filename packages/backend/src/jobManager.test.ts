@@ -389,4 +389,46 @@ describe("BullMQJobManager lifecycle", () => {
             expect.objectContaining({ attempt: 2 }),
         );
     });
+
+    test("treats BullMQ's stalled-limit failure as terminal", async () => {
+        const onTerminalFailure = vi.fn(async () => undefined);
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload({ onTerminalFailure }));
+        await manager.start();
+
+        const stalledJob = { ...job, attemptsMade: 1 };
+        const error = new Error("job stalled more than allowable limit");
+        mocks.workers[0].handlers.get("failed")?.(stalledJob, error);
+
+        await vi.waitFor(() => {
+            expect(onTerminalFailure).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    jobId: "job-1",
+                    attemptsMade: 1,
+                    maxAttempts: 2,
+                }),
+                error,
+            );
+        });
+    });
+
+    test("keeps ordinary failures retryable before attempts are exhausted", async () => {
+        const onTerminalFailure = vi.fn(async () => undefined);
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload({ onTerminalFailure }));
+        await manager.start();
+
+        const retryableJob = { ...job, attemptsMade: 1 };
+        mocks.workers[0].handlers.get("failed")?.(
+            retryableJob,
+            new Error("temporary failure"),
+        );
+
+        await vi.waitFor(() => {
+            expect(mocks.logger.warn).toHaveBeenCalledWith(
+                expect.stringContaining("will retry"),
+            );
+        });
+        expect(onTerminalFailure).not.toHaveBeenCalled();
+    });
 });

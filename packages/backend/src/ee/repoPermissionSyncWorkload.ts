@@ -278,7 +278,7 @@ const getGitHubPermissionSyncResult = async ({
             providerAccountId: {
                 in: githubUserIds,
             },
-            issuerUrl: credentials.hostUrl,
+            issuerUrl: repo.external_codeHostUrl,
         },
     });
 
@@ -311,7 +311,7 @@ const getGitLabPermissionSyncResult = async ({
             providerAccountId: {
                 in: gitlabUserIds,
             },
-            issuerUrl: credentials.hostUrl,
+            issuerUrl: repo.external_codeHostUrl,
         },
     });
 
@@ -370,7 +370,7 @@ const getBitbucketCloudPermissionSyncResult = async ({
             providerAccountId: {
                 in: userAccountIds,
             },
-            issuerUrl: credentials.hostUrl,
+            issuerUrl: repo.external_codeHostUrl,
         },
     });
 
@@ -429,7 +429,7 @@ const getBitbucketServerPermissionSyncResult = async ({
         where: {
             providerType: "bitbucket-server",
             providerAccountId: { in: userIds },
-            issuerUrl: credentials.hostUrl,
+            issuerUrl: repo.external_codeHostUrl,
         },
     });
 

@@ -102,6 +102,30 @@ describe("createBullMQJobLogSink", () => {
 
         expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({ attempt: 2 });
     });
+
+    test("closes before draining and ignores later writes", async () => {
+        let resolveWrite: (value: number) => void = () => undefined;
+        const pendingWrite = new Promise<number>((resolve) => {
+            resolveWrite = resolve;
+        });
+        const log = vi.fn().mockReturnValue(pendingWrite);
+        const sink = createBullMQJobLogSink({
+            id: "job-1",
+            name: "connection",
+            queueName: "connection",
+            attemptsMade: 0,
+            log,
+        });
+
+        sink.info("Before flush");
+        const flush = sink.flush();
+        sink.info("During flush");
+        resolveWrite(1);
+        await flush;
+        sink.info("After flush");
+
+        expect(log).toHaveBeenCalledOnce();
+    });
 });
 
 describe("readBullMQJobLogs", () => {

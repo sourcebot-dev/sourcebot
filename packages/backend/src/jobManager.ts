@@ -20,6 +20,7 @@ import type { JobManager } from "./types.js";
 import { prisma } from "./prisma.js";
 
 const LOG_TAG = "job-manager";
+const STALLED_JOB_TERMINAL_ERROR = "job stalled more than allowable limit";
 const logger = createLogger(LOG_TAG);
 
 export class BullMQJobManager implements JobManager {
@@ -278,7 +279,9 @@ export class BullMQJobManager implements JobManager {
             return;
         }
         const maxAttempts = job.opts.attempts ?? 1;
-        const isTerminal = job.attemptsMade >= maxAttempts;
+        const isTerminal =
+            job.attemptsMade >= maxAttempts ||
+            error.message === STALLED_JOB_TERMINAL_ERROR;
         if (!isTerminal) {
             logger.warn(
                 `Workload "${workload.queueSpec.name}" job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts}; will retry: ${error.message}`,

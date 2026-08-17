@@ -77,6 +77,7 @@ const repo = {
     name: "github.com/sourcebot-dev/sourcebot",
     displayName: "sourcebot-dev/sourcebot",
     external_codeHostType: "github",
+    external_codeHostUrl: "https://github.com",
     external_id: "123",
     metadata: {},
     connections: [],
@@ -239,7 +240,7 @@ describe("repoPermissionSyncWorkload", () => {
         expect(repoFindUniqueOrThrow).not.toHaveBeenCalled();
     });
 
-    test("replaces all permissions for a complete GitHub sync", async () => {
+    test("uses the canonical repo issuer for a hostless GitHub Cloud sync", async () => {
         const githubRepo = {
             ...repo,
             external_codeHostType: "github",
@@ -248,7 +249,6 @@ describe("repoPermissionSyncWorkload", () => {
         };
         repoFindUniqueOrThrow.mockResolvedValue(githubRepo);
         mocks.getAuthCredentialsForRepo.mockResolvedValue({
-            hostUrl: "https://github.com",
             token: "token",
         });
         const octokit = {};
@@ -292,6 +292,7 @@ describe("repoPermissionSyncWorkload", () => {
         const bitbucketRepo = {
             ...repo,
             external_codeHostType: "bitbucketCloud",
+            external_codeHostUrl: "https://bitbucket.org",
             external_id: "repo-uuid",
             metadata: {
                 codeHostMetadata: {
@@ -304,7 +305,7 @@ describe("repoPermissionSyncWorkload", () => {
         };
         repoFindUniqueOrThrow.mockResolvedValue(bitbucketRepo);
         mocks.getAuthCredentialsForRepo.mockResolvedValue({
-            hostUrl: "https://bitbucket.org",
+            hostUrl: "https://bitbucket.org/",
             token: "token",
             connectionConfig: {
                 user: "service-account",
@@ -318,6 +319,15 @@ describe("repoPermissionSyncWorkload", () => {
 
         await createWorkload().process(processContext);
 
+        expect(accountFindMany).toHaveBeenCalledWith({
+            where: {
+                providerType: "bitbucket-cloud",
+                providerAccountId: {
+                    in: ["upstream-account"],
+                },
+                issuerUrl: "https://bitbucket.org",
+            },
+        });
         expect(repoUpdate).toHaveBeenCalledWith({
             where: { id: 42 },
             data: {
