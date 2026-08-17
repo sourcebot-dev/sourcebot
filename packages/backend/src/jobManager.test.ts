@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => {
         workers: [] as Array<{
             processor: (job: unknown) => Promise<unknown>;
             handlers: Map<string, (...args: unknown[]) => void>;
+            options: unknown;
         }>,
     };
 });
@@ -81,8 +82,9 @@ vi.mock("bullmq", () => ({
         constructor(
             _name: string,
             processor: (job: unknown) => Promise<unknown>,
+            options: unknown,
         ) {
-            this.record = { processor, handlers: new Map() };
+            this.record = { processor, handlers: new Map(), options };
             mocks.workers.push(this.record);
         }
 
@@ -92,6 +94,7 @@ vi.mock("bullmq", () => ({
 
         close = mocks.workerClose;
     },
+    MetricsTime: { ONE_WEEK: 10_080 },
 }));
 
 import { BullMQJobManager } from "./jobManager.js";
@@ -232,6 +235,17 @@ describe("BullMQJobManager lifecycle", () => {
 
         expect(mocks.workerClose).toHaveBeenCalledOnce();
         expect(mocks.producerClose).toHaveBeenCalledOnce();
+    });
+
+    test("retains one week of native metrics for history recording", async () => {
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload());
+
+        await manager.start();
+
+        expect(mocks.workers[0].options).toMatchObject({
+            metrics: { maxDataPoints: 10_080 },
+        });
     });
 
     test("calls onStarted before processing and onCompleted after completion", async () => {
