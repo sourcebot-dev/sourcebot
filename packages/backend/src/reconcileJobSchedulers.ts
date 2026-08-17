@@ -56,9 +56,16 @@ export const reconcileJobSchedulers = async ({
         }),
         db.repo.findMany({
             where: {
-                connections: {
-                    some: {},
-                },
+                OR: [
+                    {
+                        connections: {
+                            some: {},
+                        },
+                    },
+                    {
+                        isAutoCleanupDisabled: true,
+                    },
+                ],
             },
             select: {
                 id: true,
