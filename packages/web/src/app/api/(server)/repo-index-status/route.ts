@@ -1,4 +1,4 @@
-import type { RepoIndexingStatusesResponse } from "@/app/(app)/reposv2/types";
+import type { RepoIndexingStatusesResponse } from "@/app/(app)/repos/types";
 import { apiHandler } from "@/lib/apiHandler";
 import { getBullMQClient } from "@/lib/bullmqClient";
 import {
