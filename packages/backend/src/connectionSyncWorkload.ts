@@ -37,7 +37,7 @@ interface ConnectionSyncResult {
     reposToIndex: { id: number; name: string }[];
 }
 
-export const createConnectionWorkload = ({
+export const createConnectionSyncWorkload = ({
     db,
     jobManager,
     settings,
