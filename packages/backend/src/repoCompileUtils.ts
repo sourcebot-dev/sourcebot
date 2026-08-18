@@ -726,7 +726,13 @@ export const compileGenericGitHostConfig_url = async (
 
     // @note: matches the naming here:
     // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-    const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+    // Decode URL-encoded characters (e.g., %20 -> space) so that a direct URL
+    // config derives the same repo name as a file-origin config whose origin
+    // URL gets decoded by the same call below. Without this, a URL like
+    // `https://github.com/test/Project%20Name.git` and a file config pointing
+    // at the same remote end up with different `name`/`displayName` values.
+    const decodedPathname = decodeURIComponent(remoteUrl.pathname);
+    const repoName = path.join(remoteUrl.host, decodedPathname.replace(/\.git$/, ''));
 
     const repo: RepoData = {
         external_codeHostType: 'genericGitHost',
