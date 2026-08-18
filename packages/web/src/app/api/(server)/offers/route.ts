@@ -10,6 +10,7 @@ export const GET = apiHandler(async () => {
 
     return new Response(JSON.stringify(offers), {
         headers: {
+            'Content-Type': 'application/json',
             'Cache-Control': 'public, max-age=300'
         }
     });
