@@ -12,7 +12,9 @@ const listBranchesShape = {
     perPage: z.number().int().positive().max(100).describe("Results per page for pagination (min 1, max 100). Default: 50").optional().default(50),
 };
 
-export type ListBranchesMetadata = ListBranchesResponse;
+export type ListBranchesMetadata = Pick<ListBranchesResponse, 'repo' | 'totalCount'> & {
+    returnedCount: number;
+};
 
 export const listBranchesDefinition: ToolDefinition<"list_branches", typeof listBranchesShape, ListBranchesMetadata> = {
     name: "list_branches",
@@ -34,7 +36,11 @@ export const listBranchesDefinition: ToolDefinition<"list_branches", typeof list
 
         return {
             output: JSON.stringify(response),
-            metadata: response,
+            metadata: {
+                repo: response.repo,
+                totalCount: response.totalCount,
+                returnedCount: response.branches.length,
+            },
         };
     },
 };
