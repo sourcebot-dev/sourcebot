@@ -43,7 +43,7 @@ describe('compileGenericGitHostConfig_file', () => {
         vi.resetAllMocks();
     });
 
-    test('should return warning when glob pattern matches no paths', async () => {
+    test('should return no repositories when glob pattern matches no paths', async () => {
         mockedGlob.mockResolvedValue([]);
 
         const config = {
@@ -53,13 +53,10 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(0);
-        expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0]).toContain('No paths matched the pattern');
-        expect(result.warnings[0]).toContain('/path/to/nonexistent/repo');
+        expect(result).toHaveLength(0);
     });
 
-    test('should return warning when path is a file, not a directory', async () => {
+    test('should return no repositories when path is a file, not a directory', async () => {
         mockedGlob.mockResolvedValue(['/path/to/a-file.txt']);
         mockedFsStat.mockResolvedValue({ isDirectory: () => false } as any);
 
@@ -70,12 +67,10 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(0);
-        expect(result.warnings.length).toBeGreaterThanOrEqual(1);
-        expect(result.warnings.some(w => w.includes('not a directory'))).toBe(true);
+        expect(result).toHaveLength(0);
     });
 
-    test('should return warning when path is not a valid git repo', async () => {
+    test('should return no repositories when path is not a valid git repo', async () => {
         mockedGlob.mockResolvedValue(['/path/to/not-a-repo']);
         mockedIsPathAValidGitRepoRoot.mockResolvedValue(false);
 
@@ -86,13 +81,10 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(0);
-        expect(result.warnings.length).toBeGreaterThanOrEqual(1);
-        expect(result.warnings.some(w => w.includes('not a git repository'))).toBe(true);
-        expect(result.warnings.some(w => w.includes('No valid git repositories found'))).toBe(true);
+        expect(result).toHaveLength(0);
     });
 
-    test('should return warning when git repo has no origin url', async () => {
+    test('should return no repositories when git repo has no origin url', async () => {
         mockedGlob.mockResolvedValue(['/path/to/repo']);
         mockedIsPathAValidGitRepoRoot.mockResolvedValue(true);
         mockedGetOriginUrl.mockResolvedValue(null);
@@ -104,10 +96,7 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(0);
-        expect(result.warnings.length).toBeGreaterThanOrEqual(1);
-        expect(result.warnings.some(w => w.includes('remote.origin.url not found'))).toBe(true);
-        expect(result.warnings.some(w => w.includes('No valid git repositories found'))).toBe(true);
+        expect(result).toHaveLength(0);
     });
 
     test('should successfully compile when valid git repo is found', async () => {
@@ -122,10 +111,9 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.warnings).toHaveLength(0);
-        expect(result.repoData[0].cloneUrl).toBe('file:///path/to/valid/repo');
-        expect(result.repoData[0].name).toBe('github.com/test/repo');
+        expect(result).toHaveLength(1);
+        expect(result[0].cloneUrl).toBe('file:///path/to/valid/repo');
+        expect(result[0].name).toBe('github.com/test/repo');
     });
 
     test('should include port in repo name when origin url has a port', async () => {
@@ -140,14 +128,13 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.warnings).toHaveLength(0);
-        expect(result.repoData[0].cloneUrl).toBe('file:///path/to/valid/repo');
+        expect(result).toHaveLength(1);
+        expect(result[0].cloneUrl).toBe('file:///path/to/valid/repo');
         // The name should include the port to match what zoekt derives from the origin URL
-        expect(result.repoData[0].name).toBe('git.kernel.org:443/pub/scm/bluetooth/bluez');
+        expect(result[0].name).toBe('git.kernel.org:443/pub/scm/bluetooth/bluez');
     });
 
-    test('should return warnings for invalid repos and success for valid ones', async () => {
+    test('should return valid repositories and omit invalid ones', async () => {
         mockedGlob.mockResolvedValue(['/path/to/valid/repo', '/path/to/invalid/repo']);
         mockedIsPathAValidGitRepoRoot.mockImplementation(async ({ path }) => {
             return path === '/path/to/valid/repo';
@@ -166,10 +153,7 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0]).toContain('/path/to/invalid/repo');
-        expect(result.warnings[0]).toContain('not a git repository');
+        expect(result).toHaveLength(1);
     });
 
     test('should decode URL-encoded characters in origin url pathname', async () => {
@@ -185,11 +169,10 @@ describe('compileGenericGitHostConfig_file', () => {
 
         const result = await compileGenericGitHostConfig_file(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.warnings).toHaveLength(0);
+        expect(result).toHaveLength(1);
         // The repo name should have decoded spaces, not %20
-        expect(result.repoData[0].name).toBe('github.com/test/Project Name With Spaces');
-        expect(result.repoData[0].displayName).toBe('github.com/test/Project Name With Spaces');
+        expect(result[0].name).toBe('github.com/test/Project Name With Spaces');
+        expect(result[0].displayName).toBe('github.com/test/Project Name With Spaces');
     });
 });
 
@@ -202,7 +185,7 @@ describe('compileGenericGitHostConfig_url', () => {
         vi.resetAllMocks();
     });
 
-    test('should return warning when url is not a valid git repo', async () => {
+    test('should return no repositories when url is not a valid git repo', async () => {
         mockedIsUrlAValidGitRepo.mockResolvedValue(false);
 
         const config = {
@@ -212,9 +195,7 @@ describe('compileGenericGitHostConfig_url', () => {
 
         const result = await compileGenericGitHostConfig_url(config, 1);
 
-        expect(result.repoData).toHaveLength(0);
-        expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0]).toContain('not a git repository');
+        expect(result).toHaveLength(0);
     });
 
     test('should successfully compile with gitConfig when valid git repo url is found', async () => {
@@ -227,13 +208,12 @@ describe('compileGenericGitHostConfig_url', () => {
 
         const result = await compileGenericGitHostConfig_url(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.warnings).toHaveLength(0);
-        expect(result.repoData[0].cloneUrl).toBe('https://git.kernel.org/pub/scm/bluetooth/bluez.git');
-        expect(result.repoData[0].name).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
+        expect(result).toHaveLength(1);
+        expect(result[0].cloneUrl).toBe('https://git.kernel.org/pub/scm/bluetooth/bluez.git');
+        expect(result[0].name).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
         
         // Verify gitConfig is set properly (this is the key fix for SOU-218)
-        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        const metadata = result[0].metadata as { gitConfig?: Record<string, string> };
         expect(metadata.gitConfig).toBeDefined();
         expect(metadata.gitConfig!['zoekt.name']).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
         expect(metadata.gitConfig!['zoekt.web-url']).toBe('https://git.kernel.org/pub/scm/bluetooth/bluez.git');
@@ -253,10 +233,10 @@ describe('compileGenericGitHostConfig_url', () => {
 
         const result = await compileGenericGitHostConfig_url(config, 1);
 
-        expect(result.repoData).toHaveLength(1);
-        expect(result.repoData[0].name).toBe('github.com/test/repo');
+        expect(result).toHaveLength(1);
+        expect(result[0].name).toBe('github.com/test/repo');
         
-        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        const metadata = result[0].metadata as { gitConfig?: Record<string, string> };
         expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/repo');
     });
 });

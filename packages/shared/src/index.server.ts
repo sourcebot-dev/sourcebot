@@ -96,18 +96,20 @@ export {
 export type { Version } from "./versionUtils.js";
 export {
     connectionSyncResultSchema,
-    connectionSyncPartialSuccessEffectSchema,
-    connectionSyncPartialSuccessReasonCodeSchema,
-    connectionSyncPartialSuccessReasonSchema,
-    connectionSyncPartialSuccessSubjectSchema,
 } from "./connectionSync.js";
+export type { ConnectionSyncResult } from "./connectionSync.js";
+export {
+    repositoryDiscoveryIssueCodeSchema,
+    repositoryDiscoveryIssueEffectSchema,
+    repositoryDiscoveryIssueSchema,
+    repositoryDiscoveryIssueSubjectSchema,
+} from "./repositoryDiscovery.js";
 export type {
-    ConnectionSyncResult,
-    ConnectionSyncPartialSuccessEffect,
-    ConnectionSyncPartialSuccessReason,
-    ConnectionSyncPartialSuccessReasonCode,
-    ConnectionSyncPartialSuccessSubject,
-} from "./connectionSync.js";
+    RepositoryDiscoveryIssue,
+    RepositoryDiscoveryIssueCode,
+    RepositoryDiscoveryIssueEffect,
+    RepositoryDiscoveryIssueSubject,
+} from "./repositoryDiscovery.js";
 export type {
     QueueName,
     DataOf,

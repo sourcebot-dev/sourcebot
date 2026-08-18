@@ -49,18 +49,11 @@ const extractHostWithPort = (url: string): string | null => {
     return match ? match[1] : null;
 };
 
-type CompileResult = {
-    repoData: RepoData[],
-    warnings: string[],
-}
-
 export const compileGithubConfig = async (
     config: GithubConnectionConfig,
     connectionId: number,
-    signal: AbortSignal): Promise<CompileResult> => {
-    const gitHubReposResult = await getGitHubReposFromConfig(config, signal);
-    const gitHubRepos = gitHubReposResult.repos;
-    const warnings = gitHubReposResult.warnings;
+    signal: AbortSignal): Promise<RepoData[]> => {
+    const gitHubRepos = await getGitHubReposFromConfig(config, signal);
 
     const hostUrl = (config.url ?? 'https://github.com').replace(/\/+$/, '');
 
@@ -82,10 +75,7 @@ export const compileGithubConfig = async (
         };
     })
 
-    return {
-        repoData: repos,
-        warnings,
-    };
+    return repos;
 }
 
 export const createGitHubRepoRecord = ({
@@ -160,11 +150,10 @@ export const createGitHubRepoRecord = ({
 
 export const compileGitlabConfig = async (
     config: GitlabConnectionConfig,
-    connectionId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<RepoData[]> => {
 
     const gitlabReposResult = await getGitLabReposFromConfig(config);
     const gitlabRepos = gitlabReposResult.repos;
-    const warnings = gitlabReposResult.warnings;
 
     const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/+$/, '');
     const webUrl = (config.webUrl ?? hostUrl).replace(/\/+$/, '');
@@ -240,19 +229,15 @@ export const compileGitlabConfig = async (
         return record;
     })
 
-    return {
-        repoData: repos,
-        warnings,
-    };
+    return repos;
 }
 
 export const compileGiteaConfig = async (
     config: GiteaConnectionConfig,
-    connectionId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<RepoData[]> => {
 
     const giteaReposResult = await getGiteaReposFromConfig(config);
     const giteaRepos = giteaReposResult.repos;
-    const warnings = giteaReposResult.warnings;
 
     const hostUrl = (config.url ?? 'https://gitea.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
@@ -310,15 +295,12 @@ export const compileGiteaConfig = async (
         return record;
     })
 
-    return {
-        repoData: repos,
-        warnings,
-    };
+    return repos;
 }
 
 export const compileGerritConfig = async (
     config: GerritConnectionConfig,
-    connectionId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<RepoData[]> => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
     const hostUrl = config.url.replace(/\/+$/, '');
@@ -394,19 +376,15 @@ export const compileGerritConfig = async (
         return record;
     })
 
-    return {
-        repoData: repos,
-        warnings: [],
-    };
+    return repos;
 }
 
 export const compileBitbucketConfig = async (
     config: BitbucketConnectionConfig,
-    connectionId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<RepoData[]> => {
 
     const bitbucketReposResult = await getBitbucketReposFromConfig(config);
     const bitbucketRepos = bitbucketReposResult.repos;
-    const warnings = bitbucketReposResult.warnings;
 
     const hostUrl = (config.url ?? 'https://bitbucket.org').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
@@ -561,16 +539,13 @@ export const compileBitbucketConfig = async (
         return record;
     })
 
-    return {
-        repoData: repos,
-        warnings,
-    };
+    return repos;
 }
 
 export const compileGenericGitHostConfig = async (
     config: GenericGitHostConnectionConfig,
     connectionId: number
-): Promise<CompileResult> => {
+): Promise<RepoData[]> => {
     const configUrl = new URL(config.url);
     if (configUrl.protocol === 'file:') {
         return compileGenericGitHostConfig_file(config, connectionId);
@@ -587,7 +562,7 @@ export const compileGenericGitHostConfig = async (
 export const compileGenericGitHostConfig_file = async (
     config: GenericGitHostConnectionConfig,
     connectionId: number,
-): Promise<CompileResult> => {
+): Promise<RepoData[]> => {
     const configUrl = new URL(config.url);
     assert(configUrl.protocol === 'file:', 'config.url must be a file:// URL');
 
@@ -597,17 +572,11 @@ export const compileGenericGitHostConfig_file = async (
     });
 
     const repos: RepoData[] = [];
-    const warnings: string[] = [];
-
     // Warn if the glob pattern matched no paths at all
     if (repoPaths.length === 0) {
         const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
         logger.warn(warning);
-        warnings.push(warning);
-        return {
-            repoData: repos,
-            warnings,
-        };
+        return repos;
     }
 
     logger.debug(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
@@ -617,7 +586,6 @@ export const compileGenericGitHostConfig_file = async (
         if (!stat || !stat.isDirectory()) {
             const warning = `Skipping ${repoPath} - path is not a directory.`;
             logger.warn(warning);
-            warnings.push(warning);
             return;
         }
 
@@ -627,7 +595,6 @@ export const compileGenericGitHostConfig_file = async (
         if (!isGitRepo) {
             const warning = `Skipping ${repoPath} - not a git repository.`;
             logger.warn(warning);
-            warnings.push(warning);
             return;
         }
 
@@ -635,7 +602,6 @@ export const compileGenericGitHostConfig_file = async (
         if (!origin) {
             const warning = `Skipping ${repoPath} - remote.origin.url not found in git config.`;
             logger.warn(warning);
-            warnings.push(warning);
             return;
         }
 
@@ -690,25 +656,19 @@ export const compileGenericGitHostConfig_file = async (
     if (repos.length === 0) {
         const warning = `No valid git repositories found from ${repoPaths.length} matched path(s). Check the warnings for details on individual paths.`;
         logger.warn(warning);
-        warnings.push(warning);
     } else {
         logger.debug(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
     }
 
-    return {
-        repoData: repos,
-        warnings,
-    }
+    return repos;
 }
 
 export const compileGenericGitHostConfig_url = async (
     config: GenericGitHostConnectionConfig,
     connectionId: number,
-): Promise<CompileResult> => {
+): Promise<RepoData[]> => {
     const remoteUrl = new URL(config.url);
     assert(remoteUrl.protocol === 'http:' || remoteUrl.protocol === 'https:', 'config.url must be a http:// or https:// URL');
-
-    const warnings: string[] = [];
 
     // Validate that we are dealing with a valid git repo.
     const isGitRepo = await isUrlAValidGitRepo({
@@ -717,11 +677,7 @@ export const compileGenericGitHostConfig_url = async (
     if (!isGitRepo) {
         const warning = `Skipping ${remoteUrl.toString()} - not a git repository.`;
         logger.warn(warning);
-        warnings.push(warning);
-        return {
-            repoData: [],
-            warnings,
-        }
+        return [];
     }
 
     // @note: matches the naming here:
@@ -765,19 +721,15 @@ export const compileGenericGitHostConfig_url = async (
         } satisfies RepoMetadata,
     };
 
-    return {
-        repoData: [repo],
-        warnings,
-    }
+    return [repo];
 }
 
 export const compileAzureDevOpsConfig = async (
     config: AzureDevOpsConnectionConfig,
-    connectionId: number): Promise<CompileResult> => {
+    connectionId: number): Promise<RepoData[]> => {
 
     const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config);
     const azureDevOpsRepos = azureDevOpsReposResult.repos;
-    const warnings = azureDevOpsReposResult.warnings;
 
     const hostUrl = (config.url ?? 'https://dev.azure.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
@@ -846,8 +798,5 @@ export const compileAzureDevOpsConfig = async (
         return record;
     })
 
-    return {
-        repoData: repos,
-        warnings,
-    };
+    return repos;
 }

@@ -71,6 +71,9 @@ vi.mock("@sourcebot/shared", () => ({
     ],
     createLogger: vi.fn(() => mocks.logger),
     loadConfig: mocks.loadConfig,
+    repositoryDiscoveryIssueSchema: {
+        parse: (issue: unknown) => issue,
+    },
 }));
 
 vi.mock("./repoCompileUtils.js", () => ({
@@ -93,6 +96,7 @@ import {
     reconcileRepoIndexWork,
     reconcileRepoPermissionSyncWork,
 } from "./connectionSyncWorkload.js";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
 
 const transactionClient = {
@@ -280,10 +284,7 @@ describe("connectionWorkload", () => {
             orgId: 7,
             config,
         });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [discoveredRepo],
-            warnings: ["Repository was archived"],
-        });
+        mocks.compileGithubConfig.mockResolvedValue([discoveredRepo]);
         mocks.repoUpsert.mockResolvedValue({
             id: 4,
             name: "github.com/sourcebot/repo-4",
@@ -304,10 +305,6 @@ describe("connectionWorkload", () => {
             42,
             expect.any(AbortSignal),
         );
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
-            where: { id: "job-1" },
-            data: { warningMessages: ["Repository was archived"] },
-        });
         expect(mocks.repoUpsert).toHaveBeenCalledOnce();
         expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
             "repo-index",
@@ -336,6 +333,40 @@ describe("connectionWorkload", () => {
         expect(updateProgress).not.toHaveBeenCalled();
     });
 
+    test("returns partial success reasons reported during discovery", async () => {
+        const reason = {
+            code: "NOT_FOUND_OR_INACCESSIBLE" as const,
+            effect: "TARGET_SKIPPED" as const,
+            subject: {
+                kind: "repository" as const,
+                value: "sourcebot-dev/legacy",
+            },
+            message: "Repository was not found or is inaccessible.",
+        };
+        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
+            id: 42,
+            name: "github",
+            orgId: 7,
+            config: { type: "github" },
+        });
+        mocks.compileGithubConfig.mockImplementation(async () => {
+            reportRepositoryDiscoveryIssue(reason);
+            return [];
+        });
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: new AbortController().signal,
+                updateProgress: vi.fn(),
+                trigger: vi.fn(),
+            }),
+        ).resolves.toEqual({
+            outcome: "PARTIAL_SUCCESS",
+            reasons: [reason],
+        });
+    });
+
     test("does not mark the connection synced when repo work reconciliation fails", async () => {
         mocks.connectionFindUniqueOrThrow.mockResolvedValue({
             id: 42,
@@ -343,15 +374,12 @@ describe("connectionWorkload", () => {
             orgId: 7,
             config: { type: "github" },
         });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [
-                {
-                    external_id: "repo-4",
-                    external_codeHostUrl: "https://github.com",
-                },
-            ],
-            warnings: [],
-        });
+        mocks.compileGithubConfig.mockResolvedValue([
+            {
+                external_id: "repo-4",
+                external_codeHostUrl: "https://github.com",
+            },
+        ]);
         mocks.repoUpsert.mockResolvedValue({
             id: 4,
             name: "github.com/sourcebot/repo-4",

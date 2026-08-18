@@ -21,6 +21,7 @@ import {
     compileGitlabConfig,
 } from "./repoCompileUtils.js";
 import type { RepoData } from "./repoCompileUtils.js";
+import { collectRepositoryDiscoveryIssues } from "./repositoryDiscoveryIssueContext.js";
 import { JobManager, ProcessContext, Settings, Workload } from "./types.js";
 
 const CONNECTION_SYNC_LOCK_DURATION_MS = 60_000;
@@ -47,7 +48,6 @@ export const createConnectionSyncWorkload = ({
     process: async ({
         data: { connectionId },
         signal,
-        jobId,
         trigger,
     }) => {
         signal.throwIfAborted();
@@ -64,21 +64,14 @@ export const createConnectionSyncWorkload = ({
             orgId,
         });
 
-        const { repoData, warnings } = await discoverConnectionRepositories({
-            config: connection.config as unknown as ConnectionConfig,
-            connectionId,
-            signal,
-        });
-
-        signal.throwIfAborted();
-        await db.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                warningMessages: warnings,
-            },
-        });
+        const { value: repoData, issues } =
+            await collectRepositoryDiscoveryIssues(() =>
+                discoverConnectionRepositories({
+                    config: connection.config as unknown as ConnectionConfig,
+                    connectionId,
+                    signal,
+                })
+            );
 
         logger.debug(`Discovered ${repoData.length} repositories`, {
             connectionId,
@@ -154,7 +147,9 @@ export const createConnectionSyncWorkload = ({
             connectionId,
         });
 
-        return { outcome: "SUCCESS" };
+        return issues.length === 0
+            ? { outcome: "SUCCESS" }
+            : { outcome: "PARTIAL_SUCCESS", reasons: issues };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
         await db.$transaction(async (tx) => {

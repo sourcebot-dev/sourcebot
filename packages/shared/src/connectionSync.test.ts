@@ -1,8 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-    connectionSyncResultSchema,
-    connectionSyncPartialSuccessReasonSchema,
-} from "./connectionSync.js";
+import { connectionSyncResultSchema } from "./connectionSync.js";
 
 describe("connectionSyncResultSchema", () => {
     test("accepts a successful result", () => {
@@ -41,21 +38,5 @@ describe("connectionSyncResultSchema", () => {
                 reasons: [],
             }).success,
         ).toBe(false);
-    });
-});
-
-describe("connectionSyncPartialSuccessReasonSchema", () => {
-    test("allows a reason without a subject", () => {
-        expect(
-            connectionSyncPartialSuccessReasonSchema.parse({
-                code: "INVALID_PROVIDER_RESPONSE",
-                effect: "DISCOVERY_INCOMPLETE",
-                message: "The provider returned an invalid repository.",
-            }),
-        ).toEqual({
-            code: "INVALID_PROVIDER_RESPONSE",
-            effect: "DISCOVERY_INCOMPLETE",
-            message: "The provider returned an invalid repository.",
-        });
     });
 });

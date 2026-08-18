@@ -8,7 +8,8 @@ import { env } from "@sourcebot/shared";
 import { hasEntitlement } from "./entitlements.js";
 import micromatch from "micromatch";
 import pLimit from "p-limit";
-import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import { throwIfAnyFailed } from "./connectionUtils.js";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { fetchWithRetry, measure } from "./utils.js";
 
@@ -142,6 +143,16 @@ export const getOctokitWithGithubApp = async (
         logger.warn(
             `No matching GitHub App installation found for ${context} on ${hostname}; falling back to legacy GitHub authentication.`
         );
+        reportRepositoryDiscoveryIssue({
+            code: "AUTHENTICATION_FALLBACK",
+            effect: "DISCOVERY_INCOMPLETE",
+            subject: {
+                kind: "configuration",
+                value: `GitHub App installation for ${owner} on ${hostname}`,
+            },
+            message:
+                "No matching GitHub App installation was found. Discovery used legacy credentials and may be incomplete.",
+        });
         return octokit;
     }
 
@@ -152,7 +163,7 @@ export const getOctokitWithGithubApp = async (
     return octokitFromToken;
 }
 
-export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal): Promise<{ repos: OctokitRepository[], warnings: string[] }> => {
+export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, signal: AbortSignal): Promise<OctokitRepository[]> => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITHUB_CLOUD_HOSTNAME;
@@ -180,24 +191,20 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, s
     }
 
     let allRepos: OctokitRepository[] = [];
-    let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { repos, warnings } = await getReposForOrgs(config.orgs, octokit, signal, config.url);
+        const repos = await getReposForOrgs(config.orgs, octokit, signal, config.url);
         allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.repos) {
-        const { repos, warnings } = await getRepos(config.repos, octokit, signal, config.url);
+        const repos = await getRepos(config.repos, octokit, signal, config.url);
         allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.users) {
-        const { repos, warnings } = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
+        const repos = await getReposOwnedByUsers(config.users, octokit, signal, config.url);
         allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
     }
 
     let repos = allRepos
@@ -215,10 +222,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, s
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    return {
-        repos,
-        warnings: allWarnings,
-    };
+    return repos;
 }
 
 export const getRepoCollaborators = async (owner: string, repo: string, octokit: Octokit) => {
@@ -337,10 +341,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
             });
 
             logger.debug(`Found ${data.length} owned by user ${user} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Failed to fetch repositories for user ${user}.`, error);
@@ -348,22 +349,25 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
             if (isHttpError(error, 404)) {
                 const warning = `User ${user} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "user",
+                        value: user,
+                    },
+                    message: "GitHub user was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     })));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return results.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+    );
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
@@ -400,10 +404,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             });
 
             logger.debug(`Found ${data.length} in org ${org} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Failed to fetch repositories for org ${org}.`, error);
@@ -411,22 +412,25 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
             if (isHttpError(error, 404)) {
                 const warning = `Organization ${org} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "organization",
+                        value: org,
+                    },
+                    message: "GitHub organization was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     })));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return results.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+    );
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
@@ -449,10 +453,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             });
 
             logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
-            return {
-                type: 'valid' as const,
-                data: [result.data]
-            };
+            return [result.data];
 
         } catch (error) {
             Sentry.captureException(error);
@@ -461,22 +462,25 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
             if (isHttpError(error, 404)) {
                 const warning = `Repository ${repo} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: repo,
+                    },
+                    message: "GitHub repository was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     })));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<OctokitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return results.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+    );
 }
 
 export const shouldExcludeRepo = ({
