@@ -7,8 +7,10 @@ export const BannerPriority = {
     SERVICE_PING_ENFORCED:     95,
     INVOICE_PAST_DUE:          90,
     PERMISSION_SYNC:           50,
+    REPOSITORY_SYNC_FAILED:    45,
     TRIAL:                     25,
     LICENSE_EXPIRY_HEADS_UP:   20,
+    REPOSITORY_SYNC_WARNING:   15,
     SERVICE_PING_FAILED:       10,
     UPGRADE_AVAILABLE:          5,
 } as const;
@@ -18,6 +20,8 @@ export type BannerId =
     | 'licenseReboundElsewhere'
     | 'invoicePastDue'
     | 'permissionSync'
+    | 'repositorySyncFailed'
+    | 'repositorySyncWarning'
     | 'licenseExpiryHeadsUp'
     | 'trial'
     | 'servicePingFailed'

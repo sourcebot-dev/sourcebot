@@ -15,6 +15,7 @@ import { InvoicePastDueBanner } from "./invoicePastDueBanner";
 import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 import { TrialBanner } from "./trialBanner";
 import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
+import { RepositorySyncIssuesBanner } from "./repositorySyncIssuesBanner";
 import type { PermissionSyncStatusResponse } from "@/app/api/(server)/ee/permissionSyncStatus/api";
 
 // Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
@@ -30,6 +31,10 @@ export interface BannerContext {
     hasPermissionSyncEntitlement: boolean;
     hasPendingFirstSync: boolean;
     permissionSyncIssues: PermissionSyncStatusResponse['issues'];
+    repositorySyncIssueCounts: {
+        failedCount: number;
+        warningCount: number;
+    };
     dismissals: Partial<Record<BannerId, string>>;
     today: string;
     now: Date;
@@ -173,6 +178,40 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                         hasPendingFirstSync: ctx.hasPendingFirstSync,
                         issues: ctx.permissionSyncIssues,
                     }}
+                />
+            ),
+        });
+    }
+
+    const {
+        failedCount: repositorySyncFailedCount,
+        warningCount: repositorySyncWarningCount,
+    } = ctx.repositorySyncIssueCounts;
+    if (repositorySyncFailedCount > 0) {
+        banners.push({
+            id: 'repositorySyncFailed',
+            priority: BannerPriority.REPOSITORY_SYNC_FAILED,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <RepositorySyncIssuesBanner
+                    {...props}
+                    failedCount={repositorySyncFailedCount}
+                    warningCount={repositorySyncWarningCount}
+                />
+            ),
+        });
+    } else if (repositorySyncWarningCount > 0) {
+        banners.push({
+            id: 'repositorySyncWarning',
+            priority: BannerPriority.REPOSITORY_SYNC_WARNING,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <RepositorySyncIssuesBanner
+                    {...props}
+                    failedCount={repositorySyncFailedCount}
+                    warningCount={repositorySyncWarningCount}
                 />
             ),
         });

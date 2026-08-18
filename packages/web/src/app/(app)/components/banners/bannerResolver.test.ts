@@ -21,6 +21,7 @@ vi.mock('./invoicePastDueBanner', () => ({ InvoicePastDueBanner: () => null }));
 vi.mock('./servicePingFailedBanner', () => ({ ServicePingFailedBanner: () => null }));
 vi.mock('./trialBanner', () => ({ TrialBanner: () => null }));
 vi.mock('./upgradeAvailableBanner', () => ({ UpgradeAvailableBanner: () => null }));
+vi.mock('./repositorySyncIssuesBanner', () => ({ RepositorySyncIssuesBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -79,6 +80,7 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     hasPermissionSyncEntitlement: false,
     hasPendingFirstSync: false,
     permissionSyncIssues: [],
+    repositorySyncIssueCounts: { failedCount: 0, warningCount: 0 },
     dismissals: {},
     today: TODAY,
     now: NOW,
@@ -133,6 +135,80 @@ describe('resolveActiveBanner', () => {
                 hasPendingFirstSync: true,
             }));
             expect(result?.id).toBe('permissionSync');
+        });
+
+        test('permission sync outranks repository sync failures', () => {
+            const result = resolveActiveBanner(makeContext({
+                hasPermissionSyncEntitlement: true,
+                hasPendingFirstSync: true,
+                repositorySyncIssueCounts: { failedCount: 1, warningCount: 0 },
+            }));
+            expect(result?.id).toBe('permissionSync');
+        });
+
+        test('repository sync failures outrank trial notices', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(7),
+                }),
+                repositorySyncIssueCounts: { failedCount: 1, warningCount: 0 },
+            }));
+            expect(result?.id).toBe('repositorySyncFailed');
+        });
+
+        test('trial notices outrank repository sync warnings', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(7),
+                }),
+                repositorySyncIssueCounts: { failedCount: 0, warningCount: 1 },
+            }));
+            expect(result?.id).toBe('trial');
+        });
+    });
+
+    describe('repository sync issues', () => {
+        test('shows failures to owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncIssueCounts: { failedCount: 2, warningCount: 1 },
+            }));
+            expect(result?.id).toBe('repositorySyncFailed');
+            expect(result?.dismissible).toBe(true);
+            expect(result?.audience).toBe('owner');
+        });
+
+        test('shows warnings when there are no failures', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncIssueCounts: { failedCount: 0, warningCount: 2 },
+            }));
+            expect(result?.id).toBe('repositorySyncWarning');
+            expect(result?.dismissible).toBe(true);
+        });
+
+        test('hides issues from members', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('does not let a warning dismissal suppress a later failure', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+                dismissals: { repositorySyncWarning: TODAY },
+            }));
+            expect(result?.id).toBe('repositorySyncFailed');
+        });
+
+        test('hides failures dismissed today', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+                dismissals: { repositorySyncFailed: TODAY },
+            }));
+            expect(result).toBeNull();
         });
     });
 

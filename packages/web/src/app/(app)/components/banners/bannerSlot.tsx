@@ -9,6 +9,8 @@ const KNOWN_BANNER_IDS: BannerId[] = [
     'licenseReboundElsewhere',
     'invoicePastDue',
     'permissionSync',
+    'repositorySyncFailed',
+    'repositorySyncWarning',
     'licenseExpiryHeadsUp',
     'trial',
     'servicePingFailed',

@@ -17,7 +17,7 @@ const sortBySchema = z.enum(["name", "indexedAt"]);
 const sortOrderSchema = z.enum(["asc", "desc"]);
 const statusSchema = z.enum(["failed", "warning"]);
 
-type ReposV2PageProps = {
+type ReposPageProps = {
     searchParams: Promise<{
         page?: string;
         search?: string;
@@ -28,7 +28,7 @@ type ReposV2PageProps = {
 };
 
 export default authenticatedPage<
-    ReposV2PageProps,
+    ReposPageProps,
     OptionalAuthOptions
 >(async ({ org, prisma, role }, { searchParams }) => {
     const params = await searchParams;
