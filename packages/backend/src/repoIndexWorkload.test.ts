@@ -32,21 +32,13 @@ import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 
 const repoFindUnique = vi.fn();
 const repoDeleteMany = vi.fn();
-const repoIndexingJobUpsert = vi.fn();
-const repoIndexingJobUpdateMany = vi.fn();
 const repoUpdate = vi.fn();
-const repoUpdateMany = vi.fn();
 
 const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
     callback({
-        repoIndexingJob: {
-            upsert: repoIndexingJobUpsert,
-            updateMany: repoIndexingJobUpdateMany,
-        },
         repo: {
             findUnique: repoFindUnique,
             update: repoUpdate,
-            updateMany: repoUpdateMany,
         },
     }),
 );
@@ -102,10 +94,7 @@ describe("repoIndexWorkload", () => {
         fsMocks.rm.mockResolvedValue(undefined);
         repoFindUnique.mockResolvedValue(eligibleRepo);
         repoDeleteMany.mockResolvedValue({ count: 1 });
-        repoIndexingJobUpsert.mockResolvedValue(undefined);
-        repoIndexingJobUpdateMany.mockResolvedValue({ count: 1 });
         repoUpdate.mockResolvedValue(undefined);
-        repoUpdateMany.mockResolvedValue({ count: 1 });
     });
 
     test("uses the same repository execution lock for INDEX and CLEANUP", () => {
@@ -119,11 +108,11 @@ describe("repoIndexWorkload", () => {
         expect(workload.executionLock?.durationMs).toBe(60_000);
         expect(workload.queueSpec.dedupKey).toBeUndefined();
         expect(workload.onStarted).toBeUndefined();
-        expect(workload.onCompleted).toBeTypeOf("function");
-        expect(workload.onTerminalFailure).toBeTypeOf("function");
+        expect(workload.onCompleted).toBeUndefined();
+        expect(workload.onTerminalFailure).toBeUndefined();
     });
 
-    test("validates state and marks an eligible job in progress inside process", async () => {
+    test("validates state and records the latest job inside process", async () => {
         await workload.process({
             ...processContext,
             data: { repoId: 42, type: "CLEANUP" },
@@ -139,29 +128,12 @@ describe("repoIndexWorkload", () => {
                 },
             },
         });
-        expect(repoIndexingJobUpsert).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            update: {
-                status: "IN_PROGRESS",
-                completedAt: null,
-                errorMessage: null,
-            },
-            create: {
-                id: "job-1",
-                repoId: 42,
-                type: "CLEANUP",
-                status: "IN_PROGRESS",
-            },
-        });
         expect(repoUpdate).toHaveBeenCalledWith({
             where: {
                 id: 42,
             },
             data: {
                 latestIndexingJobId: "job-1",
-                latestIndexingJobStatus: "IN_PROGRESS",
             },
         });
         expect(repoDeleteMany).toHaveBeenCalledWith({
@@ -201,7 +173,7 @@ describe("repoIndexWorkload", () => {
 
         await workload.process(processContext);
 
-        expect(repoIndexingJobUpsert).not.toHaveBeenCalled();
+        expect(repoUpdate).not.toHaveBeenCalled();
         expect(repoDeleteMany).not.toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
         expect(lifecycleLogger.debug).toHaveBeenCalledWith(
@@ -222,7 +194,7 @@ describe("repoIndexWorkload", () => {
             data: { repoId: 42, type: "CLEANUP" },
         });
 
-        expect(repoIndexingJobUpsert).not.toHaveBeenCalled();
+        expect(repoUpdate).not.toHaveBeenCalled();
         expect(fsMocks.rm).toHaveBeenCalledWith(
             expect.stringMatching(/repos\/42$/),
             { recursive: true, force: true },
@@ -256,7 +228,7 @@ describe("repoIndexWorkload", () => {
             data: { repoId: 42, type: "CLEANUP" },
         });
 
-        expect(repoIndexingJobUpsert).not.toHaveBeenCalled();
+        expect(repoUpdate).not.toHaveBeenCalled();
         expect(repoDeleteMany).not.toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
         expect(lifecycleLogger.debug).toHaveBeenCalledWith(
@@ -272,7 +244,7 @@ describe("repoIndexWorkload", () => {
             data: { repoId: 42, type: "CLEANUP" },
         });
 
-        expect(repoIndexingJobUpsert).toHaveBeenCalled();
+        expect(repoUpdate).toHaveBeenCalled();
         expect(repoDeleteMany).toHaveBeenCalled();
         expect(fsMocks.readdir).not.toHaveBeenCalled();
         expect(lifecycleLogger.debug).toHaveBeenCalledWith(
@@ -280,54 +252,4 @@ describe("repoIndexWorkload", () => {
         );
     });
 
-    test("marks a completed job and fences the repository summary by job id", async () => {
-        await workload.onCompleted?.(lifecycleContext, undefined);
-
-        expect(repoIndexingJobUpdateMany).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            data: {
-                status: "COMPLETED",
-                completedAt: expect.any(Date),
-                errorMessage: null,
-            },
-        });
-        expect(repoUpdateMany).toHaveBeenCalledWith({
-            where: {
-                id: 42,
-                latestIndexingJobId: "job-1",
-            },
-            data: {
-                latestIndexingJobStatus: "COMPLETED",
-            },
-        });
-    });
-
-    test("marks a terminal failure and fences the repository summary by job id", async () => {
-        await workload.onTerminalFailure?.(
-            lifecycleContext,
-            new Error("Unable to clone repository"),
-        );
-
-        expect(repoIndexingJobUpdateMany).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            data: {
-                status: "FAILED",
-                completedAt: expect.any(Date),
-                errorMessage: "Unable to clone repository",
-            },
-        });
-        expect(repoUpdateMany).toHaveBeenCalledWith({
-            where: {
-                id: 42,
-                latestIndexingJobId: "job-1",
-            },
-            data: {
-                latestIndexingJobStatus: "FAILED",
-            },
-        });
-    });
 });

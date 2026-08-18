@@ -76,12 +76,10 @@ model Repo {
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
   latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest repo state.
 
-  jobs RepoIndexingJob[]
-  indexedAt          DateTime? /// When the repo was last indexed successfully.
-  indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
-  latestIndexingJobId String? /// The job allowed to publish the latest indexing status.
-  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
-  pushedAt           DateTime? /// The timestamp of the most recent commit across all branches.
+  indexedAt           DateTime? /// When the repo was last indexed successfully.
+  indexedCommitHash   String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobId String? /// The latest indexing job in the workload queue.
+  pushedAt            DateTime? /// The timestamp of the most recent commit across all branches.
 
   external_id           String /// The id of the repo in the external service
   external_codeHostType CodeHostType /// The type of the external service (e.g., github, gitlab, etc.)
@@ -96,35 +94,6 @@ model Repo {
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
   @@index([indexedAt])
-}
-
-enum RepoIndexingJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-enum RepoIndexingJobType {
-  INDEX
-  CLEANUP
-}
-
-model RepoIndexingJob {
-  id          String                      @id @default(cuid())
-  type        RepoIndexingJobType
-  status      RepoIndexingJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
-
-  errorMessage String?
-
-  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  repoId Int
-
-  @@index([repoId, type, status])
 }
 
 enum RepoPermissionSyncJobStatus {

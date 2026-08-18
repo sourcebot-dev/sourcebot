@@ -7,7 +7,7 @@ import {
 } from '@bull-board/metrics';
 import { Octokit } from '@octokit/rest';
 import * as Sentry from "@sentry/node";
-import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
+import { PrismaClient } from '@sourcebot/db';
 import { createLogger, env, JOB_PRIORITIES } from '@sourcebot/shared';
 import express, { NextFunction, Request, Response } from 'express';
 import 'express-async-errors';
@@ -176,7 +176,7 @@ const scheduleAndTriggerRepoIndexing = async ({
         reindexIntervalMs,
         {
             repoId,
-            type: RepoIndexingJobType.INDEX,
+            type: "INDEX",
         },
         { priority: JOB_PRIORITIES.SCHEDULED },
     );
@@ -185,7 +185,7 @@ const scheduleAndTriggerRepoIndexing = async ({
         "repo-index",
         {
             repoId,
-            type: RepoIndexingJobType.INDEX,
+            type: "INDEX",
         },
         { priority: JOB_PRIORITIES.INTERACTIVE },
     );

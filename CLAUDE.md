@@ -32,8 +32,9 @@ Use the workload system in `packages/backend` for background work. Define the qu
 
 ### Lifecycle state
 
-- In `onStarted`, upsert the workload-specific job row as `IN_PROGRESS`. If the parent resource tracks a `latest...JobId`, update that pointer in the same database transaction.
-- Completion and terminal-failure hooks must always update their own historical job row by job ID. Do not condition that update on the job still being latest. Every job row should record its actual outcome.
+- BullMQ is the default source of truth for workload lifecycle state. Only persist a separate database job row when the product explicitly requires durable history beyond the queue's retention policy.
+- If a parent resource tracks a `latest...JobId`, update that pointer when the job starts so consumers can resolve its state from BullMQ.
+- For workloads that persist historical job rows, completion and terminal-failure hooks must always update their own row by job ID. Do not condition that update on the job still being latest. Every persisted job row should record its actual outcome.
 - `onTerminalFailure` only runs after the job exhausts all retry attempts. Intermediate failures are retried without marking the lifecycle row as terminally failed.
 - If a completion or failure hook publishes state onto the parent resource, use a conditional `updateMany` keyed by both the resource ID and its `latest...JobId`. This prevents an older hook from overwriting state belonging to a newer job after the execution lock has been released.
 - Parent-resource state written inside `process` is already serialized by the execution lock. It does not need a latest-job conditional merely because the resource tracks the latest job ID.

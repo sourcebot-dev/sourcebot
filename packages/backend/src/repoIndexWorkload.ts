@@ -1,4 +1,4 @@
-import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
+import { PrismaClient, Repo } from "@sourcebot/db";
 import { createLogger, getRepoPath, getRepoIdFromPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
@@ -117,52 +117,6 @@ export const createRepoIndexWorkload = ({
             }
         }
     },
-    onCompleted: async ({ data: { repoId }, jobId }) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: RepoIndexingJobStatus.COMPLETED,
-                    completedAt: new Date(),
-                    errorMessage: null,
-                },
-            });
-            await tx.repo.updateMany({
-                where: {
-                    id: repoId,
-                    latestIndexingJobId: jobId,
-                },
-                data: {
-                    latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
-                },
-            });
-        });
-    },
-    onTerminalFailure: async ({ data: { repoId }, jobId }, error) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: RepoIndexingJobStatus.FAILED,
-                    completedAt: new Date(),
-                    errorMessage: error.message,
-                },
-            });
-            await tx.repo.updateMany({
-                where: {
-                    id: repoId,
-                    latestIndexingJobId: jobId,
-                },
-                data: {
-                    latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
-                },
-            });
-        });
-    },
 });
 
 type RepoIndexStartDecision =
@@ -223,29 +177,12 @@ const prepareRepoIndexJob = async ({
             };
         }
 
-        await tx.repoIndexingJob.upsert({
-            where: {
-                id: jobId,
-            },
-            update: {
-                status: RepoIndexingJobStatus.IN_PROGRESS,
-                completedAt: null,
-                errorMessage: null,
-            },
-            create: {
-                id: jobId,
-                repoId,
-                type: RepoIndexingJobType[type],
-                status: RepoIndexingJobStatus.IN_PROGRESS,
-            },
-        });
         await tx.repo.update({
             where: {
                 id: repoId,
             },
             data: {
                 latestIndexingJobId: jobId,
-                latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
             },
         });
 
