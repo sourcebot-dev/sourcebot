@@ -133,7 +133,9 @@ describe('listBranches', () => {
             expect(mockGitRaw).toHaveBeenCalledWith([
                 'for-each-ref',
                 '--sort=-committerdate',
-                '--format=%(refname:short)%09%(objectname)%09%(committerdate:iso-strict)',
+                // lstrip=2 (not refname:short) so a tag with the same name as a
+                // branch cannot turn the emitted name into "heads/<branch>".
+                '--format=%(refname:lstrip=2)%09%(objectname)%09%(committerdate:iso-strict)',
                 'refs/heads',
             ]);
             expect(mockGitRaw).toHaveBeenCalledTimes(1);

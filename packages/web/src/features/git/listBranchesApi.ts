@@ -50,7 +50,7 @@ export const listBranches = async ({
             const output = await git.raw([
                 'for-each-ref',
                 '--sort=-committerdate',
-                '--format=%(refname:short)%09%(objectname)%09%(committerdate:iso-strict)',
+                '--format=%(refname:lstrip=2)%09%(objectname)%09%(committerdate:iso-strict)',
                 'refs/heads',
             ]);
 
