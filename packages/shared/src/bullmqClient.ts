@@ -7,6 +7,7 @@ import type {
     JobEnqueueOptions,
     QueueName,
     QueueSpec,
+    ResultOf,
 } from "./queue.js";
 import { scheduleToMs } from "./schedule.js";
 import type { Schedule } from "./schedule.js";
@@ -24,14 +25,15 @@ export interface WorkloadJob<TName extends QueueName> {
     data: DataOf<TName>;
     status: WorkloadJobStatus;
     errorMessage: string | null;
+    result: ResultOf<TName> | null;
 }
 
 type WorkloadQueue<TName extends QueueName> = Queue<
     DataOf<TName>,
-    unknown,
+    ResultOf<TName>,
     string,
     DataOf<TName>,
-    unknown,
+    ResultOf<TName>,
     string
 >;
 
@@ -85,11 +87,21 @@ export class BullMQClient {
             return null;
         }
 
+        const result = (() => {
+            if (status !== "COMPLETED" || !spec.resultSchema) {
+                return null;
+            }
+
+            const parsed = spec.resultSchema.safeParse(job.returnvalue);
+            return parsed.success ? parsed.data : null;
+        })();
+
         return {
             id: job.id ?? jobId,
             data: job.data as DataOf<TName>,
             status,
             errorMessage: status === "FAILED" ? job.failedReason || null : null,
+            result,
         };
     }
 
@@ -133,7 +145,13 @@ export class BullMQClient {
         data: DataOf<TName>,
         options: JobEnqueueOptions = {},
     ): Promise<string> {
-        const dedupKey = spec.dedupKey?.(data);
+        // QueueSpec is distributive so queue names, data, and result schemas stay
+        // correlated when TName is a union. Re-establish the shared generic here
+        // before invoking the optional method.
+        const { dedupKey: getDedupKey }: {
+            dedupKey?(data: DataOf<TName>): string;
+        } = spec;
+        const dedupKey = getDedupKey?.(data);
         const queue = this.getQueue(spec);
 
         const requestedJobId = randomUUID();

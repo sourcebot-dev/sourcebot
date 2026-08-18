@@ -40,6 +40,7 @@ const repos: Repo[] = [
             data: { repoId: 1, type: "INDEX" },
             status: "IN_PROGRESS",
             errorMessage: null,
+            result: null,
         },
         imageUrl: null,
         webUrl: "https://github.com/acme/first",
@@ -175,6 +176,7 @@ describe("ReposTable", () => {
                 data: { repoId: 2, type: "INDEX" },
                 status: "COMPLETED",
                 errorMessage: null,
+                result: null,
             },
         }]);
 
@@ -274,6 +276,7 @@ describe("ReposTable", () => {
                     data: { repoId: 1, type: "INDEX" },
                     status: "COMPLETED",
                     errorMessage: null,
+                    result: null,
                 },
             }],
         };
@@ -317,6 +320,7 @@ describe("ReposTable", () => {
                 data: { repoId: 2, type: "INDEX" },
                 status: "FAILED",
                 errorMessage: "The remote repository could not be reached",
+                result: null,
             },
         }]);
 
@@ -339,6 +343,7 @@ describe("ReposTable", () => {
                 ...repos[0].latestJob!,
                 status: "FAILED",
                 errorMessage: "Authentication failed while cloning",
+                result: null,
             },
         }]);
 
@@ -366,6 +371,7 @@ describe("ReposTable", () => {
                     data: { repoId: 1, type: "INDEX" },
                     status: "FAILED",
                     errorMessage: "Authentication failed while cloning",
+                    result: null,
                 },
             }],
         } satisfies RepoIndexingStatusesResponse)));
@@ -375,6 +381,7 @@ describe("ReposTable", () => {
                 ...repos[0].latestJob!,
                 status: "FAILED",
                 errorMessage: "Authentication failed while cloning",
+                result: null,
             },
         }]);
 
@@ -416,6 +423,7 @@ describe("ReposTable", () => {
                     data: { repoId: 1, type: "INDEX" },
                     status: "COMPLETED",
                     errorMessage: null,
+                    result: null,
                 },
             }],
         };
@@ -455,6 +463,7 @@ describe("ReposTable", () => {
                     data: { repoId: 1, type: "INDEX" },
                     status: "FAILED",
                     errorMessage: "Indexing failed",
+                    result: null,
                 },
             }],
         };

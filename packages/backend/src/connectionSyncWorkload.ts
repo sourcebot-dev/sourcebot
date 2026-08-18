@@ -32,16 +32,11 @@ interface Props {
     settings: Settings;
 }
 
-interface ConnectionSyncResult {
-    reposToCleanup: { id: number; name: string }[];
-    reposToIndex: { id: number; name: string }[];
-}
-
 export const createConnectionSyncWorkload = ({
     db,
     jobManager,
     settings,
-}: Props): Workload<"connection-sync", ConnectionSyncResult> => ({
+}: Props): Workload<"connection-sync"> => ({
     queueSpec: CONNECTION_QUEUE,
     concurrency: settings.maxConnectionSyncJobConcurrency,
     executionLock: {
@@ -159,10 +154,7 @@ export const createConnectionSyncWorkload = ({
             connectionId,
         });
 
-        return {
-            reposToCleanup: repoChanges.orphanedRepos,
-            reposToIndex: repoChanges.unindexedRepos,
-        };
+        return { outcome: "SUCCESS" };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
         await db.$transaction(async (tx) => {

@@ -35,20 +35,13 @@ interface RepoPermissionSyncWorkloadDependencies {
     settings: Settings;
 }
 
-interface RepoPermissionSyncResult {
-    repoName: string;
-}
-
 const REPO_PERMISSION_SYNC_LOCK_DURATION_MS = 60_000;
 const logger = createLogger("repo-permission-sync-workload");
 
 export const createRepoPermissionSyncWorkload = ({
     db,
     settings,
-}: RepoPermissionSyncWorkloadDependencies): Workload<
-    "repo-permission-sync",
-    RepoPermissionSyncResult
-> => ({
+}: RepoPermissionSyncWorkloadDependencies): Workload<"repo-permission-sync"> => ({
     queueSpec: REPO_PERMISSION_SYNC_QUEUE,
     concurrency: settings.maxRepoPermissionSyncJobConcurrency,
     executionLock: {

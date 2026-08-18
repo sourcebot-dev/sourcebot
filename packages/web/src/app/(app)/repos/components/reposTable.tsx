@@ -539,6 +539,7 @@ export const ReposTable = ({
                 data: { repoId, type: "INDEX" },
                 status: "PENDING",
                 errorMessage: null,
+                result: null,
             });
             return nextJobs;
         });

@@ -18,12 +18,6 @@ interface Props {
     storage?: StorageBackend;
 }
 
-interface AttachmentPruneResult {
-    pendingClaimed: number;
-    committedClaimed: number;
-    reclaimed: number;
-}
-
 /**
  * Reclaims orphaned attachment blobs using the `DELETING` tombstone protocol:
  * an orphan is first atomically flipped to `DELETING`, then its bytes are
@@ -47,7 +41,7 @@ export const createAttachmentPruneWorkload = ({
     db,
     ttlHours,
     storage = getStorageBackend(),
-}: Props): Workload<"attachment-prune", AttachmentPruneResult> => ({
+}: Props): Workload<"attachment-prune"> => ({
     queueSpec: ATTACHMENT_PRUNE_QUEUE,
     concurrency: 1,
     ...(ttlHours > 0

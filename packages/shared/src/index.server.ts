@@ -94,9 +94,24 @@ export {
     compareVersions,
 } from "./versionUtils.js";
 export type { Version } from "./versionUtils.js";
+export {
+    connectionSyncResultSchema,
+    connectionSyncPartialSuccessEffectSchema,
+    connectionSyncPartialSuccessReasonCodeSchema,
+    connectionSyncPartialSuccessReasonSchema,
+    connectionSyncPartialSuccessSubjectSchema,
+} from "./connectionSync.js";
+export type {
+    ConnectionSyncResult,
+    ConnectionSyncPartialSuccessEffect,
+    ConnectionSyncPartialSuccessReason,
+    ConnectionSyncPartialSuccessReasonCode,
+    ConnectionSyncPartialSuccessSubject,
+} from "./connectionSync.js";
 export type {
     QueueName,
     DataOf,
+    ResultOf,
     JobEnqueueOptions,
     QueueSpec,
     JobOptions,

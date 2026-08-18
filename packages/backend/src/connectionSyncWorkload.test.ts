@@ -88,11 +88,11 @@ vi.mock("./ee/syncSearchContexts.js", () => ({
 }));
 
 import {
-    createConnectionWorkload,
+    createConnectionSyncWorkload as createConnectionWorkload,
     replaceConnectionRepositories,
     reconcileRepoIndexWork,
     reconcileRepoPermissionSyncWork,
-} from "./connectionWorkload.js";
+} from "./connectionSyncWorkload.js";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
 
 const transactionClient = {
@@ -233,8 +233,7 @@ describe("connectionWorkload", () => {
 
     test("marks the connection sync job as completed", async () => {
         await connectionWorkload.onCompleted?.(lifecycleContext, {
-            reposToCleanup: [],
-            reposToIndex: [],
+            outcome: "SUCCESS",
         });
 
         expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
@@ -333,12 +332,7 @@ describe("connectionWorkload", () => {
             orgId: 7,
             contexts: undefined,
         });
-        expect(result).toEqual({
-            reposToCleanup: [],
-            reposToIndex: [
-                { id: 4, name: "github.com/sourcebot/repo-4" },
-            ],
-        });
+        expect(result).toEqual({ outcome: "SUCCESS" });
         expect(updateProgress).not.toHaveBeenCalled();
     });
 

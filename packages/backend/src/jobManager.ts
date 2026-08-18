@@ -6,6 +6,7 @@ import {
     DataOf,
     JobEnqueueOptions,
     QueueName,
+    ResultOf,
     Schedule,
     scheduleToMs,
     runWithJobLogContext,
@@ -24,10 +25,7 @@ const STALLED_JOB_TERMINAL_ERROR = "job stalled more than allowable limit";
 const logger = createLogger(LOG_TAG);
 
 export class BullMQJobManager implements JobManager {
-    private readonly workloads = new Map<
-        string,
-        Workload<QueueName, unknown>
-    >();
+    private readonly workloads = new Map<string, Workload<QueueName>>();
     private readonly workers = new Map<string, Worker>();
     private readonly bullmqClient: BullMQClient;
     private readonly abortController = new AbortController();
@@ -325,10 +323,10 @@ export class BullMQJobManager implements JobManager {
         );
     }
 
-    private async onWorkloadJobCompleted<TName extends QueueName, TResult>(
-        workload: Workload<TName, TResult>,
+    private async onWorkloadJobCompleted<TName extends QueueName>(
+        workload: Workload<TName>,
         job: Job,
-        result: TResult,
+        result: ResultOf<TName>,
     ): Promise<void> {
         const label = `${LOG_TAG}:${workload.queueSpec.name}:job:${job.id ?? "unknown"}`;
         const attempt = Math.max(job.attemptsMade, 1);

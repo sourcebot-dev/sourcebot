@@ -51,6 +51,7 @@ describe("BullMQClient", () => {
                     id: jobId,
                     data: { connectionId: 1 },
                     failedReason: "",
+                    returnvalue: null,
                     getState: vi.fn(async () => "active"),
                 };
             }
@@ -59,6 +60,7 @@ describe("BullMQClient", () => {
                     id: jobId,
                     data: { connectionId: 2 },
                     failedReason: "",
+                    returnvalue: { outcome: "SUCCESS" },
                     getState: vi.fn(async () => "completed"),
                 };
             }
@@ -74,6 +76,7 @@ describe("BullMQClient", () => {
                 data: { connectionId: 1 },
                 status: "IN_PROGRESS",
                 errorMessage: null,
+                result: null,
             }],
             ["missing", null],
             ["job-2", {
@@ -81,8 +84,33 @@ describe("BullMQClient", () => {
                 data: { connectionId: 2 },
                 status: "COMPLETED",
                 errorMessage: null,
+                result: { outcome: "SUCCESS" },
             }],
         ]));
+    });
+
+    test("returns null for an unrecognized legacy connection result", async () => {
+        mocks.getJob.mockResolvedValue({
+            id: "job-1",
+            data: { connectionId: 1 },
+            failedReason: "",
+            returnvalue: {
+                reposToCleanup: [],
+                reposToIndex: [],
+            },
+            getState: vi.fn(async () => "completed"),
+        });
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getJob(CONNECTION_QUEUE, "job-1"),
+        ).resolves.toEqual({
+            id: "job-1",
+            data: { connectionId: 1 },
+            status: "COMPLETED",
+            errorMessage: null,
+            result: null,
+        });
     });
 
     test("deduplicates job ids when getting jobs", async () => {
@@ -90,6 +118,7 @@ describe("BullMQClient", () => {
             id: "job-1",
             data: { connectionId: 1 },
             failedReason: "",
+            returnvalue: null,
             getState: vi.fn(async () => "waiting"),
         });
         const client = new BullMQClient({} as Redis);
