@@ -1,9 +1,5 @@
 import * as Sentry from "@sentry/node";
-import {
-    PermissionSyncSource,
-    PrismaClient,
-    RepoPermissionSyncJobStatus,
-} from "@sourcebot/db";
+import { PermissionSyncSource, PrismaClient } from "@sourcebot/db";
 import {
     createLogger,
     REPO_PERMISSION_SYNC_QUEUE,
@@ -133,56 +129,27 @@ export const createRepoPermissionSyncWorkload = ({
         };
     },
     onStarted: async ({ data: { repoId }, jobId }) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoPermissionSyncJob.upsert({
-                where: {
-                    id: jobId,
-                },
-                update: {
-                    status: RepoPermissionSyncJobStatus.IN_PROGRESS,
-                    completedAt: null,
-                    errorMessage: null,
-                },
-                create: {
-                    id: jobId,
-                    repoId,
-                    status: RepoPermissionSyncJobStatus.IN_PROGRESS,
-                },
-            });
-            await tx.repo.update({
-                where: {
-                    id: repoId,
-                },
-                data: {
-                    latestPermissionSyncJobId: jobId,
-                },
-            });
+        await db.repo.update({
+            where: {
+                id: repoId,
+            },
+            data: {
+                latestPermissionSyncJobId: jobId,
+            },
         });
     },
     onCompleted: async (
         { data: { repoId }, jobId },
         { repoName },
     ) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoPermissionSyncJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: RepoPermissionSyncJobStatus.COMPLETED,
-                    completedAt: new Date(),
-                    errorMessage: null,
-                },
-            });
-            await tx.repo.updateMany({
-                where: {
-                    id: repoId,
-                    latestPermissionSyncJobId: jobId,
-                },
-                data: {
-                    permissionSyncedAt: new Date(),
-                },
-            });
+        await db.repo.updateMany({
+            where: {
+                id: repoId,
+                latestPermissionSyncJobId: jobId,
+            },
+            data: {
+                permissionSyncedAt: new Date(),
+            },
         });
 
         logger.debug(`Permissions synced for repo ${repoName}`);
@@ -192,17 +159,6 @@ export const createRepoPermissionSyncWorkload = ({
             tags: {
                 jobId,
                 queue: REPO_PERMISSION_SYNC_QUEUE.name,
-            },
-        });
-
-        await db.repoPermissionSyncJob.updateMany({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: RepoPermissionSyncJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: error.message,
             },
         });
 

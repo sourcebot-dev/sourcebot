@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/node";
 import {
     Account,
     AccountPermissionSyncIssue,
-    AccountPermissionSyncJobStatus,
     PermissionSyncSource,
     PrismaClient,
 } from "@sourcebot/db";
@@ -247,30 +246,13 @@ export const createAccountPermissionSyncWorkload = ({
             }
         },
         onStarted: async ({ data: { accountId }, jobId }) => {
-            await db.$transaction(async (tx) => {
-                await tx.accountPermissionSyncJob.upsert({
-                    where: {
-                        id: jobId,
-                    },
-                    update: {
-                        status: AccountPermissionSyncJobStatus.IN_PROGRESS,
-                        completedAt: null,
-                        errorMessage: null,
-                    },
-                    create: {
-                        id: jobId,
-                        accountId,
-                        status: AccountPermissionSyncJobStatus.IN_PROGRESS,
-                    },
-                });
-                await tx.account.update({
-                    where: {
-                        id: accountId,
-                    },
-                    data: {
-                        latestPermissionSyncJobId: jobId,
-                    },
-                });
+            await db.account.update({
+                where: {
+                    id: accountId,
+                },
+                data: {
+                    latestPermissionSyncJobId: jobId,
+                },
             });
         },
         onCompleted: async ({
@@ -278,16 +260,6 @@ export const createAccountPermissionSyncWorkload = ({
             jobId,
         }) => {
             const account = await db.$transaction(async (tx) => {
-                await tx.accountPermissionSyncJob.updateMany({
-                    where: {
-                        id: jobId,
-                    },
-                    data: {
-                        status: AccountPermissionSyncJobStatus.COMPLETED,
-                        completedAt: new Date(),
-                        errorMessage: null,
-                    },
-                });
                 await tx.account.updateMany({
                     where: {
                         id: accountId,
@@ -326,16 +298,6 @@ export const createAccountPermissionSyncWorkload = ({
                 },
             });
 
-            await db.accountPermissionSyncJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: AccountPermissionSyncJobStatus.FAILED,
-                    completedAt: new Date(),
-                    errorMessage: error.message,
-                },
-            });
             const account = await db.account.findUnique({
                 where: {
                     id: accountId,

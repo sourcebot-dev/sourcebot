@@ -87,16 +87,10 @@ const repoUpdate = vi.fn().mockResolvedValue(repo);
 const repoUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
 const accountFindMany = vi.fn().mockResolvedValue([]);
 const permissionCreateMany = vi.fn().mockResolvedValue({ count: 0 });
-const permissionSyncJobUpsert = vi.fn();
-const permissionSyncJobUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
 const transactionClient = {
     repo: {
         update: repoUpdate,
         updateMany: repoUpdateMany,
-    },
-    repoPermissionSyncJob: {
-        upsert: permissionSyncJobUpsert,
-        updateMany: permissionSyncJobUpdateMany,
     },
 };
 const transaction = vi.fn(
@@ -121,10 +115,6 @@ const db = {
     },
     accountToRepoPermission: {
         createMany: permissionCreateMany,
-    },
-    repoPermissionSyncJob: {
-        upsert: permissionSyncJobUpsert,
-        updateMany: permissionSyncJobUpdateMany,
     },
     $transaction: transaction,
 } as unknown as PrismaClient;
@@ -164,7 +154,6 @@ beforeEach(() => {
     mocks.createOctokitFromToken.mockReset().mockResolvedValue({ octokit: {} });
     mocks.getRepoCollaborators.mockReset().mockResolvedValue([]);
     repoFindUniqueOrThrow.mockResolvedValue(repo);
-    permissionSyncJobUpdateMany.mockResolvedValue({ count: 1 });
     accountFindMany.mockResolvedValue([]);
     repoUpdate.mockResolvedValue(repo);
     repoUpdateMany.mockResolvedValue({ count: 1 });
@@ -172,7 +161,7 @@ beforeEach(() => {
 });
 
 describe("repoPermissionSyncWorkload", () => {
-    test("uses the configured concurrency and database-backed lifecycle hooks", () => {
+    test("uses the configured concurrency and lifecycle hooks", () => {
         const workload = createWorkload();
 
         expect(workload.queueSpec.name).toBe("repo-permission-sync");
@@ -350,42 +339,21 @@ describe("repoPermissionSyncWorkload", () => {
         });
     });
 
-    test("marks a job as in progress when started", async () => {
+    test("records the latest job when started", async () => {
         await createWorkload().onStarted?.(lifecycleContext);
 
-        expect(permissionSyncJobUpsert).toHaveBeenCalledWith({
-            where: { id: "job_1" },
-            update: {
-                status: "IN_PROGRESS",
-                completedAt: null,
-                errorMessage: null,
-            },
-            create: {
-                id: "job_1",
-                repoId: 42,
-                status: "IN_PROGRESS",
-            },
-        });
         expect(repoUpdate).toHaveBeenCalledWith({
             where: { id: 42 },
             data: { latestPermissionSyncJobId: "job_1" },
         });
-        expect(transaction).toHaveBeenCalledOnce();
+        expect(transaction).not.toHaveBeenCalled();
     });
 
-    test("marks a job completed and updates the repo sync timestamp when it is still latest", async () => {
+    test("updates the repo sync timestamp when the completed job is still latest", async () => {
         await createWorkload().onCompleted?.(lifecycleContext, {
             repoName: "sourcebot-dev/sourcebot",
         });
 
-        expect(permissionSyncJobUpdateMany).toHaveBeenCalledWith({
-            where: { id: "job_1" },
-            data: {
-                status: "COMPLETED",
-                completedAt: expect.any(Date),
-                errorMessage: null,
-            },
-        });
         expect(repoUpdateMany).toHaveBeenCalledWith({
             where: {
                 id: 42,
@@ -395,11 +363,10 @@ describe("repoPermissionSyncWorkload", () => {
                 permissionSyncedAt: expect.any(Date),
             },
         });
-        expect(transaction).toHaveBeenCalledOnce();
+        expect(transaction).not.toHaveBeenCalled();
     });
 
     test("does not fail completion after the repo has been deleted", async () => {
-        permissionSyncJobUpdateMany.mockResolvedValue({ count: 0 });
         repoUpdateMany.mockResolvedValue({ count: 0 });
 
         await expect(
@@ -409,19 +376,11 @@ describe("repoPermissionSyncWorkload", () => {
         ).resolves.toBeUndefined();
     });
 
-    test("marks a job failed after terminal failure", async () => {
+    test("reports terminal failures", async () => {
         const error = new Error("Upstream unavailable");
 
         await createWorkload().onTerminalFailure?.(lifecycleContext, error);
 
-        expect(permissionSyncJobUpdateMany).toHaveBeenCalledWith({
-            where: { id: "job_1" },
-            data: {
-                status: "FAILED",
-                completedAt: expect.any(Date),
-                errorMessage: "Upstream unavailable",
-            },
-        });
         expect(mocks.captureException).toHaveBeenCalledWith(error, {
             tags: {
                 jobId: "job_1",

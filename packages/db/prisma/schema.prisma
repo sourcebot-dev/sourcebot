@@ -72,7 +72,6 @@ model Repo {
 
   permittedAccounts  AccountToRepoPermission[]
   scopedAccessTokens ScopedAccessTokenToRepo[]
-  permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
   latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest repo state.
 
@@ -94,26 +93,6 @@ model Repo {
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
   @@index([indexedAt])
-}
-
-enum RepoPermissionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model RepoPermissionSyncJob {
-  id          String                      @id @default(cuid())
-  status      RepoPermissionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  errorMessage String?
-
-  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  repoId Int
 }
 
 model SearchContext {
@@ -543,26 +522,6 @@ model User {
 
 }
 
-enum AccountPermissionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model AccountPermissionSyncJob {
-  id          String                      @id @default(cuid())
-  status      AccountPermissionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  errorMessage String?
-
-  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId String
-}
-
 enum PermissionSyncSource {
   ACCOUNT_DRIVEN
   REPO_DRIVEN
@@ -615,7 +574,6 @@ model Account {
   /// List of repos that this account has access to.
   accessibleRepos AccountToRepoPermission[]
 
-  permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
   latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest account state.
 
