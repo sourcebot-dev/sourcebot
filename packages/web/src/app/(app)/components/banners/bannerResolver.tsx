@@ -16,6 +16,7 @@ import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 import { TrialBanner } from "./trialBanner";
 import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
 import { RepositorySyncIssuesBanner } from "./repositorySyncIssuesBanner";
+import { RepositoryFirstSyncBanner } from "./repositoryFirstSyncBanner";
 import type { PermissionSyncStatusResponse } from "@/app/api/(server)/ee/permissionSyncStatus/api";
 
 // Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
@@ -31,7 +32,8 @@ export interface BannerContext {
     hasPermissionSyncEntitlement: boolean;
     hasPendingFirstSync: boolean;
     permissionSyncIssues: PermissionSyncStatusResponse['issues'];
-    repositorySyncIssueCounts: {
+    repositorySyncCounts: {
+        syncingCount: number;
         failedCount: number;
         warningCount: number;
     };
@@ -184,9 +186,10 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
     }
 
     const {
+        syncingCount: repositorySyncingCount,
         failedCount: repositorySyncFailedCount,
         warningCount: repositorySyncWarningCount,
-    } = ctx.repositorySyncIssueCounts;
+    } = ctx.repositorySyncCounts;
     if (repositorySyncFailedCount > 0) {
         banners.push({
             id: 'repositorySyncFailed',
@@ -212,6 +215,20 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                     {...props}
                     failedCount={repositorySyncFailedCount}
                     warningCount={repositorySyncWarningCount}
+                />
+            ),
+        });
+    }
+    if (repositorySyncingCount > 0) {
+        banners.push({
+            id: 'repositoryFirstSync',
+            priority: BannerPriority.REPOSITORY_FIRST_SYNC,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <RepositoryFirstSyncBanner
+                    {...props}
+                    syncingCount={repositorySyncingCount}
                 />
             ),
         });

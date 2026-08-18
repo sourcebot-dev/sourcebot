@@ -22,6 +22,7 @@ vi.mock('./servicePingFailedBanner', () => ({ ServicePingFailedBanner: () => nul
 vi.mock('./trialBanner', () => ({ TrialBanner: () => null }));
 vi.mock('./upgradeAvailableBanner', () => ({ UpgradeAvailableBanner: () => null }));
 vi.mock('./repositorySyncIssuesBanner', () => ({ RepositorySyncIssuesBanner: () => null }));
+vi.mock('./repositoryFirstSyncBanner', () => ({ RepositoryFirstSyncBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -80,7 +81,7 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     hasPermissionSyncEntitlement: false,
     hasPendingFirstSync: false,
     permissionSyncIssues: [],
-    repositorySyncIssueCounts: { failedCount: 0, warningCount: 0 },
+    repositorySyncCounts: { syncingCount: 0, failedCount: 0, warningCount: 0 },
     dismissals: {},
     today: TODAY,
     now: NOW,
@@ -141,7 +142,7 @@ describe('resolveActiveBanner', () => {
             const result = resolveActiveBanner(makeContext({
                 hasPermissionSyncEntitlement: true,
                 hasPendingFirstSync: true,
-                repositorySyncIssueCounts: { failedCount: 1, warningCount: 0 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 1, warningCount: 0 },
             }));
             expect(result?.id).toBe('permissionSync');
         });
@@ -152,7 +153,7 @@ describe('resolveActiveBanner', () => {
                     status: 'trialing',
                     trialEnd: daysFromNow(7),
                 }),
-                repositorySyncIssueCounts: { failedCount: 1, warningCount: 0 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 1, warningCount: 0 },
             }));
             expect(result?.id).toBe('repositorySyncFailed');
         });
@@ -163,7 +164,7 @@ describe('resolveActiveBanner', () => {
                     status: 'trialing',
                     trialEnd: daysFromNow(7),
                 }),
-                repositorySyncIssueCounts: { failedCount: 0, warningCount: 1 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 0, warningCount: 1 },
             }));
             expect(result?.id).toBe('trial');
         });
@@ -172,7 +173,7 @@ describe('resolveActiveBanner', () => {
     describe('repository sync issues', () => {
         test('shows failures to owners', () => {
             const result = resolveActiveBanner(makeContext({
-                repositorySyncIssueCounts: { failedCount: 2, warningCount: 1 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 2, warningCount: 1 },
             }));
             expect(result?.id).toBe('repositorySyncFailed');
             expect(result?.dismissible).toBe(true);
@@ -181,7 +182,7 @@ describe('resolveActiveBanner', () => {
 
         test('shows warnings when there are no failures', () => {
             const result = resolveActiveBanner(makeContext({
-                repositorySyncIssueCounts: { failedCount: 0, warningCount: 2 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 0, warningCount: 2 },
             }));
             expect(result?.id).toBe('repositorySyncWarning');
             expect(result?.dismissible).toBe(true);
@@ -190,14 +191,14 @@ describe('resolveActiveBanner', () => {
         test('hides issues from members', () => {
             const result = resolveActiveBanner(makeContext({
                 role: OrgRole.MEMBER,
-                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 1, warningCount: 1 },
             }));
             expect(result).toBeNull();
         });
 
         test('does not let a warning dismissal suppress a later failure', () => {
             const result = resolveActiveBanner(makeContext({
-                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 1, warningCount: 1 },
                 dismissals: { repositorySyncWarning: TODAY },
             }));
             expect(result?.id).toBe('repositorySyncFailed');
@@ -205,10 +206,51 @@ describe('resolveActiveBanner', () => {
 
         test('hides failures dismissed today', () => {
             const result = resolveActiveBanner(makeContext({
-                repositorySyncIssueCounts: { failedCount: 1, warningCount: 1 },
+                repositorySyncCounts: { syncingCount: 0, failedCount: 1, warningCount: 1 },
                 dismissals: { repositorySyncFailed: TODAY },
             }));
             expect(result).toBeNull();
+        });
+    });
+
+    describe('repository first sync', () => {
+        test('shows first-time syncing repositories to owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncCounts: {
+                    syncingCount: 3,
+                    failedCount: 0,
+                    warningCount: 0,
+                },
+            }));
+
+            expect(result?.id).toBe('repositoryFirstSync');
+            expect(result?.dismissible).toBe(true);
+            expect(result?.audience).toBe('owner');
+        });
+
+        test('hides first-time syncing repositories from members', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                repositorySyncCounts: {
+                    syncingCount: 3,
+                    failedCount: 0,
+                    warningCount: 0,
+                },
+            }));
+
+            expect(result).toBeNull();
+        });
+
+        test('repository warnings take priority over first-time syncing', () => {
+            const result = resolveActiveBanner(makeContext({
+                repositorySyncCounts: {
+                    syncingCount: 3,
+                    failedCount: 0,
+                    warningCount: 1,
+                },
+            }));
+
+            expect(result?.id).toBe('repositorySyncWarning');
         });
     });
 

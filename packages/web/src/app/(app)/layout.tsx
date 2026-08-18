@@ -43,16 +43,19 @@ interface LayoutProps {
     sidebar: React.ReactNode;
 }
 
-const getRepositorySyncIssueCounts = async (orgId: number) => {
+const getRepositorySyncCounts = async (orgId: number) => {
     try {
         const failedJobIds = await getBullMQClient().getFailedJobIds(
             REPO_INDEX_QUEUE,
         );
-        if (failedJobIds.length === 0) {
-            return { failedCount: 0, warningCount: 0 };
-        }
 
-        const [failedCount, warningCount] = await Promise.all([
+        const [unindexedCount, failedCount, warningCount] = await Promise.all([
+            __unsafePrisma.repo.count({
+                where: {
+                    orgId,
+                    indexedAt: null,
+                },
+            }),
             __unsafePrisma.repo.count({
                 where: {
                     orgId,
@@ -69,10 +72,14 @@ const getRepositorySyncIssueCounts = async (orgId: number) => {
             }),
         ]);
 
-        return { failedCount, warningCount };
+        return {
+            syncingCount: Math.max(0, unindexedCount - failedCount),
+            failedCount,
+            warningCount,
+        };
     } catch (error) {
-        console.error("Failed to load repository sync issue counts", error);
-        return { failedCount: 0, warningCount: 0 };
+        console.error("Failed to load repository sync counts", error);
+        return { syncingCount: 0, failedCount: 0, warningCount: 0 };
     }
 };
 
@@ -203,9 +210,9 @@ export default async function Layout(props: LayoutProps) {
         permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
             ? permissionSyncStatus.issues
             : [];
-    const repositorySyncIssueCounts = role === OrgRole.OWNER
-        ? await getRepositorySyncIssueCounts(org.id)
-        : { failedCount: 0, warningCount: 0 };
+    const repositorySyncCounts = role === OrgRole.OWNER
+        ? await getRepositorySyncCounts(org.id)
+        : { syncingCount: 0, failedCount: 0, warningCount: 0 };
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense
@@ -240,7 +247,7 @@ export default async function Layout(props: LayoutProps) {
                                                     hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
                                                     hasPendingFirstSync={hasPendingFirstSync}
                                                     permissionSyncIssues={permissionSyncIssues}
-                                                    repositorySyncIssueCounts={repositorySyncIssueCounts}
+                                                    repositorySyncCounts={repositorySyncCounts}
                                                     currentVersion={SOURCEBOT_VERSION}
                                                     latestVersion={latestVersion}
                                                 />
