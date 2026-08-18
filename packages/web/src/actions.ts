@@ -4,7 +4,7 @@ import { createAudit } from "@/ee/features/audit/audit";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
-import { ConnectionSyncJobStatus, OrgRole, Prisma } from "@sourcebot/db";
+import { OrgRole, Prisma } from "@sourcebot/db";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
@@ -219,42 +219,6 @@ export const getRepos = async ({
             isArchived: repo.isArchived,
         } satisfies RepositoryQuery))
     }));
-
-export const getConnectionStats = async () => sew(() =>
-    withAuth(async ({ org, prisma }) => {
-        const [
-            numberOfConnections,
-            numberOfConnectionsWithFirstTimeSyncJobsInProgress,
-        ] = await Promise.all([
-            prisma.connection.count({
-                where: {
-                    orgId: org.id,
-                }
-            }),
-            prisma.connection.count({
-                where: {
-                    orgId: org.id,
-                    syncedAt: null,
-                    syncJobs: {
-                        some: {
-                            status: {
-                                in: [
-                                    ConnectionSyncJobStatus.PENDING,
-                                    ConnectionSyncJobStatus.IN_PROGRESS,
-                                ]
-                            }
-                        }
-                    }
-                }
-            })
-        ]);
-
-        return {
-            numberOfConnections,
-            numberOfConnectionsWithFirstTimeSyncJobsInProgress,
-        };
-    })
-);
 
 export const getRepoInfoByName = async (repoName: string) => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {
