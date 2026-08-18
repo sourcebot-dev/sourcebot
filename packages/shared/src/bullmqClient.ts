@@ -93,6 +93,33 @@ export class BullMQClient {
         };
     }
 
+    async getJobs<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        jobIds: readonly string[],
+    ): Promise<Map<string, WorkloadJob<TName> | null>> {
+        const uniqueJobIds = [...new Set(jobIds)];
+        const jobs = await Promise.all(
+            uniqueJobIds.map((jobId) => this.getJob(spec, jobId)),
+        );
+
+        return new Map(
+            uniqueJobIds.map((jobId, index) => [jobId, jobs[index] ?? null]),
+        );
+    }
+
+    async getFailedJobIds<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+    ): Promise<string[]> {
+        const jobs = await this.getQueue(spec).getJobs(
+            ["failed"],
+            0,
+            -1,
+            true,
+        );
+
+        return jobs.flatMap((job) => job.id ? [job.id] : []);
+    }
+
     async getJobLogs<TName extends QueueName>(
         spec: QueueSpec<TName>,
         jobId: string,

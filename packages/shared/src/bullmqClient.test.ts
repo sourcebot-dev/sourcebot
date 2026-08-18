@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
     add: vi.fn(async () => ({ id: "job-1" })),
+    getJob: vi.fn(),
+    listJobs: vi.fn(),
     upsertJobScheduler: vi.fn(async () => ({ id: "scheduled-job" })),
     getJobScheduler: vi.fn(),
     getJobSchedulers: vi.fn(async () => [
@@ -15,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("bullmq", () => ({
     Queue: class {
         add = mocks.add;
+        getJob = mocks.getJob;
+        getJobs = mocks.listJobs;
         upsertJobScheduler = mocks.upsertJobScheduler;
         getJobScheduler = mocks.getJobScheduler;
         getJobSchedulers = mocks.getJobSchedulers;
@@ -35,7 +39,86 @@ describe("BullMQClient", () => {
         vi.restoreAllMocks();
         vi.clearAllMocks();
         vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+        mocks.getJob.mockResolvedValue(undefined);
+        mocks.listJobs.mockResolvedValue([]);
         mocks.getJobScheduler.mockResolvedValue(undefined);
+    });
+
+    test("gets jobs by id and preserves missing jobs", async () => {
+        mocks.getJob.mockImplementation(async (jobId: string) => {
+            if (jobId === "job-1") {
+                return {
+                    id: jobId,
+                    data: { connectionId: 1 },
+                    failedReason: "",
+                    getState: vi.fn(async () => "active"),
+                };
+            }
+            if (jobId === "job-2") {
+                return {
+                    id: jobId,
+                    data: { connectionId: 2 },
+                    failedReason: "",
+                    getState: vi.fn(async () => "completed"),
+                };
+            }
+            return undefined;
+        });
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getJobs(CONNECTION_QUEUE, ["job-1", "missing", "job-2"]),
+        ).resolves.toEqual(new Map([
+            ["job-1", {
+                id: "job-1",
+                data: { connectionId: 1 },
+                status: "IN_PROGRESS",
+                errorMessage: null,
+            }],
+            ["missing", null],
+            ["job-2", {
+                id: "job-2",
+                data: { connectionId: 2 },
+                status: "COMPLETED",
+                errorMessage: null,
+            }],
+        ]));
+    });
+
+    test("deduplicates job ids when getting jobs", async () => {
+        mocks.getJob.mockResolvedValue({
+            id: "job-1",
+            data: { connectionId: 1 },
+            failedReason: "",
+            getState: vi.fn(async () => "waiting"),
+        });
+        const client = new BullMQClient({} as Redis);
+
+        const jobs = await client.getJobs(CONNECTION_QUEUE, [
+            "job-1",
+            "job-1",
+        ]);
+
+        expect(jobs).toHaveLength(1);
+        expect(mocks.getJob).toHaveBeenCalledTimes(1);
+    });
+
+    test("lists failed job ids", async () => {
+        mocks.listJobs.mockResolvedValue([
+            { id: "failed-1" },
+            { id: "failed-2" },
+        ]);
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getFailedJobIds(CONNECTION_QUEUE),
+        ).resolves.toEqual(["failed-1", "failed-2"]);
+        expect(mocks.listJobs).toHaveBeenCalledWith(
+            ["failed"],
+            0,
+            -1,
+            true,
+        );
     });
 
     test("includes workload data in scheduled jobs", async () => {
