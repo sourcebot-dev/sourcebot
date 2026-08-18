@@ -169,6 +169,18 @@ describe("ReposTable", () => {
         ).toBe("/browse/github.com/acme/second/-/tree");
     });
 
+    test("does not link a repository name without a synced commit", () => {
+        renderTable([{
+            ...repos[1],
+            indexedCommitHash: null,
+        }]);
+
+        expect(
+            screen.queryByRole("link", { name: "acme/second" }),
+        ).toBeNull();
+        expect(screen.getByText("acme/second")).toBeTruthy();
+    });
+
     test("shows repository actions to everyone and sync only to owners", () => {
         const { unmount } = renderTable([repos[1]], false);
 

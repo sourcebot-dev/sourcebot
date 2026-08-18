@@ -323,7 +323,7 @@ const getColumns = ({
                     ? getRepoImageSrc(repo.imageUrl, repo.id)
                     : undefined;
                 const isInternalApiImage = repoImageSrc?.startsWith("/api/");
-                const repoBrowseUrl = repo.indexedAt
+                const repoBrowseUrl = repo.indexedCommitHash
                     ? getBrowsePath({
                           repoName: repo.name,
                           path: "",
