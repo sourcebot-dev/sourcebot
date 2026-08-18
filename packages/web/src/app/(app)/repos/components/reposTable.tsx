@@ -758,6 +758,25 @@ export const ReposTable = ({
         });
     };
 
+    const hasActiveFilters = statusFilter !== "all"
+        || urlSearchValue.trim().length > 0;
+    const clearFilters = () => {
+        const params = new URLSearchParams(searchParamsString);
+        params.delete("search");
+        params.delete("status");
+        params.delete("page");
+
+        const nextSearchParamsString = params.toString();
+        setSearchValue("");
+        pendingSearchValuesRef.current.add("");
+        startSearchTransition(() => {
+            router.replace(
+                `${pathname}${nextSearchParamsString ? `?${nextSearchParamsString}` : ""}`,
+                { scroll: false },
+            );
+        });
+    };
+
     const emptyMessage = statusFilter === "failed"
         ? "No failed repositories."
         : statusFilter === "warning"
@@ -858,7 +877,18 @@ export const ReposTable = ({
                                     colSpan={columns.length}
                                     className="h-28 text-center text-sm text-muted-foreground"
                                 >
-                                    {emptyMessage}
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p>{emptyMessage}</p>
+                                        {hasActiveFilters && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={clearFilters}
+                                            >
+                                                Clear filters
+                                            </Button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}

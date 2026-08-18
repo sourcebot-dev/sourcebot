@@ -114,6 +114,31 @@ describe("ReposTable", () => {
         expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
     });
 
+    test("clears search and status filters from the empty state", () => {
+        navigation.searchParams = "search=missing&status=failed&page=2&sortBy=indexedAt";
+
+        renderTable([]);
+
+        fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+
+        expect(
+            (screen.getByPlaceholderText("Search repositories...") as HTMLInputElement)
+                .value,
+        ).toBe("");
+        expect(navigation.replace).toHaveBeenCalledWith(
+            "/reposv2?sortBy=indexedAt",
+            { scroll: false },
+        );
+    });
+
+    test("does not offer to clear filters in the unfiltered empty state", () => {
+        renderTable([]);
+
+        expect(
+            screen.queryByRole("button", { name: "Clear filters" }),
+        ).toBeNull();
+    });
+
     test("does not reset pagination when the search value is unchanged", () => {
         navigation.searchParams = "page=2";
 
