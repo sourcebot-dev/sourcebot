@@ -4,7 +4,7 @@ import { createAudit } from "@/ee/features/audit/audit";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
-import { ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
+import { ConnectionSyncJobStatus, OrgRole, Prisma } from "@sourcebot/db";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
@@ -219,60 +219,6 @@ export const getRepos = async ({
             isArchived: repo.isArchived,
         } satisfies RepositoryQuery))
     }));
-
-/**
- * Returns a set of aggregated stats about the repos in the org
- */
-export const getReposStats = async () => sew(() =>
-    withOptionalAuth(async ({ org, prisma }) => {
-        const [
-            // Total number of repos.
-            numberOfRepos,
-            // Number of repos with their first time indexing jobs either
-            // pending or in progress.
-            numberOfReposWithFirstTimeIndexingJobsInProgress,
-            // Number of repos that have been indexed at least once.
-            numberOfReposWithIndex,
-        ] = await Promise.all([
-            prisma.repo.count({
-                where: {
-                    orgId: org.id,
-                }
-            }),
-            prisma.repo.count({
-                where: {
-                    orgId: org.id,
-                    indexedAt: null,
-                    jobs: {
-                        some: {
-                            type: RepoIndexingJobType.INDEX,
-                            status: {
-                                in: [
-                                    RepoIndexingJobStatus.PENDING,
-                                    RepoIndexingJobStatus.IN_PROGRESS,
-                                ]
-                            }
-                        },
-                    },
-                }
-            }),
-            prisma.repo.count({
-                where: {
-                    orgId: org.id,
-                    NOT: {
-                        indexedAt: null,
-                    }
-                }
-            })
-        ]);
-
-        return {
-            numberOfRepos,
-            numberOfReposWithFirstTimeIndexingJobsInProgress,
-            numberOfReposWithIndex,
-        };
-    })
-)
 
 export const getConnectionStats = async () => sew(() =>
     withAuth(async ({ org, prisma }) => {
