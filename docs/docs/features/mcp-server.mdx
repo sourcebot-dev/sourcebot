@@ -375,6 +375,20 @@ Parameters:
 | `page` | no | Page number for pagination (min 1, default: 1). |
 | `perPage` | no | Results per page for pagination (min 1, max 100, default: 50). |
 
+### `list_branches`
+
+Lists branches in a repository, sorted by latest commit date (newest first). Results come from Sourcebot's local snapshot of the repository, not live from the code host. Branches created or deleted on the code host appear here only after Sourcebot next syncs the repository.
+
+Each branch in the response includes the branch name, the commit SHA at the branch head, the time of the latest commit, `isDefault` (whether it is the repository's default branch), and `isIndexed` (whether code search can search that branch).
+
+Parameters:
+| Name | Required | Description |
+|:----------|:---------|:------------------------------------------------------------------------------|
+| `repo` | yes | The name of the repository to list branches for. |
+| `query` | no | Filter branches by name (case-insensitive). |
+| `page` | no | Page number for pagination (min 1, default: 1). |
+| `perPage` | no | Results per page for pagination (min 1, max 100, default: 50). |
+
 ### `glob`
 
 Finds files whose paths match a glob pattern across repositories (e.g. `**/*.ts`, `src/**/*.test.{ts,tsx}`). Results are grouped by repository.
