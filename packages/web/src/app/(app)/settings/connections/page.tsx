@@ -112,14 +112,10 @@ export default authenticatedPage<ConnectionsPageProps>(async (
         connection.latestSyncJobId ? [connection.latestSyncJobId] : []
     );
     if (status === "all") {
-        try {
-            latestJobs = await getBullMQClient().getJobs(
-                CONNECTION_QUEUE,
-                latestJobIds,
-            );
-        } catch (error) {
-            console.error("Failed to load latest connection sync jobs", error);
-        }
+        latestJobs = await getBullMQClient().getJobs(
+            CONNECTION_QUEUE,
+            latestJobIds,
+        );
     }
 
     return (
