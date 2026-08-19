@@ -1355,13 +1355,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bull-board/api@npm:9.0.0":
-  version: 9.0.0
-  resolution: "@bull-board/api@npm:9.0.0"
+"@bull-board/api@npm:9.3.1":
+  version: 9.3.1
+  resolution: "@bull-board/api@npm:9.3.1"
   dependencies:
     redis-info: "npm:^3.1.0"
   peerDependencies:
-    "@bull-board/ui": 9.0.0
+    "@bull-board/ui": 9.3.1
     bull: ^4.16.5
     bullmq: ^5.79.2 || ^6.0.0
   peerDependenciesMeta:
@@ -1369,39 +1369,39 @@ __metadata:
       optional: true
     bullmq:
       optional: true
-  checksum: 10c0/00a5e5e03a52f268901d74ff3ad6ece93967577b892ae6e3c5b4137f7e894b739bbc46bfd43b35de60830ec90647c9daaf8ca0756f5114c4a922e1f11ff39688
+  checksum: 10c0/a08ddd1f03709a75ac3aedc0c525fe5cd50f60a8efec0f26381b7180393eab3b1d0e8e17f2b79c7761320b4ec10ecf987b415fb84f64605f54fafa4e491cb1d9
   languageName: node
   linkType: hard
 
-"@bull-board/express@npm:9.0.0":
-  version: 9.0.0
-  resolution: "@bull-board/express@npm:9.0.0"
+"@bull-board/express@npm:9.3.1":
+  version: 9.3.1
+  resolution: "@bull-board/express@npm:9.3.1"
   dependencies:
-    "@bull-board/api": "npm:9.0.0"
-    "@bull-board/ui": "npm:9.0.0"
+    "@bull-board/api": "npm:9.3.1"
+    "@bull-board/ui": "npm:9.3.1"
     ejs: "npm:^6.0.1"
     express: "npm:^5.2.1"
-  checksum: 10c0/47e9c20e6f781bfe9f29e8cf41fea8c15f89f6134d57e3df981c35a9cedfe16ab5e83e885451ba5d130518585ca4b0fbf2775a207e661cdad361fd816589dbeb
+  checksum: 10c0/9231097fa28ba6370e466f03da4d81bedc71abd174aa0c6449cba175fba6d5fa45fdd2dd63e268b6b4f0a320e01089954272933882757e1ba47dc8c18f7aaca2
   languageName: node
   linkType: hard
 
-"@bull-board/metrics@npm:9.0.0":
-  version: 9.0.0
-  resolution: "@bull-board/metrics@npm:9.0.0"
+"@bull-board/metrics@npm:9.3.1":
+  version: 9.3.1
+  resolution: "@bull-board/metrics@npm:9.3.1"
   dependencies:
-    "@bull-board/api": "npm:9.0.0"
+    "@bull-board/api": "npm:9.3.1"
   peerDependencies:
     ioredis: ^5.0.0 || ^6.0.0
-  checksum: 10c0/303665fd0b49eb51bacc042e66a5ec0e7edf088302384e51d68b2bc5da97801f30e5e1e9a0ff6d43324735cf8240a023813080c64d462245c7d96be7b1ec4ff5
+  checksum: 10c0/a516900d9216610cf8226f87d961e30b9ac3654bffb978865e4238e66914dae03acbe203f05baabb32f8fc37247e5d04d555896738b9f02674096f926e1be687
   languageName: node
   linkType: hard
 
-"@bull-board/ui@npm:9.0.0":
-  version: 9.0.0
-  resolution: "@bull-board/ui@npm:9.0.0"
+"@bull-board/ui@npm:9.3.1":
+  version: 9.3.1
+  resolution: "@bull-board/ui@npm:9.3.1"
   dependencies:
-    "@bull-board/api": "npm:9.0.0"
-  checksum: 10c0/1e21d822dfbac020d474661a6dea2be15434dcb76d9d4c34165d7fb292be75348771e09d02cf84e2ed4c54041f69212a6ea62f2bc0a1c0697e5a022d0a835fb1
+    "@bull-board/api": "npm:9.3.1"
+  checksum: 10c0/9249c02ea5532489e4ebadc5e7312b903908cdbcab48ece3f63c45abe63bcb9abf2c12b9da8c58ca70a1e7ed14c08c8f07dc4287c210d67111d7448c5f6635fa
   languageName: node
   linkType: hard
 
@@ -8819,10 +8819,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/backend@workspace:packages/backend"
   dependencies:
-    "@bull-board/api": "npm:9.0.0"
-    "@bull-board/express": "npm:9.0.0"
-    "@bull-board/metrics": "npm:9.0.0"
-    "@bull-board/ui": "npm:9.0.0"
+    "@bull-board/api": "npm:9.3.1"
+    "@bull-board/express": "npm:9.3.1"
+    "@bull-board/metrics": "npm:9.3.1"
+    "@bull-board/ui": "npm:9.3.1"
     "@coderabbitai/bitbucket": "npm:^1.1.3"
     "@gitbeaker/rest": "npm:^40.5.1"
     "@octokit/app": "npm:^16.1.1"
