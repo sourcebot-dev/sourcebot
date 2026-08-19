@@ -46,6 +46,9 @@ export const JOB_PRIORITIES = {
     SCHEDULED: 10,
 } as const;
 
+// BullMQ evaluates age-based cleanup only when another job reaches the same
+// terminal state. A lone completed or failed job therefore remains available
+// past this age; once a newer same-state job finishes, it replaces the old one.
 const TWO_WEEKS_IN_SECONDS = 14 * 24 * 60 * 60;
 
 export const DEFAULT_JOB_OPTIONS: JobOptions = {
