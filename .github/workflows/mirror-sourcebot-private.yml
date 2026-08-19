@@ -1,0 +1,56 @@
+name: Mirror to sourcebot-private
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+      - "setup-sourcebot-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-sourcebot-private
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'sourcebot-dev/sourcebot'
+    runs-on: ubuntu-latest
+    environment: sourcebot-private-mirror
+
+    steps:
+      - name: Check out complete repository history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Create mirror installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.MIRROR_APP_CLIENT_ID }}
+          private-key: ${{ secrets.MIRROR_APP_PRIVATE_KEY }}
+          owner: sourcebot-dev
+          repositories: sourcebot-private
+          permission-contents: write
+          permission-workflows: write
+
+      - name: Mirror main and tags
+        env:
+          MIRROR_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          git remote add private \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/sourcebot-dev/sourcebot-private.git"
+
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            git push --atomic private HEAD:refs/heads/main --tags
+          else
+            git push --atomic private --tags
+          fi
