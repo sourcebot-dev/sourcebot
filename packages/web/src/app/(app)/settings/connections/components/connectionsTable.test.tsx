@@ -151,6 +151,19 @@ describe("ConnectionsTable", () => {
         );
     });
 
+    test.each(["search=github", "status=warning"])(
+        "shows clear filters in the toolbar for %s",
+        (searchParams) => {
+            navigation.searchParams = searchParams;
+
+            renderTable({ data: [connections[0]] });
+
+            expect(
+                screen.getByRole("button", { name: "Clear filters" }),
+            ).toBeTruthy();
+        },
+    );
+
     test("uses URL-driven server pagination", () => {
         renderTable({ totalCount: 29 });
 

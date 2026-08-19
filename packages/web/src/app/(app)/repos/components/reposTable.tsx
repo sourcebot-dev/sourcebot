@@ -27,7 +27,7 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, Check, Loader2, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CircleX, Loader2, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -842,6 +842,17 @@ export const ReposTable = ({
                         <SelectItem value="warning">Warning</SelectItem>
                     </SelectContent>
                 </Select>
+                {hasActiveFilters && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={clearFilters}
+                    >
+                        <CircleX className="h-4 w-4" />
+                        Clear filters
+                    </Button>
+                )}
             </div>
             <div className="rounded-md border">
                 <Table className="table-fixed">
@@ -897,18 +908,7 @@ export const ReposTable = ({
                                     colSpan={columns.length}
                                     className="h-28 text-center text-sm text-muted-foreground"
                                 >
-                                    <div className="flex flex-col items-center gap-3">
-                                        <p>{emptyMessage}</p>
-                                        {hasActiveFilters && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={clearFilters}
-                                            >
-                                                Clear filters
-                                            </Button>
-                                        )}
-                                    </div>
+                                    <p>{emptyMessage}</p>
                                 </TableCell>
                             </TableRow>
                         )}

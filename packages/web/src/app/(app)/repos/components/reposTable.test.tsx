@@ -133,6 +133,19 @@ describe("ReposTable", () => {
         );
     });
 
+    test.each(["search=first", "status=warning"])(
+        "shows clear filters in the toolbar for %s",
+        (searchParams) => {
+            navigation.searchParams = searchParams;
+
+            renderTable([repos[1]]);
+
+            expect(
+                screen.getByRole("button", { name: "Clear filters" }),
+            ).toBeTruthy();
+        },
+    );
+
     test("does not offer to clear filters in the unfiltered empty state", () => {
         renderTable([]);
 
