@@ -7,6 +7,13 @@ on:
     tags:
       - "v*"
       - "setup-sourcebot-v*"
+  # Release commits use `[skip ci]`, which suppresses push-triggered workflows.
+  workflow_run:
+    workflows:
+      - Release Sourcebot (Production)
+      - Release setup-sourcebot
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -26,6 +33,7 @@ jobs:
       - name: Check out complete repository history
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
@@ -49,8 +57,4 @@ jobs:
           git remote add private \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/sourcebot-dev/sourcebot-private.git"
 
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            git push --atomic private HEAD:refs/heads/main --tags
-          else
-            git push --atomic private --tags
-          fi
+          git push --atomic private HEAD:refs/heads/main --tags
