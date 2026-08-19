@@ -330,6 +330,87 @@ describe("connectionWorkload", () => {
         });
     });
 
+    test("preserves missing repositories when discovery is incomplete", async () => {
+        const reason = {
+            code: "ENUMERATION_FAILED" as const,
+            effect: "DISCOVERY_INCOMPLETE" as const,
+            subject: {
+                kind: "organization" as const,
+                value: "sourcebot-dev",
+            },
+            message: "Repository enumeration did not complete.",
+        };
+        const indexedAt = new Date("2026-07-30T12:00:00.000Z");
+        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
+            id: 42,
+            name: "github",
+            orgId: 7,
+            config: { type: "github" },
+        });
+        mocks.compileGithubConfig.mockImplementation(async () => {
+            reportRepositoryDiscoveryIssue(reason);
+            return [
+                {
+                    external_id: "repo-1",
+                    external_codeHostUrl: "https://github.com",
+                },
+            ];
+        });
+        mocks.repoFindMany
+            .mockResolvedValueOnce([
+                {
+                    id: 2,
+                    name: "github.com/sourcebot/repo-2",
+                    indexedAt,
+                },
+            ])
+            .mockResolvedValueOnce([]);
+        mocks.repoUpsert.mockResolvedValue({
+            id: 1,
+            name: "github.com/sourcebot/repo-1",
+            indexedAt,
+        });
+        const trigger = vi.fn();
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: new AbortController().signal,
+                updateProgress: vi.fn(),
+                trigger,
+            }),
+        ).resolves.toEqual({
+            outcome: "PARTIAL_SUCCESS",
+            reasons: [reason],
+        });
+
+        expect(mocks.repoToConnectionDeleteMany).not.toHaveBeenCalled();
+        expect(mocks.logger.debug).toHaveBeenCalledWith(
+            "Preserving repositories omitted from a DISCOVERY_INCOMPLETE result",
+            {
+                connectionId: 42,
+                repositories: [
+                    {
+                        id: 2,
+                        name: "github.com/sourcebot/repo-2",
+                    },
+                ],
+            },
+        );
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-2",
+            3_600_000,
+            { repoId: 2 },
+            { priority: 10 },
+        );
+        expect(trigger).not.toHaveBeenCalledWith(
+            "repo-cleanup",
+            { repoId: 2 },
+            expect.anything(),
+        );
+    });
+
     test("does not mark the connection synced when repo work reconciliation fails", async () => {
         mocks.connectionFindUniqueOrThrow.mockResolvedValue({
             id: 42,

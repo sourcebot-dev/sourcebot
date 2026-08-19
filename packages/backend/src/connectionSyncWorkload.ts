@@ -78,12 +78,17 @@ export const createConnectionSyncWorkload = ({
             repositoryCount: repoData.length,
         });
 
+        const discoveryIsComplete = !issues.some(
+            ({ effect }) => effect === "DISCOVERY_INCOMPLETE",
+        );
+
         signal.throwIfAborted();
         const repoChanges = await replaceConnectionRepositories({
             db,
             connectionId,
             orgId,
             discoveredRepos: repoData,
+            removeMissing: discoveryIsComplete,
         });
 
         signal.throwIfAborted();
@@ -216,11 +221,13 @@ export const replaceConnectionRepositories = async ({
     connectionId,
     orgId,
     discoveredRepos,
+    removeMissing = true,
 }: {
     db: PrismaClient;
     connectionId: number;
     orgId: number;
     discoveredRepos: RepoData[];
+    removeMissing?: boolean;
 }): Promise<ConnectionRepoChanges> => {
     const previouslyAssociatedRepos = await db.repo.findMany({
         where: {
@@ -232,12 +239,14 @@ export const replaceConnectionRepositories = async ({
         },
         select: {
             id: true,
+            name: true,
+            indexedAt: true,
         },
     });
 
-    const currentRepos: CurrentRepo[] = [];
+    const discoveredCurrentRepos: CurrentRepo[] = [];
     for (const repo of deduplicateRepos(discoveredRepos)) {
-        currentRepos.push(
+        discoveredCurrentRepos.push(
             await db.repo.upsert({
                 where: {
                     external_id_external_codeHostUrl_orgId: {
@@ -267,10 +276,31 @@ export const replaceConnectionRepositories = async ({
         );
     }
 
+    const discoveredRepoIds = new Set(
+        discoveredCurrentRepos.map(({ id }) => id),
+    );
+    const missingRepos = previouslyAssociatedRepos.filter(
+        ({ id }) => !discoveredRepoIds.has(id),
+    );
+    if (!removeMissing && missingRepos.length > 0) {
+        logger.debug(
+            "Preserving repositories omitted from a DISCOVERY_INCOMPLETE result",
+            {
+                connectionId,
+                repositories: missingRepos.map(({ id, name }) => ({
+                    id,
+                    name,
+                })),
+            },
+        );
+    }
+    const currentRepos = removeMissing
+        ? discoveredCurrentRepos
+        : [...discoveredCurrentRepos, ...missingRepos];
     const currentRepoIds = new Set(currentRepos.map(({ id }) => id));
-    const staleRepoIds = previouslyAssociatedRepos
-        .map(({ id }) => id)
-        .filter((id) => !currentRepoIds.has(id));
+    const staleRepoIds = removeMissing
+        ? missingRepos.map(({ id }) => id)
+        : [];
 
     if (staleRepoIds.length > 0) {
         await db.repoToConnection.deleteMany({
