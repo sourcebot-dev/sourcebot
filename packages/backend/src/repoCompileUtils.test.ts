@@ -25,6 +25,7 @@ vi.mock('fs/promises', () => ({
 import { isPathAValidGitRepoRoot, getOriginUrl, isUrlAValidGitRepo } from './git.js';
 import { glob } from 'glob';
 import fs from 'fs/promises';
+import { collectRepositoryDiscoveryIssues } from './repositoryDiscoveryIssueContext.js';
 
 const mockedGlob = vi.mocked(glob);
 const mockedIsPathAValidGitRepoRoot = vi.mocked(isPathAValidGitRepoRoot);
@@ -54,6 +55,30 @@ describe('compileGenericGitHostConfig_file', () => {
         const result = await compileGenericGitHostConfig_file(config, 1);
 
         expect(result).toHaveLength(0);
+    });
+
+    test('reports when a glob pattern matches no paths', async () => {
+        mockedGlob.mockResolvedValue([]);
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            compileGenericGitHostConfig_file({
+                type: 'git',
+                url: 'file:///path/to/**/repo',
+            }, 1)
+        );
+
+        expect(result).toEqual({
+            value: [],
+            issues: [{
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "path",
+                    value: "/path/to/**/repo",
+                },
+                message: "The configured path did not match any repository sources.",
+            }],
+        });
     });
 
     test('should return no repositories when path is a file, not a directory', async () => {
@@ -156,6 +181,52 @@ describe('compileGenericGitHostConfig_file', () => {
         expect(result).toHaveLength(1);
     });
 
+    test('reports each invalid local repository source', async () => {
+        mockedGlob.mockResolvedValue([
+            '/path/to/file',
+            '/path/to/not-a-repo',
+            '/path/to/no-origin',
+        ]);
+        mockedFsStat.mockImplementation(async (repoPath) => ({
+            isDirectory: () => repoPath !== '/path/to/file',
+        }) as any);
+        mockedIsPathAValidGitRepoRoot.mockImplementation(async ({ path: repoPath }) =>
+            repoPath !== '/path/to/not-a-repo'
+        );
+        mockedGetOriginUrl.mockResolvedValue(null);
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            compileGenericGitHostConfig_file({
+                type: 'git',
+                url: 'file:///path/to/*',
+            }, 1)
+        );
+
+        expect(result).toEqual({
+            value: [],
+            issues: [
+                {
+                    code: "INVALID_REPOSITORY_SOURCE",
+                    effect: "TARGET_SKIPPED",
+                    subject: { kind: "path", value: "/path/to/file" },
+                    message: "The configured path is not an accessible directory.",
+                },
+                {
+                    code: "INVALID_REPOSITORY_SOURCE",
+                    effect: "TARGET_SKIPPED",
+                    subject: { kind: "path", value: "/path/to/not-a-repo" },
+                    message: "The configured path is not a Git repository.",
+                },
+                {
+                    code: "INVALID_REPOSITORY_SOURCE",
+                    effect: "TARGET_SKIPPED",
+                    subject: { kind: "path", value: "/path/to/no-origin" },
+                    message: "The Git repository does not have a remote.origin.url.",
+                },
+            ],
+        });
+    });
+
     test('should decode URL-encoded characters in origin url pathname', async () => {
         mockedGlob.mockResolvedValue(['/path/to/repo-with-spaces']);
         mockedIsPathAValidGitRepoRoot.mockResolvedValue(true);
@@ -196,6 +267,30 @@ describe('compileGenericGitHostConfig_url', () => {
         const result = await compileGenericGitHostConfig_url(config, 1);
 
         expect(result).toHaveLength(0);
+    });
+
+    test('reports an invalid remote repository source', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(false);
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            compileGenericGitHostConfig_url({
+                type: 'git',
+                url: 'https://example.com/not-a-repo',
+            }, 1)
+        );
+
+        expect(result).toEqual({
+            value: [],
+            issues: [{
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "url",
+                    value: "https://example.com/not-a-repo",
+                },
+                message: "The configured URL is not a Git repository.",
+            }],
+        });
     });
 
     test('should successfully compile with gitConfig when valid git repo url is found', async () => {

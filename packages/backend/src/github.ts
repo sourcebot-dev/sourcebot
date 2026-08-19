@@ -8,7 +8,7 @@ import { env } from "@sourcebot/shared";
 import { hasEntitlement } from "./entitlements.js";
 import micromatch from "micromatch";
 import pLimit from "p-limit";
-import { throwIfAnyFailed } from "./connectionUtils.js";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { fetchWithRetry, measure } from "./utils.js";
@@ -365,9 +365,7 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
     })));
 
     throwIfAnyFailed(results);
-    return results.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : []
-    );
+    return processPromiseResults(results);
 }
 
 const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
@@ -428,9 +426,7 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
     })));
 
     throwIfAnyFailed(results);
-    return results.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : []
-    );
+    return processPromiseResults(results);
 }
 
 const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
@@ -478,9 +474,7 @@ const getRepos = async (repoList: string[], octokit: Octokit, signal: AbortSigna
     })));
 
     throwIfAnyFailed(results);
-    return results.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : []
-    );
+    return processPromiseResults(results);
 }
 
 export const shouldExcludeRepo = ({

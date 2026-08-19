@@ -22,6 +22,7 @@ import GitUrlParse from 'git-url-parse';
 import { RepoMetadata } from '@sourcebot/shared';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import pLimit from 'p-limit';
+import { reportRepositoryDiscoveryIssue } from './repositoryDiscoveryIssueContext.js';
 
 export type RepoData = WithRequired<Prisma.RepoCreateInput, 'connections'>;
 
@@ -152,8 +153,7 @@ export const compileGitlabConfig = async (
     config: GitlabConnectionConfig,
     connectionId: number): Promise<RepoData[]> => {
 
-    const gitlabReposResult = await getGitLabReposFromConfig(config);
-    const gitlabRepos = gitlabReposResult.repos;
+    const gitlabRepos = await getGitLabReposFromConfig(config);
 
     const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/+$/, '');
     const webUrl = (config.webUrl ?? hostUrl).replace(/\/+$/, '');
@@ -236,8 +236,7 @@ export const compileGiteaConfig = async (
     config: GiteaConnectionConfig,
     connectionId: number): Promise<RepoData[]> => {
 
-    const giteaReposResult = await getGiteaReposFromConfig(config);
-    const giteaRepos = giteaReposResult.repos;
+    const giteaRepos = await getGiteaReposFromConfig(config);
 
     const hostUrl = (config.url ?? 'https://gitea.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
@@ -383,8 +382,7 @@ export const compileBitbucketConfig = async (
     config: BitbucketConnectionConfig,
     connectionId: number): Promise<RepoData[]> => {
 
-    const bitbucketReposResult = await getBitbucketReposFromConfig(config);
-    const bitbucketRepos = bitbucketReposResult.repos;
+    const bitbucketRepos = await getBitbucketReposFromConfig(config);
 
     const hostUrl = (config.url ?? 'https://bitbucket.org').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
@@ -576,6 +574,15 @@ export const compileGenericGitHostConfig_file = async (
     if (repoPaths.length === 0) {
         const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
         logger.warn(warning);
+        reportRepositoryDiscoveryIssue({
+            code: "INVALID_REPOSITORY_SOURCE",
+            effect: "TARGET_SKIPPED",
+            subject: {
+                kind: "path",
+                value: configUrl.pathname,
+            },
+            message: "The configured path did not match any repository sources.",
+        });
         return repos;
     }
 
@@ -586,6 +593,15 @@ export const compileGenericGitHostConfig_file = async (
         if (!stat || !stat.isDirectory()) {
             const warning = `Skipping ${repoPath} - path is not a directory.`;
             logger.warn(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "path",
+                    value: repoPath,
+                },
+                message: "The configured path is not an accessible directory.",
+            });
             return;
         }
 
@@ -595,6 +611,15 @@ export const compileGenericGitHostConfig_file = async (
         if (!isGitRepo) {
             const warning = `Skipping ${repoPath} - not a git repository.`;
             logger.warn(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "path",
+                    value: repoPath,
+                },
+                message: "The configured path is not a Git repository.",
+            });
             return;
         }
 
@@ -602,6 +627,15 @@ export const compileGenericGitHostConfig_file = async (
         if (!origin) {
             const warning = `Skipping ${repoPath} - remote.origin.url not found in git config.`;
             logger.warn(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "path",
+                    value: repoPath,
+                },
+                message: "The Git repository does not have a remote.origin.url.",
+            });
             return;
         }
 
@@ -677,6 +711,15 @@ export const compileGenericGitHostConfig_url = async (
     if (!isGitRepo) {
         const warning = `Skipping ${remoteUrl.toString()} - not a git repository.`;
         logger.warn(warning);
+        reportRepositoryDiscoveryIssue({
+            code: "INVALID_REPOSITORY_SOURCE",
+            effect: "TARGET_SKIPPED",
+            subject: {
+                kind: "url",
+                value: remoteUrl.toString(),
+            },
+            message: "The configured URL is not a Git repository.",
+        });
         return [];
     }
 
@@ -728,8 +771,7 @@ export const compileAzureDevOpsConfig = async (
     config: AzureDevOpsConnectionConfig,
     connectionId: number): Promise<RepoData[]> => {
 
-    const azureDevOpsReposResult = await getAzureDevOpsReposFromConfig(config);
-    const azureDevOpsRepos = azureDevOpsReposResult.repos;
+    const azureDevOpsRepos = await getAzureDevOpsReposFromConfig(config);
 
     const hostUrl = (config.url ?? 'https://dev.azure.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
