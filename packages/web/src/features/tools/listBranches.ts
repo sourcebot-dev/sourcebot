@@ -31,7 +31,8 @@ export const listBranchesDefinition: ToolDefinition<"list_branches", typeof list
         const response = await listBranches({ repo, query, page, perPage });
 
         if (isServiceError(response)) {
-            throw new Error(response.message);
+            logger.error('list_branches failed', { serviceError: response });
+            throw new Error('Failed to list branches.');
         }
 
         return {
