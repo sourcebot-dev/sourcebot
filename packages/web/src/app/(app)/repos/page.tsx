@@ -7,6 +7,8 @@ import {
     REPO_INDEX_QUEUE,
     type WorkloadJob,
 } from "@sourcebot/shared";
+import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
+import { isServiceError } from "@/lib/utils";
 import { OrgRole, type Prisma } from "@sourcebot/db";
 import { z } from "zod";
 import { ReposTable } from "./components/reposTable";
@@ -37,6 +39,7 @@ export default authenticatedPage<
     const status = statusSchema.safeParse(params.status).data ?? "all";
     const sortBy = sortBySchema.safeParse(params.sortBy).data ?? "name";
     const sortOrder = sortOrderSchema.safeParse(params.sortOrder).data ?? "asc";
+    const canRetry = role === OrgRole.OWNER;
     const skip = (page - 1) * DEFAULT_PAGE_SIZE;
     const orderBy = sortBy === "indexedAt"
         ? [{ indexedAt: sortOrder }, { id: "asc" as const }]
@@ -44,6 +47,13 @@ export default authenticatedPage<
     const failedJobIds = status === "all"
         ? []
         : await getBullMQClient().getFailedJobIds(REPO_INDEX_QUEUE);
+    const repositorySyncCounts = canRetry
+        ? await getRepositorySyncCounts()
+        : null;
+    const retryableCount = repositorySyncCounts
+        && !isServiceError(repositorySyncCounts)
+        ? repositorySyncCounts.failedCount + repositorySyncCounts.warningCount
+        : 0;
     const where: Prisma.RepoWhereInput = {
         orgId: org.id,
         ...(search
@@ -120,7 +130,8 @@ export default authenticatedPage<
                     currentPage={page}
                     pageSize={DEFAULT_PAGE_SIZE}
                     totalCount={totalCount}
-                    canRetry={role === OrgRole.OWNER}
+                    canRetry={canRetry}
+                    retryableCount={retryableCount}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
                 />

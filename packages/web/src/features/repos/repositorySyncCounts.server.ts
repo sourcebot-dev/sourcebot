@@ -5,6 +5,7 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { REPO_INDEX_QUEUE } from "@sourcebot/shared";
+import { cache } from "react";
 
 export interface RepositorySyncCounts {
     firstTimeSyncingCount: number;
@@ -12,7 +13,7 @@ export interface RepositorySyncCounts {
     warningCount: number;
 }
 
-export const getRepositorySyncCounts = async () =>
+export const getRepositorySyncCounts = cache(async () =>
     withAuth(({ org, prisma, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const failedJobIds = await getBullMQClient().getFailedJobIds(
@@ -53,4 +54,4 @@ export const getRepositorySyncCounts = async () =>
                 warningCount,
             };
         })
-    );
+    ));

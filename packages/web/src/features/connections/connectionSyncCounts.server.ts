@@ -5,6 +5,7 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { CONNECTION_QUEUE } from "@sourcebot/shared";
+import { cache } from "react";
 
 export interface ConnectionSyncCounts {
     firstTimeSyncingCount: number;
@@ -12,7 +13,7 @@ export interface ConnectionSyncCounts {
     warningCount: number;
 }
 
-export const getConnectionSyncCounts = async () =>
+export const getConnectionSyncCounts = cache(async () =>
     withAuth(({ org, prisma, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const connections = await prisma.connection.findMany({
@@ -63,4 +64,4 @@ export const getConnectionSyncCounts = async () =>
                 return counts;
             }, { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 });
         })
-    );
+    ));

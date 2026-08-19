@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/hooks/use-toast";
 import {
     InputGroup,
     InputGroupAddon,
@@ -16,7 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn, getCodeHostIcon, getRepoImageSrc } from "@/lib/utils";
+import {
+    retryReposWithSyncIssues,
+    type ScheduledRepoIndexJob,
+} from "@/features/repos/actions";
+import { cn, getCodeHostIcon, getRepoImageSrc, isServiceError } from "@/lib/utils";
 import type { CodeHostType } from "@sourcebot/db";
 import type { WorkloadJob } from "@sourcebot/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +32,7 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, Check, CircleX, Loader2, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CircleX, Loader2, RotateCw, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -466,6 +471,7 @@ type ReposTableProps = {
     pageSize: number;
     totalCount: number;
     canRetry: boolean;
+    retryableCount: number;
     sortBy: SortBy;
     sortOrder: SortOrder;
 };
@@ -476,6 +482,7 @@ export const ReposTable = ({
     pageSize,
     totalCount,
     canRetry,
+    retryableCount,
     sortBy,
     sortOrder,
 }: ReposTableProps) => {
@@ -489,6 +496,11 @@ export const ReposTable = ({
     const [scheduledRetryJobs, setScheduledRetryJobs] = useState<
         Map<number, WorkloadJob<"repo-index">>
     >(() => new Map());
+    const [displayedRetryableCount, setDisplayedRetryableCount] = useState(
+        retryableCount,
+    );
+    const [isRetryingAll, setIsRetryingAll] = useState(false);
+    const { toast } = useToast();
     const debouncedSearchValue = useDebounce(searchValue, 300);
     const [isSearchNavigationPending, startSearchTransition] = useTransition();
     const pendingSearchValuesRef = useRef<Set<string>>(new Set());
@@ -508,6 +520,10 @@ export const ReposTable = ({
 
         setSearchValue(urlSearchValue);
     }, [urlSearchValue]);
+
+    useEffect(() => {
+        setDisplayedRetryableCount(retryableCount);
+    }, [retryableCount]);
 
     useEffect(() => {
         if (debouncedSearchValue !== searchValue) {
@@ -561,6 +577,65 @@ export const ReposTable = ({
             return nextJobs;
         });
     }, []);
+    const onRetriesScheduled = useCallback((jobs: ScheduledRepoIndexJob[]) => {
+        setScheduledRetryJobs((currentJobs) => {
+            const nextJobs = new Map(currentJobs);
+            for (const { repoId, jobId } of jobs) {
+                nextJobs.set(repoId, {
+                    id: jobId,
+                    data: { repoId },
+                    status: "PENDING",
+                    errorMessage: null,
+                    result: null,
+                });
+            }
+            return nextJobs;
+        });
+    }, []);
+    const retryAll = async () => {
+        setIsRetryingAll(true);
+
+        try {
+            const response = await retryReposWithSyncIssues();
+            if (isServiceError(response)) {
+                toast({
+                    variant: "destructive",
+                    title: "Failed to retry repository syncs",
+                    description: response.message,
+                });
+                return;
+            }
+
+            onRetriesScheduled(response.jobs);
+            setDisplayedRetryableCount(response.failedCount);
+
+            if (response.failedCount > 0) {
+                toast({
+                    variant: "destructive",
+                    title: "Some repository syncs could not be retried",
+                    description: `${response.jobs.length} scheduled; ${response.failedCount} failed to schedule.`,
+                });
+            } else if (response.jobs.length > 0) {
+                toast({
+                    title: "Syncs scheduled",
+                    description: `${response.jobs.length} ${response.jobs.length === 1 ? "repository was" : "repositories were"} queued for indexing.`,
+                });
+            } else {
+                toast({
+                    title: "No retries needed",
+                    description: "No repositories currently have failed syncs.",
+                });
+            }
+        } catch {
+            toast({
+                variant: "destructive",
+                title: "Failed to retry repository syncs",
+                description: "An unexpected error occurred while scheduling the syncs.",
+            });
+        } finally {
+            setIsRetryingAll(false);
+        }
+    };
     const retryAwareData = useMemo(
         () => data.map((repo) => {
             const scheduledJob = scheduledRetryJobs.get(repo.id);
@@ -849,6 +924,30 @@ export const ReposTable = ({
                         <CircleX className="h-4 w-4" />
                         Clear filters
                     </Button>
+                )}
+                {canRetry && displayedRetryableCount > 0 && (
+                    <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                            <Button
+                                size="sm"
+                                className="ml-auto h-9"
+                                onClick={() => void retryAll()}
+                                disabled={isRetryingAll}
+                            >
+                                {isRetryingAll ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RotateCw className="h-4 w-4" />
+                                )}
+                                {isRetryingAll
+                                    ? "Retrying…"
+                                    : `Retry all (${displayedRetryableCount})`}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            Retry all repositories whose latest sync failed.
+                        </TooltipContent>
+                    </Tooltip>
                 )}
             </div>
             <div className="rounded-md border">

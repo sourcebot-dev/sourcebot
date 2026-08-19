@@ -15,10 +15,12 @@ const navigation = vi.hoisted(() => ({
 }));
 const reposActions = vi.hoisted(() => ({
     indexRepo: vi.fn(),
+    retryReposWithSyncIssues: vi.fn(),
 }));
 
 vi.mock("@/features/repos/actions", () => ({
     indexRepo: reposActions.indexRepo,
+    retryReposWithSyncIssues: reposActions.retryReposWithSyncIssues,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -60,7 +62,11 @@ const repos: Repo[] = [
     },
 ];
 
-const renderTable = (data: Repo[] = repos, canRetry = true) => {
+const renderTable = (
+    data: Repo[] = repos,
+    canRetry = true,
+    retryableCount = 0,
+) => {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     });
@@ -74,6 +80,7 @@ const renderTable = (data: Repo[] = repos, canRetry = true) => {
                     pageSize={20}
                     totalCount={data.length}
                     canRetry={canRetry}
+                    retryableCount={retryableCount}
                     sortBy="indexedAt"
                     sortOrder="asc"
                 />
@@ -90,6 +97,32 @@ afterEach(() => {
 });
 
 describe("ReposTable", () => {
+    test("retries all repository sync issues without refreshing", async () => {
+        reposActions.retryReposWithSyncIssues.mockResolvedValue({
+            jobs: [{ repoId: 999, jobId: "retry-999" }],
+            failedCount: 0,
+        });
+        renderTable([repos[1]], true, 2);
+
+        fireEvent.click(screen.getByRole("button", { name: "Retry all (2)" }));
+
+        await waitFor(() => {
+            expect(reposActions.retryReposWithSyncIssues).toHaveBeenCalledOnce();
+        });
+        await waitFor(() => {
+            expect(
+                screen.queryByRole("button", { name: /Retry all/ }),
+            ).toBeNull();
+        });
+        expect(navigation.refresh).not.toHaveBeenCalled();
+    });
+
+    test("hides retry all from non-owners", () => {
+        renderTable([repos[1]], false, 2);
+
+        expect(screen.queryByRole("button", { name: /Retry all/ })).toBeNull();
+    });
+
     test("reflects the status filter from the URL", () => {
         navigation.searchParams = "status=failed";
 
