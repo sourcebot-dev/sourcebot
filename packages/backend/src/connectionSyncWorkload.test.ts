@@ -6,8 +6,6 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
     connectionFindUniqueOrThrow: vi.fn(),
     connectionUpdate: vi.fn(),
-    connectionSyncJobUpsert: vi.fn(),
-    connectionSyncJobUpdate: vi.fn(),
     compileGithubConfig: vi.fn(),
     loadConfig: vi.fn(),
     syncSearchContexts: vi.fn(),
@@ -99,27 +97,10 @@ import {
 import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
 
-const transactionClient = {
-    connection: {
-        update: mocks.connectionUpdate,
-    },
-    connectionSyncJob: {
-        upsert: mocks.connectionSyncJobUpsert,
-    },
-};
-const transaction = vi.fn(
-    (callback: (tx: typeof transactionClient) => Promise<unknown>) =>
-        callback(transactionClient),
-);
-
 const db = {
     connection: {
         findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
         update: mocks.connectionUpdate,
-    },
-    connectionSyncJob: {
-        upsert: mocks.connectionSyncJobUpsert,
-        update: mocks.connectionSyncJobUpdate,
     },
     repo: {
         findMany: mocks.repoFindMany,
@@ -128,7 +109,6 @@ const db = {
     repoToConnection: {
         deleteMany: mocks.repoToConnectionDeleteMany,
     },
-    $transaction: transaction,
 } as unknown as PrismaClient;
 
 const jobManager = {
@@ -172,10 +152,10 @@ describe("connectionWorkload", () => {
         mocks.syncSearchContexts.mockResolvedValue(undefined);
     });
 
-    test("declares database-backed lifecycle hooks", () => {
+    test("only records the latest job when the workload starts", () => {
         expect(connectionWorkload.onStarted).toBeTypeOf("function");
-        expect(connectionWorkload.onCompleted).toBeTypeOf("function");
-        expect(connectionWorkload.onTerminalFailure).toBeTypeOf("function");
+        expect(connectionWorkload.onCompleted).toBeUndefined();
+        expect(connectionWorkload.onTerminalFailure).toBeUndefined();
     });
 
     test("uses a distinct execution lock for each connection", () => {
@@ -204,68 +184,15 @@ describe("connectionWorkload", () => {
         expect(mocks.connectionFindUniqueOrThrow).not.toHaveBeenCalled();
     });
 
-    test("marks the connection sync job as in progress when started", async () => {
+    test("records the latest connection sync job ID when started", async () => {
         await connectionWorkload.onStarted?.(lifecycleContext);
 
-        expect(mocks.connectionSyncJobUpsert).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            update: {
-                status: "IN_PROGRESS",
-                completedAt: null,
-                errorMessage: null,
-                warningMessages: [],
-            },
-            create: {
-                id: "job-1",
-                connectionId: 42,
-                status: "IN_PROGRESS",
-                warningMessages: [],
-            },
-        });
         expect(mocks.connectionUpdate).toHaveBeenCalledWith({
             where: {
                 id: 42,
             },
             data: {
                 latestSyncJobId: "job-1",
-            },
-        });
-        expect(transaction).toHaveBeenCalledOnce();
-    });
-
-    test("marks the connection sync job as completed", async () => {
-        await connectionWorkload.onCompleted?.(lifecycleContext, {
-            outcome: "SUCCESS",
-        });
-
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            data: {
-                status: "COMPLETED",
-                completedAt: expect.any(Date),
-                errorMessage: null,
-            },
-        });
-    });
-
-    test("marks the connection sync job as failed after terminal failure", async () => {
-        await connectionWorkload.onTerminalFailure?.(
-            lifecycleContext,
-            new Error("Connection credentials expired"),
-        );
-
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            data: {
-                status: "FAILED",
-                completedAt: expect.any(Date),
-                errorMessage: "Connection credentials expired",
             },
         });
     });

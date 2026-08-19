@@ -134,7 +134,6 @@ model Connection {
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType ConnectionType
 
-  syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
   latestSyncJobId    String? /// The most recently started connection sync job.
@@ -160,27 +159,6 @@ model Connection {
   orgId Int
 
   @@unique([name, orgId])
-}
-
-enum ConnectionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model ConnectionSyncJob {
-  id          String                      @id @default(cuid())
-  status      ConnectionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  warningMessages String[]
-  errorMessage String?
-
-  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  connectionId Int
 }
 
 model RepoToConnection {

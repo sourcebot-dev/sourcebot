@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
+import { PrismaClient } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import {
     CONNECTION_QUEUE,
@@ -152,55 +152,12 @@ export const createConnectionSyncWorkload = ({
             : { outcome: "PARTIAL_SUCCESS", reasons: issues };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
-        await db.$transaction(async (tx) => {
-            await tx.connectionSyncJob.upsert({
-                where: {
-                    id: jobId,
-                },
-                update: {
-                    status: ConnectionSyncJobStatus.IN_PROGRESS,
-                    completedAt: null,
-                    errorMessage: null,
-                    warningMessages: [],
-                },
-                create: {
-                    id: jobId,
-                    connectionId,
-                    status: ConnectionSyncJobStatus.IN_PROGRESS,
-                    warningMessages: [],
-                },
-            });
-            await tx.connection.update({
-                where: {
-                    id: connectionId,
-                },
-                data: {
-                    latestSyncJobId: jobId,
-                },
-            });
-        });
-    },
-    onCompleted: async ({ jobId }) => {
-        await db.connectionSyncJob.update({
+        await db.connection.update({
             where: {
-                id: jobId,
+                id: connectionId,
             },
             data: {
-                status: ConnectionSyncJobStatus.COMPLETED,
-                completedAt: new Date(),
-                errorMessage: null,
-            },
-        });
-    },
-    onTerminalFailure: async ({ jobId }, error) => {
-        await db.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: ConnectionSyncJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: error.message,
+                latestSyncJobId: jobId,
             },
         });
     },
