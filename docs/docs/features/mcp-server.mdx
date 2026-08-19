@@ -377,9 +377,9 @@ Parameters:
 
 ### `list_branches`
 
-Lists branches in a repository, sorted by latest commit date (newest first). Results come from Sourcebot's local snapshot of the repository, not live from the code host. Branches created or deleted on the code host appear here only after Sourcebot next syncs the repository.
+You can list a repository's branches, sorted by latest commit date (newest first). Results come from Sourcebot's local snapshot, not live from the code host. You see branches created or deleted on the code host only after Sourcebot next syncs the repository.
 
-Each branch in the response includes the branch name, the commit SHA at the branch head, the time of the latest commit, `isDefault` (whether it is the repository's default branch), and `isIndexed` (whether code search can search that branch).
+For each branch, you get its name, head commit SHA, latest commit time, `isDefault` (whether it is the repository's default branch), and `isIndexed` (whether code search can search that branch).
 
 Parameters:
 | Name | Required | Description |
