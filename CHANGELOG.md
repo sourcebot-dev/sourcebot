@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added an automated one-way mirror of `main` and release tags to `sourcebot-private`. [#1611](https://github.com/sourcebot-dev/sourcebot/pull/1611)
-
 ## [5.1.8] - 2026-08-19
 
 ### Added
