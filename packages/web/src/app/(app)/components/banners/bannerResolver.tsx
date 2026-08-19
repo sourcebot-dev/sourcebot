@@ -17,6 +17,7 @@ import { TrialBanner } from "./trialBanner";
 import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
 import { RepositorySyncIssuesBanner } from "./repositorySyncIssuesBanner";
 import { RepositoryFirstSyncBanner } from "./repositoryFirstSyncBanner";
+import { ConnectionSyncIssuesBanner } from "./connectionSyncIssuesBanner";
 import type { PermissionSyncStatusResponse } from "@/app/api/(server)/ee/permissionSyncStatus/api";
 
 // Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
@@ -32,6 +33,10 @@ export interface BannerContext {
     hasPermissionSyncEntitlement: boolean;
     hasPendingFirstSync: boolean;
     permissionSyncIssues: PermissionSyncStatusResponse['issues'];
+    connectionSyncCounts: {
+        failedCount: number;
+        warningCount: number;
+    };
     repositorySyncCounts: {
         firstTimeSyncingCount: number;
         failedCount: number;
@@ -180,6 +185,37 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                         hasPendingFirstSync: ctx.hasPendingFirstSync,
                         issues: ctx.permissionSyncIssues,
                     }}
+                />
+            ),
+        });
+    }
+
+    if (ctx.connectionSyncCounts.failedCount > 0) {
+        banners.push({
+            id: 'connectionSyncFailed',
+            priority: BannerPriority.CONNECTION_SYNC_FAILED,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <ConnectionSyncIssuesBanner
+                    {...props}
+                    count={ctx.connectionSyncCounts.failedCount}
+                    status="failed"
+                />
+            ),
+        });
+    }
+    if (ctx.connectionSyncCounts.warningCount > 0) {
+        banners.push({
+            id: 'connectionSyncWarning',
+            priority: BannerPriority.CONNECTION_SYNC_WARNING,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <ConnectionSyncIssuesBanner
+                    {...props}
+                    count={ctx.connectionSyncCounts.warningCount}
+                    status="warning"
                 />
             ),
         });

@@ -196,7 +196,7 @@ export const SyncIssuePopover = ({
                                     ? "Sourcebot could not honor the full configured discovery scope. Some repositories may be missing."
                                     : isWarning
                                         ? "Previously discovered repositories remain available, but they may be stale."
-                                    : "Sourcebot could not complete the latest sync for this connection."}
+                                    : "This connection failed to sync. Its repositories are unavailable."}
                             </p>
                         </div>
                         {reasons

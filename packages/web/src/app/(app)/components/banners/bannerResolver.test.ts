@@ -23,6 +23,7 @@ vi.mock('./trialBanner', () => ({ TrialBanner: () => null }));
 vi.mock('./upgradeAvailableBanner', () => ({ UpgradeAvailableBanner: () => null }));
 vi.mock('./repositorySyncIssuesBanner', () => ({ RepositorySyncIssuesBanner: () => null }));
 vi.mock('./repositoryFirstSyncBanner', () => ({ RepositoryFirstSyncBanner: () => null }));
+vi.mock('./connectionSyncIssuesBanner', () => ({ ConnectionSyncIssuesBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -81,6 +82,7 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     hasPermissionSyncEntitlement: false,
     hasPendingFirstSync: false,
     permissionSyncIssues: [],
+    connectionSyncCounts: { failedCount: 0, warningCount: 0 },
     repositorySyncCounts: { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 },
     dismissals: {},
     today: TODAY,
@@ -147,6 +149,14 @@ describe('resolveActiveBanner', () => {
             expect(result?.id).toBe('permissionSync');
         });
 
+        test('connection sync failures outrank repository sync failures', () => {
+            const result = resolveActiveBanner(makeContext({
+                connectionSyncCounts: { failedCount: 1, warningCount: 0 },
+                repositorySyncCounts: { firstTimeSyncingCount: 0, failedCount: 1, warningCount: 0 },
+            }));
+            expect(result?.id).toBe('connectionSyncFailed');
+        });
+
         test('repository sync failures outrank trial notices', () => {
             const result = resolveActiveBanner(makeContext({
                 license: makeLicense({
@@ -167,6 +177,32 @@ describe('resolveActiveBanner', () => {
                 repositorySyncCounts: { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 1 },
             }));
             expect(result?.id).toBe('trial');
+        });
+    });
+
+    describe('connection sync issues', () => {
+        test('shows failures and warnings as separate banners', () => {
+            const failed = resolveActiveBanner(makeContext({
+                connectionSyncCounts: { failedCount: 2, warningCount: 3 },
+            }));
+            expect(failed?.id).toBe('connectionSyncFailed');
+            expect(failed?.dismissible).toBe(true);
+            expect(failed?.audience).toBe('owner');
+
+            const warning = resolveActiveBanner(makeContext({
+                connectionSyncCounts: { failedCount: 2, warningCount: 3 },
+                dismissals: { connectionSyncFailed: TODAY },
+            }));
+            expect(warning?.id).toBe('connectionSyncWarning');
+            expect(warning?.dismissible).toBe(true);
+        });
+
+        test('hides connection sync issues from members', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                connectionSyncCounts: { failedCount: 1, warningCount: 1 },
+            }));
+            expect(result).toBeNull();
         });
     });
 

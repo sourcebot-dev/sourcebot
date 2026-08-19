@@ -37,6 +37,7 @@ import { LanguageModelProvider } from "@/features/chat/languageModelContext";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { NavigationGuardProvider } from "next-navigation-guard";
 import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
+import { getConnectionSyncCounts } from "@/features/connections/connectionSyncCounts.server";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -180,6 +181,12 @@ export default async function Layout(props: LayoutProps) {
               };
           })
         : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
+    const connectionSyncCounts = role === OrgRole.OWNER
+        ? await getConnectionSyncCounts(org.id).catch((error) => {
+              console.error("Failed to load connection sync counts", error);
+              return { failedCount: 0, warningCount: 0 };
+          })
+        : { failedCount: 0, warningCount: 0 };
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense
@@ -214,6 +221,7 @@ export default async function Layout(props: LayoutProps) {
                                                     hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
                                                     hasPendingFirstSync={hasPendingFirstSync}
                                                     permissionSyncIssues={permissionSyncIssues}
+                                                    connectionSyncCounts={connectionSyncCounts}
                                                     repositorySyncCounts={repositorySyncCounts}
                                                     currentVersion={SOURCEBOT_VERSION}
                                                     latestVersion={latestVersion}

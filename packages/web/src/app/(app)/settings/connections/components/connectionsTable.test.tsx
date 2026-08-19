@@ -436,6 +436,9 @@ describe("ConnectionsTable", () => {
         }));
 
         expect(screen.getByText("Connection sync failed")).toBeTruthy();
+        expect(screen.getByText(
+            "This connection failed to sync. Its repositories are unavailable.",
+        )).toBeTruthy();
         expect(
             screen.getByText(
                 "Authentication failed while discovering repositories",
