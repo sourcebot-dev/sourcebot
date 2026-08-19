@@ -161,7 +161,28 @@ export const createConnectionSyncWorkload = ({
             },
         });
     },
+    onCompleted: async ({ data: { connectionId } }) => {
+        await markFirstSyncJobFinished(db, connectionId);
+    },
+    onTerminalFailure: async ({ data: { connectionId } }) => {
+        await markFirstSyncJobFinished(db, connectionId);
+    },
 });
+
+const markFirstSyncJobFinished = async (
+    db: PrismaClient,
+    connectionId: number,
+) => {
+    await db.connection.updateMany({
+        where: {
+            id: connectionId,
+            firstSyncJobFinishedAt: null,
+        },
+        data: {
+            firstSyncJobFinishedAt: new Date(),
+        },
+    });
+};
 
 export interface CurrentRepo {
     id: number;

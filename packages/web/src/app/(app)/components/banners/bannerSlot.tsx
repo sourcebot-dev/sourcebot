@@ -11,6 +11,7 @@ const KNOWN_BANNER_IDS: BannerId[] = [
     'permissionSync',
     'connectionSyncFailed',
     'connectionSyncWarning',
+    'connectionFirstSync',
     'repositorySyncFailed',
     'repositorySyncWarning',
     'repositoryFirstSync',

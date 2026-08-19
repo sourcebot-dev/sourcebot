@@ -137,6 +137,7 @@ model Connection {
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
   latestSyncJobId    String? /// The most recently started connection sync job.
+  firstSyncJobFinishedAt DateTime? /// When the first sync job reached a terminal state, whether successful or failed.
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -159,6 +160,7 @@ model Connection {
   orgId Int
 
   @@unique([name, orgId])
+  @@index([orgId, firstSyncJobFinishedAt])
 }
 
 model RepoToConnection {

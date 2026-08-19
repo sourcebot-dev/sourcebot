@@ -18,6 +18,7 @@ import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
 import { RepositorySyncIssuesBanner } from "./repositorySyncIssuesBanner";
 import { RepositoryFirstSyncBanner } from "./repositoryFirstSyncBanner";
 import { ConnectionSyncIssuesBanner } from "./connectionSyncIssuesBanner";
+import { ConnectionFirstSyncBanner } from "./connectionFirstSyncBanner";
 import type { PermissionSyncStatusResponse } from "@/app/api/(server)/ee/permissionSyncStatus/api";
 
 // Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
@@ -34,6 +35,7 @@ export interface BannerContext {
     hasPendingFirstSync: boolean;
     permissionSyncIssues: PermissionSyncStatusResponse['issues'];
     connectionSyncCounts: {
+        firstTimeSyncingCount: number;
         failedCount: number;
         warningCount: number;
     };
@@ -216,6 +218,20 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                     {...props}
                     count={ctx.connectionSyncCounts.warningCount}
                     status="warning"
+                />
+            ),
+        });
+    }
+    if (ctx.connectionSyncCounts.firstTimeSyncingCount > 0) {
+        banners.push({
+            id: 'connectionFirstSync',
+            priority: BannerPriority.CONNECTION_FIRST_SYNC,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <ConnectionFirstSyncBanner
+                    {...props}
+                    initialCounts={ctx.connectionSyncCounts}
                 />
             ),
         });

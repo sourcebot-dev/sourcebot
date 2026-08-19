@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
     connectionFindUniqueOrThrow: vi.fn(),
     connectionUpdate: vi.fn(),
+    connectionUpdateMany: vi.fn(),
     compileGithubConfig: vi.fn(),
     loadConfig: vi.fn(),
     syncSearchContexts: vi.fn(),
@@ -101,6 +102,7 @@ const db = {
     connection: {
         findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
         update: mocks.connectionUpdate,
+        updateMany: mocks.connectionUpdateMany,
     },
     repo: {
         findMany: mocks.repoFindMany,
@@ -143,6 +145,7 @@ describe("connectionWorkload", () => {
         vi.restoreAllMocks();
         vi.clearAllMocks();
         mocks.connectionUpdate.mockResolvedValue({});
+        mocks.connectionUpdateMany.mockResolvedValue({ count: 1 });
         mocks.repoFindMany.mockResolvedValue([]);
         mocks.getJobSchedulerIds.mockResolvedValue([]);
         mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
@@ -152,10 +155,10 @@ describe("connectionWorkload", () => {
         mocks.syncSearchContexts.mockResolvedValue(undefined);
     });
 
-    test("only records the latest job when the workload starts", () => {
+    test("declares the connection lifecycle hooks", () => {
         expect(connectionWorkload.onStarted).toBeTypeOf("function");
-        expect(connectionWorkload.onCompleted).toBeUndefined();
-        expect(connectionWorkload.onTerminalFailure).toBeUndefined();
+        expect(connectionWorkload.onCompleted).toBeTypeOf("function");
+        expect(connectionWorkload.onTerminalFailure).toBeTypeOf("function");
     });
 
     test("uses a distinct execution lock for each connection", () => {
@@ -193,6 +196,39 @@ describe("connectionWorkload", () => {
             },
             data: {
                 latestSyncJobId: "job-1",
+            },
+        });
+    });
+
+    test("records the first successful sync job terminal state", async () => {
+        await connectionWorkload.onCompleted?.(lifecycleContext, {
+            outcome: "SUCCESS",
+        });
+
+        expect(mocks.connectionUpdateMany).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+                firstSyncJobFinishedAt: null,
+            },
+            data: {
+                firstSyncJobFinishedAt: expect.any(Date),
+            },
+        });
+    });
+
+    test("records the first failed sync job terminal state", async () => {
+        await connectionWorkload.onTerminalFailure?.(
+            lifecycleContext,
+            new Error("Connection credentials expired"),
+        );
+
+        expect(mocks.connectionUpdateMany).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+                firstSyncJobFinishedAt: null,
+            },
+            data: {
+                firstSyncJobFinishedAt: expect.any(Date),
             },
         });
     });

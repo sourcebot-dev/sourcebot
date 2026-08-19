@@ -184,9 +184,13 @@ export default async function Layout(props: LayoutProps) {
     const connectionSyncCounts = role === OrgRole.OWNER
         ? await getConnectionSyncCounts(org.id).catch((error) => {
               console.error("Failed to load connection sync counts", error);
-              return { failedCount: 0, warningCount: 0 };
+              return {
+                  firstTimeSyncingCount: 0,
+                  failedCount: 0,
+                  warningCount: 0,
+              };
           })
-        : { failedCount: 0, warningCount: 0 };
+        : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense

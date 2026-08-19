@@ -13,6 +13,7 @@ export const BannerPriority = {
     LICENSE_EXPIRY_HEADS_UP:   20,
     CONNECTION_SYNC_WARNING:   18,
     REPOSITORY_SYNC_WARNING:   15,
+    CONNECTION_FIRST_SYNC:     14,
     REPOSITORY_FIRST_SYNC:     12,
     SERVICE_PING_FAILED:       10,
     UPGRADE_AVAILABLE:          5,
@@ -25,6 +26,7 @@ export type BannerId =
     | 'permissionSync'
     | 'connectionSyncFailed'
     | 'connectionSyncWarning'
+    | 'connectionFirstSync'
     | 'repositorySyncFailed'
     | 'repositorySyncWarning'
     | 'repositoryFirstSync'

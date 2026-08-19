@@ -5,6 +5,7 @@ import { __unsafePrisma } from "@/prisma";
 import { CONNECTION_QUEUE } from "@sourcebot/shared";
 
 export interface ConnectionSyncCounts {
+    firstTimeSyncingCount: number;
     failedCount: number;
     warningCount: number;
 }
@@ -18,6 +19,7 @@ export const getConnectionSyncCounts = async (
             id: true,
             syncedAt: true,
             latestSyncJobId: true,
+            firstSyncJobFinishedAt: true,
         },
     });
     const latestJobIds = connections.flatMap((connection) =>
@@ -29,6 +31,13 @@ export const getConnectionSyncCounts = async (
     );
 
     return connections.reduce<ConnectionSyncCounts>((counts, connection) => {
+        if (
+            connection.syncedAt === null
+            && connection.firstSyncJobFinishedAt === null
+        ) {
+            counts.firstTimeSyncingCount += 1;
+        }
+
         const latestJob = connection.latestSyncJobId
             ? latestJobs.get(connection.latestSyncJobId)
             : null;
@@ -50,5 +59,5 @@ export const getConnectionSyncCounts = async (
         }
 
         return counts;
-    }, { failedCount: 0, warningCount: 0 });
+    }, { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 });
 };

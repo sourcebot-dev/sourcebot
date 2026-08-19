@@ -44,12 +44,13 @@ beforeEach(() => {
 describe("getConnectionSyncCounts", () => {
     test("classifies never-synced failures separately from warnings", async () => {
         mocks.findMany.mockResolvedValue([
-            { id: 1, syncedAt: null, latestSyncJobId: "failed-first-sync" },
-            { id: 2, syncedAt: new Date(), latestSyncJobId: "failed-resync" },
-            { id: 3, syncedAt: new Date(), latestSyncJobId: "partial-success" },
-            { id: 4, syncedAt: new Date(), latestSyncJobId: "success" },
-            { id: 5, syncedAt: null, latestSyncJobId: "mismatched-job" },
-            { id: 6, syncedAt: null, latestSyncJobId: null },
+            { id: 1, syncedAt: null, latestSyncJobId: "failed-first-sync", firstSyncJobFinishedAt: new Date() },
+            { id: 2, syncedAt: new Date(), latestSyncJobId: "failed-resync", firstSyncJobFinishedAt: new Date() },
+            { id: 3, syncedAt: new Date(), latestSyncJobId: "partial-success", firstSyncJobFinishedAt: new Date() },
+            { id: 4, syncedAt: new Date(), latestSyncJobId: "success", firstSyncJobFinishedAt: new Date() },
+            { id: 5, syncedAt: null, latestSyncJobId: "mismatched-job", firstSyncJobFinishedAt: new Date() },
+            { id: 6, syncedAt: null, latestSyncJobId: null, firstSyncJobFinishedAt: null },
+            { id: 7, syncedAt: null, latestSyncJobId: "active-first-sync", firstSyncJobFinishedAt: null },
         ]);
         mocks.getJobs.mockResolvedValue(new Map([
             ["failed-first-sync", job("failed-first-sync", 1, "FAILED")],
@@ -62,9 +63,11 @@ describe("getConnectionSyncCounts", () => {
             )],
             ["success", job("success", 4, "COMPLETED", { outcome: "SUCCESS" })],
             ["mismatched-job", job("mismatched-job", 999, "FAILED")],
+            ["active-first-sync", job("active-first-sync", 7, "IN_PROGRESS")],
         ]));
 
         await expect(getConnectionSyncCounts(42)).resolves.toEqual({
+            firstTimeSyncingCount: 2,
             failedCount: 1,
             warningCount: 2,
         });
@@ -74,6 +77,7 @@ describe("getConnectionSyncCounts", () => {
                 id: true,
                 syncedAt: true,
                 latestSyncJobId: true,
+                firstSyncJobFinishedAt: true,
             },
         });
         expect(mocks.getJobs).toHaveBeenCalledWith(
@@ -84,6 +88,7 @@ describe("getConnectionSyncCounts", () => {
                 "partial-success",
                 "success",
                 "mismatched-job",
+                "active-first-sync",
             ],
         );
     });

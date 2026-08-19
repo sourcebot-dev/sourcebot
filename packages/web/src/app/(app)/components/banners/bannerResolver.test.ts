@@ -24,6 +24,7 @@ vi.mock('./upgradeAvailableBanner', () => ({ UpgradeAvailableBanner: () => null 
 vi.mock('./repositorySyncIssuesBanner', () => ({ RepositorySyncIssuesBanner: () => null }));
 vi.mock('./repositoryFirstSyncBanner', () => ({ RepositoryFirstSyncBanner: () => null }));
 vi.mock('./connectionSyncIssuesBanner', () => ({ ConnectionSyncIssuesBanner: () => null }));
+vi.mock('./connectionFirstSyncBanner', () => ({ ConnectionFirstSyncBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -82,7 +83,7 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     hasPermissionSyncEntitlement: false,
     hasPendingFirstSync: false,
     permissionSyncIssues: [],
-    connectionSyncCounts: { failedCount: 0, warningCount: 0 },
+    connectionSyncCounts: { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 },
     repositorySyncCounts: { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 },
     dismissals: {},
     today: TODAY,
@@ -151,7 +152,7 @@ describe('resolveActiveBanner', () => {
 
         test('connection sync failures outrank repository sync failures', () => {
             const result = resolveActiveBanner(makeContext({
-                connectionSyncCounts: { failedCount: 1, warningCount: 0 },
+                connectionSyncCounts: { firstTimeSyncingCount: 0, failedCount: 1, warningCount: 0 },
                 repositorySyncCounts: { firstTimeSyncingCount: 0, failedCount: 1, warningCount: 0 },
             }));
             expect(result?.id).toBe('connectionSyncFailed');
@@ -183,14 +184,14 @@ describe('resolveActiveBanner', () => {
     describe('connection sync issues', () => {
         test('shows failures and warnings as separate banners', () => {
             const failed = resolveActiveBanner(makeContext({
-                connectionSyncCounts: { failedCount: 2, warningCount: 3 },
+                connectionSyncCounts: { firstTimeSyncingCount: 0, failedCount: 2, warningCount: 3 },
             }));
             expect(failed?.id).toBe('connectionSyncFailed');
             expect(failed?.dismissible).toBe(true);
             expect(failed?.audience).toBe('owner');
 
             const warning = resolveActiveBanner(makeContext({
-                connectionSyncCounts: { failedCount: 2, warningCount: 3 },
+                connectionSyncCounts: { firstTimeSyncingCount: 0, failedCount: 2, warningCount: 3 },
                 dismissals: { connectionSyncFailed: TODAY },
             }));
             expect(warning?.id).toBe('connectionSyncWarning');
@@ -200,8 +201,37 @@ describe('resolveActiveBanner', () => {
         test('hides connection sync issues from members', () => {
             const result = resolveActiveBanner(makeContext({
                 role: OrgRole.MEMBER,
-                connectionSyncCounts: { failedCount: 1, warningCount: 1 },
+                connectionSyncCounts: { firstTimeSyncingCount: 0, failedCount: 1, warningCount: 1 },
             }));
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('connection first sync', () => {
+        test('shows first-time syncing connections to owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                connectionSyncCounts: {
+                    firstTimeSyncingCount: 2,
+                    failedCount: 0,
+                    warningCount: 0,
+                },
+            }));
+
+            expect(result?.id).toBe('connectionFirstSync');
+            expect(result?.dismissible).toBe(true);
+            expect(result?.audience).toBe('owner');
+        });
+
+        test('hides first-time syncing connections from members', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                connectionSyncCounts: {
+                    firstTimeSyncingCount: 2,
+                    failedCount: 0,
+                    warningCount: 0,
+                },
+            }));
+
             expect(result).toBeNull();
         });
     });
