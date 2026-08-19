@@ -148,8 +148,10 @@ export class BullMQClient {
         // QueueSpec is distributive so queue names, data, and result schemas stay
         // correlated when TName is a union. Re-establish the shared generic here
         // before invoking the optional method.
-        const { dedupKey: getDedupKey }: {
-            dedupKey?(data: DataOf<TName>): string;
+        const { deduplication: getDeduplication }: {
+            deduplication?(
+                data: DataOf<TName>,
+            ): { id: string; keepLastIfActive?: boolean };
         } = spec;
         const deduplication = getDeduplication?.(data);
         const queue = this.getQueue(spec);
@@ -157,7 +159,7 @@ export class BullMQClient {
         const requestedJobId = randomUUID();
         const job = await queue.add(spec.name, data, {
             jobId: requestedJobId,
-            ...(dedupKey ? { deduplication: { id: dedupKey } } : {}),
+            ...(deduplication ? { deduplication } : {}),
             ...(options.priority !== undefined
                 ? { priority: options.priority }
                 : {}),

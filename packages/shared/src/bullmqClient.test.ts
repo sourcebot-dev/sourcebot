@@ -32,7 +32,7 @@ vi.mock("./jobLogger.js", () => ({
 }));
 
 import { BullMQClient } from "./bullmqClient.js";
-import { CONNECTION_QUEUE } from "./queue.js";
+import { CONNECTION_QUEUE, type QueueSpec } from "./queue.js";
 
 describe("BullMQClient", () => {
     beforeEach(() => {
@@ -201,6 +201,44 @@ describe("BullMQClient", () => {
                     type: "exponential",
                     delay: 30_000,
                     jitter: 0.5,
+                },
+            }),
+        );
+    });
+
+    test("adds simple deduplication to immediate jobs", async () => {
+        const client = new BullMQClient({} as Redis);
+
+        await client.enqueue(CONNECTION_QUEUE, { connectionId: 42 });
+
+        expect(mocks.add).toHaveBeenCalledWith(
+            "connection-sync",
+            { connectionId: 42 },
+            expect.objectContaining({
+                deduplication: { id: "connection:42" },
+            }),
+        );
+    });
+
+    test("passes keepLastIfActive to BullMQ deduplication", async () => {
+        const queueSpec = {
+            ...CONNECTION_QUEUE,
+            deduplication: ({ connectionId }) => ({
+                id: `connection:${connectionId}`,
+                keepLastIfActive: true,
+            }),
+        } satisfies QueueSpec<"connection-sync">;
+        const client = new BullMQClient({} as Redis);
+
+        await client.enqueue(queueSpec, { connectionId: 42 });
+
+        expect(mocks.add).toHaveBeenCalledWith(
+            "connection-sync",
+            { connectionId: 42 },
+            expect.objectContaining({
+                deduplication: {
+                    id: "connection:42",
+                    keepLastIfActive: true,
                 },
             }),
         );

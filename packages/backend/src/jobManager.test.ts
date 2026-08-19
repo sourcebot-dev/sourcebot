@@ -107,7 +107,9 @@ const createWorkload = (
     queueSpec: {
         name: "connection-sync",
         resultSchema: z.unknown() as ZodType<ConnectionSyncResult>,
-        dedupKey: ({ connectionId }) => `connection:${connectionId}`,
+        deduplication: ({ connectionId }) => ({
+            id: `connection:${connectionId}`,
+        }),
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },

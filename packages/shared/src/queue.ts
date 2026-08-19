@@ -1,4 +1,4 @@
-import type { KeepJobs } from "bullmq";
+import type { DeduplicationOptions, KeepJobs } from "bullmq";
 import { z, type ZodType } from "zod";
 import {
     connectionSyncResultSchema,
@@ -8,7 +8,9 @@ import { DEFAULT_JOB_LOGS_MAX_ENTRIES } from "./jobLogger.js";
 
 interface BaseQueueSpec<TName extends QueueName> {
     name: TName;
-    dedupKey?(data: DataOf<TName>): string;
+    deduplication?(
+        data: DataOf<TName>,
+    ): Pick<DeduplicationOptions, "id" | "keepLastIfActive">;
     jobOptions: JobOptions;
 }
 
@@ -128,44 +130,52 @@ export const ATTACHMENT_PRUNE_QUEUE: QueueSpec<"attachment-prune"> = {
     name: "attachment-prune",
     resultSchema: attachmentPruneResultSchema,
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: () => "global",
+    deduplication: () => ({ id: "global" }),
 };
 
 export const AUDIT_LOG_PRUNE_QUEUE: QueueSpec<"audit-log-prune"> = {
     name: "audit-log-prune",
     resultSchema: auditLogPruneResultSchema,
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: () => "global",
+    deduplication: () => ({ id: "global" }),
 };
 
 export const CONNECTION_QUEUE: QueueSpec<"connection-sync"> = {
     name: "connection-sync",
     resultSchema: connectionSyncResultSchema,
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: (data) => `connection:${data.connectionId}`,
+    deduplication: (data) => ({ id: `connection:${data.connectionId}` }),
 };
 
 export const REPO_INDEX_QUEUE: QueueSpec<"repo-index"> = {
     name: "repo-index",
     jobOptions: DEFAULT_JOB_OPTIONS,
+    deduplication: ({ repoId }) => ({
+        id: `repo:${repoId}`,
+        keepLastIfActive: true,
+    }),
 };
 
 export const REPO_CLEANUP_QUEUE: QueueSpec<"repo-cleanup"> = {
     name: "repo-cleanup",
     jobOptions: DEFAULT_JOB_OPTIONS,
+    deduplication: ({ repoId }) => ({
+        id: `repo:${repoId}`,
+        keepLastIfActive: true,
+    }),
 };
 
 export const ACCOUNT_PERMISSION_SYNC_QUEUE: QueueSpec<"account-permission-sync"> = {
     name: "account-permission-sync",
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: (data) => `account:${data.accountId}`,
+    deduplication: (data) => ({ id: `account:${data.accountId}` }),
 };
 
 export const REPO_PERMISSION_SYNC_QUEUE: QueueSpec<"repo-permission-sync"> = {
     name: "repo-permission-sync",
     resultSchema: repoPermissionSyncResultSchema,
     jobOptions: DEFAULT_JOB_OPTIONS,
-    dedupKey: (data) => `repo:${data.repoId}`,
+    deduplication: (data) => ({ id: `repo:${data.repoId}` }),
 };
 
 export const QUEUE_SPECS = {

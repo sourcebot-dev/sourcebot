@@ -36,8 +36,9 @@ vi.mock("./entitlements.js", () => ({
 vi.mock("@sourcebot/shared", () => ({
     CONNECTION_QUEUE: {
         name: "connection-sync",
-        dedupKey: ({ connectionId }: { connectionId: number }) =>
-            `connection:${connectionId}`,
+        deduplication: ({ connectionId }: { connectionId: number }) => ({
+            id: `connection:${connectionId}`,
+        }),
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },

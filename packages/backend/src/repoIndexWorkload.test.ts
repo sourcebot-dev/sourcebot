@@ -78,6 +78,16 @@ describe("repoIndexWorkload", () => {
         expect(workload.executionLock?.durationMs).toBe(60_000);
         expect(workload.queueSpec.name).toBe("repo-index");
         expect(cleanupWorkload.queueSpec.name).toBe("repo-cleanup");
+        expect(workload.queueSpec.deduplication?.({ repoId: 42 })).toEqual({
+            id: "repo:42",
+            keepLastIfActive: true,
+        });
+        expect(
+            cleanupWorkload.queueSpec.deduplication?.({ repoId: 42 }),
+        ).toEqual({
+            id: "repo:42",
+            keepLastIfActive: true,
+        });
     });
 
     test("records the first successful indexing job terminal state", async () => {
