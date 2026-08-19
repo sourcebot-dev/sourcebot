@@ -442,7 +442,7 @@ export const ConnectionsTable = ({
                 ...connection,
                 syncedAt: status.syncedAt
                     ? new Date(status.syncedAt)
-                    : null,
+                    : connection.syncedAt,
                 latestJob: status.latestJob,
                 showCompleted,
             };
