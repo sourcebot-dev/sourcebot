@@ -12,8 +12,9 @@ import { shutdownPosthog } from "./posthog.js";
 import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { redis } from "./redis.js";
-import { createConnectionWorkload } from "./connectionWorkload.js";
-import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
+import { createConnectionSyncWorkload } from "./connectionSyncWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoCleanupWorkload } from "./repoCleanupWorkload.js";
+import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
@@ -50,12 +51,16 @@ logger.info('Worker started.');
 
 const jobManager = new BullMQJobManager(redis);
 
-const connectionWorkload = createConnectionWorkload({
+const connectionSyncWorkload = createConnectionSyncWorkload({
     db: prisma,
     jobManager,
     settings,
 });
 const repoIndexWorkload = createRepoIndexWorkload({
+    db: prisma,
+    settings,
+});
+const repoCleanupWorkload = createRepoCleanupWorkload({
     db: prisma,
     settings,
 });
@@ -77,8 +82,9 @@ const auditLogPruneWorkload = createAuditLogPruneWorkload({
     retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
 });
 
-jobManager.register(connectionWorkload);
+jobManager.register(connectionSyncWorkload);
 jobManager.register(repoIndexWorkload);
+jobManager.register(repoCleanupWorkload);
 jobManager.register(accountPermissionSyncWorkload);
 jobManager.register(repoPermissionSyncWorkload);
 jobManager.register(attachmentPruneWorkload);

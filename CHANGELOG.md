@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Migrated connection syncing, repository indexing, permission syncing, and background pruning from in-process managers and pollers to BullMQ workloads with retries and per-resource execution locking. [#1427](https://github.com/sourcebot-dev/sourcebot/pull/1427)
+- Refactored the repository and connection list view to display useful debugging information to owners, such as failure reasons and logs. [#1608](https://github.com/sourcebot-dev/sourcebot/pull/1608)
 
 ### Fixed
 - Upgraded Next.js to 16.3.1 to bound memory retained by high-cardinality dynamic route cache entries. [#1594](https://github.com/sourcebot-dev/sourcebot/pull/1594)

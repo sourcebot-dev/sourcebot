@@ -94,9 +94,26 @@ export {
     compareVersions,
 } from "./versionUtils.js";
 export type { Version } from "./versionUtils.js";
+export {
+    connectionSyncResultSchema,
+} from "./connectionSync.js";
+export type { ConnectionSyncResult } from "./connectionSync.js";
+export {
+    repositoryDiscoveryIssueCodeSchema,
+    repositoryDiscoveryIssueEffectSchema,
+    repositoryDiscoveryIssueSchema,
+    repositoryDiscoveryIssueSubjectSchema,
+} from "./repositoryDiscovery.js";
+export type {
+    RepositoryDiscoveryIssue,
+    RepositoryDiscoveryIssueCode,
+    RepositoryDiscoveryIssueEffect,
+    RepositoryDiscoveryIssueSubject,
+} from "./repositoryDiscovery.js";
 export type {
     QueueName,
     DataOf,
+    ResultOf,
     JobEnqueueOptions,
     QueueSpec,
     JobOptions,
@@ -108,6 +125,8 @@ export {
     CONNECTION_QUEUE,
     DEFAULT_JOB_OPTIONS,
     JOB_PRIORITIES,
+    QUEUE_SPECS,
+    REPO_CLEANUP_QUEUE,
     REPO_INDEX_QUEUE,
     REPO_PERMISSION_SYNC_QUEUE,
 } from "./queue.js";

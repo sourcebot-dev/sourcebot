@@ -1,11 +1,10 @@
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
-import { RepositoryCarousel } from "../../components/repositoryCarousel"
 import { Separator } from "@/components/ui/separator"
 import { SyntaxReferenceGuideHint } from "../../components/syntaxReferenceGuideHint"
 import Link from "next/link"
 import { SearchBar } from "../../components/searchBar"
 import { SearchModeSelector } from "../../components/searchModeSelector"
-import { getRepos, getReposStats } from "@/actions"
+import { getRepos } from "@/actions"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { isServiceError } from "@/lib/utils"
 
@@ -25,10 +24,7 @@ export const SearchLandingPage = async ({
         take: 10,
     });
 
-    const repoStats = await getReposStats();
-
     if (isServiceError(carouselRepos)) throw new ServiceErrorException(carouselRepos);
-    if (isServiceError(repoStats)) throw new ServiceErrorException(repoStats);
 
     return (
         <div className="flex flex-col items-center overflow-hidden">
@@ -53,15 +49,7 @@ export const SearchLandingPage = async ({
                     </div>
                 </div>
 
-                <div className="mt-8">
-                    <RepositoryCarousel
-                        numberOfReposWithIndex={repoStats.numberOfReposWithIndex}
-                        displayRepos={carouselRepos}
-                    />
-                </div>
-
-                <div className="flex flex-col items-center w-fit gap-6">
-                    <Separator className="mt-5" />
+                <div className="flex flex-col items-center w-fit gap-6 mt-8">
                     <span className="font-semibold">How to search</span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <HowToSection

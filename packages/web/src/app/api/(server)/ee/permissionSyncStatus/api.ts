@@ -1,10 +1,17 @@
 'use server';
 
 import { ServiceError } from "@/lib/serviceError";
+import { getBullMQClient } from "@/lib/bullmqClient";
 import { withAuth } from "@/middleware/withAuth";
 import { getEntitlements } from "@/lib/entitlements";
-import { env, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
-import { AccountPermissionSyncJobStatus, type AccountPermissionSyncIssue } from "@sourcebot/db";
+import {
+    ACCOUNT_PERMISSION_SYNC_QUEUE,
+    env,
+    PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS,
+    type WorkloadJob,
+    type WorkloadJobStatus,
+} from "@sourcebot/shared";
+import type { AccountPermissionSyncIssue } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { sew } from "@/middleware/sew";
@@ -20,6 +27,9 @@ export interface PermissionSyncStatusResponse {
         isSyncing: boolean;
     }>;
 }
+
+const isActiveStatus = (status: WorkloadJobStatus | undefined) =>
+    status === "PENDING" || status === "IN_PROGRESS";
 
 /**
  * Returns initial-sync progress and action-required permission sync issues
@@ -49,35 +59,67 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
                 permissionSyncedAt: true,
                 permissionSyncIssue: true,
                 permissionSyncIssueAt: true,
-                permissionSyncJobs: {
-                    orderBy: { createdAt: 'desc' },
-                    take: 1,
-                }
+                latestPermissionSyncJobId: true,
             }
         });
 
-        const activeStatuses: AccountPermissionSyncJobStatus[] = [
-            AccountPermissionSyncJobStatus.PENDING,
-            AccountPermissionSyncJobStatus.IN_PROGRESS
-        ];
+        const latestJobIds = accounts.flatMap((account) =>
+            account.latestPermissionSyncJobId
+                ? [account.latestPermissionSyncJobId]
+                : [],
+        );
+        const latestJobs = latestJobIds.length > 0
+            ? await getBullMQClient().getJobs(
+                  ACCOUNT_PERMISSION_SYNC_QUEUE,
+                  latestJobIds,
+              )
+            : new Map<string, WorkloadJob<"account-permission-sync"> | null>();
+        const latestJobsByAccountId = new Map<
+            string,
+            WorkloadJob<"account-permission-sync"> | null
+        >(
+            accounts.map((account): [
+                string,
+                WorkloadJob<"account-permission-sync"> | null,
+            ] => {
+                const job = account.latestPermissionSyncJobId
+                    ? latestJobs.get(account.latestPermissionSyncJobId) ?? null
+                    : null;
+                return [
+                    account.id,
+                    job?.data.accountId === account.id ? job : null,
+                ];
+            }),
+        );
 
         const hasPendingFirstSync = env.PERMISSION_SYNC_ENABLED === 'true' &&
-            accounts.some(account =>
-                account.permissionSyncedAt === null &&
-                // @note: to handle the case where the permission sync job
-                // has not yet been scheduled for a new account, we consider
-                // accounts with no permission sync jobs as having a pending first sync.
-                (account.permissionSyncJobs.length === 0 || (account.permissionSyncJobs.length > 0 && activeStatuses.includes(account.permissionSyncJobs[0].status)))
-            );
+            accounts.some((account) => {
+                const latestJob = latestJobsByAccountId.get(account.id);
+                return (
+                    account.permissionSyncedAt === null
+                    // @note: to handle the case where the permission sync job
+                    // has not yet been scheduled for a new account, we consider
+                    // accounts with no available job as having a pending first sync.
+                    && (!latestJob || isActiveStatus(latestJob.status))
+                );
+            });
 
-        const issues = accounts.flatMap(account => account.permissionSyncIssue === null ? [] : [{
-            accountId: account.id,
-            providerId: account.providerId,
-            providerType: account.providerType,
-            reason: account.permissionSyncIssue,
-            occurredAt: account.permissionSyncIssueAt?.toISOString() ?? null,
-            isSyncing: account.permissionSyncJobs.some(job => activeStatuses.includes(job.status)),
-        }]);
+        const issues = accounts.flatMap((account) => {
+            if (account.permissionSyncIssue === null) {
+                return [];
+            }
+
+            return [{
+                accountId: account.id,
+                providerId: account.providerId,
+                providerType: account.providerType,
+                reason: account.permissionSyncIssue,
+                occurredAt: account.permissionSyncIssueAt?.toISOString() ?? null,
+                isSyncing: isActiveStatus(
+                    latestJobsByAccountId.get(account.id)?.status,
+                ),
+            }];
+        });
 
         return { hasPendingFirstSync, issues } satisfies PermissionSyncStatusResponse;
     })

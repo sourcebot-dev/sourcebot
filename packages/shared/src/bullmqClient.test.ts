@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
     add: vi.fn(async () => ({ id: "job-1" })),
+    getJob: vi.fn(),
+    listJobs: vi.fn(),
     upsertJobScheduler: vi.fn(async () => ({ id: "scheduled-job" })),
     getJobScheduler: vi.fn(),
     getJobSchedulers: vi.fn(async () => [
@@ -15,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("bullmq", () => ({
     Queue: class {
         add = mocks.add;
+        getJob = mocks.getJob;
+        getJobs = mocks.listJobs;
         upsertJobScheduler = mocks.upsertJobScheduler;
         getJobScheduler = mocks.getJobScheduler;
         getJobSchedulers = mocks.getJobSchedulers;
@@ -28,14 +32,122 @@ vi.mock("./jobLogger.js", () => ({
 }));
 
 import { BullMQClient } from "./bullmqClient.js";
-import { CONNECTION_QUEUE } from "./queue.js";
+import { CONNECTION_QUEUE, type QueueSpec } from "./queue.js";
 
 describe("BullMQClient", () => {
     beforeEach(() => {
         vi.restoreAllMocks();
         vi.clearAllMocks();
         vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+        mocks.getJob.mockResolvedValue(undefined);
+        mocks.listJobs.mockResolvedValue([]);
         mocks.getJobScheduler.mockResolvedValue(undefined);
+    });
+
+    test("gets jobs by id and preserves missing jobs", async () => {
+        mocks.getJob.mockImplementation(async (jobId: string) => {
+            if (jobId === "job-1") {
+                return {
+                    id: jobId,
+                    data: { connectionId: 1 },
+                    failedReason: "",
+                    returnvalue: null,
+                    getState: vi.fn(async () => "active"),
+                };
+            }
+            if (jobId === "job-2") {
+                return {
+                    id: jobId,
+                    data: { connectionId: 2 },
+                    failedReason: "",
+                    returnvalue: { outcome: "SUCCESS" },
+                    getState: vi.fn(async () => "completed"),
+                };
+            }
+            return undefined;
+        });
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getJobs(CONNECTION_QUEUE, ["job-1", "missing", "job-2"]),
+        ).resolves.toEqual(new Map([
+            ["job-1", {
+                id: "job-1",
+                data: { connectionId: 1 },
+                status: "IN_PROGRESS",
+                errorMessage: null,
+                result: null,
+            }],
+            ["missing", null],
+            ["job-2", {
+                id: "job-2",
+                data: { connectionId: 2 },
+                status: "COMPLETED",
+                errorMessage: null,
+                result: { outcome: "SUCCESS" },
+            }],
+        ]));
+    });
+
+    test("returns null for an unrecognized legacy connection result", async () => {
+        mocks.getJob.mockResolvedValue({
+            id: "job-1",
+            data: { connectionId: 1 },
+            failedReason: "",
+            returnvalue: {
+                reposToCleanup: [],
+                reposToIndex: [],
+            },
+            getState: vi.fn(async () => "completed"),
+        });
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getJob(CONNECTION_QUEUE, "job-1"),
+        ).resolves.toEqual({
+            id: "job-1",
+            data: { connectionId: 1 },
+            status: "COMPLETED",
+            errorMessage: null,
+            result: null,
+        });
+    });
+
+    test("deduplicates job ids when getting jobs", async () => {
+        mocks.getJob.mockResolvedValue({
+            id: "job-1",
+            data: { connectionId: 1 },
+            failedReason: "",
+            returnvalue: null,
+            getState: vi.fn(async () => "waiting"),
+        });
+        const client = new BullMQClient({} as Redis);
+
+        const jobs = await client.getJobs(CONNECTION_QUEUE, [
+            "job-1",
+            "job-1",
+        ]);
+
+        expect(jobs).toHaveLength(1);
+        expect(mocks.getJob).toHaveBeenCalledTimes(1);
+    });
+
+    test("lists failed job ids", async () => {
+        mocks.listJobs.mockResolvedValue([
+            { id: "failed-1" },
+            { id: "failed-2" },
+        ]);
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getFailedJobIds(CONNECTION_QUEUE),
+        ).resolves.toEqual(["failed-1", "failed-2"]);
+        expect(mocks.listJobs).toHaveBeenCalledWith(
+            ["failed"],
+            0,
+            -1,
+            true,
+        );
     });
 
     test("includes workload data in scheduled jobs", async () => {
@@ -56,7 +168,7 @@ describe("BullMQClient", () => {
                 name: "connection-sync",
                 data,
                 opts: {
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,
@@ -84,11 +196,49 @@ describe("BullMQClient", () => {
             { connectionId: 42 },
             expect.objectContaining({
                 priority: 1,
-                attempts: 4,
+                attempts: 2,
                 backoff: {
                     type: "exponential",
                     delay: 30_000,
                     jitter: 0.5,
+                },
+            }),
+        );
+    });
+
+    test("adds simple deduplication to immediate jobs", async () => {
+        const client = new BullMQClient({} as Redis);
+
+        await client.enqueue(CONNECTION_QUEUE, { connectionId: 42 });
+
+        expect(mocks.add).toHaveBeenCalledWith(
+            "connection-sync",
+            { connectionId: 42 },
+            expect.objectContaining({
+                deduplication: { id: "connection:42" },
+            }),
+        );
+    });
+
+    test("passes keepLastIfActive to BullMQ deduplication", async () => {
+        const queueSpec = {
+            ...CONNECTION_QUEUE,
+            deduplication: ({ connectionId }) => ({
+                id: `connection:${connectionId}`,
+                keepLastIfActive: true,
+            }),
+        } satisfies QueueSpec<"connection-sync">;
+        const client = new BullMQClient({} as Redis);
+
+        await client.enqueue(queueSpec, { connectionId: 42 });
+
+        expect(mocks.add).toHaveBeenCalledWith(
+            "connection-sync",
+            { connectionId: 42 },
+            expect.objectContaining({
+                deduplication: {
+                    id: "connection:42",
+                    keepLastIfActive: true,
                 },
             }),
         );
@@ -125,7 +275,7 @@ describe("BullMQClient", () => {
                 data: { connectionId: 42 },
                 opts: {
                     priority: 10,
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,
@@ -162,7 +312,7 @@ describe("BullMQClient", () => {
             template: {
                 data: { connectionId: 42 },
                 opts: {
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,

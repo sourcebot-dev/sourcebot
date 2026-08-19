@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
+import { PrismaClient } from "@sourcebot/db";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import {
     CONNECTION_QUEUE,
@@ -21,6 +21,7 @@ import {
     compileGitlabConfig,
 } from "./repoCompileUtils.js";
 import type { RepoData } from "./repoCompileUtils.js";
+import { collectRepositoryDiscoveryIssues } from "./repositoryDiscoveryIssueContext.js";
 import { JobManager, ProcessContext, Settings, Workload } from "./types.js";
 
 const CONNECTION_SYNC_LOCK_DURATION_MS = 60_000;
@@ -32,16 +33,11 @@ interface Props {
     settings: Settings;
 }
 
-interface ConnectionSyncResult {
-    reposToCleanup: { id: number; name: string }[];
-    reposToIndex: { id: number; name: string }[];
-}
-
-export const createConnectionWorkload = ({
+export const createConnectionSyncWorkload = ({
     db,
     jobManager,
     settings,
-}: Props): Workload<"connection-sync", ConnectionSyncResult> => ({
+}: Props): Workload<"connection-sync"> => ({
     queueSpec: CONNECTION_QUEUE,
     concurrency: settings.maxConnectionSyncJobConcurrency,
     executionLock: {
@@ -52,7 +48,6 @@ export const createConnectionWorkload = ({
     process: async ({
         data: { connectionId },
         signal,
-        jobId,
         trigger,
     }) => {
         signal.throwIfAborted();
@@ -69,26 +64,23 @@ export const createConnectionWorkload = ({
             orgId,
         });
 
-        const { repoData, warnings } = await discoverConnectionRepositories({
-            config: connection.config as unknown as ConnectionConfig,
-            connectionId,
-            signal,
-        });
-
-        signal.throwIfAborted();
-        await db.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                warningMessages: warnings,
-            },
-        });
+        const { value: repoData, issues } =
+            await collectRepositoryDiscoveryIssues(() =>
+                discoverConnectionRepositories({
+                    config: connection.config as unknown as ConnectionConfig,
+                    connectionId,
+                    signal,
+                })
+            );
 
         logger.debug(`Discovered ${repoData.length} repositories`, {
             connectionId,
             repositoryCount: repoData.length,
         });
+
+        const discoveryIsComplete = !issues.some(
+            ({ effect }) => effect === "DISCOVERY_INCOMPLETE",
+        );
 
         signal.throwIfAborted();
         const repoChanges = await replaceConnectionRepositories({
@@ -96,6 +88,7 @@ export const createConnectionWorkload = ({
             connectionId,
             orgId,
             discoveredRepos: repoData,
+            removeMissing: discoveryIsComplete,
         });
 
         signal.throwIfAborted();
@@ -159,65 +152,42 @@ export const createConnectionWorkload = ({
             connectionId,
         });
 
-        return {
-            reposToCleanup: repoChanges.orphanedRepos,
-            reposToIndex: repoChanges.unindexedRepos,
-        };
+        return issues.length === 0
+            ? { outcome: "SUCCESS" }
+            : { outcome: "PARTIAL_SUCCESS", reasons: issues };
     },
     onStarted: async ({ data: { connectionId }, jobId }) => {
-        await db.$transaction(async (tx) => {
-            await tx.connectionSyncJob.upsert({
-                where: {
-                    id: jobId,
-                },
-                update: {
-                    status: ConnectionSyncJobStatus.IN_PROGRESS,
-                    completedAt: null,
-                    errorMessage: null,
-                    warningMessages: [],
-                },
-                create: {
-                    id: jobId,
-                    connectionId,
-                    status: ConnectionSyncJobStatus.IN_PROGRESS,
-                    warningMessages: [],
-                },
-            });
-            await tx.connection.update({
-                where: {
-                    id: connectionId,
-                },
-                data: {
-                    latestSyncJobId: jobId,
-                },
-            });
-        });
-    },
-    onCompleted: async ({ jobId }) => {
-        await db.connectionSyncJob.update({
+        await db.connection.update({
             where: {
-                id: jobId,
+                id: connectionId,
             },
             data: {
-                status: ConnectionSyncJobStatus.COMPLETED,
-                completedAt: new Date(),
-                errorMessage: null,
+                latestSyncJobId: jobId,
             },
         });
     },
-    onTerminalFailure: async ({ jobId }, error) => {
-        await db.connectionSyncJob.update({
-            where: {
-                id: jobId,
-            },
-            data: {
-                status: ConnectionSyncJobStatus.FAILED,
-                completedAt: new Date(),
-                errorMessage: error.message,
-            },
-        });
+    onCompleted: async ({ data: { connectionId } }) => {
+        await markFirstSyncJobFinished(db, connectionId);
+    },
+    onTerminalFailure: async ({ data: { connectionId } }) => {
+        await markFirstSyncJobFinished(db, connectionId);
     },
 });
+
+const markFirstSyncJobFinished = async (
+    db: PrismaClient,
+    connectionId: number,
+) => {
+    await db.connection.updateMany({
+        where: {
+            id: connectionId,
+            firstSyncJobFinishedAt: null,
+        },
+        data: {
+            firstSyncJobFinishedAt: new Date(),
+        },
+    });
+};
 
 export interface CurrentRepo {
     id: number;
@@ -251,11 +221,13 @@ export const replaceConnectionRepositories = async ({
     connectionId,
     orgId,
     discoveredRepos,
+    removeMissing = true,
 }: {
     db: PrismaClient;
     connectionId: number;
     orgId: number;
     discoveredRepos: RepoData[];
+    removeMissing?: boolean;
 }): Promise<ConnectionRepoChanges> => {
     const previouslyAssociatedRepos = await db.repo.findMany({
         where: {
@@ -267,12 +239,14 @@ export const replaceConnectionRepositories = async ({
         },
         select: {
             id: true,
+            name: true,
+            indexedAt: true,
         },
     });
 
-    const currentRepos: CurrentRepo[] = [];
+    const discoveredCurrentRepos: CurrentRepo[] = [];
     for (const repo of deduplicateRepos(discoveredRepos)) {
-        currentRepos.push(
+        discoveredCurrentRepos.push(
             await db.repo.upsert({
                 where: {
                     external_id_external_codeHostUrl_orgId: {
@@ -302,10 +276,31 @@ export const replaceConnectionRepositories = async ({
         );
     }
 
+    const discoveredRepoIds = new Set(
+        discoveredCurrentRepos.map(({ id }) => id),
+    );
+    const missingRepos = previouslyAssociatedRepos.filter(
+        ({ id }) => !discoveredRepoIds.has(id),
+    );
+    if (!removeMissing && missingRepos.length > 0) {
+        logger.debug(
+            "Preserving repositories omitted from a DISCOVERY_INCOMPLETE result",
+            {
+                connectionId,
+                repositories: missingRepos.map(({ id, name }) => ({
+                    id,
+                    name,
+                })),
+            },
+        );
+    }
+    const currentRepos = removeMissing
+        ? discoveredCurrentRepos
+        : [...discoveredCurrentRepos, ...missingRepos];
     const currentRepoIds = new Set(currentRepos.map(({ id }) => id));
-    const staleRepoIds = previouslyAssociatedRepos
-        .map(({ id }) => id)
-        .filter((id) => !currentRepoIds.has(id));
+    const staleRepoIds = removeMissing
+        ? missingRepos.map(({ id }) => id)
+        : [];
 
     if (staleRepoIds.length > 0) {
         await db.repoToConnection.deleteMany({
@@ -367,7 +362,7 @@ export const reconcileRepoIndexWork = async ({
                 "repo-index",
                 `repo-index-v1-${id}`,
                 intervalMs,
-                { repoId: id, type: "INDEX" },
+                { repoId: id },
                 { priority: JOB_PRIORITIES.SCHEDULED },
             ),
         ),
@@ -385,10 +380,9 @@ export const reconcileRepoIndexWork = async ({
     await Promise.all(
         orphanedRepos.map(({ id }) =>
             trigger(
-                "repo-index",
+                "repo-cleanup",
                 {
                     repoId: id,
-                    type: "CLEANUP",
                 },
                 { priority: JOB_PRIORITIES.SCHEDULED },
             ),
@@ -401,7 +395,6 @@ export const reconcileRepoIndexWork = async ({
                 "repo-index",
                 {
                     repoId: id,
-                    type: "INDEX",
                 },
                 { priority: JOB_PRIORITIES.INITIAL },
             ),

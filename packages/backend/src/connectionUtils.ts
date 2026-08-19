@@ -1,41 +1,11 @@
 import * as Sentry from "@sentry/node";
 
-type ValidResult<T> = {
-    type: 'valid';
-    data: T[];
-};
-
-type WarningResult = {
-    type: 'warning';
-    warning: string;
-};
-
-type CustomResult<T> = ValidResult<T> | WarningResult;
-
 export function processPromiseResults<T>(
-    results: PromiseSettledResult<CustomResult<T>>[],
-): {
-    validItems: T[];
-    warnings: string[];
-} {
-    const validItems: T[] = [];
-    const warnings: string[] = [];
-
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            const value = result.value;
-            if (value.type === 'valid') {
-                validItems.push(...value.data);
-            } else {
-                warnings.push(value.warning);
-            }
-        }
-    });
-
-    return {
-        validItems,
-        warnings,
-    };
+    results: PromiseSettledResult<T[]>[],
+): T[] {
+    return results.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+    );
 }
 
 export function throwIfAnyFailed<T>(results: PromiseSettledResult<T>[]) {

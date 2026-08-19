@@ -11,6 +11,7 @@ import {
     JobEnqueueOptions,
     QueueName,
     QueueSpec,
+    ResultOf,
     Schedule,
 } from "@sourcebot/shared";
 import type { Queue } from "bullmq";
@@ -69,7 +70,7 @@ export interface WorkloadExecutionLock<TName extends QueueName> {
     durationMs: number;
 }
 
-export interface Workload<TName extends QueueName, TResult = unknown> {
+export interface Workload<TName extends QueueName> {
     queueSpec: QueueSpec<TName>;
     concurrency: number;
     executionLock?: WorkloadExecutionLock<TName>;
@@ -79,11 +80,11 @@ export interface Workload<TName extends QueueName, TResult = unknown> {
         options?: JobEnqueueOptions;
     };
     rateLimit?: { max: number; per: string };
-    process(ctx: ProcessContext<TName>): Promise<TResult>;
+    process(ctx: ProcessContext<TName>): Promise<ResultOf<TName>>;
     onStarted?(ctx: JobLifecycleContext<TName>): Promise<void>;
     onCompleted?(
         ctx: JobLifecycleContext<TName>,
-        result: TResult,
+        result: ResultOf<TName>,
     ): Promise<void>;
     onTerminalFailure?(
         ctx: JobLifecycleContext<TName>,

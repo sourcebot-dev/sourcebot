@@ -6,8 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
     connectionFindUniqueOrThrow: vi.fn(),
     connectionUpdate: vi.fn(),
-    connectionSyncJobUpsert: vi.fn(),
-    connectionSyncJobUpdate: vi.fn(),
+    connectionUpdateMany: vi.fn(),
     compileGithubConfig: vi.fn(),
     loadConfig: vi.fn(),
     syncSearchContexts: vi.fn(),
@@ -37,8 +36,9 @@ vi.mock("./entitlements.js", () => ({
 vi.mock("@sourcebot/shared", () => ({
     CONNECTION_QUEUE: {
         name: "connection-sync",
-        dedupKey: ({ connectionId }: { connectionId: number }) =>
-            `connection:${connectionId}`,
+        deduplication: ({ connectionId }: { connectionId: number }) => ({
+            id: `connection:${connectionId}`,
+        }),
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
@@ -71,6 +71,9 @@ vi.mock("@sourcebot/shared", () => ({
     ],
     createLogger: vi.fn(() => mocks.logger),
     loadConfig: mocks.loadConfig,
+    repositoryDiscoveryIssueSchema: {
+        parse: (issue: unknown) => issue,
+    },
 }));
 
 vi.mock("./repoCompileUtils.js", () => ({
@@ -88,34 +91,19 @@ vi.mock("./ee/syncSearchContexts.js", () => ({
 }));
 
 import {
-    createConnectionWorkload,
+    createConnectionSyncWorkload as createConnectionWorkload,
     replaceConnectionRepositories,
     reconcileRepoIndexWork,
     reconcileRepoPermissionSyncWork,
-} from "./connectionWorkload.js";
+} from "./connectionSyncWorkload.js";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { REPO_PERMISSION_SYNC_WHERE } from "./ee/permissionSyncEligibility.js";
-
-const transactionClient = {
-    connection: {
-        update: mocks.connectionUpdate,
-    },
-    connectionSyncJob: {
-        upsert: mocks.connectionSyncJobUpsert,
-    },
-};
-const transaction = vi.fn(
-    (callback: (tx: typeof transactionClient) => Promise<unknown>) =>
-        callback(transactionClient),
-);
 
 const db = {
     connection: {
         findUniqueOrThrow: mocks.connectionFindUniqueOrThrow,
         update: mocks.connectionUpdate,
-    },
-    connectionSyncJob: {
-        upsert: mocks.connectionSyncJobUpsert,
-        update: mocks.connectionSyncJobUpdate,
+        updateMany: mocks.connectionUpdateMany,
     },
     repo: {
         findMany: mocks.repoFindMany,
@@ -124,7 +112,6 @@ const db = {
     repoToConnection: {
         deleteMany: mocks.repoToConnectionDeleteMany,
     },
-    $transaction: transaction,
 } as unknown as PrismaClient;
 
 const jobManager = {
@@ -159,6 +146,7 @@ describe("connectionWorkload", () => {
         vi.restoreAllMocks();
         vi.clearAllMocks();
         mocks.connectionUpdate.mockResolvedValue({});
+        mocks.connectionUpdateMany.mockResolvedValue({ count: 1 });
         mocks.repoFindMany.mockResolvedValue([]);
         mocks.getJobSchedulerIds.mockResolvedValue([]);
         mocks.upsertJobScheduler.mockResolvedValue("scheduled-job");
@@ -168,7 +156,7 @@ describe("connectionWorkload", () => {
         mocks.syncSearchContexts.mockResolvedValue(undefined);
     });
 
-    test("declares database-backed lifecycle hooks", () => {
+    test("declares the connection lifecycle hooks", () => {
         expect(connectionWorkload.onStarted).toBeTypeOf("function");
         expect(connectionWorkload.onCompleted).toBeTypeOf("function");
         expect(connectionWorkload.onTerminalFailure).toBeTypeOf("function");
@@ -200,26 +188,9 @@ describe("connectionWorkload", () => {
         expect(mocks.connectionFindUniqueOrThrow).not.toHaveBeenCalled();
     });
 
-    test("marks the connection sync job as in progress when started", async () => {
+    test("records the latest connection sync job ID when started", async () => {
         await connectionWorkload.onStarted?.(lifecycleContext);
 
-        expect(mocks.connectionSyncJobUpsert).toHaveBeenCalledWith({
-            where: {
-                id: "job-1",
-            },
-            update: {
-                status: "IN_PROGRESS",
-                completedAt: null,
-                errorMessage: null,
-                warningMessages: [],
-            },
-            create: {
-                id: "job-1",
-                connectionId: 42,
-                status: "IN_PROGRESS",
-                warningMessages: [],
-            },
-        });
         expect(mocks.connectionUpdate).toHaveBeenCalledWith({
             where: {
                 id: 42,
@@ -228,41 +199,37 @@ describe("connectionWorkload", () => {
                 latestSyncJobId: "job-1",
             },
         });
-        expect(transaction).toHaveBeenCalledOnce();
     });
 
-    test("marks the connection sync job as completed", async () => {
+    test("records the first successful sync job terminal state", async () => {
         await connectionWorkload.onCompleted?.(lifecycleContext, {
-            reposToCleanup: [],
-            reposToIndex: [],
+            outcome: "SUCCESS",
         });
 
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
+        expect(mocks.connectionUpdateMany).toHaveBeenCalledWith({
             where: {
-                id: "job-1",
+                id: 42,
+                firstSyncJobFinishedAt: null,
             },
             data: {
-                status: "COMPLETED",
-                completedAt: expect.any(Date),
-                errorMessage: null,
+                firstSyncJobFinishedAt: expect.any(Date),
             },
         });
     });
 
-    test("marks the connection sync job as failed after terminal failure", async () => {
+    test("records the first failed sync job terminal state", async () => {
         await connectionWorkload.onTerminalFailure?.(
             lifecycleContext,
             new Error("Connection credentials expired"),
         );
 
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
+        expect(mocks.connectionUpdateMany).toHaveBeenCalledWith({
             where: {
-                id: "job-1",
+                id: 42,
+                firstSyncJobFinishedAt: null,
             },
             data: {
-                status: "FAILED",
-                completedAt: expect.any(Date),
-                errorMessage: "Connection credentials expired",
+                firstSyncJobFinishedAt: expect.any(Date),
             },
         });
     });
@@ -281,10 +248,7 @@ describe("connectionWorkload", () => {
             orgId: 7,
             config,
         });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [discoveredRepo],
-            warnings: ["Repository was archived"],
-        });
+        mocks.compileGithubConfig.mockResolvedValue([discoveredRepo]);
         mocks.repoUpsert.mockResolvedValue({
             id: 4,
             name: "github.com/sourcebot/repo-4",
@@ -305,23 +269,18 @@ describe("connectionWorkload", () => {
             42,
             expect.any(AbortSignal),
         );
-        expect(mocks.connectionSyncJobUpdate).toHaveBeenCalledWith({
-            where: { id: "job-1" },
-            data: { warningMessages: ["Repository was archived"] },
-        });
         expect(mocks.repoUpsert).toHaveBeenCalledOnce();
         expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
             "repo-index",
             "repo-index-v1-4",
             3_600_000,
-            { repoId: 4, type: "INDEX" },
+            { repoId: 4 },
             { priority: 10 },
         );
         expect(trigger).toHaveBeenCalledWith(
             "repo-index",
             {
                 repoId: 4,
-                type: "INDEX",
             },
             { priority: 5 },
         );
@@ -333,13 +292,123 @@ describe("connectionWorkload", () => {
             orgId: 7,
             contexts: undefined,
         });
-        expect(result).toEqual({
-            reposToCleanup: [],
-            reposToIndex: [
-                { id: 4, name: "github.com/sourcebot/repo-4" },
-            ],
-        });
+        expect(result).toEqual({ outcome: "SUCCESS" });
         expect(updateProgress).not.toHaveBeenCalled();
+    });
+
+    test("returns partial success reasons reported during discovery", async () => {
+        const reason = {
+            code: "NOT_FOUND_OR_INACCESSIBLE" as const,
+            effect: "TARGET_SKIPPED" as const,
+            subject: {
+                kind: "repository" as const,
+                value: "sourcebot-dev/legacy",
+            },
+            message: "Repository was not found or is inaccessible.",
+        };
+        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
+            id: 42,
+            name: "github",
+            orgId: 7,
+            config: { type: "github" },
+        });
+        mocks.compileGithubConfig.mockImplementation(async () => {
+            reportRepositoryDiscoveryIssue(reason);
+            return [];
+        });
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: new AbortController().signal,
+                updateProgress: vi.fn(),
+                trigger: vi.fn(),
+            }),
+        ).resolves.toEqual({
+            outcome: "PARTIAL_SUCCESS",
+            reasons: [reason],
+        });
+    });
+
+    test("preserves missing repositories when discovery is incomplete", async () => {
+        const reason = {
+            code: "ENUMERATION_FAILED" as const,
+            effect: "DISCOVERY_INCOMPLETE" as const,
+            subject: {
+                kind: "organization" as const,
+                value: "sourcebot-dev",
+            },
+            message: "Repository enumeration did not complete.",
+        };
+        const indexedAt = new Date("2026-07-30T12:00:00.000Z");
+        mocks.connectionFindUniqueOrThrow.mockResolvedValue({
+            id: 42,
+            name: "github",
+            orgId: 7,
+            config: { type: "github" },
+        });
+        mocks.compileGithubConfig.mockImplementation(async () => {
+            reportRepositoryDiscoveryIssue(reason);
+            return [
+                {
+                    external_id: "repo-1",
+                    external_codeHostUrl: "https://github.com",
+                },
+            ];
+        });
+        mocks.repoFindMany
+            .mockResolvedValueOnce([
+                {
+                    id: 2,
+                    name: "github.com/sourcebot/repo-2",
+                    indexedAt,
+                },
+            ])
+            .mockResolvedValueOnce([]);
+        mocks.repoUpsert.mockResolvedValue({
+            id: 1,
+            name: "github.com/sourcebot/repo-1",
+            indexedAt,
+        });
+        const trigger = vi.fn();
+
+        await expect(
+            connectionWorkload.process({
+                ...lifecycleContext,
+                signal: new AbortController().signal,
+                updateProgress: vi.fn(),
+                trigger,
+            }),
+        ).resolves.toEqual({
+            outcome: "PARTIAL_SUCCESS",
+            reasons: [reason],
+        });
+
+        expect(mocks.repoToConnectionDeleteMany).not.toHaveBeenCalled();
+        expect(mocks.logger.debug).toHaveBeenCalledWith(
+            "Preserving repositories omitted from a DISCOVERY_INCOMPLETE result",
+            {
+                connectionId: 42,
+                repositories: [
+                    {
+                        id: 2,
+                        name: "github.com/sourcebot/repo-2",
+                    },
+                ],
+            },
+        );
+        expect(mocks.upsertJobScheduler).toHaveBeenCalledWith(
+            "repo-index",
+            "repo-index-v1-2",
+            3_600_000,
+            { repoId: 2 },
+            { priority: 10 },
+        );
+        expect(trigger).not.toHaveBeenCalledWith(
+            "repo-cleanup",
+            { repoId: 2 },
+            expect.anything(),
+        );
     });
 
     test("does not mark the connection synced when repo work reconciliation fails", async () => {
@@ -349,15 +418,12 @@ describe("connectionWorkload", () => {
             orgId: 7,
             config: { type: "github" },
         });
-        mocks.compileGithubConfig.mockResolvedValue({
-            repoData: [
-                {
-                    external_id: "repo-4",
-                    external_codeHostUrl: "https://github.com",
-                },
-            ],
-            warnings: [],
-        });
+        mocks.compileGithubConfig.mockResolvedValue([
+            {
+                external_id: "repo-4",
+                external_codeHostUrl: "https://github.com",
+            },
+        ]);
         mocks.repoUpsert.mockResolvedValue({
             id: 4,
             name: "github.com/sourcebot/repo-4",
@@ -517,7 +583,7 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             "repo-index-v1-1",
             3_600_000,
-            { repoId: 1, type: "INDEX" },
+            { repoId: 1 },
             { priority: 10 },
         );
         expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
@@ -525,7 +591,7 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             "repo-index-v1-4",
             3_600_000,
-            { repoId: 4, type: "INDEX" },
+            { repoId: 4 },
             { priority: 10 },
         );
         expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
@@ -534,10 +600,9 @@ describe("connectionWorkload repo sync helpers", () => {
         );
         expect(trigger).toHaveBeenNthCalledWith(
             1,
-            "repo-index",
+            "repo-cleanup",
             {
                 repoId: 2,
-                type: "CLEANUP",
             },
             { priority: 10 },
         );
@@ -546,7 +611,6 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             {
                 repoId: 4,
-                type: "INDEX",
             },
             { priority: 5 },
         );

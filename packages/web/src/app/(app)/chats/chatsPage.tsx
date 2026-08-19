@@ -322,7 +322,7 @@ export function ChatsPage() {
     return (
         <div className="flex flex-col h-full max-w-6xl mx-auto p-4">
             <div className="flex flex-col gap-4 p-6 pb-2 flex-shrink-0">
-                <h1 className="text-3xl font-semibold">Chats</h1>
+                <h3 className="text-lg font-medium">Chats</h3>
 
                 <div className="flex items-center justify-between gap-2">
                     <InputGroup className="flex-1">

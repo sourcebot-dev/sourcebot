@@ -12,7 +12,7 @@ import {
     reconcileRepoIndexWork,
     reconcileRepoPermissionSyncWork,
     replaceConnectionRepositories,
-} from "./connectionWorkload.js";
+} from "./connectionSyncWorkload.js";
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import isEqual from 'fast-deep-equal';

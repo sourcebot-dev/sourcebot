@@ -7,6 +7,7 @@ import type {
     JobEnqueueOptions,
     QueueName,
     QueueSpec,
+    ResultOf,
 } from "./queue.js";
 import { scheduleToMs } from "./schedule.js";
 import type { Schedule } from "./schedule.js";
@@ -24,14 +25,15 @@ export interface WorkloadJob<TName extends QueueName> {
     data: DataOf<TName>;
     status: WorkloadJobStatus;
     errorMessage: string | null;
+    result: ResultOf<TName> | null;
 }
 
 type WorkloadQueue<TName extends QueueName> = Queue<
     DataOf<TName>,
-    unknown,
+    ResultOf<TName>,
     string,
     DataOf<TName>,
-    unknown,
+    ResultOf<TName>,
     string
 >;
 
@@ -85,12 +87,49 @@ export class BullMQClient {
             return null;
         }
 
+        const result = (() => {
+            if (status !== "COMPLETED" || !spec.resultSchema) {
+                return null;
+            }
+
+            const parsed = spec.resultSchema.safeParse(job.returnvalue);
+            return parsed.success ? parsed.data : null;
+        })();
+
         return {
             id: job.id ?? jobId,
             data: job.data as DataOf<TName>,
             status,
             errorMessage: status === "FAILED" ? job.failedReason || null : null,
+            result,
         };
+    }
+
+    async getJobs<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        jobIds: readonly string[],
+    ): Promise<Map<string, WorkloadJob<TName> | null>> {
+        const uniqueJobIds = [...new Set(jobIds)];
+        const jobs = await Promise.all(
+            uniqueJobIds.map((jobId) => this.getJob(spec, jobId)),
+        );
+
+        return new Map(
+            uniqueJobIds.map((jobId, index) => [jobId, jobs[index] ?? null]),
+        );
+    }
+
+    async getFailedJobIds<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+    ): Promise<string[]> {
+        const jobs = await this.getQueue(spec).getJobs(
+            ["failed"],
+            0,
+            -1,
+            true,
+        );
+
+        return jobs.flatMap((job) => job.id ? [job.id] : []);
     }
 
     async getJobLogs<TName extends QueueName>(
@@ -106,13 +145,21 @@ export class BullMQClient {
         data: DataOf<TName>,
         options: JobEnqueueOptions = {},
     ): Promise<string> {
-        const dedupKey = spec.dedupKey?.(data);
+        // QueueSpec is distributive so queue names, data, and result schemas stay
+        // correlated when TName is a union. Re-establish the shared generic here
+        // before invoking the optional method.
+        const { deduplication: getDeduplication }: {
+            deduplication?(
+                data: DataOf<TName>,
+            ): { id: string; keepLastIfActive?: boolean };
+        } = spec;
+        const deduplication = getDeduplication?.(data);
         const queue = this.getQueue(spec);
 
         const requestedJobId = randomUUID();
         const job = await queue.add(spec.name, data, {
             jobId: requestedJobId,
-            ...(dedupKey ? { deduplication: { id: dedupKey } } : {}),
+            ...(deduplication ? { deduplication } : {}),
             ...(options.priority !== undefined
                 ? { priority: options.priority }
                 : {}),
