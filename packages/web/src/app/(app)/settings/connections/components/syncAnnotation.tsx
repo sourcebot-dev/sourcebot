@@ -25,6 +25,7 @@ export type ConnectionSyncAnnotation =
 export const getConnectionSyncAnnotation = (
     connectionId: number,
     latestJob: WorkloadJob<"connection-sync"> | null,
+    syncedAt: Date | null,
 ): ConnectionSyncAnnotation => {
     if (!latestJob || latestJob.data.connectionId !== connectionId) {
         return null;
@@ -38,7 +39,7 @@ export const getConnectionSyncAnnotation = (
     }
 
     if (latestJob.status === "FAILED") {
-        return "FAILED";
+        return syncedAt ? "WARNING" : "FAILED";
     }
 
     if (
@@ -79,7 +80,7 @@ export const SyncAnnotation = ({
     const annotation = completionKey !== null
         && expiredCompletionKey !== completionKey
         ? "COMPLETED"
-        : getConnectionSyncAnnotation(connectionId, latestJob);
+        : getConnectionSyncAnnotation(connectionId, latestJob, syncedAt);
     const badge = (() => {
         switch (annotation) {
             case "COMPLETED":

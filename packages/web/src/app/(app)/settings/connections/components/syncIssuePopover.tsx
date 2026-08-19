@@ -90,8 +90,8 @@ export const SyncIssuePopover = ({
         ? latestJob.result.reasons
         : null;
     if (
-        (isWarning && !reasons)
-        || (!isWarning && latestJob.status !== "FAILED")
+        latestJob.status !== "FAILED"
+        && (!isWarning || !reasons)
     ) {
         return null;
     }
@@ -185,17 +185,21 @@ export const SyncIssuePopover = ({
                     <div className="min-w-0 space-y-4">
                         <div className="space-y-1">
                             <p className="text-sm font-medium">
-                                {isWarning
+                                {reasons
                                     ? "Connection sync completed with warnings"
-                                    : "Connection sync failed"}
+                                    : isWarning
+                                        ? "Latest connection sync failed"
+                                        : "Connection sync failed"}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                {isWarning
+                                {reasons
                                     ? "Sourcebot could not honor the full configured discovery scope. Some repositories may be missing."
+                                    : isWarning
+                                        ? "Previously discovered repositories remain available, but they may be stale."
                                     : "Sourcebot could not complete the latest sync for this connection."}
                             </p>
                         </div>
-                        {isWarning && reasons
+                        {reasons
                             ? <DiscoveryIssues issues={reasons} />
                             : (
                                   <div className="space-y-1.5">

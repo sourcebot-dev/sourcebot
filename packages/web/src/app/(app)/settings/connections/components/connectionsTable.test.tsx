@@ -27,7 +27,7 @@ const connectionActions = vi.hoisted(() => ({
 const toast = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-    usePathname: () => "/settings/connectionsv2",
+    usePathname: () => "/settings/connections",
     useRouter: () => navigation,
     useSearchParams: () => new URLSearchParams(navigation.searchParams),
 }));
@@ -110,6 +110,47 @@ describe("ConnectionsTable", () => {
         ).toBeNull();
     });
 
+    test("reflects the status filter from the URL", () => {
+        navigation.searchParams = "status=failed";
+
+        renderTable();
+
+        expect(
+            screen
+                .getByRole("combobox", {
+                    name: "Filter connections by status",
+                })
+                .textContent,
+        ).toContain("Failed");
+    });
+
+    test("renders a status-specific empty state", () => {
+        navigation.searchParams = "status=warning";
+
+        renderTable({ data: [] });
+
+        expect(screen.getByText("No connections with warnings.")).toBeTruthy();
+        expect(screen.queryByText("Page 1 of 1")).toBeNull();
+    });
+
+    test("clears search and status filters from the empty state", () => {
+        navigation.searchParams =
+            "search=missing&status=failed&page=2&sortBy=syncedAt";
+
+        renderTable({ data: [] });
+
+        fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+
+        expect(
+            (screen.getByPlaceholderText("Search connections...") as HTMLInputElement)
+                .value,
+        ).toBe("");
+        expect(navigation.replace).toHaveBeenCalledWith(
+            "/settings/connections?sortBy=syncedAt",
+            { scroll: false },
+        );
+    });
+
     test("uses URL-driven server pagination", () => {
         renderTable({ totalCount: 29 });
 
@@ -117,7 +158,7 @@ describe("ConnectionsTable", () => {
         fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
         expect(navigation.push).toHaveBeenCalledWith(
-            "/settings/connectionsv2?page=2",
+            "/settings/connections?page=2",
         );
     });
 
@@ -127,7 +168,7 @@ describe("ConnectionsTable", () => {
         fireEvent.click(screen.getByRole("button", { name: "Sort by Name" }));
 
         expect(navigation.push).toHaveBeenCalledWith(
-            "/settings/connectionsv2?sortOrder=desc",
+            "/settings/connections?sortOrder=desc",
         );
     });
 
@@ -271,7 +312,6 @@ describe("ConnectionsTable", () => {
     test.each([
         ["PENDING", "Syncing"],
         ["IN_PROGRESS", "Syncing"],
-        ["FAILED", "Failed"],
     ] as const)("renders a %s sync annotation", (status, label) => {
         renderTable({
             data: [{
@@ -280,7 +320,7 @@ describe("ConnectionsTable", () => {
                     id: "job-1",
                     data: { connectionId: connections[0].id },
                     status,
-                    errorMessage: status === "FAILED" ? "Sync failed" : null,
+                    errorMessage: null,
                     result: null,
                 },
             }],
@@ -289,12 +329,58 @@ describe("ConnectionsTable", () => {
         expect(screen.getByText(label)).toBeTruthy();
     });
 
-    test("shows structured discovery issues for a partial success", () => {
+    test("renders a failed annotation when the connection has never synced", () => {
+        renderTable({
+            data: [{
+                ...connections[0],
+                syncedAt: null,
+                latestJob: {
+                    id: "failed-job",
+                    data: { connectionId: connections[0].id },
+                    status: "FAILED",
+                    errorMessage: "Authentication failed",
+                    result: null,
+                },
+            }],
+        });
+
+        const failed = screen.getByText("Failed");
+        expect(failed.closest("td")).toBe(
+            screen.getByText("Primary GitHub").closest("td"),
+        );
+    });
+
+    test("renders a warning when a previously synced connection fails", () => {
         renderTable({
             data: [{
                 ...connections[0],
                 latestJob: {
-                    id: "job-1",
+                    id: "warning-job",
+                    data: { connectionId: connections[0].id },
+                    status: "FAILED",
+                    errorMessage: "Authentication failed",
+                    result: null,
+                },
+            }],
+        });
+
+        expect(screen.getByText("Warning")).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", {
+            name: "View warning details for Primary GitHub",
+        }));
+
+        expect(screen.getByText("Latest connection sync failed")).toBeTruthy();
+        expect(screen.getByText(/may be stale/)).toBeTruthy();
+        expect(screen.getByText("Authentication failed")).toBeTruthy();
+        expect(screen.getByText("warning-job")).toBeTruthy();
+    });
+
+    test("renders structured warnings for a partial success", () => {
+        renderTable({
+            data: [{
+                ...connections[0],
+                latestJob: {
+                    id: "partial-job",
                     data: { connectionId: connections[0].id },
                     status: "COMPLETED",
                     errorMessage: null,
@@ -314,11 +400,6 @@ describe("ConnectionsTable", () => {
             }],
         });
 
-        const warning = screen.getByText("Warning");
-        expect(warning).toBeTruthy();
-        expect(warning.closest("td")).toBe(
-            screen.getByText("Primary GitHub").closest("td"),
-        );
         fireEvent.click(screen.getByRole("button", {
             name: "View warning details for Primary GitHub",
         }));
@@ -329,7 +410,7 @@ describe("ConnectionsTable", () => {
         expect(screen.getByText("repository")).toBeTruthy();
         expect(screen.getByText("acme/private")).toBeTruthy();
         expect(screen.getByText("Not found or inaccessible")).toBeTruthy();
-        expect(screen.getByText("job-1")).toBeTruthy();
+        expect(screen.getByText("partial-job")).toBeTruthy();
     });
 
     test("shows the worker error for a failed sync and supports retry", async () => {
@@ -339,6 +420,7 @@ describe("ConnectionsTable", () => {
         renderTable({
             data: [{
                 ...connections[0],
+                syncedAt: null,
                 latestJob: {
                     id: "failed-job",
                     data: { connectionId: connections[0].id },
@@ -402,6 +484,7 @@ describe("ConnectionsTable", () => {
         renderTable({
             data: [{
                 ...connections[0],
+                syncedAt: null,
                 latestJob: {
                     id: "failed-job",
                     data: { connectionId: connections[0].id },

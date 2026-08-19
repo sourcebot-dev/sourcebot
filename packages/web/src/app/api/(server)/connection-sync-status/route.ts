@@ -1,4 +1,4 @@
-import type { ConnectionSyncStatusesResponse } from "@/app/(app)/settings/connectionsv2/types";
+import type { ConnectionSyncStatusesResponse } from "@/app/(app)/settings/connections/types";
 import { apiHandler } from "@/lib/apiHandler";
 import { getBullMQClient } from "@/lib/bullmqClient";
 import {

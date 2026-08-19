@@ -1,294 +1,702 @@
-"use client"
+"use client";
 
-import { DisplayDate } from "@/app/(app)/components/DisplayDate"
-import { NotificationDot } from "@/app/(app)/components/notificationDot"
-import { useToast } from "@/components/hooks/use-toast"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { getCodeHostIcon } from "@/lib/utils"
-import { ConnectionType } from "@sourcebot/db"
+import { DisplayDate } from "@/app/(app)/components/DisplayDate";
+import { Button } from "@/components/ui/button";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { cn, getCodeHostIcon } from "@/lib/utils";
+import type { ConnectionType } from "@sourcebot/db";
+import type { WorkloadJob } from "@sourcebot/shared";
+import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@uidotdev/usehooks";
 import {
     type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
-    type VisibilityState,
     flexRender,
     getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
     useReactTable,
-} from "@tanstack/react-table"
-import { cva } from "class-variance-authority"
-import { ArrowUpDown, RefreshCwIcon } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+} from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, Loader2, Search } from "lucide-react";
+import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useTransition,
+} from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import type { ConnectionSyncStatusesResponse } from "../types";
+import { ConnectionActionsMenu } from "./connectionActionsMenu";
+import {
+    getConnectionSyncAnnotation,
+    SyncAnnotation,
+} from "./syncAnnotation";
 
+const POLL_INTERVAL_MS = 5_000;
 
 export type Connection = {
-    id: number
-    name: string
-    syncedAt: Date | null
-    connectionType: ConnectionType
-    latestJobStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | null
-    isFirstTimeSync: boolean
-}
+    id: number;
+    name: string;
+    connectionType: ConnectionType;
+    syncedAt: Date | null;
+    latestJob: WorkloadJob<"connection-sync"> | null;
+};
 
-const statusBadgeVariants = cva("", {
-    variants: {
-        status: {
-            PENDING: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-            IN_PROGRESS: "bg-primary text-primary-foreground hover:bg-primary/90",
-            COMPLETED: "bg-green-600 text-white hover:bg-green-700",
-            FAILED: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+type DisplayedConnection = Connection & {
+    showCompleted: boolean;
+};
+
+type SortBy = "name" | "syncedAt";
+type SortOrder = "asc" | "desc";
+type StatusFilter = "all" | "failed" | "warning";
+
+const getStatusFilter = (value: string | null): StatusFilter => {
+    if (value === "failed" || value === "warning") {
+        return value;
+    }
+
+    return "all";
+};
+
+const getConnectionSyncStatuses = async (
+    connectionIds: number[],
+    signal: AbortSignal,
+): Promise<ConnectionSyncStatusesResponse> => {
+    const response = await fetch("/api/connection-sync-status", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
         },
-    },
-})
+        body: JSON.stringify({ connectionIds }),
+        signal,
+    });
 
-const getStatusBadge = (status: Connection["latestJobStatus"]) => {
-    if (!status) {
-        return "-";
+    if (!response.ok) {
+        throw new Error("Failed to load connection sync statuses");
     }
 
-    const labels = {
-        PENDING: "Pending",
-        IN_PROGRESS: "In Progress",
-        COMPLETED: "Completed",
-        FAILED: "Failed",
-    }
+    return response.json() as Promise<ConnectionSyncStatusesResponse>;
+};
 
-    return <Badge className={statusBadgeVariants({ status })}>{labels[status]}</Badge>
-}
+const SortableHeader = ({
+    label,
+    column,
+    sortBy,
+    sortOrder,
+    onSortChange,
+}: {
+    label: string;
+    column: SortBy;
+    sortBy: SortBy;
+    sortOrder: SortOrder;
+    onSortChange: (column: SortBy) => void;
+}) => {
+    const isActive = sortBy === column;
+    const SortIcon = isActive && sortOrder === "desc" ? ArrowUp : ArrowDown;
 
-export const columns: ColumnDef<Connection>[] = [
+    return (
+        <Button
+            variant="ghost"
+            className="group -ml-3 h-8 gap-0 px-3 [&_svg]:size-3"
+            size="sm"
+            onClick={() => onSortChange(column)}
+            aria-label={`Sort by ${label}`}
+        >
+            {label}
+            <SortIcon
+                className={cn(
+                    "ml-1 transition-opacity",
+                    isActive
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100",
+                )}
+            />
+        </Button>
+    );
+};
+
+const getColumns = ({
+    sortBy,
+    sortOrder,
+    onSortChange,
+    onSyncScheduled,
+}: {
+    sortBy: SortBy;
+    sortOrder: SortOrder;
+    onSortChange: (column: SortBy) => void;
+    onSyncScheduled: (connectionId: number, jobId: string) => void;
+}): ColumnDef<DisplayedConnection>[] => [
     {
         accessorKey: "name",
-        size: 400,
-        header: ({ column }) => {
-            return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-                    Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            )
-        },
+        header: () => (
+            <SortableHeader
+                label="Name"
+                column="name"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={onSortChange}
+            />
+        ),
         cell: ({ row }) => {
             const connection = row.original;
             const codeHostIcon = getCodeHostIcon(connection.connectionType);
 
             return (
-                <div className="flex flex-row gap-2 items-center">
+                <div className="flex min-w-0 items-center gap-2">
                     <Image
                         src={codeHostIcon.src}
                         alt={`${connection.connectionType} logo`}
-                        className={codeHostIcon.className}
-                        width={20}
-                        height={20}
+                        width={24}
+                        height={24}
+                        className={cn(
+                            "shrink-0 rounded-md",
+                            codeHostIcon.className,
+                        )}
                     />
-                    <Link href={`/settings/connections/${connection.id}`} className="font-medium hover:underline">
+                    <span className="min-w-0 flex-1 truncate font-medium">
                         {connection.name}
-                    </Link>
-                    {connection.isFirstTimeSync && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <span>
-                                    <NotificationDot className="ml-1.5" />
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <span>This is the first time Sourcebot is syncing this connection. It may take a few minutes to complete.</span>
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
+                    </span>
+                    <SyncAnnotation
+                        connectionId={connection.id}
+                        connectionName={connection.name}
+                        syncedAt={connection.syncedAt}
+                        latestJob={connection.latestJob}
+                        showCompleted={connection.showCompleted}
+                        onRetryScheduled={onSyncScheduled}
+                    />
                 </div>
-            )
+            );
         },
-    },
-    {
-        accessorKey: "latestJobStatus",
-        size: 150,
-        header: "Lastest status",
-        cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {
         accessorKey: "syncedAt",
-        size: 200,
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    Last synced
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            )
-        },
-        cell: ({ row }) => {
-            const syncedAt = row.getValue("syncedAt") as Date | null;
-            if (!syncedAt) {
-                return "-";
+        header: () => (
+            <SortableHeader
+                label="Last synced"
+                column="syncedAt"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={onSortChange}
+            />
+        ),
+        cell: ({ row }) => row.original.syncedAt
+            ? <DisplayDate date={row.original.syncedAt} />
+            : "-",
+    },
+    {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => (
+            <div className="flex justify-end">
+                <ConnectionActionsMenu
+                    connection={row.original}
+                    isSyncing={getConnectionSyncAnnotation(
+                        row.original.id,
+                        row.original.latestJob,
+                        row.original.syncedAt,
+                    ) === "SYNCING"}
+                    onSyncScheduled={onSyncScheduled}
+                />
+            </div>
+        ),
+    },
+];
+
+type ConnectionsTableProps = {
+    data: Connection[];
+    currentPage: number;
+    pageSize: number;
+    totalCount: number;
+    sortBy: SortBy;
+    sortOrder: SortOrder;
+};
+
+export const ConnectionsTable = ({
+    data,
+    currentPage,
+    pageSize,
+    totalCount,
+    sortBy,
+    sortOrder,
+}: ConnectionsTableProps) => {
+    const pathname = usePathname();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const searchParamsString = searchParams.toString();
+    const urlSearchValue = searchParams.get("search") ?? "";
+    const statusFilter = getStatusFilter(searchParams.get("status"));
+    const [searchValue, setSearchValue] = useState(urlSearchValue);
+    const [scheduledSyncJobs, setScheduledSyncJobs] = useState<
+        Map<number, WorkloadJob<"connection-sync">>
+    >(() => new Map());
+    const debouncedSearchValue = useDebounce(searchValue, 300);
+    const [isSearchNavigationPending, startSearchTransition] = useTransition();
+    const pendingSearchValuesRef = useRef<Set<string>>(new Set());
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const isSearchPending = searchValue !== debouncedSearchValue
+        || isSearchNavigationPending;
+
+    useHotkeys("/", (event) => {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+    });
+
+    useEffect(() => {
+        if (pendingSearchValuesRef.current.delete(urlSearchValue)) {
+            return;
+        }
+
+        setSearchValue(urlSearchValue);
+    }, [urlSearchValue]);
+
+    useEffect(() => {
+        if (debouncedSearchValue !== searchValue) {
+            return;
+        }
+
+        const nextSearchValue = debouncedSearchValue.trim();
+        if (nextSearchValue === urlSearchValue) {
+            return;
+        }
+
+        const params = new URLSearchParams(searchParamsString);
+        if (nextSearchValue) {
+            params.set("search", nextSearchValue);
+        } else {
+            params.delete("search");
+        }
+        params.delete("page");
+
+        const nextSearchParamsString = params.toString();
+        if (nextSearchParamsString === searchParamsString) {
+            return;
+        }
+
+        pendingSearchValuesRef.current.add(nextSearchValue);
+        startSearchTransition(() => {
+            router.replace(
+                `${pathname}${nextSearchParamsString ? `?${nextSearchParamsString}` : ""}`,
+                { scroll: false },
+            );
+        });
+    }, [
+        debouncedSearchValue,
+        pathname,
+        router,
+        searchParamsString,
+        searchValue,
+        urlSearchValue,
+    ]);
+
+    const onSyncScheduled = useCallback((
+        connectionId: number,
+        jobId: string,
+    ) => {
+        setScheduledSyncJobs((currentJobs) => {
+            const nextJobs = new Map(currentJobs);
+            nextJobs.set(connectionId, {
+                id: jobId,
+                data: { connectionId },
+                status: "PENDING",
+                errorMessage: null,
+                result: null,
+            });
+            return nextJobs;
+        });
+    }, []);
+    const syncAwareData = useMemo(
+        () => data.map((connection) => {
+            const scheduledJob = scheduledSyncJobs.get(connection.id);
+            return scheduledJob
+                ? { ...connection, latestJob: scheduledJob }
+                : connection;
+        }),
+        [data, scheduledSyncJobs],
+    );
+    const pollingTargets = useMemo(
+        () => syncAwareData.flatMap((connection) => {
+            const latestJob = connection.latestJob;
+            if (
+                !latestJob
+                || getConnectionSyncAnnotation(
+                        connection.id,
+                        latestJob,
+                        connection.syncedAt,
+                    ) !== "SYNCING"
+            ) {
+                return [];
             }
 
-            return (
-                <DisplayDate date={syncedAt} className="ml-3" />
-            )
-        }
-    },
-]
+            return [{ connectionId: connection.id, jobId: latestJob.id }];
+        }),
+        [syncAwareData],
+    );
+    const pollingConnectionIds = useMemo(
+        () => pollingTargets.map(({ connectionId }) => connectionId),
+        [pollingTargets],
+    );
+    const pollingKey = useMemo(
+        () => pollingTargets.map(({ connectionId, jobId }) =>
+            `${connectionId}:${jobId}`
+        ),
+        [pollingTargets],
+    );
+    const { data: polledStatuses } = useQuery({
+        queryKey: [
+            "connections-sync-status",
+            pollingConnectionIds,
+            pollingKey,
+        ],
+        queryFn: ({ signal }) =>
+            getConnectionSyncStatuses(pollingConnectionIds, signal),
+        enabled: pollingConnectionIds.length > 0,
+        placeholderData: (previousData) => previousData,
+        refetchInterval: (query) => {
+            const statuses = query.state.data?.connections;
+            if (!statuses) {
+                return POLL_INTERVAL_MS;
+            }
 
-export const ConnectionsTable = ({ data }: { data: Connection[] }) => {
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-    const [rowSelection, setRowSelection] = useState({})
-    const router = useRouter();
-    const { toast } = useToast();
+            return pollingTargets.some((target) => {
+                const status = statuses.find(
+                    ({ connectionId }) =>
+                        connectionId === target.connectionId,
+                );
+                if (!status || status.latestJob?.id !== target.jobId) {
+                    return true;
+                }
 
-    const {
-        numCompleted,
-        numInProgress,
-        numPending,
-        numFailed,
-        numNoJobs,
-    } = useMemo(() => {
-        return {
-            numCompleted: data.filter((connection) => connection.latestJobStatus === "COMPLETED").length,
-            numInProgress: data.filter((connection) => connection.latestJobStatus === "IN_PROGRESS").length,
-            numPending: data.filter((connection) => connection.latestJobStatus === "PENDING").length,
-            numFailed: data.filter((connection) => connection.latestJobStatus === "FAILED").length,
-            numNoJobs: data.filter((connection) => connection.latestJobStatus === null).length,
-        }
-    }, [data]);
-
-    const table = useReactTable({
-        data,
-        columns,
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
-        onRowSelectionChange: setRowSelection,
-        columnResizeMode: 'onChange',
-        enableColumnResizing: false,
-        state: {
-            sorting,
-            columnFilters,
-            columnVisibility,
-            rowSelection,
+                return status.latestJob.status === "PENDING"
+                    || status.latestJob.status === "IN_PROGRESS";
+            })
+                ? POLL_INTERVAL_MS
+                : false;
         },
-    })
+    });
+    const completedDuringPollingConnectionIds = useMemo(() => {
+        const pollingTargetsByConnectionId = new Map(
+            pollingTargets.map((target) => [target.connectionId, target]),
+        );
+        return new Set(
+            polledStatuses?.connections.flatMap((status) => {
+                const target = pollingTargetsByConnectionId.get(
+                    status.connectionId,
+                );
+                return target
+                    && status.latestJob?.id === target.jobId
+                    && status.latestJob.status === "COMPLETED"
+                    && status.syncedAt
+                    ? [status.connectionId]
+                    : [];
+            }) ?? [],
+        );
+    }, [polledStatuses, pollingTargets]);
+    const displayedData = useMemo(() => {
+        const statusesByConnectionId = new Map(
+            polledStatuses?.connections.map((status) => [
+                status.connectionId,
+                status,
+            ]) ?? [],
+        );
+
+        return syncAwareData.map((connection): DisplayedConnection => {
+            const showCompleted = completedDuringPollingConnectionIds.has(
+                connection.id,
+            );
+            const status = statusesByConnectionId.get(connection.id);
+            const scheduledJob = scheduledSyncJobs.get(connection.id);
+            if (!status) {
+                return { ...connection, showCompleted };
+            }
+            if (scheduledJob && status.latestJob?.id !== scheduledJob.id) {
+                return {
+                    ...connection,
+                    syncedAt: status.syncedAt
+                        ? new Date(status.syncedAt)
+                        : connection.syncedAt,
+                    showCompleted,
+                };
+            }
+
+            return {
+                ...connection,
+                syncedAt: status.syncedAt
+                    ? new Date(status.syncedAt)
+                    : null,
+                latestJob: status.latestJob,
+                showCompleted,
+            };
+        });
+    }, [
+        completedDuringPollingConnectionIds,
+        polledStatuses,
+        scheduledSyncJobs,
+        syncAwareData,
+    ]);
+
+    const onSortChange = useCallback((column: SortBy) => {
+        const params = new URLSearchParams(searchParams.toString());
+        const nextSortOrder = sortBy === column && sortOrder === "asc"
+            ? "desc"
+            : "asc";
+        params.delete("page");
+        if (column === "name") {
+            params.delete("sortBy");
+        } else {
+            params.set("sortBy", column);
+        }
+        if (nextSortOrder === "asc") {
+            params.delete("sortOrder");
+        } else {
+            params.set("sortOrder", nextSortOrder);
+        }
+
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname);
+    }, [pathname, router, searchParams, sortBy, sortOrder]);
+    const columns = useMemo(
+        () => getColumns({
+            sortBy,
+            sortOrder,
+            onSortChange,
+            onSyncScheduled,
+        }),
+        [onSortChange, onSyncScheduled, sortBy, sortOrder],
+    );
+    const table = useReactTable({
+        data: displayedData,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        manualPagination: true,
+        manualSorting: true,
+        rowCount: totalCount,
+        state: {
+            pagination: {
+                pageIndex: currentPage - 1,
+                pageSize,
+            },
+            sorting: [{ id: sortBy, desc: sortOrder === "desc" }],
+        },
+    });
+    const totalPages = Math.max(1, table.getPageCount());
+    const firstVisibleConnection = totalCount === 0
+        ? 0
+        : (currentPage - 1) * pageSize + 1;
+    const lastVisibleConnection = Math.min(currentPage * pageSize, totalCount);
+    const hasActiveFilters = statusFilter !== "all"
+        || urlSearchValue.trim().length > 0;
+
+    const goToPage = (page: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (page === 1) {
+            params.delete("page");
+        } else {
+            params.set("page", page.toString());
+        }
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname);
+    };
+
+    const onStatusFilterChange = (status: StatusFilter) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (status === "all") {
+            params.delete("status");
+        } else {
+            params.set("status", status);
+        }
+        params.delete("page");
+
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, {
+            scroll: false,
+        });
+    };
+
+    const clearFilters = () => {
+        const params = new URLSearchParams(searchParamsString);
+        params.delete("search");
+        params.delete("status");
+        params.delete("page");
+
+        const nextSearchParamsString = params.toString();
+        setSearchValue("");
+        pendingSearchValuesRef.current.add("");
+        startSearchTransition(() => {
+            router.replace(
+                `${pathname}${nextSearchParamsString ? `?${nextSearchParamsString}` : ""}`,
+                { scroll: false },
+            );
+        });
+    };
+
+    const emptyMessage = statusFilter === "failed"
+        ? "No failed connections."
+        : statusFilter === "warning"
+            ? "No connections with warnings."
+            : "No connections found.";
 
     return (
-        <div className="w-full">
-            <div className="flex items-center gap-4 py-4">
-                <Input
-                    placeholder="Filter connections..."
-                    value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
-                    className="max-w-sm"
-                />
+        <div>
+            <div className="mb-3 flex items-center gap-2">
+                <InputGroup className="h-9 max-w-sm">
+                    <InputGroupAddon>
+                        <Search className="h-4 w-4" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                        ref={searchInputRef}
+                        value={searchValue}
+                        onChange={(event) => setSearchValue(event.target.value)}
+                        placeholder="Search connections..."
+                    />
+                    {isSearchPending && (
+                        <InputGroupAddon align="inline-end">
+                            <Loader2
+                                className="h-4 w-4 animate-spin"
+                                aria-label="Searching connections"
+                            />
+                        </InputGroupAddon>
+                    )}
+                </InputGroup>
                 <Select
-                    value={(table.getColumn("latestJobStatus")?.getFilterValue() as string) ?? "all"}
-                    onValueChange={(value) => {
-                        table.getColumn("latestJobStatus")?.setFilterValue(value === "all" ? "" : value)
-                    }}
+                    value={statusFilter}
+                    onValueChange={(value) =>
+                        onStatusFilterChange(value as StatusFilter)}
                 >
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by status" />
+                    <SelectTrigger
+                        className="h-9 w-40"
+                        aria-label="Filter connections by status"
+                    >
+                        <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Filter by status</SelectItem>
-                        <SelectItem value="COMPLETED">Completed ({numCompleted})</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In progress ({numInProgress})</SelectItem>
-                        <SelectItem value="PENDING">Pending ({numPending})</SelectItem>
-                        <SelectItem value="FAILED">Failed ({numFailed})</SelectItem>
-                        <SelectItem value="null">No status ({numNoJobs})</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="warning">Warning</SelectItem>
                     </SelectContent>
                 </Select>
-                <Button
-                    variant="outline"
-                    className="ml-auto"
-                    onClick={() => {
-                        router.refresh();
-                        toast({
-                            description: "Page refreshed",
-                        });
-                    }}
-                >
-                    <RefreshCwIcon className="w-3 h-3" />
-                    Refresh
-                </Button>
             </div>
             <div className="rounded-md border">
-                <Table style={{ width: '100%' }}>
+                <Table className="table-fixed">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    return (
-                                        <TableHead
-                                            key={header.id}
-                                            style={{ width: `${header.getSize()}px` }}
-                                        >
-                                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                        </TableHead>
-                                    )
-                                })}
+                                {headerGroup.headers.map((header) => (
+                                    <TableHead
+                                        key={header.id}
+                                        className={cn(
+                                            "h-10",
+                                            header.column.id === "syncedAt" && "w-44",
+                                            header.column.id === "actions" && "w-12",
+                                        )}
+                                    >
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(
+                                                  header.column.columnDef.header,
+                                                  header.getContext(),
+                                              )}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
+                        {table.getRowModel().rows.length > 0 ? (
                             table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                <TableRow key={row.id} className="h-12">
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}
-                                            style={{ width: `${cell.column.getSize()}px` }}
+                                            className={cn(
+                                                "px-4 py-2",
+                                                cell.column.id === "syncedAt"
+                                                    && "w-44 whitespace-nowrap",
+                                                cell.column.id === "actions"
+                                                    && "w-12 px-2",
+                                            )}
                                         >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext(),
+                                            )}
                                         </TableCell>
                                     ))}
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                <TableCell
+                                    colSpan={columns.length}
+                                    className="h-28 text-center text-sm text-muted-foreground"
+                                >
+                                    <div className="flex flex-col items-center gap-3">
+                                        <p>{emptyMessage}</p>
+                                        {hasActiveFilters && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={clearFilters}
+                                            >
+                                                Clear filters
+                                            </Button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredRowModel().rows.length} {data.length > 1 ? 'connections' : 'connection'} total
+            {totalCount > 0 && (
+                <div className="flex items-center justify-between py-4">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {firstVisibleConnection}-{lastVisibleConnection} of {totalCount}
+                    </p>
+                    <div className="flex items-center gap-4">
+                        <p className="text-sm text-muted-foreground">
+                            Page {currentPage} of {totalPages}
+                        </p>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => goToPage(currentPage - 1)}
+                                disabled={!table.getCanPreviousPage()}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => goToPage(currentPage + 1)}
+                                disabled={!table.getCanNextPage()}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                        Next
-                    </Button>
-                </div>
-            </div>
+            )}
         </div>
-    )
-}
+    );
+};
