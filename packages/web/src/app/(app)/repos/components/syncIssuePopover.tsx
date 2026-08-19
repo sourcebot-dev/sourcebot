@@ -1,5 +1,6 @@
 "use client";
 
+import { JobLogsDialog } from "@/app/(app)/components/jobLogsDialog";
 import { badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/hooks/use-toast";
@@ -7,7 +8,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { indexRepo } from "@/features/repos/actions";
 import { cn, isServiceError } from "@/lib/utils";
-import { ChevronDown, CircleX, Loader2, RotateCw, TriangleAlert } from "lucide-react";
+import {
+    ChevronDown,
+    CircleX,
+    Loader2,
+    RotateCw,
+    ScrollText,
+    TriangleAlert,
+} from "lucide-react";
 import { useState } from "react";
 import { DisplayDate } from "../../components/DisplayDate";
 import { LightweightCodeHighlighter } from "../../components/lightweightCodeHighlighter";
@@ -27,6 +35,7 @@ export const SyncIssuePopover = ({
     onRetryScheduled,
 }: SyncIssuePopoverProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isLogsOpen, setIsLogsOpen] = useState(false);
     const [isRetrying, setIsRetrying] = useState(false);
     const { toast } = useToast();
     const latestJob = repo.latestJob;
@@ -71,7 +80,8 @@ export const SyncIssuePopover = ({
     };
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <>
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
             <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
@@ -161,7 +171,18 @@ export const SyncIssuePopover = ({
                             </dd>
                         </dl>
                         {canRetry && (
-                            <div className="flex justify-end border-t pt-3">
+                            <div className="flex justify-end gap-2 border-t pt-3">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        setIsLogsOpen(true);
+                                    }}
+                                >
+                                    <ScrollText className="h-4 w-4" />
+                                    View logs
+                                </Button>
                                 <Button
                                     size="sm"
                                     onClick={retrySync}
@@ -179,6 +200,14 @@ export const SyncIssuePopover = ({
                     </div>
                 </div>
             </PopoverContent>
-        </Popover>
+            </Popover>
+            <JobLogsDialog
+                queue="repo-index"
+                subject={repoDisplayName}
+                jobId={latestJob.id}
+                open={isLogsOpen}
+                onOpenChange={setIsLogsOpen}
+            />
+        </>
     );
 };

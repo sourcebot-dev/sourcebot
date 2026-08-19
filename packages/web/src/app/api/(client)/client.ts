@@ -36,6 +36,7 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
+import type { JobLogs, QueueName } from "@sourcebot/shared";
 import type { OffersResponse } from "@sourcebot/shared/client";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
@@ -395,3 +396,25 @@ export const getMcpServerToolPermissions = async (serverId: string): Promise<Get
 
     return result as GetMcpServerToolPermissionsResponse | ServiceError;
 }
+
+export const getJobLogs = async (
+    queue: QueueName,
+    jobId: string,
+    signal?: AbortSignal,
+): Promise<JobLogs> => {
+    const response = await fetch("/api/job-logs", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+        body: JSON.stringify({ queue, jobId }),
+        signal,
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to load job logs");
+    }
+
+    return response.json() as Promise<JobLogs>;
+};

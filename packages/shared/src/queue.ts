@@ -49,7 +49,7 @@ export const JOB_PRIORITIES = {
 const TWO_WEEKS_IN_SECONDS = 14 * 24 * 60 * 60;
 
 export const DEFAULT_JOB_OPTIONS: JobOptions = {
-    attempts: 4,
+    attempts: 2,
     backoff: {
         type: "exponential",
         delayMs: 30_000,
@@ -154,3 +154,12 @@ export const REPO_PERMISSION_SYNC_QUEUE: QueueSpec<"repo-permission-sync"> = {
     jobOptions: DEFAULT_JOB_OPTIONS,
     dedupKey: (data) => `repo:${data.repoId}`,
 };
+
+export const QUEUE_SPECS = {
+    [ATTACHMENT_PRUNE_QUEUE.name]: ATTACHMENT_PRUNE_QUEUE,
+    [AUDIT_LOG_PRUNE_QUEUE.name]: AUDIT_LOG_PRUNE_QUEUE,
+    [CONNECTION_QUEUE.name]: CONNECTION_QUEUE,
+    [REPO_INDEX_QUEUE.name]: REPO_INDEX_QUEUE,
+    [ACCOUNT_PERMISSION_SYNC_QUEUE.name]: ACCOUNT_PERMISSION_SYNC_QUEUE,
+    [REPO_PERMISSION_SYNC_QUEUE.name]: REPO_PERMISSION_SYNC_QUEUE,
+} as const satisfies { [TName in QueueName]: QueueSpec<TName> };

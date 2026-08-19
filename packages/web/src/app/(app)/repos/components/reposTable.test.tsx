@@ -1,5 +1,6 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { CodeHostType } from "@sourcebot/db";
+import type { JobLogs } from "@sourcebot/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -357,6 +358,81 @@ describe("ReposTable", () => {
             screen.getByText("Authentication failed while cloning"),
         ).toBeTruthy();
         expect(screen.getByText("job-1")).toBeTruthy();
+    });
+
+    test("opens retained repository indexing logs", async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal("navigator", { clipboard: { writeText } });
+        const jobLogs: JobLogs = {
+            count: 1,
+            logs: [{
+                version: 1,
+                timestamp: "2026-08-18T23:00:00.000Z",
+                level: "error",
+                message: "Repository indexing failed",
+                attempt: 2,
+            }],
+        };
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValueOnce(Response.json(jobLogs)),
+        );
+        renderTable([{
+            ...repos[0],
+            latestJob: {
+                ...repos[0].latestJob!,
+                status: "FAILED",
+                errorMessage: "Authentication failed while cloning",
+                result: null,
+            },
+        }]);
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "View failed details for acme/first",
+        }));
+        fireEvent.click(screen.getByRole("button", { name: "View logs" }));
+
+        const dialog = await screen.findByRole("dialog");
+        await waitFor(() => {
+            expect(dialog.textContent).toContain("Repository indexing failed");
+        });
+        fireEvent.click(within(dialog).getByRole("button", {
+            name: "Copy all",
+        }));
+        await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+        expect(writeText.mock.calls[0]?.[0]).toContain(
+            "Repository indexing failed",
+        );
+        expect(fetch).toHaveBeenCalledWith(
+            "/api/job-logs",
+            expect.objectContaining({
+                method: "POST",
+                body: JSON.stringify({
+                    queue: "repo-index",
+                    jobId: "job-1",
+                }),
+            }),
+        );
+    });
+
+    test("hides job log access from non-owners", () => {
+        renderTable([{
+            ...repos[0],
+            latestJob: {
+                ...repos[0].latestJob!,
+                status: "FAILED",
+                errorMessage: "Authentication failed while cloning",
+                result: null,
+            },
+        }], false);
+
+        fireEvent.click(screen.getByRole("button", {
+            name: "View failed details for acme/first",
+        }));
+
+        expect(
+            screen.queryByRole("button", { name: "View logs" }),
+        ).toBeNull();
     });
 
     test("schedules a retry and transitions an unindexed repository to syncing", async () => {
