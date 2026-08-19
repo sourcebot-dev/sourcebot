@@ -67,7 +67,7 @@ describe('indexRepo', () => {
         });
         expect(mocks.enqueue).toHaveBeenCalledWith(
             repoIndexQueue,
-            { repoId: 42, type: 'INDEX' },
+            { repoId: 42 },
             { priority: 1 },
         );
     });

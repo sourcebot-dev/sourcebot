@@ -104,8 +104,7 @@ const getRepoIndexingStatuses = async (
 
 const getSyncAnnotation = (repo: Repo): SyncAnnotation => {
     const latestJob = repo.latestJob;
-    const isLatestIndexJob = latestJob?.data.repoId === repo.id
-        && latestJob.data.type === "INDEX";
+    const isLatestIndexJob = latestJob?.data.repoId === repo.id;
 
     if (isLatestIndexJob && latestJob.status === "FAILED") {
         return repo.indexedAt ? "WARNING" : "FAILED";
@@ -134,7 +133,6 @@ const getSyncAnnotation = (repo: Repo): SyncAnnotation => {
 const hasActiveIndexingJob = (repo: Repo) => {
     const latestJob = repo.latestJob;
     return latestJob?.data.repoId === repo.id
-        && latestJob.data.type === "INDEX"
         && (
             latestJob.status === "PENDING"
             || latestJob.status === "IN_PROGRESS"
@@ -555,7 +553,7 @@ export const ReposTable = ({
             const nextJobs = new Map(currentJobs);
             nextJobs.set(repoId, {
                 id: jobId,
-                data: { repoId, type: "INDEX" },
+                data: { repoId },
                 status: "PENDING",
                 errorMessage: null,
                 result: null,
@@ -609,8 +607,7 @@ export const ReposTable = ({
                 }
 
                 const latestJob = status.latestJob;
-                const isLatestIndexJob = latestJob?.data.repoId === status.repoId
-                    && latestJob.data.type === "INDEX";
+                const isLatestIndexJob = latestJob?.data.repoId === status.repoId;
                 const expectedJobId = target.jobId;
 
                 if (expectedJobId && latestJob?.id !== expectedJobId) {

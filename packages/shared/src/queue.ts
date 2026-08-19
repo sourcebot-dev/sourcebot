@@ -101,7 +101,12 @@ interface QueueRegistry {
     "repo-index": {
         data: {
             repoId: number;
-            type: "INDEX" | "CLEANUP";
+        };
+        result: void;
+    };
+    "repo-cleanup": {
+        data: {
+            repoId: number;
         };
         result: void;
     };
@@ -145,6 +150,11 @@ export const REPO_INDEX_QUEUE: QueueSpec<"repo-index"> = {
     jobOptions: DEFAULT_JOB_OPTIONS,
 };
 
+export const REPO_CLEANUP_QUEUE: QueueSpec<"repo-cleanup"> = {
+    name: "repo-cleanup",
+    jobOptions: DEFAULT_JOB_OPTIONS,
+};
+
 export const ACCOUNT_PERMISSION_SYNC_QUEUE: QueueSpec<"account-permission-sync"> = {
     name: "account-permission-sync",
     jobOptions: DEFAULT_JOB_OPTIONS,
@@ -163,6 +173,7 @@ export const QUEUE_SPECS = {
     [AUDIT_LOG_PRUNE_QUEUE.name]: AUDIT_LOG_PRUNE_QUEUE,
     [CONNECTION_QUEUE.name]: CONNECTION_QUEUE,
     [REPO_INDEX_QUEUE.name]: REPO_INDEX_QUEUE,
+    [REPO_CLEANUP_QUEUE.name]: REPO_CLEANUP_QUEUE,
     [ACCOUNT_PERMISSION_SYNC_QUEUE.name]: ACCOUNT_PERMISSION_SYNC_QUEUE,
     [REPO_PERMISSION_SYNC_QUEUE.name]: REPO_PERMISSION_SYNC_QUEUE,
 } as const satisfies { [TName in QueueName]: QueueSpec<TName> };

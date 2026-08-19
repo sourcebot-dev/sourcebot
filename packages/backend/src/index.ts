@@ -13,7 +13,8 @@ import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { redis } from "./redis.js";
 import { createConnectionSyncWorkload } from "./connectionSyncWorkload.js";
-import { cleanupOrphanedRepoResources, createRepoIndexWorkload } from "./repoIndexWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoCleanupWorkload } from "./repoCleanupWorkload.js";
+import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
 import { createRepoPermissionSyncWorkload } from "./ee/repoPermissionSyncWorkload.js";
@@ -59,6 +60,10 @@ const repoIndexWorkload = createRepoIndexWorkload({
     db: prisma,
     settings,
 });
+const repoCleanupWorkload = createRepoCleanupWorkload({
+    db: prisma,
+    settings,
+});
 const accountPermissionSyncWorkload = createAccountPermissionSyncWorkload({
     db: prisma,
     settings,
@@ -79,6 +84,7 @@ const auditLogPruneWorkload = createAuditLogPruneWorkload({
 
 jobManager.register(connectionSyncWorkload);
 jobManager.register(repoIndexWorkload);
+jobManager.register(repoCleanupWorkload);
 jobManager.register(accountPermissionSyncWorkload);
 jobManager.register(repoPermissionSyncWorkload);
 jobManager.register(attachmentPruneWorkload);

@@ -151,7 +151,7 @@ export class BullMQClient {
         const { dedupKey: getDedupKey }: {
             dedupKey?(data: DataOf<TName>): string;
         } = spec;
-        const dedupKey = getDedupKey?.(data);
+        const deduplication = getDeduplication?.(data);
         const queue = this.getQueue(spec);
 
         const requestedJobId = randomUUID();

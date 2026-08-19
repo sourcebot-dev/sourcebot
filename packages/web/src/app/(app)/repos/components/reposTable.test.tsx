@@ -38,7 +38,7 @@ const repos: Repo[] = [
         indexedCommitHash: null,
         latestJob: {
             id: "job-1",
-            data: { repoId: 1, type: "INDEX" },
+            data: { repoId: 1 },
             status: "IN_PROGRESS",
             errorMessage: null,
             result: null,
@@ -187,7 +187,7 @@ describe("ReposTable", () => {
             ...repos[1],
             latestJob: {
                 id: "completed-job",
-                data: { repoId: 2, type: "INDEX" },
+                data: { repoId: 2 },
                 status: "COMPLETED",
                 errorMessage: null,
                 result: null,
@@ -276,7 +276,7 @@ describe("ReposTable", () => {
             ...repos[1],
             latestJob: {
                 id: "active-reindex-job",
-                data: { repoId: repos[1].id, type: "INDEX" },
+                data: { repoId: repos[1].id },
                 status: "IN_PROGRESS",
                 errorMessage: null,
                 result: null,
@@ -313,7 +313,7 @@ describe("ReposTable", () => {
                 indexedCommitHash: "3333333333333333333333333333333333333333",
                 latestJob: {
                     id: "first-interactive-job",
-                    data: { repoId: 1, type: "INDEX" },
+                    data: { repoId: 1 },
                     status: "COMPLETED",
                     errorMessage: null,
                     result: null,
@@ -357,7 +357,7 @@ describe("ReposTable", () => {
             ...repos[1],
             latestJob: {
                 id: "warning-job",
-                data: { repoId: 2, type: "INDEX" },
+                data: { repoId: 2 },
                 status: "FAILED",
                 errorMessage: "The remote repository could not be reached",
                 result: null,
@@ -483,7 +483,7 @@ describe("ReposTable", () => {
                 indexedCommitHash: null,
                 latestJob: {
                     id: "job-1",
-                    data: { repoId: 1, type: "INDEX" },
+                    data: { repoId: 1 },
                     status: "FAILED",
                     errorMessage: "Authentication failed while cloning",
                     result: null,
@@ -535,7 +535,7 @@ describe("ReposTable", () => {
                 indexedCommitHash: "1111111111111111111111111111111111111111",
                 latestJob: {
                     id: "job-1",
-                    data: { repoId: 1, type: "INDEX" },
+                    data: { repoId: 1 },
                     status: "COMPLETED",
                     errorMessage: null,
                     result: null,
@@ -575,7 +575,7 @@ describe("ReposTable", () => {
                 indexedCommitHash: null,
                 latestJob: {
                     id: "job-1",
-                    data: { repoId: 1, type: "INDEX" },
+                    data: { repoId: 1 },
                     status: "FAILED",
                     errorMessage: "Indexing failed",
                     result: null,

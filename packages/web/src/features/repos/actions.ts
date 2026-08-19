@@ -27,7 +27,7 @@ export const indexRepo = async (repoId: number) => sew(() =>
 
                 const jobId = await getBullMQClient().enqueue(
                     REPO_INDEX_QUEUE,
-                    { repoId: repo.id, type: 'INDEX' },
+                    { repoId: repo.id },
                     { priority: JOB_PRIORITIES.INTERACTIVE },
                 );
 

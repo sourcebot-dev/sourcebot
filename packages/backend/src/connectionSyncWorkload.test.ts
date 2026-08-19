@@ -273,14 +273,13 @@ describe("connectionWorkload", () => {
             "repo-index",
             "repo-index-v1-4",
             3_600_000,
-            { repoId: 4, type: "INDEX" },
+            { repoId: 4 },
             { priority: 10 },
         );
         expect(trigger).toHaveBeenCalledWith(
             "repo-index",
             {
                 repoId: 4,
-                type: "INDEX",
             },
             { priority: 5 },
         );
@@ -502,7 +501,7 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             "repo-index-v1-1",
             3_600_000,
-            { repoId: 1, type: "INDEX" },
+            { repoId: 1 },
             { priority: 10 },
         );
         expect(mocks.upsertJobScheduler).toHaveBeenNthCalledWith(
@@ -510,7 +509,7 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             "repo-index-v1-4",
             3_600_000,
-            { repoId: 4, type: "INDEX" },
+            { repoId: 4 },
             { priority: 10 },
         );
         expect(mocks.removeJobScheduler).toHaveBeenCalledWith(
@@ -519,10 +518,9 @@ describe("connectionWorkload repo sync helpers", () => {
         );
         expect(trigger).toHaveBeenNthCalledWith(
             1,
-            "repo-index",
+            "repo-cleanup",
             {
                 repoId: 2,
-                type: "CLEANUP",
             },
             { priority: 10 },
         );
@@ -531,7 +529,6 @@ describe("connectionWorkload repo sync helpers", () => {
             "repo-index",
             {
                 repoId: 4,
-                type: "INDEX",
             },
             { priority: 5 },
         );

@@ -332,7 +332,7 @@ export const reconcileRepoIndexWork = async ({
                 "repo-index",
                 `repo-index-v1-${id}`,
                 intervalMs,
-                { repoId: id, type: "INDEX" },
+                { repoId: id },
                 { priority: JOB_PRIORITIES.SCHEDULED },
             ),
         ),
@@ -350,10 +350,9 @@ export const reconcileRepoIndexWork = async ({
     await Promise.all(
         orphanedRepos.map(({ id }) =>
             trigger(
-                "repo-index",
+                "repo-cleanup",
                 {
                     repoId: id,
-                    type: "CLEANUP",
                 },
                 { priority: JOB_PRIORITIES.SCHEDULED },
             ),
@@ -366,7 +365,6 @@ export const reconcileRepoIndexWork = async ({
                 "repo-index",
                 {
                     repoId: id,
-                    type: "INDEX",
                 },
                 { priority: JOB_PRIORITIES.INITIAL },
             ),

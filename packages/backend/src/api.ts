@@ -176,7 +176,6 @@ const scheduleAndTriggerRepoIndexing = async ({
         reindexIntervalMs,
         {
             repoId,
-            type: "INDEX",
         },
         { priority: JOB_PRIORITIES.SCHEDULED },
     );
@@ -185,7 +184,6 @@ const scheduleAndTriggerRepoIndexing = async ({
         "repo-index",
         {
             repoId,
-            type: "INDEX",
         },
         { priority: JOB_PRIORITIES.INTERACTIVE },
     );
