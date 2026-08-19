@@ -168,7 +168,7 @@ describe("BullMQClient", () => {
                 name: "connection-sync",
                 data,
                 opts: {
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,
@@ -196,7 +196,7 @@ describe("BullMQClient", () => {
             { connectionId: 42 },
             expect.objectContaining({
                 priority: 1,
-                attempts: 4,
+                attempts: 2,
                 backoff: {
                     type: "exponential",
                     delay: 30_000,
@@ -237,7 +237,7 @@ describe("BullMQClient", () => {
                 data: { connectionId: 42 },
                 opts: {
                     priority: 10,
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,
@@ -274,7 +274,7 @@ describe("BullMQClient", () => {
             template: {
                 data: { connectionId: 42 },
                 opts: {
-                    attempts: 4,
+                    attempts: 2,
                     backoff: {
                         type: "exponential",
                         delay: 30_000,
