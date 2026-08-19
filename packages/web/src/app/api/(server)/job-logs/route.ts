@@ -50,6 +50,9 @@ export const POST = apiHandler(async (request) => {
         );
     }
 
+    // TODO(SINGLE_TENANT_ORG_ID migration): Before supporting multiple organizations,
+    // map each queue's job data to an organization-scoped record and verify that the
+    // requested job belongs to the authenticated organization before returning logs.
     const result = await withAuth(({ role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, () =>
             getJobLogs(
