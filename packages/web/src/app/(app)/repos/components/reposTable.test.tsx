@@ -257,6 +257,32 @@ describe("ReposTable", () => {
         expect(navigation.refresh).not.toHaveBeenCalled();
     });
 
+    test("shows syncing for an indexed repository with an active latest job", async () => {
+        vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+        renderTable([{
+            ...repos[1],
+            latestJob: {
+                id: "active-reindex-job",
+                data: { repoId: repos[1].id, type: "INDEX" },
+                status: "IN_PROGRESS",
+                errorMessage: null,
+                result: null,
+            },
+        }]);
+
+        expect(screen.getByText("Syncing")).toBeTruthy();
+        await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+
+        fireEvent.keyDown(screen.getByRole("button", {
+            name: "Open actions for acme/second",
+        }), { key: "Enter" });
+        expect(
+            screen
+                .getByRole("menuitem", { name: "Sync" })
+                .getAttribute("aria-disabled"),
+        ).toBe("true");
+    });
+
     test("preserves a completed sync timestamp when another sync starts", async () => {
         const firstRepo: Repo = {
             ...repos[0],

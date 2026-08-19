@@ -112,17 +112,33 @@ const getSyncAnnotation = (repo: Repo): SyncAnnotation => {
     }
 
     if (
-        !repo.indexedAt
+        isLatestIndexJob
         && (
-            !isLatestIndexJob
-            || latestJob.status === "PENDING"
+            latestJob.status === "PENDING"
             || latestJob.status === "IN_PROGRESS"
         )
     ) {
         return "SYNCING";
     }
 
+    if (
+        !repo.indexedAt
+        && !isLatestIndexJob
+    ) {
+        return "SYNCING";
+    }
+
     return null;
+};
+
+const hasActiveIndexingJob = (repo: Repo) => {
+    const latestJob = repo.latestJob;
+    return latestJob?.data.repoId === repo.id
+        && latestJob.data.type === "INDEX"
+        && (
+            latestJob.status === "PENDING"
+            || latestJob.status === "IN_PROGRESS"
+        );
 };
 
 const SyncAnnotationBadge = ({
@@ -435,7 +451,10 @@ const getColumns = ({
                     <RepoActionsMenu
                         repo={row.original}
                         canSync={canRetry}
-                        isSyncing={row.original.showExplicitSyncing}
+                        isSyncing={
+                            row.original.showExplicitSyncing
+                            || hasActiveIndexingJob(row.original)
+                        }
                         onSyncScheduled={onRetryScheduled}
                     />
                 </div>
