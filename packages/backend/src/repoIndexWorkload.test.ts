@@ -33,6 +33,7 @@ import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 const repoFindUnique = vi.fn();
 const repoDeleteMany = vi.fn();
 const repoUpdate = vi.fn();
+const repoUpdateMany = vi.fn();
 
 const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
     callback({
@@ -47,6 +48,7 @@ const db = {
     $transaction: transaction,
     repo: {
         deleteMany: repoDeleteMany,
+        updateMany: repoUpdateMany,
     },
 } as unknown as PrismaClient;
 
@@ -95,6 +97,7 @@ describe("repoIndexWorkload", () => {
         repoFindUnique.mockResolvedValue(eligibleRepo);
         repoDeleteMany.mockResolvedValue({ count: 1 });
         repoUpdate.mockResolvedValue(undefined);
+        repoUpdateMany.mockResolvedValue({ count: 1 });
     });
 
     test("uses the same repository execution lock for INDEX and CLEANUP", () => {
@@ -108,8 +111,48 @@ describe("repoIndexWorkload", () => {
         expect(workload.executionLock?.durationMs).toBe(60_000);
         expect(workload.queueSpec.dedupKey).toBeUndefined();
         expect(workload.onStarted).toBeUndefined();
-        expect(workload.onCompleted).toBeUndefined();
-        expect(workload.onTerminalFailure).toBeUndefined();
+        expect(workload.onCompleted).toBeTypeOf("function");
+        expect(workload.onTerminalFailure).toBeTypeOf("function");
+    });
+
+    test("records the first successful indexing job terminal state", async () => {
+        await workload.onCompleted?.(lifecycleContext, undefined);
+
+        expect(repoUpdateMany).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+                firstIndexingJobFinishedAt: null,
+            },
+            data: {
+                firstIndexingJobFinishedAt: expect.any(Date),
+            },
+        });
+    });
+
+    test("records the first failed indexing job terminal state", async () => {
+        await workload.onTerminalFailure?.(
+            lifecycleContext,
+            new Error("indexing failed"),
+        );
+
+        expect(repoUpdateMany).toHaveBeenCalledWith({
+            where: {
+                id: 42,
+                firstIndexingJobFinishedAt: null,
+            },
+            data: {
+                firstIndexingJobFinishedAt: expect.any(Date),
+            },
+        });
+    });
+
+    test("does not mark cleanup jobs as an initial indexing attempt", async () => {
+        await workload.onCompleted?.({
+            ...lifecycleContext,
+            data: { repoId: 42, type: "CLEANUP" },
+        }, undefined);
+
+        expect(repoUpdateMany).not.toHaveBeenCalled();
     });
 
     test("validates state and records the latest job inside process", async () => {

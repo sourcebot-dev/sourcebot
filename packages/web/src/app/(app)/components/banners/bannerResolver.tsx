@@ -33,7 +33,7 @@ export interface BannerContext {
     hasPendingFirstSync: boolean;
     permissionSyncIssues: PermissionSyncStatusResponse['issues'];
     repositorySyncCounts: {
-        syncingCount: number;
+        firstTimeSyncingCount: number;
         failedCount: number;
         warningCount: number;
     };
@@ -186,7 +186,7 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
     }
 
     const {
-        syncingCount: repositorySyncingCount,
+        firstTimeSyncingCount: repositoryFirstTimeSyncingCount,
         failedCount: repositorySyncFailedCount,
         warningCount: repositorySyncWarningCount,
     } = ctx.repositorySyncCounts;
@@ -219,7 +219,7 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
             ),
         });
     }
-    if (repositorySyncingCount > 0) {
+    if (repositoryFirstTimeSyncingCount > 0) {
         banners.push({
             id: 'repositoryFirstSync',
             priority: BannerPriority.REPOSITORY_FIRST_SYNC,
@@ -228,7 +228,7 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
             render: (props) => (
                 <RepositoryFirstSyncBanner
                     {...props}
-                    syncingCount={repositorySyncingCount}
+                    initialCounts={ctx.repositorySyncCounts}
                 />
             ),
         });

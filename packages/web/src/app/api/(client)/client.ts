@@ -37,6 +37,7 @@ import type {
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
 import type { JobLogs, QueueName } from "@sourcebot/shared";
+import type { RepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
 import type { OffersResponse } from "@sourcebot/shared/client";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
@@ -259,6 +260,17 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
         },
     }).then(response => response.json());
     return result as PermissionSyncStatusResponse | ServiceError;
+}
+
+export const getRepositorySyncCounts = async (): Promise<RepositorySyncCounts | ServiceError> => {
+    const result = await fetch("/api/repository-sync-counts", {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as RepositorySyncCounts | ServiceError;
 }
 
 export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> => {

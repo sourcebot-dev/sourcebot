@@ -78,6 +78,7 @@ model Repo {
   indexedAt           DateTime? /// When the repo was last indexed successfully.
   indexedCommitHash   String? /// The commit hash of the last indexed commit (on HEAD).
   latestIndexingJobId String? /// The latest indexing job in the workload queue.
+  firstIndexingJobFinishedAt DateTime? /// When the first indexing job reached a terminal state, whether successful or failed.
   pushedAt            DateTime? /// The timestamp of the most recent commit across all branches.
 
   external_id           String /// The id of the repo in the external service
@@ -92,6 +93,7 @@ model Repo {
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
+  @@index([orgId, firstIndexingJobFinishedAt])
   @@index([indexedAt])
 }
 

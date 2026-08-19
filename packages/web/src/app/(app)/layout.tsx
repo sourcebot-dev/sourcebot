@@ -14,7 +14,7 @@ import { PendingApprovalCard } from "../../features/membership/components/pendin
 import { SubmitJoinRequestCard } from "../../features/membership/components/submitJoinRequestCard";
 import { NotProvisionedCard } from "@/features/membership/components/notProvisionedCard";
 import { isScimEnabled } from "@/features/scim/utils";
-import { env, getOfflineLicenseMetadata, REPO_INDEX_QUEUE, SOURCEBOT_VERSION, isMemberApprovalRequired } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION, isMemberApprovalRequired } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { JoinOrganizationCard } from "@/features/membership/components/joinOrganizationCard";
@@ -36,52 +36,12 @@ import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 import { LanguageModelProvider } from "@/features/chat/languageModelContext";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { NavigationGuardProvider } from "next-navigation-guard";
-import { getBullMQClient } from "@/lib/bullmqClient";
+import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
 
 interface LayoutProps {
     children: React.ReactNode;
     sidebar: React.ReactNode;
 }
-
-const getRepositorySyncCounts = async (orgId: number) => {
-    try {
-        const failedJobIds = await getBullMQClient().getFailedJobIds(
-            REPO_INDEX_QUEUE,
-        );
-
-        const [unindexedCount, failedCount, warningCount] = await Promise.all([
-            __unsafePrisma.repo.count({
-                where: {
-                    orgId,
-                    indexedAt: null,
-                },
-            }),
-            __unsafePrisma.repo.count({
-                where: {
-                    orgId,
-                    latestIndexingJobId: { in: failedJobIds },
-                    indexedAt: null,
-                },
-            }),
-            __unsafePrisma.repo.count({
-                where: {
-                    orgId,
-                    latestIndexingJobId: { in: failedJobIds },
-                    indexedAt: { not: null },
-                },
-            }),
-        ]);
-
-        return {
-            syncingCount: Math.max(0, unindexedCount - failedCount),
-            failedCount,
-            warningCount,
-        };
-    } catch (error) {
-        console.error("Failed to load repository sync counts", error);
-        return { syncingCount: 0, failedCount: 0, warningCount: 0 };
-    }
-};
 
 export default async function Layout(props: LayoutProps) {
     const {
@@ -211,8 +171,15 @@ export default async function Layout(props: LayoutProps) {
             ? permissionSyncStatus.issues
             : [];
     const repositorySyncCounts = role === OrgRole.OWNER
-        ? await getRepositorySyncCounts(org.id)
-        : { syncingCount: 0, failedCount: 0, warningCount: 0 };
+        ? await getRepositorySyncCounts(org.id).catch((error) => {
+              console.error("Failed to load repository sync counts", error);
+              return {
+                  firstTimeSyncingCount: 0,
+                  failedCount: 0,
+                  warningCount: 0,
+              };
+          })
+        : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense

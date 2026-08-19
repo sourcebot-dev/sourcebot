@@ -117,7 +117,32 @@ export const createRepoIndexWorkload = ({
             }
         }
     },
+    onCompleted: async ({ data }) => {
+        await markFirstIndexingJobFinished(db, data);
+    },
+    onTerminalFailure: async ({ data }) => {
+        await markFirstIndexingJobFinished(db, data);
+    },
 });
+
+const markFirstIndexingJobFinished = async (
+    db: PrismaClient,
+    data: { repoId: number; type: "INDEX" | "CLEANUP" },
+) => {
+    if (data.type !== "INDEX") {
+        return;
+    }
+
+    await db.repo.updateMany({
+        where: {
+            id: data.repoId,
+            firstIndexingJobFinishedAt: null,
+        },
+        data: {
+            firstIndexingJobFinishedAt: new Date(),
+        },
+    });
+};
 
 type RepoIndexStartDecision =
     | {
