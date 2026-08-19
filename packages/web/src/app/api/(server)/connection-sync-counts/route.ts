@@ -2,20 +2,12 @@ import { getConnectionSyncCounts } from "@/features/connections/connectionSyncCo
 import { apiHandler } from "@/lib/apiHandler";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuth } from "@/middleware/withAuth";
-import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { sew } from "@/middleware/sew";
-import { OrgRole } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- Authentication and owner authorization are enforced by getConnectionSyncCounts.
 export const GET = apiHandler(async () => {
-    const result = await sew(() =>
-        withAuth(({ org, role }) =>
-            withMinimumOrgRole(role, OrgRole.OWNER, () =>
-                getConnectionSyncCounts(org.id)
-            )
-        )
-    );
+    const result = await sew(() => getConnectionSyncCounts());
 
     if (isServiceError(result)) {
         return serviceErrorResponse(result);

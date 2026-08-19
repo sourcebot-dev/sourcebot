@@ -1,7 +1,9 @@
 import "server-only";
 
 import { getBullMQClient } from "@/lib/bullmqClient";
-import { __unsafePrisma } from "@/prisma";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
+import { OrgRole } from "@sourcebot/db";
 import { REPO_INDEX_QUEUE } from "@sourcebot/shared";
 
 export interface RepositorySyncCounts {
@@ -10,44 +12,45 @@ export interface RepositorySyncCounts {
     warningCount: number;
 }
 
-export const getRepositorySyncCounts = async (
-    orgId: number,
-): Promise<RepositorySyncCounts> => {
-    const failedJobIds = await getBullMQClient().getFailedJobIds(
-        REPO_INDEX_QUEUE,
+export const getRepositorySyncCounts = async () =>
+    withAuth(({ org, prisma, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const failedJobIds = await getBullMQClient().getFailedJobIds(
+                REPO_INDEX_QUEUE,
+            );
+
+            const [
+                firstTimeSyncingCount,
+                failedCount,
+                warningCount,
+            ] = await Promise.all([
+                prisma.repo.count({
+                    where: {
+                        orgId: org.id,
+                        indexedAt: null,
+                        firstIndexingJobFinishedAt: null,
+                    },
+                }),
+                prisma.repo.count({
+                    where: {
+                        orgId: org.id,
+                        latestIndexingJobId: { in: failedJobIds },
+                        indexedAt: null,
+                    },
+                }),
+                prisma.repo.count({
+                    where: {
+                        orgId: org.id,
+                        latestIndexingJobId: { in: failedJobIds },
+                        indexedAt: { not: null },
+                    },
+                }),
+            ]);
+
+            return {
+                firstTimeSyncingCount,
+                failedCount,
+                warningCount,
+            };
+        })
     );
-
-    const [
-        firstTimeSyncingCount,
-        failedCount,
-        warningCount,
-    ] = await Promise.all([
-        __unsafePrisma.repo.count({
-            where: {
-                orgId,
-                indexedAt: null,
-                firstIndexingJobFinishedAt: null,
-            },
-        }),
-        __unsafePrisma.repo.count({
-            where: {
-                orgId,
-                latestIndexingJobId: { in: failedJobIds },
-                indexedAt: null,
-            },
-        }),
-        __unsafePrisma.repo.count({
-            where: {
-                orgId,
-                latestIndexingJobId: { in: failedJobIds },
-                indexedAt: { not: null },
-            },
-        }),
-    ]);
-
-    return {
-        firstTimeSyncingCount,
-        failedCount,
-        warningCount,
-    };
-};

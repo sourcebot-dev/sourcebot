@@ -171,8 +171,8 @@ export default async function Layout(props: LayoutProps) {
         permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
             ? permissionSyncStatus.issues
             : [];
-    const repositorySyncCounts = role === OrgRole.OWNER
-        ? await getRepositorySyncCounts(org.id).catch((error) => {
+    const repositorySyncCountsResult = role === OrgRole.OWNER
+        ? await getRepositorySyncCounts().catch((error) => {
               console.error("Failed to load repository sync counts", error);
               return {
                   firstTimeSyncingCount: 0,
@@ -181,8 +181,12 @@ export default async function Layout(props: LayoutProps) {
               };
           })
         : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
-    const connectionSyncCounts = role === OrgRole.OWNER
-        ? await getConnectionSyncCounts(org.id).catch((error) => {
+    if (isServiceError(repositorySyncCountsResult)) {
+        throw new ServiceErrorException(repositorySyncCountsResult);
+    }
+    const repositorySyncCounts = repositorySyncCountsResult;
+    const connectionSyncCountsResult = role === OrgRole.OWNER
+        ? await getConnectionSyncCounts().catch((error) => {
               console.error("Failed to load connection sync counts", error);
               return {
                   firstTimeSyncingCount: 0,
@@ -191,6 +195,10 @@ export default async function Layout(props: LayoutProps) {
               };
           })
         : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
+    if (isServiceError(connectionSyncCountsResult)) {
+        throw new ServiceErrorException(connectionSyncCountsResult);
+    }
+    const connectionSyncCounts = connectionSyncCountsResult;
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense

@@ -1,18 +1,24 @@
 import type { WorkloadJob } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-    findMany: vi.fn(),
-    getJobs: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+    const findMany = vi.fn();
+    return {
+        findMany,
+        getJobs: vi.fn(),
+        prisma: {
+            connection: { findMany },
+        },
+    };
+});
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/prisma", () => ({
-    __unsafePrisma: {
-        connection: {
-            findMany: mocks.findMany,
-        },
-    },
+vi.mock("@/middleware/withAuth", () => ({
+    withAuth: (fn: (context: unknown) => unknown) => fn({
+        org: { id: 42 },
+        prisma: mocks.prisma,
+        role: "OWNER",
+    }),
 }));
 vi.mock("@/lib/bullmqClient", () => ({
     getBullMQClient: () => ({
@@ -66,7 +72,7 @@ describe("getConnectionSyncCounts", () => {
             ["active-first-sync", job("active-first-sync", 7, "IN_PROGRESS")],
         ]));
 
-        await expect(getConnectionSyncCounts(42)).resolves.toEqual({
+        await expect(getConnectionSyncCounts()).resolves.toEqual({
             firstTimeSyncingCount: 2,
             failedCount: 1,
             warningCount: 2,
