@@ -20,6 +20,7 @@ import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesT
 import { GlobToolComponent } from './tools/globToolComponent';
 import { GrepToolComponent } from './tools/grepToolComponent';
 import { GetDiffToolComponent } from './tools/getDiffToolComponent';
+import { ListBranchesToolComponent } from './tools/listBranchesToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
@@ -459,6 +460,7 @@ type GuardedToolType =
     | 'tool-find_symbol_definitions'
     | 'tool-find_symbol_references'
     | 'tool-list_repos'
+    | 'tool-list_branches'
     | 'tool-list_commits'
     | 'tool-get_diff'
     | 'tool-list_tree';
@@ -475,6 +477,7 @@ const TOOL_GUARD_CONFIG = {
     'tool-find_symbol_definitions': { loadingText: 'Resolving definitions...', render: (output) => <FindSymbolDefinitionsToolComponent {...output} /> },
     'tool-find_symbol_references': { loadingText: 'Resolving references...', render: (output) => <FindSymbolReferencesToolComponent {...output} /> },
     'tool-list_repos': { loadingText: 'Listing repositories...', render: (output) => <ListReposToolComponent {...output} /> },
+    'tool-list_branches': { loadingText: 'Listing branches...', render: (output) => <ListBranchesToolComponent {...output} /> },
     'tool-list_commits': { loadingText: 'Listing commits...', render: (output) => <ListCommitsToolComponent {...output} /> },
     'tool-get_diff': { loadingText: 'Comparing revisions...', render: (output) => <GetDiffToolComponent {...output} /> },
     'tool-list_tree': { loadingText: 'Listing tree...', render: (output) => <ListTreeToolComponent {...output} /> },
@@ -503,6 +506,7 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
         case 'tool-find_symbol_definitions':
         case 'tool-find_symbol_references':
         case 'tool-list_repos':
+        case 'tool-list_branches':
         case 'tool-list_commits':
         case 'tool-get_diff':
         case 'tool-list_tree': {

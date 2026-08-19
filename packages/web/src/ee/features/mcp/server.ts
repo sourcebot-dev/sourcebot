@@ -15,6 +15,7 @@ import {
     findSymbolDefinitionsDefinition,
     findSymbolReferencesDefinition,
     getDiffDefinition,
+    listBranchesDefinition,
     listCommitsDefinition,
     listReposDefinition,
     listTreeDefinition,
@@ -52,6 +53,7 @@ export async function createMcpServer(): Promise<McpServer> {
     registerMcpTool(server, globDefinition, toolContext);
     registerMcpTool(server, getDiffDefinition, toolContext);
     registerMcpTool(server, listCommitsDefinition, toolContext);
+    registerMcpTool(server, listBranchesDefinition, toolContext);
     registerMcpTool(server, listReposDefinition, toolContext);
     registerMcpTool(server, readFileDefinition, toolContext);
     registerMcpTool(server, listTreeDefinition, toolContext);
