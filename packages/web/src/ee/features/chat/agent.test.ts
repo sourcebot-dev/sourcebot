@@ -89,6 +89,9 @@ vi.mock('@/features/tools', () => {
         listReposDefinition: createToolDefinition('list_repos'),
         listTreeDefinition: createToolDefinition('list_tree'),
         readFileDefinition: createToolDefinition('read_file'),
+        createSkillDefinition: createToolDefinition('create_skill'),
+        updateSkillDefinition: createToolDefinition('update_skill'),
+        listSkillsDefinition: createToolDefinition('list_skills'),
         toVercelAITool: vi.fn((definition: { name: string }) => ({
             name: definition.name,
         })),
@@ -272,6 +275,29 @@ describe('createMessageStream built-in tools', () => {
 
         expect(tools).toHaveProperty('list_branches');
         expect(activeTools).toContain('list_branches');
+    });
+
+    test('makes the skill management tools available to authenticated, interactive requesters', async () => {
+        const { tools, activeTools } = await runCreateMessageStream([createUserMessage()], {
+            userId: 'user-1',
+            orgId: 1,
+        });
+
+        for (const toolName of ['create_skill', 'update_skill', 'list_skills']) {
+            expect(tools).toHaveProperty(toolName);
+            expect(activeTools).toContain(toolName);
+        }
+    });
+
+    test('omits the skill management tools when the requester is anonymous or programmatic', async () => {
+        const { tools, activeTools } = await runCreateMessageStream([createUserMessage()]);
+
+        for (const toolName of ['create_skill', 'update_skill', 'list_skills']) {
+            expect(tools).not.toHaveProperty(toolName);
+            expect(activeTools).not.toContain(toolName);
+        }
+        // The other built-ins are unaffected by the gate.
+        expect(tools).toHaveProperty('list_branches');
     });
 });
 

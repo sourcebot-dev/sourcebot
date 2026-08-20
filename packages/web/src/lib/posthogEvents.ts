@@ -18,11 +18,13 @@ export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-ag
 export type McpConnectorEntryPoint = 'chat' | 'account_settings' | 'workspace_settings' | 'unknown';
 export type McpConnectorAuthMode = 'dynamic' | 'static';
 export type AskSkillScope = 'personal' | 'shared';
+export type AskSkillAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent' | 'sourcebot-mcp-server';
 export type AskSkillEntryPoint =
     'skills_settings' |
     'account_ask_agent_settings' |
     'workspace_ask_agent_settings' |
     'chat_box' |
+    'agent_tool' |
     'unknown';
 export type AskSkillCreationMethod = 'manual' | 'local_markdown' | 'repository';
 export type AskSkillChangedField = 'name' | 'command' | 'description' | 'instructions';
@@ -281,7 +283,7 @@ export type PosthogEventMap = {
         durationMs: number,
     },
     ask_skill_created: {
-        source: SourcebotWebClientSource,
+        source: AskSkillAnalyticsSource,
         entryPoint: AskSkillEntryPoint,
         scope: AskSkillScope,
         creationMethod: AskSkillCreationMethod,
@@ -291,7 +293,7 @@ export type PosthogEventMap = {
         failureReason?: string,
     },
     ask_skill_updated: {
-        source: SourcebotWebClientSource,
+        source: AskSkillAnalyticsSource,
         entryPoint: AskSkillEntryPoint,
         scope: AskSkillScope,
         isSynced: boolean,

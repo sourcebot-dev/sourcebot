@@ -111,7 +111,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            const mcpServer = await createMcpServer();
+            const mcpServer = await createMcpServer({ isAuthenticated: ownerId !== null });
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
