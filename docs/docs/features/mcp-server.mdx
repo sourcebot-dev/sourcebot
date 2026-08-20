@@ -452,3 +452,44 @@ Parameters:
 | `repos` | no | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible. |
 | `languageModel` | no | The language model to use for answering the question. Object with `provider` and `model`. If not provided, defaults to the first model in the config. Use `list_language_models` to see available options. |
 | `visibility` | no | The visibility of the chat session (`'PRIVATE'` or `'PUBLIC'`). Defaults to `PRIVATE` for authenticated users and `PUBLIC` for anonymous users. Set to `PUBLIC` to make the chat viewable by anyone with the link (useful in shared environments like Slack). |
+
+### `create_skill`
+
+You can create an agent skill: a reusable set of instructions you invoke in Ask Sourcebot as a `/<slug>` slash command, or that the agent loads automatically when your request matches its description. The skill is personal to you and enabled immediately. The result includes a link to the skill in **Settings → Skills**.
+
+You need an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
+
+Parameters:
+| Name | Required | Description |
+|:---------------|:---------|:------------|
+| `name` | yes | Display name for the skill (1-80 characters). |
+| `slug` | yes | Slash command for the skill, without the leading `/`. Lowercase letters, numbers, and hyphens; at most 64 characters. Must be unique among the user's skills. |
+| `description` | yes | When to use the skill (1-500 characters). Used by the agent to auto-load the skill. |
+| `instructions` | yes | Markdown instructions the agent follows when the skill is invoked (1-20,000 characters). |
+
+### `update_skill`
+
+You can edit an existing skill in place. Fields you omit keep their current values. You can edit your personal skills, and shared skills only if you created them and they are enabled. Skills synced from a repository file are rejected; edit those in **Settings → Skills**. This tool never enables or disables a skill, and never moves it between the personal and shared catalogs.
+
+You need an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
+
+Parameters:
+| Name | Required | Description |
+|:---------------|:---------|:------------|
+| `slug` | yes | Current slash command of the skill to update, without the leading `/`. |
+| `scope` | yes | Which catalog the skill lives in: `personal` or `shared`. |
+| `name` | no | New display name (1-80 characters). |
+| `newSlug` | no | New slash command, without the leading `/`. Lowercase letters, numbers, and hyphens; at most 64 characters. |
+| `description` | no | New description of when to use the skill (1-500 characters). |
+| `instructions` | no | New markdown instructions (1-20,000 characters). |
+
+### `list_skills`
+
+You can list the skills visible to you: your personal skills plus your organization's shared catalog. Each row includes `slug` and `scope` (the pair `update_skill` needs), `enabled`, `isSynced` (linked to a repository file), `canEdit` (whether `update_skill` can edit it), and, on shared rows, `adopted`. Skill instructions are never included.
+
+You need an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
+
+Parameters:
+| Name | Required | Description |
+|:--------|:---------|:------------|
+| `scope` | no | Filter to one catalog: `personal` or `shared`. Omit to list both. |

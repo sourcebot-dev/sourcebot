@@ -1,0 +1,9 @@
+Creates a new agent skill: a reusable, named instruction set the user can invoke later.
+
+Usage:
+- ONLY call this tool when the user explicitly asks to create or save a skill. NEVER invent skills from conversation context on your own initiative.
+- The skill is personal to the requesting user and enabled immediately. In later messages it can be invoked manually as `/<slug>` or loaded automatically when a request matches its description.
+- `slug` becomes the skill's slash command (without the leading `/`). It must be unique among the user's skills; if it already exists, the tool fails and you can retry with a different slug. Use `list_skills` to check which slugs are taken.
+- `description` should say when the skill applies — it is what the agent matches against to auto-load the skill.
+- `instructions` are the markdown instructions the agent follows when the skill is invoked.
+- The result includes a `url` to the skill in Settings → Skills, where the user can edit, share, or delete it. To change a skill later, use `update_skill`.

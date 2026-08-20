@@ -12,23 +12,26 @@ import _dedent from 'dedent';
 import { z } from 'zod';
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import {
+    createSkillDefinition,
     findSymbolDefinitionsDefinition,
     findSymbolReferencesDefinition,
     getDiffDefinition,
     listBranchesDefinition,
     listCommitsDefinition,
     listReposDefinition,
+    listSkillsDefinition,
     listTreeDefinition,
     readFileDefinition,
     registerMcpTool,
     grepDefinition,
     ToolContext,
     globDefinition,
+    updateSkillDefinition,
 } from '@/features/tools';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
-export async function createMcpServer(): Promise<McpServer> {
+export async function createMcpServer({ canManageSkills }: { canManageSkills: boolean }): Promise<McpServer> {
     // Defense-in-depth: the MCP server is a paid feature. The /api/ee/mcp route
     // gates on the `mcp` entitlement before calling this; this assertion
     // backstops that contract so the server can't be constructed on a
@@ -59,6 +62,19 @@ export async function createMcpServer(): Promise<McpServer> {
     registerMcpTool(server, listTreeDefinition, toolContext);
     registerMcpTool(server, findSymbolDefinitionsDefinition, toolContext);
     registerMcpTool(server, findSymbolReferencesDefinition, toolContext);
+
+    // The skill management tools require an authenticated user (skills are
+    // per-user) whose credential is not repository-scoped (scoped access
+    // tokens grant repo access only, never account-level skill management),
+    // plus the Ask feature. Registration is best-effort UX: sessions are keyed
+    // by owner, not principal, so the per-request checks inside each tool's
+    // execute (withAuth + the scoped-token rejection) remain the real
+    // enforcement.
+    if (canManageSkills && await hasEntitlement('ask')) {
+        registerMcpTool(server, createSkillDefinition, toolContext);
+        registerMcpTool(server, updateSkillDefinition, toolContext);
+        registerMcpTool(server, listSkillsDefinition, toolContext);
+    }
 
     server.registerTool(
         "list_language_models",

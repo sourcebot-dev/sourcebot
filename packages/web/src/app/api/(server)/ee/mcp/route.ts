@@ -75,7 +75,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
     }
 
     const response = await sew(() =>
-        withOptionalAuth(async ({ user }) => {
+        withOptionalAuth(async ({ user, principal }) => {
             if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
@@ -111,7 +111,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            const mcpServer = await createMcpServer();
+            // Repository-scoped access tokens never get the skill management
+            // tools: their documented authorization boundary is the selected
+            // repositories only. The tools also reject scoped principals
+            // per-request, since a session is keyed by owner, not principal.
+            const mcpServer = await createMcpServer({
+                canManageSkills: ownerId !== null && principal?.source !== 'scoped_access_token',
+            });
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);

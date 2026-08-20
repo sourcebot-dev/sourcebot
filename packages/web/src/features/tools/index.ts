@@ -8,5 +8,8 @@ export * from './getDiff';
 export * from './findSymbolReferences';
 export * from './findSymbolDefinitions';
 export * from './listTree';
+export * from './createSkill';
+export * from './updateSkill';
+export * from './listSkills';
 export * from './adapters';
 export * from './types';

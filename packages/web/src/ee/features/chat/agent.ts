@@ -24,6 +24,7 @@ import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
 import { Source } from "@/features/chat/types";
 import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
 import { createTools } from "./tools";
+import { createSkillDefinition, listSkillsDefinition, updateSkillDefinition } from "@/features/tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
 import {
@@ -692,7 +693,22 @@ const createAgentStream = async ({
         skillRegistry,
     });
 
-    const builtinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos: sortedRepos });
+    const allBuiltinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos: sortedRepos });
+
+    // The skill management tools require an interactive, authenticated
+    // requester: same gate as load_skill. This also excludes programmatic runs
+    // (askCodebase, /api/chat/blocking) where nobody can answer an approval
+    // request.
+    const skillManagementToolNames: string[] = [
+        createSkillDefinition.name,
+        updateSkillDefinition.name,
+        listSkillsDefinition.name,
+    ];
+    const builtinTools: Record<string, Tool> = (userId !== undefined && orgId !== undefined)
+        ? allBuiltinTools
+        : Object.fromEntries(
+            Object.entries(allBuiltinTools).filter(([name]) => !skillManagementToolNames.includes(name)),
+        );
     const builtinToolNames = Object.keys(builtinTools);
     const allTools: Record<string, Tool> = {
         ...builtinTools,

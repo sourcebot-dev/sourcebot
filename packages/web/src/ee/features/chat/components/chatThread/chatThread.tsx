@@ -33,6 +33,7 @@ import { McpReconnectContext } from '../../mcpReconnectContext';
 import { McpAuthRequiredData, McpServerLoadFailureData, useMcpReconnectController } from './useMcpReconnectController';
 import { McpReconnectBanner } from './mcpReconnectBanner';
 import { ToolApprovalProvider } from '../../toolApprovalContext';
+import { AskCommandsContext } from '../../askCommandsContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
@@ -459,6 +460,7 @@ export const ChatThread = ({
 
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
+        <AskCommandsContext.Provider value={askCommands}>
         <McpReconnectContext.Provider value={mcpReconnectContextValue}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
         <McpToolNameContext.Provider value={mcpToolNameMap}>
@@ -615,6 +617,7 @@ export const ChatThread = ({
         </McpToolNameContext.Provider>
         </McpServerIconContext.Provider>
         </McpReconnectContext.Provider>
+        </AskCommandsContext.Provider>
         </ToolApprovalProvider>
     );
 }

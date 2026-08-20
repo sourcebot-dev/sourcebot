@@ -194,6 +194,190 @@ describe('DetailsCard', () => {
         expect(screen.queryByText('Look for correctness issues first.')).toBeNull();
     });
 
+    test('renders a create_skill success summary with the name and command', () => {
+        const createSkillPart = {
+            type: 'tool-create_skill',
+            toolCallId: 'tool-call-create-skill',
+            state: 'output-available',
+            input: {
+                name: 'Review PR',
+                slug: 'review-pr',
+                description: 'Review a pull request.',
+                instructions: 'Look for correctness issues first.',
+            },
+            output: {
+                output: '{}',
+                metadata: {
+                    id: 'skill-1',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                    url: 'https://sourcebot.example.com/settings/skills?skill=skill-1',
+                },
+            },
+        } satisfies SBChatMessagePart;
+
+        const { container } = render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [createSkillPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(container.textContent).toContain('Created skill');
+        expect(container.textContent).toContain('Review PR');
+        expect(container.textContent).toContain('/review-pr');
+        expect(screen.queryByText('Creating skill...')).toBeNull();
+    });
+
+    test('renders an update_skill success summary with the name and command', () => {
+        const updateSkillPart = {
+            type: 'tool-update_skill',
+            toolCallId: 'tool-call-update-skill',
+            state: 'output-available',
+            input: {
+                slug: 'review-pr',
+                scope: 'shared',
+                name: 'Review PR v2',
+            },
+            output: {
+                output: '{}',
+                metadata: {
+                    id: 'skill-1',
+                    slug: 'review-pr',
+                    name: 'Review PR v2',
+                    scope: 'shared',
+                    url: 'https://sourcebot.example.com/settings/skills?skill=skill-1',
+                },
+            },
+        } satisfies SBChatMessagePart;
+
+        const { container } = render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [updateSkillPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(container.textContent).toContain('Updated shared skill');
+        expect(container.textContent).toContain('Review PR v2');
+        expect(container.textContent).toContain('/review-pr');
+        expect(screen.queryByText('Updating skill...')).toBeNull();
+    });
+
+    test('renders a list_skills count summary', () => {
+        const listSkillsPart = {
+            type: 'tool-list_skills',
+            toolCallId: 'tool-call-list-skills',
+            state: 'output-available',
+            input: {},
+            output: {
+                output: '{"skills":[]}',
+                metadata: { count: 3 },
+            },
+        } satisfies SBChatMessagePart;
+
+        render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [listSkillsPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(screen.queryByText('Listed skills')).toBeTruthy();
+        expect(screen.queryByText('3 skills')).toBeTruthy();
+    });
+
+    test('shows a non-pulsing waiting state for an approval-requested tool call', () => {
+        const approvalRequestedPart = {
+            type: 'tool-create_skill',
+            toolCallId: 'tool-call-approval',
+            state: 'approval-requested',
+            input: {
+                name: 'Review PR',
+                slug: 'review-pr',
+                description: 'Review a pull request.',
+                instructions: 'Look for correctness issues first.',
+            },
+            approval: { id: 'approval-1' },
+        } satisfies SBChatMessagePart;
+
+        render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={true}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={true}
+                    thinkingSteps={[{ stepIndex: 0, parts: [approvalRequestedPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(screen.queryByText('Waiting for approval')).toBeTruthy();
+        expect(screen.queryByText('Creating skill...')).toBeNull();
+    });
+
+    test('shows a denied label for an output-denied tool call', () => {
+        const deniedPart = {
+            type: 'tool-create_skill',
+            toolCallId: 'tool-call-denied',
+            title: 'Create skill',
+            state: 'output-denied',
+            input: {
+                name: 'Review PR',
+                slug: 'review-pr',
+                description: 'Review a pull request.',
+                instructions: 'Look for correctness issues first.',
+            },
+            approval: { id: 'approval-1', approved: false, reason: 'User denied' },
+        } satisfies SBChatMessagePart;
+
+        render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [deniedPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(screen.queryByText('Create skill denied')).toBeTruthy();
+        expect(screen.queryByText('Creating skill...')).toBeNull();
+    });
+
     test('renders an unavailable skill load instead of a silent no-op', () => {
         const unavailableSkillPart = {
             type: 'tool-load_skill',

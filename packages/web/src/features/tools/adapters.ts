@@ -12,6 +12,8 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
         description: def.description,
         inputSchema: def.inputSchema,
         title: def.title,
+        // Policy: every non-read-only built-in requires user approval in Ask.
+        needsApproval: !def.isReadOnly,
         execute: async (input) => {
             let success = true;
             try {
@@ -50,6 +52,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
             annotations: {
                 readOnlyHint: def.isReadOnly,
                 idempotentHint: def.isIdempotent,
+                ...(def.isDestructive !== undefined ? { destructiveHint: def.isDestructive } : {}),
             },
         },
         async (input) => {
