@@ -6,7 +6,7 @@ import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
-import { toSkillToolError } from "./skillToolShared";
+import { scopedTokensCannotManageSkills, toSkillToolError } from "./skillToolShared";
 import description from "./listSkills.txt";
 
 const listSkillsShape = {
@@ -29,7 +29,11 @@ export const listSkillsDefinition: ToolDefinition<"list_skills", typeof listSkil
         logger.debug('list_skills', input);
 
         const result = await sew(() =>
-            withAuth(async ({ org, user, prisma }) => {
+            withAuth(async ({ org, user, prisma, principal }) => {
+                if (principal.source === 'scoped_access_token') {
+                    return scopedTokensCannotManageSkills();
+                }
+
                 const askError = await checkAskEntitlement();
                 if (askError) {
                     return askError;

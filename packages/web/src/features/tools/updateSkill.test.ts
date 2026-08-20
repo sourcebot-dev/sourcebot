@@ -47,6 +47,7 @@ beforeEach(() => {
         org: { id: 1 },
         user: { id: "user-1" },
         prisma: {},
+        principal: { source: "api_key" },
     };
     mocks.withAuth.mockImplementation(async (callback: (context: unknown) => unknown) => callback(mocks.authContext));
     mocks.checkAskEntitlement.mockResolvedValue(null);
@@ -119,6 +120,21 @@ describe("updateSkillDefinition", () => {
             { slug: "review-pr", scope: "personal", name: "Renamed" },
             { source: "sourcebot-ask-agent" },
         )).rejects.toThrow("Authentication is required to update skills.");
+    });
+
+    test("rejects a repository-scoped access token without updating", async () => {
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: "user-1" },
+            prisma: {},
+            principal: { source: "scoped_access_token" },
+        };
+
+        await expect(updateSkillDefinition.execute(
+            { slug: "review-pr", scope: "personal", name: "Renamed" },
+            { source: "sourcebot-mcp-server" },
+        )).rejects.toThrow("Repository-scoped access tokens cannot manage skills.");
+        expect(mocks.updateAgentSkillForContext).not.toHaveBeenCalled();
     });
 
     test("returns the updated skill as JSON output plus UI metadata with the tool's scope", async () => {

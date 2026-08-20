@@ -7,7 +7,7 @@ import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
-import { skillSettingsUrl, toSkillToolError, toSkillAnalyticsSource } from "./skillToolShared";
+import { scopedTokensCannotManageSkills, skillSettingsUrl, toSkillToolError, toSkillAnalyticsSource } from "./skillToolShared";
 import description from "./createSkill.txt";
 
 // Plain described strings rather than the piped slug schema: the AI SDK
@@ -45,7 +45,11 @@ export const createSkillDefinition: ToolDefinition<"create_skill", typeof create
         }
 
         const result = await sew(() =>
-            withAuth(async ({ org, user, prisma }) => {
+            withAuth(async ({ org, user, prisma, principal }) => {
+                if (principal.source === 'scoped_access_token') {
+                    return scopedTokensCannotManageSkills();
+                }
+
                 const askError = await checkAskEntitlement();
                 if (askError) {
                     return askError;

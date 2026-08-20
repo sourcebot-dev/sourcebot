@@ -457,7 +457,7 @@ Parameters:
 
 Creates a new agent skill: a reusable, named instruction set the user can invoke in Ask Sourcebot as a `/<slug>` slash command or have loaded automatically when a request matches its description. The skill is personal to the authenticated user and enabled immediately. The result includes a link to the skill in **Settings → Skills**.
 
-Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions do not see this tool.
+Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
 
 Parameters:
 | Name | Required | Description |
@@ -471,7 +471,7 @@ Parameters:
 
 Updates an existing agent skill in place. Omitted content fields keep their current values. Personal skills are editable by their owner. Shared skills are editable only by the user who created them, and only while enabled. Skills synced from a repository file are rejected and must be edited in **Settings → Skills**. This tool never enables/disables a skill and never moves it between the personal and shared catalogs.
 
-Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions do not see this tool.
+Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
 
 Parameters:
 | Name | Required | Description |
@@ -487,7 +487,7 @@ Parameters:
 
 Lists the agent skills visible to the authenticated user: their personal skills plus the organization's shared skill catalog. Each row includes `slug` and `scope` (the identifier pair `update_skill` needs), `enabled`, `isSynced` (linked to a repository file), `canEdit` (whether `update_skill` can edit it), and, on shared rows, `adopted`. Skill instructions are never included.
 
-Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions do not see this tool.
+Requires an authenticated user (API key or OAuth) and the Ask Sourcebot feature. Anonymous sessions and repository-scoped access tokens cannot use this tool.
 
 Parameters:
 | Name | Required | Description |

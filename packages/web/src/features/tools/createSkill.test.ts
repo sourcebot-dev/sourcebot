@@ -54,6 +54,7 @@ beforeEach(() => {
         org: { id: 1 },
         user: { id: "user-1" },
         prisma: {},
+        principal: { source: "api_key" },
     };
     mocks.withAuth.mockImplementation(async (callback: (context: unknown) => unknown) => callback(mocks.authContext));
     mocks.checkAskEntitlement.mockResolvedValue(null);
@@ -102,6 +103,19 @@ describe("createSkillDefinition", () => {
 
         await expect(createSkillDefinition.execute(validInput, { source: "sourcebot-ask-agent" }))
             .rejects.toThrow("Authentication is required to create skills.");
+    });
+
+    test("rejects a repository-scoped access token without creating", async () => {
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: "user-1" },
+            prisma: {},
+            principal: { source: "scoped_access_token" },
+        };
+
+        await expect(createSkillDefinition.execute(validInput, { source: "sourcebot-mcp-server" }))
+            .rejects.toThrow("Repository-scoped access tokens cannot manage skills.");
+        expect(mocks.createPersonalAgentSkillForContext).not.toHaveBeenCalled();
     });
 
     test("throws the entitlement message when Ask is not available", async () => {

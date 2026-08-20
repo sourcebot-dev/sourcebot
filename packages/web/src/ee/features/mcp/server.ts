@@ -31,7 +31,7 @@ import {
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
-export async function createMcpServer({ isAuthenticated }: { isAuthenticated: boolean }): Promise<McpServer> {
+export async function createMcpServer({ canManageSkills }: { canManageSkills: boolean }): Promise<McpServer> {
     // Defense-in-depth: the MCP server is a paid feature. The /api/ee/mcp route
     // gates on the `mcp` entitlement before calling this; this assertion
     // backstops that contract so the server can't be constructed on a
@@ -64,10 +64,13 @@ export async function createMcpServer({ isAuthenticated }: { isAuthenticated: bo
     registerMcpTool(server, findSymbolReferencesDefinition, toolContext);
 
     // The skill management tools require an authenticated user (skills are
-    // per-user) and the Ask feature. Registration is per session and the
-    // session owner is fixed, so this gate is exact; withAuth inside each
-    // tool's execute remains the real enforcement.
-    if (isAuthenticated && await hasEntitlement('ask')) {
+    // per-user) whose credential is not repository-scoped (scoped access
+    // tokens grant repo access only, never account-level skill management),
+    // plus the Ask feature. Registration is best-effort UX: sessions are keyed
+    // by owner, not principal, so the per-request checks inside each tool's
+    // execute (withAuth + the scoped-token rejection) remain the real
+    // enforcement.
+    if (canManageSkills && await hasEntitlement('ask')) {
         registerMcpTool(server, createSkillDefinition, toolContext);
         registerMcpTool(server, updateSkillDefinition, toolContext);
         registerMcpTool(server, listSkillsDefinition, toolContext);

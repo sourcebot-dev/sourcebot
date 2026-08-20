@@ -68,6 +68,7 @@ beforeEach(() => {
         org: { id: 1 },
         user: { id: "user-1" },
         prisma,
+        principal: { source: "api_key" },
     };
     mocks.withAuth.mockImplementation(async (callback: (context: unknown) => unknown) => callback(mocks.authContext));
     mocks.checkAskEntitlement.mockResolvedValue(null);
@@ -118,6 +119,19 @@ describe("listSkillsDefinition", () => {
         const result = await listSkillsDefinition.execute({}, { source: "sourcebot-ask-agent" });
 
         expect(result.metadata).toEqual({ count: 0 });
+    });
+
+    test("rejects a repository-scoped access token without listing", async () => {
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: "user-1" },
+            prisma,
+            principal: { source: "scoped_access_token" },
+        };
+
+        await expect(listSkillsDefinition.execute({}, { source: "sourcebot-mcp-server" }))
+            .rejects.toThrow("Repository-scoped access tokens cannot manage skills.");
+        expect(prisma.agentSkill.findMany).not.toHaveBeenCalled();
     });
 
     test("the scope filter limits the query to one catalog", async () => {

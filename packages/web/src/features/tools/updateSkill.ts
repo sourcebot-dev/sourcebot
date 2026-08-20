@@ -7,7 +7,7 @@ import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
-import { skillSettingsUrl, toSkillToolError, toSkillAnalyticsSource } from "./skillToolShared";
+import { scopedTokensCannotManageSkills, skillSettingsUrl, toSkillToolError, toSkillAnalyticsSource } from "./skillToolShared";
 import description from "./updateSkill.txt";
 
 // Same plain-string style as create_skill: the merged result is validated in
@@ -43,7 +43,11 @@ export const updateSkillDefinition: ToolDefinition<"update_skill", typeof update
         const { slug, scope, name, newSlug, description: newDescription, instructions } = input;
 
         const result = await sew(() =>
-            withAuth(async ({ org, user, prisma }) => {
+            withAuth(async ({ org, user, prisma, principal }) => {
+                if (principal.source === 'scoped_access_token') {
+                    return scopedTokensCannotManageSkills();
+                }
+
                 const askError = await checkAskEntitlement();
                 if (askError) {
                     return askError;
