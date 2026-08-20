@@ -66,7 +66,7 @@ export class GithubAppManager {
         }
 
         const githubApps = config.apps.filter(app => app.type === 'github') as GitHubAppConfig[];
-        logger.info(`Found ${githubApps.length} GitHub apps in config`);
+        logger.debug(`Found ${githubApps.length} GitHub apps in config`);
 
         for (const app of githubApps) {
             const deploymentHostname = app.deploymentHostname as string || GITHUB_DEFAULT_DEPLOYMENT_HOSTNAME;
@@ -79,7 +79,7 @@ export class GithubAppManager {
             this.octokitApps.set(Number(app.id), octokitApp);
 
             const installations = await octokitApp.octokit.request("GET /app/installations");
-            logger.info(`Found ${installations.data.length} GitHub App installations for ${deploymentHostname}/${app.id}:`);
+            logger.debug(`Found ${installations.data.length} GitHub App installations for ${deploymentHostname}/${app.id}:`);
 
             for (const installationData of installations.data) {
                 if (!installationData.account || !installationData.account.login || !installationData.account.type) {
@@ -87,7 +87,7 @@ export class GithubAppManager {
                     continue;
                 }
 
-                logger.info(`\tInstallation ID: ${installationData.id}, Account: ${installationData.account.login}, Type: ${installationData.account.type}`);
+                logger.debug(`\tInstallation ID: ${installationData.id}, Account: ${installationData.account.login}, Type: ${installationData.account.type}`);
                 
                 const owner = installationData.account.login;
                 const accountType = installationData.account.type.toLowerCase() as 'organization' | 'user';

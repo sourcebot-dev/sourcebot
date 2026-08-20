@@ -15,6 +15,7 @@ interface LightweightCodeHighlighter {
     /* 1-based line number offset */
     lineNumbersOffset?: number;
     renderWhitespace?: boolean;
+    wrapLines?: boolean;
     isCopyButtonVisible?: boolean;
 }
 
@@ -37,6 +38,7 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         lineNumbers = false,
         lineNumbersOffset = 1,
         renderWhitespace = false,
+        wrapLines = true,
         isCopyButtonVisible = false,
     } = props;
 
@@ -135,8 +137,10 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
                 style={{
                     fontFamily: tailwind.theme.fontFamily.editor,
                     fontSize: tailwind.theme.fontSize.editor,
-                    whiteSpace: renderWhitespace ? 'pre-wrap' : 'none',
-                    wordBreak: 'break-all',
+                    whiteSpace: wrapLines
+                        ? (renderWhitespace ? 'pre-wrap' : 'normal')
+                        : 'pre',
+                    wordBreak: wrapLines ? 'break-all' : 'normal',
                 }}
             >
                 {(highlightedLines ?? unhighlightedLines).map((line, index) => (

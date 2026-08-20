@@ -1,8 +1,163 @@
-import { expect, test, describe } from 'vitest';
-import { cloudShouldExcludeRepo, serverShouldExcludeRepo, BitbucketRepository } from './bitbucket';
-import { BitbucketConnectionConfig } from '@sourcebot/schemas/v3/bitbucket.type';
-import { SchemaRepository as CloudRepository } from '@coderabbitai/bitbucket/cloud/openapi';
-import { SchemaRestRepository as ServerRepository } from '@coderabbitai/bitbucket/server/openapi';
+import { beforeEach, expect, test, describe, vi } from 'vitest';
+import type { BitbucketConnectionConfig } from '@sourcebot/schemas/v3/bitbucket.type';
+import type { SchemaRepository as CloudRepository } from '@coderabbitai/bitbucket/cloud/openapi';
+import type { SchemaRestRepository as ServerRepository } from '@coderabbitai/bitbucket/server/openapi';
+
+const mocks = vi.hoisted(() => {
+    const notFound = Object.assign(new Error("Not Found"), { status: 404 });
+
+    return {
+        cloudGet: vi.fn(async () => {
+            throw notFound;
+        }),
+        serverGet: vi.fn(async () => {
+            throw notFound;
+        }),
+    };
+});
+
+vi.mock("@sentry/node", () => ({
+    captureException: vi.fn(),
+}));
+
+vi.mock("@coderabbitai/bitbucket/cloud", () => ({
+    createBitbucketCloudClient: () => ({
+        use: vi.fn(),
+        GET: mocks.cloudGet,
+    }),
+}));
+
+vi.mock("@coderabbitai/bitbucket/server", () => ({
+    createBitbucketServerClient: () => ({
+        use: vi.fn(),
+        GET: mocks.serverGet,
+    }),
+}));
+
+vi.mock("./utils.js", () => ({
+    fetchWithRetry: (routine: () => Promise<unknown>) => routine(),
+    measure: async (routine: () => Promise<unknown>) => ({
+        durationMs: 1,
+        data: await routine(),
+    }),
+}));
+
+import { collectRepositoryDiscoveryIssues } from "./repositoryDiscoveryIssueContext.js";
+import {
+    cloudShouldExcludeRepo,
+    getBitbucketReposFromConfig,
+    serverShouldExcludeRepo,
+    type BitbucketRepository,
+} from './bitbucket';
+
+beforeEach(() => {
+    vi.clearAllMocks();
+});
+
+describe("Bitbucket repository discovery", () => {
+    test("reports Bitbucket Cloud discovery gaps", async () => {
+        const config = {
+            type: "bitbucket",
+            deploymentType: "cloud",
+            all: true,
+            workspaces: ["missing-workspace"],
+            projects: ["workspace/missing-project", "invalid-project"],
+            repos: ["workspace/missing-repo", "invalid-repo"],
+            exclude: { archived: true },
+        } satisfies BitbucketConnectionConfig;
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            getBitbucketReposFromConfig(config)
+        );
+
+        expect(result.value).toEqual([]);
+        expect(result.issues).toHaveLength(7);
+        expect(result.issues).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                code: "UNSUPPORTED_CONFIGURATION",
+                effect: "CONFIGURATION_IGNORED",
+                subject: { kind: "configuration", value: "all" },
+            }),
+            expect.objectContaining({
+                code: "UNSUPPORTED_CONFIGURATION",
+                effect: "CONFIGURATION_IGNORED",
+                subject: {
+                    kind: "configuration",
+                    value: "exclude.archived",
+                },
+            }),
+            expect.objectContaining({
+                code: "NOT_FOUND_OR_INACCESSIBLE",
+                subject: { kind: "workspace", value: "missing-workspace" },
+            }),
+            expect.objectContaining({
+                code: "NOT_FOUND_OR_INACCESSIBLE",
+                subject: {
+                    kind: "project",
+                    value: "workspace/missing-project",
+                },
+            }),
+            expect.objectContaining({
+                code: "INVALID_TARGET",
+                subject: { kind: "project", value: "invalid-project" },
+            }),
+            expect.objectContaining({
+                code: "NOT_FOUND_OR_INACCESSIBLE",
+                subject: {
+                    kind: "repository",
+                    value: "workspace/missing-repo",
+                },
+            }),
+            expect.objectContaining({
+                code: "INVALID_TARGET",
+                subject: { kind: "repository", value: "invalid-repo" },
+            }),
+        ]));
+    });
+
+    test("reports Bitbucket Server discovery gaps", async () => {
+        const config = {
+            type: "bitbucket",
+            deploymentType: "server",
+            url: "https://bitbucket.example.com",
+            workspaces: ["unsupported-workspace"],
+            projects: ["missing-project"],
+            repos: ["PROJ/missing-repo", "invalid-repo"],
+        } satisfies BitbucketConnectionConfig;
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            getBitbucketReposFromConfig(config)
+        );
+
+        expect(result.value).toEqual([]);
+        expect(result.issues).toHaveLength(4);
+        expect(result.issues).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                code: "UNSUPPORTED_CONFIGURATION",
+                effect: "CONFIGURATION_IGNORED",
+                subject: {
+                    kind: "workspace",
+                    value: "unsupported-workspace",
+                },
+            }),
+            expect.objectContaining({
+                code: "NOT_FOUND_OR_INACCESSIBLE",
+                subject: { kind: "project", value: "missing-project" },
+            }),
+            expect.objectContaining({
+                code: "NOT_FOUND_OR_INACCESSIBLE",
+                subject: {
+                    kind: "repository",
+                    value: "PROJ/missing-repo",
+                },
+            }),
+            expect.objectContaining({
+                code: "INVALID_TARGET",
+                subject: { kind: "repository", value: "invalid-repo" },
+            }),
+        ]));
+    });
+});
 
 const makeCloudRepo = (overrides: Partial<CloudRepository> = {}): BitbucketRepository => ({
     type: 'repository',

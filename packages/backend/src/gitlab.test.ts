@@ -1,6 +1,114 @@
-import { expect, test } from 'vitest';
-import { shouldExcludeProject } from './gitlab';
-import { ProjectSchema } from '@gitbeaker/rest';
+import type { ProjectSchema } from '@gitbeaker/rest';
+import type { GitlabConnectionConfig } from '@sourcebot/schemas/v3/gitlab.type';
+import { describe, expect, test, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => {
+    const notFound = Object.assign(new Error("Not Found"), {
+        cause: { response: { status: 404 } },
+    });
+
+    return {
+        groupsAllProjects: vi.fn(async () => {
+            throw notFound;
+        }),
+        usersAllProjects: vi.fn(async () => {
+            throw notFound;
+        }),
+        projectsShow: vi.fn(async () => {
+            throw notFound;
+        }),
+        projectsAll: vi.fn(async () => []),
+    };
+});
+
+vi.mock("@sentry/node", () => ({
+    captureException: vi.fn(),
+}));
+
+vi.mock("@gitbeaker/rest", () => ({
+    Gitlab: class {
+        Groups = {
+            allProjects: mocks.groupsAllProjects,
+        };
+        Users = {
+            allProjects: mocks.usersAllProjects,
+        };
+        Projects = {
+            all: mocks.projectsAll,
+            show: mocks.projectsShow,
+        };
+    },
+}));
+
+vi.mock("./utils.js", () => ({
+    fetchWithRetry: (routine: () => Promise<unknown>) => routine(),
+    measure: async (routine: () => Promise<unknown>) => ({
+        durationMs: 1,
+        data: await routine(),
+    }),
+}));
+
+import { collectRepositoryDiscoveryIssues } from "./repositoryDiscoveryIssueContext.js";
+import { getGitLabReposFromConfig, shouldExcludeProject } from './gitlab';
+
+describe("GitLab repository discovery", () => {
+    test("reports unsupported configuration and inaccessible targets", async () => {
+        const config = {
+            type: "gitlab",
+            all: true,
+            groups: ["missing-group"],
+            users: ["missing-user"],
+            projects: ["missing-group/missing-project"],
+        } satisfies GitlabConnectionConfig;
+
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            getGitLabReposFromConfig(config)
+        );
+
+        expect(result).toEqual({
+            value: [],
+            issues: [
+                {
+                    code: "UNSUPPORTED_CONFIGURATION",
+                    effect: "CONFIGURATION_IGNORED",
+                    subject: {
+                        kind: "configuration",
+                        value: "all",
+                    },
+                    message: "The all option is not supported for GitLab Cloud.",
+                },
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "group",
+                        value: "missing-group",
+                    },
+                    message: "GitLab group was not found or is inaccessible.",
+                },
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "user",
+                        value: "missing-user",
+                    },
+                    message: "GitLab user was not found or is inaccessible.",
+                },
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "project",
+                        value: "missing-group/missing-project",
+                    },
+                    message: "GitLab project was not found or is inaccessible.",
+                },
+            ],
+        });
+        expect(mocks.projectsAll).not.toHaveBeenCalled();
+    });
+});
 
 
 test('shouldExcludeProject returns false when the project is not excluded.', () => {

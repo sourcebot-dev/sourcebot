@@ -101,7 +101,7 @@ describe('gitlabPushMrReviews', () => {
 
         await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, SINGLE_REVIEW);
 
-        const noteBody = client.MergeRequestNotes.create.mock.calls[0][2] as string;
+        const noteBody = vi.mocked(client.MergeRequestNotes.create).mock.calls[0][2] as string;
         expect(noteBody).toContain('src/foo.ts');
     });
 
@@ -116,7 +116,7 @@ describe('gitlabPushMrReviews', () => {
 
         await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, multiLineReviews);
 
-        const noteBody = client.MergeRequestNotes.create.mock.calls[0][2] as string;
+        const noteBody = vi.mocked(client.MergeRequestNotes.create).mock.calls[0][2] as string;
         expect(noteBody).toContain('10');
         expect(noteBody).toContain('20');
         expect(noteBody).toContain('Refactor this block');
@@ -272,9 +272,9 @@ describe('gitlabPushMrReviews', () => {
 
         await gitlabPushMrReviews(client, 101, payloadWithDiffs, addedLineReview);
 
-        const call = client.MergeRequestDiscussions.create.mock.calls[0][3];
-        expect(call.position).not.toHaveProperty('oldLine');
-        expect(call.position.newLine).toBe('2');
+        const position = vi.mocked(client.MergeRequestDiscussions.create).mock.calls[0]![3]!.position!;
+        expect(position).not.toHaveProperty('oldLine');
+        expect(position.newLine).toBe('2');
     });
 
     test('uses new path for both oldPath and newPath when old path is /dev/null (added file)', async () => {

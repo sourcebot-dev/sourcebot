@@ -23,6 +23,9 @@ vi.mock('@sourcebot/shared', () => ({
         FALLBACK_GITHUB_CLOUD_TOKEN: undefined,
     },
     getTokenFromConfig: vi.fn(),
+    repositoryDiscoveryIssueSchema: {
+        parse: (issue: unknown) => issue,
+    },
 }));
 
 vi.mock('./entitlements.js', () => ({
@@ -40,6 +43,7 @@ vi.mock('./ee/githubAppManager.js', () => ({
 }));
 
 import { getOctokitWithGithubApp } from './github.js';
+import { collectRepositoryDiscoveryIssues } from './repositoryDiscoveryIssueContext.js';
 
 describe('getOctokitWithGithubApp', () => {
     beforeEach(() => {
@@ -87,6 +91,37 @@ describe('getOctokitWithGithubApp', () => {
         )).resolves.toBe(fallbackOctokit);
 
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
+    });
+
+    test('reports incomplete discovery when no matching installation exists', async () => {
+        const fallbackOctokit = {} as Octokit;
+        mocks.hasEntitlement.mockResolvedValue(true);
+        mocks.getInstallationToken.mockResolvedValue(null);
+
+        await expect(
+            collectRepositoryDiscoveryIssues(() =>
+                getOctokitWithGithubApp(
+                    fallbackOctokit,
+                    'example',
+                    undefined,
+                    'org example',
+                )
+            ),
+        ).resolves.toEqual({
+            value: fallbackOctokit,
+            issues: [
+                {
+                    code: 'AUTHENTICATION_FALLBACK',
+                    effect: 'DISCOVERY_INCOMPLETE',
+                    subject: {
+                        kind: 'configuration',
+                        value: 'GitHub App installation for example on github.com',
+                    },
+                    message:
+                        'No matching GitHub App installation was found. Discovery used legacy credentials and may be incomplete.',
+                },
+            ],
+        });
     });
 
     test('does not fall back when GitHub App token resolution fails', async () => {

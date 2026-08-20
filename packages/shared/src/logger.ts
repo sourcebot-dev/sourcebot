@@ -1,8 +1,10 @@
 import winston, { format, Logger } from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
-import { MESSAGE } from 'triple-beam';
+import { MESSAGE, SPLAT } from 'triple-beam';
 import { env } from './env.server.js';
+import { getJobLogContext } from './jobLogContext.js';
+import type { JobLogFields, JobLogLevel } from './jobLogger.js';
 
 /**
  * Logger configuration with support for structured JSON logging.
@@ -39,6 +41,33 @@ const humanReadableFormat = printf(({ level, message, timestamp, stack, label: _
     return stack ? `${base}\n${stack}` : base;
 });
 
+const JOB_LOG_LEVELS = new Set<JobLogLevel>(['debug', 'info', 'warn', 'error']);
+
+// Loggers are usually module-scoped, so resolve the active job when a log is
+// written rather than when the logger is created.
+const jobLogFormat = format((info) => {
+    const { level, message, timestamp: _timestamp, label, stack, ...rest } = info;
+    const context = getJobLogContext();
+    const jobLogLevel = level.toLowerCase() as JobLogLevel;
+    if (!context || !JOB_LOG_LEVELS.has(jobLogLevel)) {
+        return info;
+    }
+
+    const metadata = Object.fromEntries(Object.entries(rest));
+    const splat = info[SPLAT as unknown as string] as unknown[] | undefined;
+    const fields: JobLogFields = {
+        ...metadata,
+        ...(Object.keys(metadata).length === 0 && splat?.length
+            ? { details: splat.length === 1 ? splat[0] : splat }
+            : {}),
+        ...(stack ? { stack } : {}),
+        source: label,
+    };
+    context.sink[jobLogLevel](String(message), fields);
+
+    return info;
+});
+
 const createLogger = (label: string) => {
     const isStructuredLoggingEnabled = env.SOURCEBOT_STRUCTURED_LOGGING_ENABLED === 'true';
 
@@ -48,6 +77,7 @@ const createLogger = (label: string) => {
             errors({ stack: true }),
             timestamp(),
             labelFn({ label: label }),
+            jobLogFormat(),
         ),
         transports: [
             new winston.transports.Console({

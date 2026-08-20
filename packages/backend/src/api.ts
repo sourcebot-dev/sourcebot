@@ -1,19 +1,24 @@
-import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
-import * as Sentry from '@sentry/node';
-import { hasEntitlement } from './entitlements.js';
-import { createLogger, doesIdpSupportPermissionSyncing, env } from '@sourcebot/shared';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import {
+    MetricsRecorder,
+    RedisMetricsHistoryProvider,
+} from '@bull-board/metrics';
+import { Octokit } from '@octokit/rest';
+import * as Sentry from "@sentry/node";
+import { PrismaClient } from '@sourcebot/db';
+import { createLogger, env, JOB_PRIORITIES } from '@sourcebot/shared';
 import express, { NextFunction, Request, Response } from 'express';
 import 'express-async-errors';
+import type { Redis } from 'ioredis';
 import * as http from "http";
-import { ConnectionManager } from './connectionManager.js';
-import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
-import { PromClient } from './promClient.js';
-import { RepoIndexManager } from './repoIndexManager.js';
-import { createGitHubRepoRecord } from './repoCompileUtils.js';
-import { isGitHubRateLimitError, isNotFound } from './errors.js';
-import { Octokit } from '@octokit/rest';
-import { SINGLE_TENANT_ORG_ID } from './constants.js';
 import z from 'zod';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
+import { isGitHubRateLimitError, isNotFound } from './errors.js';
+import { PromClient } from './promClient.js';
+import { createGitHubRepoRecord } from './repoCompileUtils.js';
+import type { JobManager, Settings } from './types.js';
 
 const logger = createLogger('api');
 
@@ -22,17 +27,44 @@ const PORT = Number(workerApiUrl.port) || (workerApiUrl.protocol === "https:" ? 
 
 export class Api {
     private server: http.Server;
+    private metricsRecorder: MetricsRecorder;
+    private metricsHistoryProvider: RedisMetricsHistoryProvider;
 
     constructor(
         promClient: PromClient,
         private prisma: PrismaClient,
-        private connectionManager: ConnectionManager,
-        private repoIndexManager: RepoIndexManager,
-        private accountPermissionSyncer: AccountPermissionSyncer,
+        private jobManager: JobManager,
+        redis: Redis,
+        private settings: Settings,
     ) {
         const app = express();
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
+
+        const bullBoardAdapter = new ExpressAdapter();
+        bullBoardAdapter.setBasePath('/admin/queues');
+        const queueAdapters = jobManager
+            .getQueues()
+            .map(queue => new BullMQAdapter(queue));
+        this.metricsHistoryProvider = new RedisMetricsHistoryProvider({
+            connection: redis,
+        });
+        this.metricsRecorder = new MetricsRecorder({
+            queues: queueAdapters,
+            connection: redis,
+            onLatencyError: (error, queueName) => {
+                logger.error(
+                    `Failed to record BullMQ latency metrics for queue "${queueName}"`,
+                    error,
+                );
+            },
+        });
+        createBullBoard({
+            queues: queueAdapters,
+            serverAdapter: bullBoardAdapter,
+            options: { historyProvider: this.metricsHistoryProvider },
+        });
+        app.use('/admin/queues', bullBoardAdapter.getRouter());
 
         // Prometheus metrics endpoint
         app.use('/metrics', async (_req: Request, res: Response) => {
@@ -41,9 +73,6 @@ export class Api {
             res.end(metrics);
         });
 
-        app.post('/api/sync-connection', this.syncConnection.bind(this));
-        app.post('/api/index-repo', this.indexRepo.bind(this));
-        app.post('/api/trigger-account-permission-sync', this.triggerAccountPermissionSync.bind(this));
         app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
 
         app.use((error: unknown, _req: Request, _res: Response, next: NextFunction) => {
@@ -53,95 +82,9 @@ export class Api {
 
         this.server = app.listen(PORT, () => {
             logger.debug(`API server is running on port ${PORT}`);
+            logger.debug(`Bull Board is available at ${workerApiUrl.origin}/admin/queues`);
         });
-    }
-
-    private async syncConnection(req: Request, res: Response) {
-        const schema = z.object({
-            connectionId: z.number(),
-        }).strict();
-
-        const parsed = schema.safeParse(req.body);
-        if (!parsed.success) {
-            res.status(400).json({ error: parsed.error.message });
-            return;
-        }
-
-        const { connectionId } = parsed.data;
-        const connection = await this.prisma.connection.findUnique({
-            where: {
-                id: connectionId,
-            }
-        });
-
-        if (!connection) {
-            res.status(404).json({ error: 'Connection not found' });
-            return;
-        }
-
-        const [jobId] = await this.connectionManager.createJobs([connection]);
-
-        res.status(200).json({ jobId });
-    }
-
-    private async indexRepo(req: Request, res: Response) {
-        const schema = z.object({
-            repoId: z.number(),
-        }).strict();
-
-        const parsed = schema.safeParse(req.body);
-        if (!parsed.success) {
-            res.status(400).json({ error: parsed.error.message });
-            return;
-        }
-
-        const { repoId } = parsed.data;
-        const repo = await this.prisma.repo.findUnique({
-            where: { id: repoId },
-        });
-
-        if (!repo) {
-            res.status(404).json({ error: 'Repo not found' });
-            return;
-        }
-
-        const [jobId] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
-        res.status(200).json({ jobId });
-    }
-
-    private async triggerAccountPermissionSync(req: Request, res: Response) {
-        if (env.PERMISSION_SYNC_ENABLED !== 'true' || !await hasEntitlement('permission-syncing')) {
-            res.status(403).json({ error: 'Permission syncing is not enabled.' });
-            return;
-        }
-
-        const schema = z.object({
-            accountId: z.string(),
-        }).strict();
-
-        const parsed = schema.safeParse(req.body);
-        if (!parsed.success) {
-            res.status(400).json({ error: parsed.error.message });
-            return;
-        }
-
-        const { accountId } = parsed.data;
-        const account = await this.prisma.account.findUnique({
-            where: { id: accountId },
-        });
-
-        if (!account) {
-            res.status(404).json({ error: 'Account not found' });
-            return;
-        }
-
-        if (!doesIdpSupportPermissionSyncing(account.providerType)) {
-            res.status(400).json({ error: `Provider '${account.providerType}' does not support permission syncing.` });
-            return;
-        }
-
-        const jobId = await this.accountPermissionSyncer.schedulePermissionSyncForAccount(account);
-        res.status(200).json({ jobId });
+        this.metricsRecorder.start();
     }
 
     private async experimental_addGithubRepo(req: Request, res: Response) {
@@ -196,12 +139,19 @@ export class Api {
             create: record,
         });
 
-        const [jobId ] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
+        const jobId = await scheduleAndTriggerRepoIndexing({
+            jobManager: this.jobManager,
+            repoId: repo.id,
+            reindexIntervalMs: this.settings.reindexIntervalMs,
+        });
 
         res.status(200).json({ jobId, repoId: repo.id });
     }
 
     public async dispose() {
+        this.metricsRecorder.stop();
+        this.metricsHistoryProvider.disconnect();
+
         return new Promise<void>((resolve, reject) => {
             this.server.close((err) => {
                 if (err) reject(err);
@@ -210,3 +160,31 @@ export class Api {
         });
     }
 }
+
+const scheduleAndTriggerRepoIndexing = async ({
+    jobManager,
+    repoId,
+    reindexIntervalMs,
+}: {
+    jobManager: JobManager;
+    repoId: number;
+    reindexIntervalMs: number;
+}): Promise<string> => {
+    await jobManager.upsertJobScheduler(
+        "repo-index",
+        `repo-index-v1-${repoId}`,
+        reindexIntervalMs,
+        {
+            repoId,
+        },
+        { priority: JOB_PRIORITIES.SCHEDULED },
+    );
+
+    return jobManager.trigger(
+        "repo-index",
+        {
+            repoId,
+        },
+        { priority: JOB_PRIORITIES.INTERACTIVE },
+    );
+};

@@ -120,6 +120,45 @@ describe('DetailsCard', () => {
         expect(screen.queryByText('Activating tool...')).toBeNull();
     });
 
+    test('renders a list_branches result summary', () => {
+        const listBranchesPart = {
+            type: 'tool-list_branches',
+            toolCallId: 'tool-call-branches',
+            state: 'output-available',
+            input: {
+                repo: 'github.com/sourcebot-dev/sourcebot',
+                page: 1,
+                perPage: 2,
+            },
+            output: {
+                output: '{"branches":[]}',
+                metadata: {
+                    repo: 'github.com/sourcebot-dev/sourcebot',
+                    returnedCount: 2,
+                    totalCount: 7,
+                },
+            },
+        } satisfies SBChatMessagePart;
+
+        render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={false}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[{ stepIndex: 0, parts: [listBranchesPart] }]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(screen.queryByText('github.com/sourcebot-dev/sourcebot')).toBeTruthy();
+        expect(screen.queryByText('2 of 7 branches')).toBeTruthy();
+    });
+
     test('renders a loaded skill as a tool call with its name and command', () => {
         const loadedSkillPart = {
             type: 'tool-load_skill',

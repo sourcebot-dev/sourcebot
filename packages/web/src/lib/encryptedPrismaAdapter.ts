@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import { PrismaClient } from "@sourcebot/db";
 import { encryptOAuthToken, getIdentityProviderConfig } from "@sourcebot/shared";
+import { removeAccountPermissionSyncScheduler } from "@/ee/features/permissionSync/accountPermissionSyncQueue.server";
 
 /**
  * Encrypts OAuth tokens in account data before database storage
@@ -58,13 +59,25 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
             return (account?.user ?? null) as AdapterUser | null;
         },
         async unlinkAccount({ provider, providerAccountId }) {
-            await prisma.account.delete({
-                where: {
-                    providerId_providerAccountId: {
-                        providerId: provider,
-                        providerAccountId,
-                    },
+            const where = {
+                providerId_providerAccountId: {
+                    providerId: provider,
+                    providerAccountId,
                 },
+            };
+            const account = await prisma.account.findUnique({
+                where,
+                select: {
+                    id: true,
+                },
+            });
+
+            if (account) {
+                await removeAccountPermissionSyncScheduler(account.id);
+            }
+
+            await prisma.account.delete({
+                where,
             });
         },
     };
