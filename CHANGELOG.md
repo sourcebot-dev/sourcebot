@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+
 ## [5.1.8] - 2026-08-19
 
 ### Added
