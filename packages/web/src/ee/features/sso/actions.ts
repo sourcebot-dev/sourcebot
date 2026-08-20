@@ -8,6 +8,8 @@ import { OrgRole, type AccountPermissionSyncIssue } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
 import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfig, getIdentityProviderConfigs } from "@sourcebot/shared";
 import { cookies } from "next/headers";
+import { removeAccountPermissionSyncScheduler, scheduleAndTriggerAccountPermissionSync } from "@/ee/features/permissionSync/accountPermissionSyncQueue.server";
+import { unexpectedError } from "@/lib/serviceError";
 
 const logger = createLogger('web-ee-sso-actions');
 
@@ -91,15 +93,63 @@ export const getLinkedAccounts = async () => sew(() =>
     )
 );
 
+export const triggerAccountPermissionSync = async (accountId: string) => sew(() =>
+    withAuth(({ prisma, role, user }) =>
+        withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
+            try {
+                if (
+                    env.PERMISSION_SYNC_ENABLED !== 'true' ||
+                    !await hasEntitlement('permission-syncing')
+                ) {
+                    return unexpectedError('Permission syncing is not enabled');
+                }
+
+                const account = await prisma.account.findFirst({
+                    where: {
+                        id: accountId,
+                        userId: user.id,
+                    },
+                    select: {
+                        providerType: true,
+                    },
+                });
+                if (
+                    !account ||
+                    !doesIdpSupportPermissionSyncing(account.providerType)
+                ) {
+                    return unexpectedError('Account does not support permission syncing');
+                }
+
+                return await scheduleAndTriggerAccountPermissionSync(accountId);
+            } catch {
+                return unexpectedError('Failed to trigger account permission sync');
+            }
+        })
+    )
+);
 
 export const unlinkLinkedAccountProvider = async (providerId: string) => sew(() =>
     withAuth(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
-            const result = await prisma.account.deleteMany({
-                where: {
-                    providerId,
-                    userId: user.id,
+            const where = {
+                providerId,
+                userId: user.id,
+            };
+            const accounts = await prisma.account.findMany({
+                where,
+                select: {
+                    id: true,
                 },
+            });
+
+            await Promise.all(
+                accounts.map(({ id }) =>
+                    removeAccountPermissionSyncScheduler(id),
+                ),
+            );
+
+            const result = await prisma.account.deleteMany({
+                where,
             });
 
             logger.info(`Unlinked account provider ${providerId} for user ${user.id}. Deleted ${result.count} account(s).`);

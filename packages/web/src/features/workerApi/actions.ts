@@ -2,76 +2,11 @@
 
 import { sew } from "@/middleware/sew";
 import { githubRateLimited, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
-import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
-import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole } from "@sourcebot/db";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { env } from "@sourcebot/shared";
 import z from "zod";
-import { requestAccountPermissionSync } from "./client.server";
 
 const WORKER_API_URL = env.WORKER_API_URL;
-
-export const syncConnection = async (connectionId: number) => sew(() =>
-    withAuth(({ role }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    connectionId
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                return unexpectedError('Failed to sync connection');
-            }
-
-            const data = await response.json();
-            const schema = z.object({
-                jobId: z.string(),
-            });
-            return schema.parse(data);
-        })
-    )
-);
-
-export const indexRepo = async (repoId: number) => sew(() =>
-    withAuth(({ role }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const response = await fetch(`${WORKER_API_URL}/api/index-repo`, {
-                method: 'POST',
-                body: JSON.stringify({ repoId }),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                return unexpectedError('Failed to index repo');
-            }
-
-            const data = await response.json();
-            const schema = z.object({
-                jobId: z.string(),
-            });
-            return schema.parse(data);
-        })
-    )
-);
-
-export const triggerAccountPermissionSync = async (accountId: string) => sew(() =>
-    withAuth(({ role }) =>
-        withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
-            try {
-                return await requestAccountPermissionSync(accountId);
-            } catch {
-                return unexpectedError('Failed to trigger account permission sync');
-            }
-        })
-    )
-);
 
 export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
     withOptionalAuth(async () => {

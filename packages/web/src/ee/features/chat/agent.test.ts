@@ -84,6 +84,7 @@ vi.mock('@/features/tools', () => {
         getDiffDefinition: createToolDefinition('get_diff'),
         globDefinition: createToolDefinition('glob'),
         grepDefinition: createToolDefinition('grep'),
+        listBranchesDefinition: createToolDefinition('list_branches'),
         listCommitsDefinition: createToolDefinition('list_commits'),
         listReposDefinition: createToolDefinition('list_repos'),
         listTreeDefinition: createToolDefinition('list_tree'),
@@ -196,6 +197,7 @@ interface StreamTextArgs {
     messages: ModelMessage[];
     system: Array<{ role: 'system'; content: string; providerOptions?: ProviderOptions }>;
     tools: Record<string, { providerOptions?: ProviderOptions }>;
+    activeTools?: string[];
     prepareStep?: FakePrepareStep;
 }
 
@@ -261,6 +263,15 @@ beforeEach(() => {
     mockAi.createUIMessageStream.mockImplementation((options: typeof mockAi.latestCreateUIMessageStreamOptions) => {
         mockAi.latestCreateUIMessageStreamOptions = options;
         return {};
+    });
+});
+
+describe('createMessageStream built-in tools', () => {
+    test('makes list_branches available to the agent', async () => {
+        const { tools, activeTools } = await runCreateMessageStream([createUserMessage()]);
+
+        expect(tools).toHaveProperty('list_branches');
+        expect(activeTools).toContain('list_branches');
     });
 });
 

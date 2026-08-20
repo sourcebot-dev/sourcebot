@@ -83,7 +83,7 @@ describe('getFileSourceForRepo', () => {
 
     const mockPrisma = {
         repo: { findFirst: mockFindFirst },
-    } as Parameters<typeof getFileSourceForRepo>[1]['prisma'];
+    } as unknown as Parameters<typeof getFileSourceForRepo>[1]['prisma'];
 
     beforeEach(() => {
         vi.clearAllMocks();

@@ -101,10 +101,12 @@ export interface Settings {
    */
   resyncConnectionIntervalMs?: number;
   /**
+   * @deprecated
    * The polling rate (in milliseconds) at which the db should be checked for connections that need to be re-synced. Defaults to 1 second.
    */
   resyncConnectionPollingIntervalMs?: number;
   /**
+   * @deprecated
    * The polling rate (in milliseconds) at which the db should be checked for repos that should be re-indexed. Defaults to 1 second.
    */
   reindexRepoPollingIntervalMs?: number;
@@ -117,6 +119,7 @@ export interface Settings {
    */
   maxRepoIndexingJobConcurrency?: number;
   /**
+   * @deprecated
    * The number of repo GC jobs to run concurrently. Defaults to 8.
    */
   maxRepoGarbageCollectionJobConcurrency?: number;

@@ -146,3 +146,11 @@ export const fileBlameResponseSchema = z.object({
     ranges: z.array(blameRangeSchema).describe('Contiguous, non-overlapping line ranges ordered by startLine. Each range is attributed to a single commit.'),
     commits: z.record(z.string(), blameCommitSchema).describe('Commit metadata keyed by hash, deduplicated across ranges.'),
 });
+
+export const branchSchema = z.object({
+    name: z.string().describe('The branch name without the `refs/heads/` prefix.'),
+    commit: z.string().describe('The commit SHA at the branch head.'),
+    committedAt: z.string().describe('The committer date of the latest commit on the branch, in ISO 8601 format.'),
+    isDefault: z.boolean().describe('Whether this is the repository\'s default branch.'),
+    isIndexed: z.boolean().describe('Whether this branch is included in Sourcebot\'s current indexed revisions, i.e. whether code search can search it.'),
+});

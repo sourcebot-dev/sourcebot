@@ -11,9 +11,9 @@ import {
     SchemaRepositoryUserPermission as CloudRepositoryUserPermission,
 } from "@coderabbitai/bitbucket/cloud/openapi";
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
-import { processPromiseResults } from "./connectionUtils.js";
-import { throwIfAnyFailed } from "./connectionUtils.js";
+import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
 import { getTokenFromConfig } from "@sourcebot/shared";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 
 const logger = createLogger('bitbucket');
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
@@ -29,9 +29,9 @@ interface BitbucketClient {
     apiClient: any;
     baseUrl: string;
     gitUrl: string;
-    getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
-    getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
-    getRepos: (client: BitbucketClient, repos: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
+    getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<BitbucketRepository[]>;
+    getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<BitbucketRepository[]>;
+    getRepos: (client: BitbucketClient, repos: string[]) => Promise<BitbucketRepository[]>;
     shouldExcludeRepo: (repo: BitbucketRepository, config: BitbucketConnectionConfig) => boolean;
 }
 
@@ -91,46 +91,63 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
         createBitbucketCloudClient(config.user, token);
 
     let allRepos: BitbucketRepository[] = [];
-    let allWarnings: string[] = [];
 
     if (config.all === true) {
         if (client.deploymentType === BITBUCKET_SERVER) {
-            const { repos, warnings } = await serverGetAllRepos(client);
-            allRepos = allRepos.concat(repos);
-            allWarnings = allWarnings.concat(warnings);
+            allRepos = allRepos.concat(await serverGetAllRepos(client));
         } else {
             const warning = `Ignoring option all:true in config: not supported for Bitbucket Cloud`;
             logger.warn(warning);
-            allWarnings = allWarnings.concat(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "UNSUPPORTED_CONFIGURATION",
+                effect: "CONFIGURATION_IGNORED",
+                subject: {
+                    kind: "configuration",
+                    value: "all",
+                },
+                message: "The all option is not supported for Bitbucket Cloud.",
+            });
         }
     }
 
     if (config.workspaces) {
-        const { repos, warnings } = await client.getReposForWorkspace(client, config.workspaces);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(
+            await client.getReposForWorkspace(client, config.workspaces),
+        );
     }
 
     if (config.projects) {
-        const { repos, warnings } = await client.getReposForProjects(client, config.projects);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(
+            await client.getReposForProjects(client, config.projects),
+        );
     }
 
     if (config.repos) {
-        const { repos, warnings } = await client.getRepos(client, config.repos);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(await client.getRepos(client, config.repos));
+    }
+
+    if (
+        client.deploymentType === BITBUCKET_CLOUD
+        && config.exclude?.archived
+    ) {
+        const warning = "Bitbucket Cloud does not support filtering archived repositories. Ignoring exclude.archived.";
+        logger.warn(warning);
+        reportRepositoryDiscoveryIssue({
+            code: "UNSUPPORTED_CONFIGURATION",
+            effect: "CONFIGURATION_IGNORED",
+            subject: {
+                kind: "configuration",
+                value: "exclude.archived",
+            },
+            message: "The exclude.archived option is not supported for Bitbucket Cloud.",
+        });
     }
 
     const filteredRepos = allRepos.filter((repo) => {
         return !client.shouldExcludeRepo(repo, config);
     });
 
-    return {
-        repos: filteredRepos,
-        warnings: allWarnings,
-    };
+    return filteredRepos;
 }
 
 export function createBitbucketCloudClient(user: string | undefined, token: string | undefined): BitbucketClient {
@@ -210,7 +227,7 @@ function parseUrl(url: string): { path: string; query: Record<string, string>; }
 }
 
 
-async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
+async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<CloudRepository[]> {
     const results = await Promise.allSettled(workspaces.map(async (workspace) => {
         try {
             logger.debug(`Fetching all repos for workspace ${workspace}...`);
@@ -231,10 +248,7 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
             });
             logger.debug(`Found ${data.length} repos for workspace ${workspace} in ${durationMs}ms.`);
 
-            return {
-                type: 'valid' as const,
-                data: data,
-            };
+            return data;
         } catch (e: any) {
             Sentry.captureException(e);
             logger.error(`Failed to get repos for workspace ${workspace}: ${e}`);
@@ -242,33 +256,41 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
             if (e?.status === 404) {
                 const warning = `Workspace ${workspace} not found or invalid access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                }
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "workspace",
+                        value: workspace,
+                    },
+                    message: "Bitbucket workspace was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults(results);
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
-async function cloudGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
+async function cloudGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<CloudRepository[]> {
     const results = await Promise.allSettled(projects.map(async (project) => {
         const [workspace, project_name] = project.split('/');
         if (!workspace || !project_name) {
             const warning = `Invalid project ${project}`;
             logger.warn(warning);
-            return {
-                type: 'warning' as const,
-                warning
-            }
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_TARGET",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "project",
+                    value: project,
+                },
+                message: "Bitbucket Cloud projects must use the workspace/project format.",
+            });
+            return [];
         }
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
@@ -292,10 +314,7 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
             });
 
             logger.debug(`Found ${repos.length} repos for project ${project_name} for workspace ${workspace} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data: repos
-            }
+            return repos;
         } catch (e: any) {
             Sentry.captureException(e);
             logger.error(`Failed to fetch repos for project ${project_name}: ${e}`);
@@ -303,33 +322,41 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
             if (e?.status === 404) {
                 const warning = `Project ${project_name} not found in ${workspace} or invalid access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                }
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "project",
+                        value: project,
+                    },
+                    message: "Bitbucket Cloud project was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults(results);
-    return {
-        repos,
-        warnings
-    }
+    return processPromiseResults(results);
 }
 
-async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
+async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promise<CloudRepository[]> {
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         const [workspace, repo_slug] = repo.split('/');
         if (!workspace || !repo_slug) {
             const warning = `Invalid repo ${repo}`;
             logger.warn(warning);
-            return {
-                type: 'warning' as const,
-                warning
-            };
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_TARGET",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "repository",
+                    value: repo,
+                },
+                message: "Bitbucket Cloud repositories must use the workspace/repository format.",
+            });
+            return [];
         }
 
         logger.debug(`Fetching repo ${repo_slug} for workspace ${workspace}...`);
@@ -339,10 +366,7 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
                 const { data } = await client.apiClient.GET(path);
                 return data;
             }, `repo ${repo}`, logger);
-            return {
-                type: 'valid' as const,
-                data: [data]
-            };
+            return [data];
         } catch (e: any) {
             Sentry.captureException(e);
             logger.error(`Failed to fetch repo ${repo}: ${e}`);
@@ -350,21 +374,23 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
             if (e?.status === 404) {
                 const warning = `Repo ${repo} not found in ${workspace} or invalid access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: repo,
+                    },
+                    message: "Bitbucket Cloud repository was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults(results);
-    return {
-        repos,
-        warnings
-    };
+    return processPromiseResults(results);
 }
 
 export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
@@ -379,10 +405,6 @@ export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: Bitbuc
                 reason = `\`exclude.repos\` contains ${repoName}`;
                 return true;
             }
-        }
-
-        if (!!config.exclude?.archived) {
-            logger.warn(`Exclude archived repos flag provided in config but Bitbucket Cloud does not support archived repos. Ignoring...`);
         }
 
         if (!!config.exclude?.forks && cloudRepo.parent !== undefined) {
@@ -464,16 +486,23 @@ const getPaginatedServer = async <T>(
     return results;
 }
 
-async function serverGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
-    const warnings = workspaces.map(workspace => `Workspaces are not supported in Bitbucket Server: ${workspace}`);
+async function serverGetReposForWorkspace(_client: BitbucketClient, workspaces: string[]): Promise<ServerRepository[]> {
     logger.debug('Workspaces are not supported in Bitbucket Server');
-    return {
-        repos: [],
-        warnings
-    };
+    for (const workspace of workspaces) {
+        reportRepositoryDiscoveryIssue({
+            code: "UNSUPPORTED_CONFIGURATION",
+            effect: "CONFIGURATION_IGNORED",
+            subject: {
+                kind: "workspace",
+                value: workspace,
+            },
+            message: "Workspaces are not supported for Bitbucket Server.",
+        });
+    }
+    return [];
 }
 
-async function serverGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
+async function serverGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<ServerRepository[]> {
     const results = await Promise.allSettled(projects.map(async (project) => {
         try {
             logger.debug(`Fetching all repos for project ${project}...`);
@@ -495,10 +524,7 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
             });
             logger.debug(`Found ${data.length} repos for project ${project} in ${durationMs}ms.`);
 
-            return {
-                type: 'valid' as const,
-                data: data,
-            };
+            return data;
         } catch (e: any) {
             Sentry.captureException(e);
             logger.error(`Failed to get repos for project ${project}: ${e}`);
@@ -506,33 +532,41 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
             if (e?.status === 404) {
                 const warning = `Project ${project} not found or invalid access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "project",
+                        value: project,
+                    },
+                    message: "Bitbucket Server project was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults(results);
-    return {
-        repos,
-        warnings
-    };
+    return processPromiseResults(results);
 }
 
-async function serverGetRepos(client: BitbucketClient, repoList: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
+async function serverGetRepos(client: BitbucketClient, repoList: string[]): Promise<ServerRepository[]> {
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         const [project, repo_slug] = repo.split('/');
         if (!project || !repo_slug) {
             const warning = `Invalid repo ${repo}`;
             logger.warn(warning);
-            return {
-                type: 'warning' as const,
-                warning
-            };
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_TARGET",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "repository",
+                    value: repo,
+                },
+                message: "Bitbucket Server repositories must use the project/repository format.",
+            });
+            return [];
         }
 
         logger.debug(`Fetching repo ${repo_slug} for project ${project}...`);
@@ -542,10 +576,7 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
                 const { data } = await client.apiClient.GET(path);
                 return data;
             }, `repo ${repo}`, logger);
-            return {
-                type: 'valid' as const,
-                data: [data]
-            };
+            return [data];
         } catch (e: any) {
             Sentry.captureException(e);
             logger.error(`Failed to fetch repo ${repo}: ${e}`);
@@ -553,24 +584,26 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
             if (e?.status === 404) {
                 const warning = `Repo ${repo} not found in project ${project} or invalid access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: repo,
+                    },
+                    message: "Bitbucket Server repository was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults(results);
-    return {
-        repos,
-        warnings
-    };
+    return processPromiseResults(results);
 }
 
-async function serverGetAllRepos(client: BitbucketClient): Promise<{repos: ServerRepository[], warnings: string[]}> {
+async function serverGetAllRepos(client: BitbucketClient): Promise<ServerRepository[]> {
     logger.debug(`Fetching all repos from Bitbucket Server...`);
     const path = `/rest/api/1.0/repos` as ServerGetRequestPath;
     const { durationMs, data } = await measure(async () => {
@@ -583,7 +616,7 @@ async function serverGetAllRepos(client: BitbucketClient): Promise<{repos: Serve
         return fetchWithRetry(fetchFn, `all repos`, logger);
     });
     logger.debug(`Found ${data.length} total repos in ${durationMs}ms.`);
-    return { repos: data, warnings: [] };
+    return data;
 }
 
 export function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
@@ -755,7 +788,7 @@ export const getReposForAuthenticatedBitbucketServerUser = async (
  * @note This only covers direct user-to-repo grants. It does NOT include users who have access via:
  *   - Project-level permissions (inherited by all repos in the project)
  *   - Group membership
- * These users will still gain access through account-driven syncing (accountPermissionSyncer).
+ * These users will still gain access through account-driven permission syncing.
  *
  * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-projects-projectkey-repos-reposlug-permissions-users-get
  */

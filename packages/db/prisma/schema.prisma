@@ -72,14 +72,14 @@ model Repo {
 
   permittedAccounts  AccountToRepoPermission[]
   scopedAccessTokens ScopedAccessTokenToRepo[]
-  permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
+  latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest repo state.
 
-  jobs RepoIndexingJob[]
-  indexedAt          DateTime? /// When the repo was last indexed successfully.
-  indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
-  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
-  pushedAt           DateTime? /// The timestamp of the most recent commit across all branches.
+  indexedAt           DateTime? /// When the repo was last indexed successfully.
+  indexedCommitHash   String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobId String? /// The latest indexing job in the workload queue.
+  firstIndexingJobFinishedAt DateTime? /// When the first indexing job reached a terminal state, whether successful or failed.
+  pushedAt            DateTime? /// The timestamp of the most recent commit across all branches.
 
   external_id           String /// The id of the repo in the external service
   external_codeHostType CodeHostType /// The type of the external service (e.g., github, gitlab, etc.)
@@ -93,56 +93,8 @@ model Repo {
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
+  @@index([orgId, firstIndexingJobFinishedAt])
   @@index([indexedAt])
-}
-
-enum RepoIndexingJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-enum RepoIndexingJobType {
-  INDEX
-  CLEANUP
-}
-
-model RepoIndexingJob {
-  id          String                      @id @default(cuid())
-  type        RepoIndexingJobType
-  status      RepoIndexingJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
-
-  errorMessage String?
-
-  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  repoId Int
-
-  @@index([repoId, type, status])
-}
-
-enum RepoPermissionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model RepoPermissionSyncJob {
-  id          String                      @id @default(cuid())
-  status      RepoPermissionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  errorMessage String?
-
-  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  repoId Int
 }
 
 model SearchContext {
@@ -182,9 +134,10 @@ model Connection {
   // The type of connection (e.g., github, gitlab, etc.)
   connectionType ConnectionType
 
-  syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
+  latestSyncJobId    String? /// The most recently started connection sync job.
+  firstSyncJobFinishedAt DateTime? /// When the first sync job reached a terminal state, whether successful or failed.
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -207,27 +160,7 @@ model Connection {
   orgId Int
 
   @@unique([name, orgId])
-}
-
-enum ConnectionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model ConnectionSyncJob {
-  id          String                      @id @default(cuid())
-  status      ConnectionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  warningMessages String[]
-  errorMessage String?
-
-  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  connectionId Int
+  @@index([orgId, firstSyncJobFinishedAt])
 }
 
 model RepoToConnection {
@@ -571,26 +504,6 @@ model User {
 
 }
 
-enum AccountPermissionSyncJobStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-}
-
-model AccountPermissionSyncJob {
-  id          String                      @id @default(cuid())
-  status      AccountPermissionSyncJobStatus @default(PENDING)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  completedAt DateTime?
-
-  errorMessage String?
-
-  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  accountId String
-}
-
 enum PermissionSyncSource {
   ACCOUNT_DRIVEN
   REPO_DRIVEN
@@ -643,8 +556,8 @@ model Account {
   /// List of repos that this account has access to.
   accessibleRepos AccountToRepoPermission[]
 
-  permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
+  latestPermissionSyncJobId String? /// The permission sync job allowed to publish the latest account state.
 
   /// Set when permission syncing fails closed and user action is required.
   /// Cleared after a subsequent permission sync completes successfully.

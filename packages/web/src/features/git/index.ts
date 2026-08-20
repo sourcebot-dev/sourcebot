@@ -6,6 +6,7 @@ export * from './getTreeApi';
 export * from './getFileSourceApi';
 export * from './getFileBlameApi';
 export * from './listCommitsApi';
+export * from './listBranchesApi';
 export * from './listCommitAuthorsApi';
 export * from './getPathTypeApi';
 export * from './types';

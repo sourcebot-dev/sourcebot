@@ -348,8 +348,6 @@ const options = {
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_GRAB: booleanSchema.default('false'),
 
-        SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
-
         DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),
 
         DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS: booleanSchema
@@ -398,7 +396,6 @@ const options = {
         REDIS_TLS_HONOR_CIPHER_ORDER: booleanSchema.optional(),
         REDIS_TLS_KEY_PASSPHRASE: z.string().optional(),
 
-        CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
 
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
