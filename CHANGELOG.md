@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - [EE] Added a `list_branches` tool to the MCP server and Ask Sourcebot for discovering repository branches and whether they are indexed. [#1609](https://github.com/sourcebot-dev/sourcebot/pull/1609)
-- [EE] Added `create_skill`, `update_skill`, and `list_skills` tools to the MCP server and Ask Sourcebot for managing skills.
+- [EE] Added `create_skill`, `update_skill`, and `list_skills` tools to the MCP server and Ask Sourcebot for managing skills. [#1612](https://github.com/sourcebot-dev/sourcebot/pull/1612)
 
 ### Changed
 - Migrated connection syncing, repository indexing, permission syncing, and background pruning from in-process managers and pollers to BullMQ workloads with retries and per-resource execution locking. [#1427](https://github.com/sourcebot-dev/sourcebot/pull/1427)
