@@ -420,11 +420,11 @@ export const ChatThread = ({
     }, [scrollRef]);
 
 
-    // Keep the error state & banner visibility in sync.
+    // Keep the error state & banner visibility in sync. The banner should
+    // automatically hide when the error is cleared (e.g. when a new request
+    // starts successfully), preventing stale error banners from lingering.
     useEffect(() => {
-        if (error) {
-            setIsErrorBannerVisible(true);
-        }
+        setIsErrorBannerVisible(!!error);
     }, [error]);
 
     const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => {
