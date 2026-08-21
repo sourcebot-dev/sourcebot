@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+- [EE] Fixed MCP protocol traffic marking users as active by recording activity only for tool calls. [#1613](https://github.com/sourcebot-dev/sourcebot/pull/1613)
 
 ## [5.1.8] - 2026-08-19
 
