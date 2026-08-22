@@ -276,7 +276,7 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
             id: 'repositoryFirstSync',
             priority: BannerPriority.REPOSITORY_FIRST_SYNC,
             dismissible: true,
-            audience: 'owner',
+            audience: 'everyone',
             render: (props) => (
                 <RepositoryFirstSyncBanner
                     {...props}
