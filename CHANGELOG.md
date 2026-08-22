@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.9] - 2026-08-22
+
 ### Fixed
 - Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
 - Fixed Ask error banner persisting after transient network errors were cleared, causing stale "Network error" messages to appear after every question. [#1614](https://github.com/sourcebot-dev/sourcebot/pull/1614)
