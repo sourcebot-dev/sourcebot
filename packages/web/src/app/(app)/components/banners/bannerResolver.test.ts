@@ -291,10 +291,10 @@ describe('resolveActiveBanner', () => {
 
             expect(result?.id).toBe('repositoryFirstSync');
             expect(result?.dismissible).toBe(true);
-            expect(result?.audience).toBe('owner');
+            expect(result?.audience).toBe('everyone');
         });
 
-        test('hides first-time syncing repositories from members', () => {
+        test('shows first-time syncing repositories to members', () => {
             const result = resolveActiveBanner(makeContext({
                 role: OrgRole.MEMBER,
                 repositorySyncCounts: {
@@ -304,7 +304,20 @@ describe('resolveActiveBanner', () => {
                 },
             }));
 
-            expect(result).toBeNull();
+            expect(result?.id).toBe('repositoryFirstSync');
+        });
+
+        test('shows first-time syncing repositories to anonymous viewers', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: null,
+                repositorySyncCounts: {
+                    firstTimeSyncingCount: 3,
+                    failedCount: 0,
+                    warningCount: 0,
+                },
+            }));
+
+            expect(result?.id).toBe('repositoryFirstSync');
         });
 
         test('repository warnings take priority over first-time syncing', () => {

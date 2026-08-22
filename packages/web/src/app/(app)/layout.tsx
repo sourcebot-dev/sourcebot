@@ -171,16 +171,14 @@ export default async function Layout(props: LayoutProps) {
         permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
             ? permissionSyncStatus.issues
             : [];
-    const repositorySyncCountsResult = role === OrgRole.OWNER
-        ? await getRepositorySyncCounts().catch((error) => {
-              console.error("Failed to load repository sync counts", error);
-              return {
-                  firstTimeSyncingCount: 0,
-                  failedCount: 0,
-                  warningCount: 0,
-              };
-          })
-        : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
+    const repositorySyncCountsResult = await getRepositorySyncCounts().catch((error) => {
+        console.error("Failed to load repository sync counts", error);
+        return {
+            firstTimeSyncingCount: 0,
+            failedCount: 0,
+            warningCount: 0,
+        };
+    });
     if (isServiceError(repositorySyncCountsResult)) {
         throw new ServiceErrorException(repositorySyncCountsResult);
     }

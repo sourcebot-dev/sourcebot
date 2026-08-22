@@ -5,7 +5,7 @@ import { sew } from "@/middleware/sew";
 import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
 import { StatusCodes } from "http-status-codes";
 
-// eslint-disable-next-line authz/require-auth-wrapper -- Authentication and owner authorization are enforced by getRepositorySyncCounts.
+// eslint-disable-next-line authz/require-auth-wrapper -- Optional authentication and repository visibility are enforced by getRepositorySyncCounts.
 export const GET = apiHandler(async () => {
     const result = await sew(() => getRepositorySyncCounts());
 
