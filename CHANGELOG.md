@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+- Fixed the repository first-sync banner not appearing for members and anonymous viewers. [#1615](https://github.com/sourcebot-dev/sourcebot/pull/1615)
 
 ## [5.1.8] - 2026-08-19
 
