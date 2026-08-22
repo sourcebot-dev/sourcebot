@@ -6,6 +6,10 @@ const fileSourceSchema = z.object({
     path: z.string(),
     name: z.string(),
     revision: z.string(),
+    range: z.object({
+        startLine: z.number().int().positive(),
+        endLine: z.number().int().positive(),
+    }).refine(({ startLine, endLine }) => endLine >= startLine).optional(),
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;
 

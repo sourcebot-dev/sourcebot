@@ -200,7 +200,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = [], attachments: AttachmentData[] = []): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = [], attachments: AttachmentData[] = [], explicitSources: Source[] = []): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -218,6 +218,7 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
             return undefined;
         })
         .filter((source) => source !== undefined);
+    sources.push(...explicitSources);
     const commandInvocation = createCommandInvocationData(
         text,
         mentions.filter((mention) => mention.type === 'command'),
