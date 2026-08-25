@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Made Sentry tracing and profiling opt-in through environment variables. [#1616](https://github.com/sourcebot-dev/sourcebot/pull/1616)
+
 ## [5.1.9] - 2026-08-22
 
 ### Fixed
