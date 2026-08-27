@@ -519,6 +519,37 @@ describe('getAuthenticatedUser', () => {
 });
 
 describe('getAuthContext', () => {
+    test('does not record activity or activate a pending membership when activity recording is disabled', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue(MOCK_ORG);
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: null,
+            role: OrgRole.MEMBER,
+        });
+        setMockSession(createMockSession({ user: { id: userId } }));
+
+        const authContext = await getAuthContext({ recordActivity: false });
+
+        expect(authContext).toMatchObject({
+            user: { id: userId },
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER,
+        });
+        expect(prisma.user.update).not.toHaveBeenCalled();
+        expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
+
     test('should pass scoped access token repository IDs to the Prisma extension', async () => {
         const scopedAccessToken = createMockScopedAccessToken();
         prisma.scopedAccessToken.findUnique.mockResolvedValue(scopedAccessToken);
