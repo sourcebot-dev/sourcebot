@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.10] - 2026-08-27
+
 ### Fixed
 - Upgraded `posthog-node` to `^5.51.2` and `@sentry/*` to `^10.71.0` to stop request contexts and child spans from being retained indefinitely. [#1617](https://github.com/sourcebot-dev/sourcebot/pull/1617)
 - [EE] Fixed MCP protocol traffic marking users as active by recording activity only for tool calls. [#1613](https://github.com/sourcebot-dev/sourcebot/pull/1613)
