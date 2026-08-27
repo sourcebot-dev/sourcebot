@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+- Upgraded `posthog-node` to `^5.51.2` and `@sentry/*` to `^10.71.0` to stop request contexts and child spans from being retained indefinitely. [#1617](https://github.com/sourcebot-dev/sourcebot/pull/1617)
 - [EE] Fixed MCP protocol traffic marking users as active by recording activity only for tool calls. [#1613](https://github.com/sourcebot-dev/sourcebot/pull/1613)
+
+## [5.1.9] - 2026-08-22
+
+### Fixed
+- Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+- Fixed Ask error banner persisting after transient network errors were cleared, causing stale "Network error" messages to appear after every question. [#1614](https://github.com/sourcebot-dev/sourcebot/pull/1614)
 
 ## [5.1.8] - 2026-08-19
 
