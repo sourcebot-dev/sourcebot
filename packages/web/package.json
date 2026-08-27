@@ -162,7 +162,7 @@
     "micromatch": "^4.0.8",
     "minidenticons": "^4.2.1",
     "motion": "^12.42.0",
-    "next": "^16.3.1",
+    "next": "^16.3.3",
     "next-auth": "^5.0.0-beta.32",
     "next-navigation-guard": "^0.2.0",
     "next-themes": "^0.3.0",
