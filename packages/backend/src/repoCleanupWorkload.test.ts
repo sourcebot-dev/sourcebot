@@ -1,6 +1,8 @@
 import type { PrismaClient } from "@sourcebot/db";
+import { JOB_PRIORITIES } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createRepoCleanupWorkload } from "./repoCleanupWorkload.js";
+import { createRepoCleanupWorkload, reindexReposWithMissingShards } from "./repoCleanupWorkload.js";
+import type { JobManager } from "./types.js";
 
 const fsMocks = vi.hoisted(() => ({
     existsSync: vi.fn(),
@@ -30,12 +32,14 @@ vi.mock("fs/promises", () => ({
 }));
 
 const repoFindUnique = vi.fn();
+const repoFindMany = vi.fn();
 const repoDeleteMany = vi.fn();
 const repoUpdate = vi.fn();
 
 const db = {
     repo: {
         findUnique: repoFindUnique,
+        findMany: repoFindMany,
         deleteMany: repoDeleteMany,
         update: repoUpdate,
     },
@@ -77,6 +81,7 @@ describe("repoCleanupWorkload", () => {
         fsMocks.readdir.mockResolvedValue([]);
         fsMocks.rm.mockResolvedValue(undefined);
         repoFindUnique.mockResolvedValue(eligibleRepo);
+        repoFindMany.mockResolvedValue([]);
         repoDeleteMany.mockResolvedValue({ count: 1 });
         repoUpdate.mockResolvedValue(undefined);
     });
@@ -180,6 +185,163 @@ describe("repoCleanupWorkload", () => {
         expect(fsMocks.readdir).not.toHaveBeenCalled();
         expect(lifecycleLogger.debug).toHaveBeenCalledWith(
             "Skipping CLEANUP job for repo 42: repository is no longer eligible for cleanup",
+        );
+    });
+});
+
+describe("reindexReposWithMissingShards", () => {
+    const trigger = vi.fn();
+    const jobManager = { trigger } as unknown as JobManager;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        fsMocks.existsSync.mockReturnValue(true);
+        fsMocks.readdir.mockResolvedValue([]);
+        repoFindMany.mockResolvedValue([]);
+        trigger.mockResolvedValue("job-id");
+    });
+
+    test("does nothing when the index directory doesn't exist", async () => {
+        fsMocks.existsSync.mockReturnValue(false);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(fsMocks.readdir).not.toHaveBeenCalled();
+        expect(repoFindMany).not.toHaveBeenCalled();
+        expect(trigger).not.toHaveBeenCalled();
+    });
+
+    test("re-queues an indexed repo with no shard on disk", async () => {
+        fsMocks.readdir.mockResolvedValue([]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        // Pins down the exact where-clause: repos still eligible for reindex
+        // scheduling (has a connection, or explicitly pinned via
+        // isAutoCleanupDisabled) that the DB believes are indexed. This mirrors
+        // the set reconcileJobSchedulers.ts keeps on a recurring reindex
+        // schedule, since orphaned repos with no such pin are the cleanup
+        // workload's responsibility, not this one's.
+        expect(repoFindMany).toHaveBeenCalledWith({
+            where: {
+                indexedAt: { not: null },
+                OR: [
+                    { connections: { some: {} } },
+                    { isAutoCleanupDisabled: true },
+                ],
+            },
+            select: { id: true, name: true },
+        });
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("does not re-queue a repo that already has a shard on disk", async () => {
+        fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).not.toHaveBeenCalled();
+    });
+
+    test("treats a lingering .tmp shard as missing", async () => {
+        fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt.tmp"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("ignores unrelated files in the index directory", async () => {
+        fsMocks.readdir.mockResolvedValue([".DS_Store", "README.md"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("recognizes a repo whose content is split across multiple shard files", async () => {
+        fsMocks.readdir.mockResolvedValue([
+            "1_42_v16.00000.zoekt",
+            "1_42_v16.00001.zoekt",
+        ]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).not.toHaveBeenCalled();
+    });
+
+    test("only re-queues the repo actually missing a shard among many", async () => {
+        fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/healthy-repo" },
+            { id: 43, name: "github.com/acme/broken-repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).toHaveBeenCalledTimes(1);
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 43 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("re-queues remaining repos even if one fails to enqueue", async () => {
+        fsMocks.readdir.mockResolvedValue([]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/flaky-repo" },
+            { id: 43, name: "github.com/acme/broken-repo" },
+        ]);
+        trigger.mockImplementation(async (_name, data: { repoId: number }) => {
+            if (data.repoId === 42) {
+                throw new Error("redis connection reset");
+            }
+            return "job-id";
+        });
+
+        await expect(
+            reindexReposWithMissingShards(db, jobManager),
+        ).resolves.not.toThrow();
+
+        expect(trigger).toHaveBeenCalledTimes(2);
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 43 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+        expect(lifecycleLogger.error).toHaveBeenCalledWith(
+            expect.stringContaining(
+                "Failed to re-queue repo github.com/acme/flaky-repo (id: 42)",
+            ),
+            expect.any(Error),
         );
     });
 });

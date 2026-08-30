@@ -13,7 +13,7 @@ import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { redis } from "./redis.js";
 import { createConnectionSyncWorkload } from "./connectionSyncWorkload.js";
-import { cleanupOrphanedRepoResources, createRepoCleanupWorkload } from "./repoCleanupWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoCleanupWorkload, reindexReposWithMissingShards } from "./repoCleanupWorkload.js";
 import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
@@ -93,6 +93,7 @@ jobManager.register(auditLogPruneWorkload);
 const api = new Api(promClient, prisma, jobManager, redis, settings);
 
 await cleanupOrphanedRepoResources(prisma);
+await reindexReposWithMissingShards(prisma, jobManager);
 
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
 await configManager.syncConfig();

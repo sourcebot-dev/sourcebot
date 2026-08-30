@@ -3,13 +3,14 @@ import {
     createLogger,
     getRepoIdFromPath,
     getRepoPath,
+    JOB_PRIORITIES,
     REPO_CLEANUP_QUEUE,
 } from "@sourcebot/shared";
 import { existsSync } from "fs";
 import { readdir, rm } from "fs/promises";
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from "./constants.js";
 import { REPOSITORY_EXECUTION_LOCK } from "./repoLock.js";
-import type { Settings, Workload } from "./types.js";
+import type { JobManager, Settings, Workload } from "./types.js";
 import { getRepoIdFromShardFileName } from "./utils.js";
 
 const logger = createLogger("repo-cleanup-workload");
@@ -228,6 +229,75 @@ export const cleanupOrphanedRepoResources = async (db: PrismaClient) => {
                     }
                 }
             }
+        }
+    }
+};
+
+// Handles the inverse of cleanupOrphanedRepoResources: repos the DB believes are
+// indexed but whose shard files are missing from disk (e.g., INDEX_CACHE_DIR was
+// wiped independently of the DB, as happens when it's placed on ephemeral storage).
+// Without this, such repos would silently return empty search results until their
+// next scheduled reindex, which can be a long time away.
+export const reindexReposWithMissingShards = async (
+    db: PrismaClient,
+    jobManager: JobManager,
+) => {
+    if (!existsSync(INDEX_CACHE_DIR)) {
+        return;
+    }
+
+    const entries = await readdir(INDEX_CACHE_DIR);
+    const repoIdsWithShards = new Set<number>();
+    for (const entry of entries) {
+        // .tmp files are left behind by in-progress or previously failed index
+        // attempts. They aren't searchable, so they don't count as a valid shard.
+        if (entry.includes(".tmp")) {
+            continue;
+        }
+        const repoId = getRepoIdFromShardFileName(entry);
+        if (repoId !== undefined) {
+            repoIdsWithShards.add(repoId);
+        }
+    }
+
+    // Considers the same set of repos reconcileJobSchedulers keeps on a recurring
+    // reindex schedule: attached to a connection, or explicitly pinned via
+    // isAutoCleanupDisabled. Anything outside that set is owned by the cleanup
+    // workload above, not re-indexed.
+    const indexedRepos = await db.repo.findMany({
+        where: {
+            indexedAt: { not: null },
+            OR: [
+                { connections: { some: {} } },
+                { isAutoCleanupDisabled: true },
+            ],
+        },
+        select: { id: true, name: true },
+    });
+
+    const reposMissingShards = indexedRepos.filter(
+        (repo) => !repoIdsWithShards.has(repo.id),
+    );
+
+    // Triggered sequentially so that one repo failing to enqueue (e.g. a
+    // transient Redis error) doesn't stop the rest from being recovered, and
+    // can't take down startup: this runs before the worker installs its
+    // uncaught-exception handlers.
+    for (const repo of reposMissingShards) {
+        logger.warn(
+            `Repo ${repo.name} (id: ${repo.id}) is marked as indexed but has no shard files on disk. Re-queuing for indexing.`,
+        );
+        try {
+            await jobManager.trigger(
+                "repo-index",
+                { repoId: repo.id },
+                { priority: JOB_PRIORITIES.SCHEDULED },
+            );
+        } catch (error) {
+            logger.error(
+                `Failed to re-queue repo ${repo.name} (id: ${repo.id}) for indexing:`,
+                error,
+            );
         }
     }
 };
