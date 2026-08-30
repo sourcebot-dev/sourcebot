@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Reindexed repositories on startup when their persisted indexed state no longer had corresponding Zoekt shard files on disk. [#1621](https://github.com/sourcebot-dev/sourcebot/pull/1621)
+
 ## [5.1.10] - 2026-08-27
 
 ### Fixed
