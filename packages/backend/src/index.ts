@@ -93,10 +93,17 @@ jobManager.register(auditLogPruneWorkload);
 const api = new Api(promClient, prisma, jobManager, redis, settings);
 
 await cleanupOrphanedRepoResources(prisma);
-await reindexReposWithMissingShards(prisma, jobManager);
 
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
 await configManager.syncConfig();
+
+// Runs after config sync so a repo whose connection this sync just removed
+// (handled synchronously in syncConfig) isn't wrongly re-queued right before
+// it's orphaned. Connections added or changed by this sync are applied
+// asynchronously by their own connection-sync job, which can't run until
+// jobManager.start() below, so that side of eligibility is unaffected by
+// this ordering either way.
+await reindexReposWithMissingShards(prisma, jobManager);
 
 await reconcileJobSchedulers({
     db: prisma,
