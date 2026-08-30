@@ -201,14 +201,21 @@ describe("reindexReposWithMissingShards", () => {
         trigger.mockResolvedValue("job-id");
     });
 
-    test("does nothing when the index directory doesn't exist", async () => {
+    test("still recovers eligible repos when the index directory doesn't exist", async () => {
         fsMocks.existsSync.mockReturnValue(false);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
 
         await reindexReposWithMissingShards(db, jobManager);
 
         expect(fsMocks.readdir).not.toHaveBeenCalled();
-        expect(repoFindMany).not.toHaveBeenCalled();
-        expect(trigger).not.toHaveBeenCalled();
+        expect(repoFindMany).toHaveBeenCalled();
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
     });
 
     test("re-queues an indexed repo with no shard on disk", async () => {
@@ -253,8 +260,57 @@ describe("reindexReposWithMissingShards", () => {
         expect(trigger).not.toHaveBeenCalled();
     });
 
+    test("does not re-queue a repo whose shard and .meta sidecar are both present", async () => {
+        // The normal healthy state: zoekt always writes the .meta sidecar
+        // alongside the real shard, so both show up in the same readdir().
+        fsMocks.readdir.mockResolvedValue([
+            "1_42_v16.00000.zoekt",
+            "1_42_v16.00000.zoekt.meta",
+        ]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).not.toHaveBeenCalled();
+    });
+
     test("treats a lingering .tmp shard as missing", async () => {
         fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt.tmp"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("treats the .meta sidecar file alone as missing", async () => {
+        // zoekt writes a `<shard>.meta` file alongside every real shard. If
+        // only the sidecar survives a partial wipe, the repo has no searchable
+        // index and must still be re-queued.
+        fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt.meta"]);
+        repoFindMany.mockResolvedValue([
+            { id: 42, name: "github.com/acme/repo" },
+        ]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).toHaveBeenCalledWith(
+            "repo-index",
+            { repoId: 42 },
+            { priority: JOB_PRIORITIES.SCHEDULED },
+        );
+    });
+
+    test("does not treat a numeric-prefixed non-shard file as a valid shard", async () => {
+        fsMocks.readdir.mockResolvedValue(["1_42_backup"]);
         repoFindMany.mockResolvedValue([
             { id: 42, name: "github.com/acme/repo" },
         ]);

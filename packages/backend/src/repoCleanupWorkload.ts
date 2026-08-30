@@ -242,16 +242,23 @@ export const reindexReposWithMissingShards = async (
     db: PrismaClient,
     jobManager: JobManager,
 ) => {
-    if (!existsSync(INDEX_CACHE_DIR)) {
-        return;
+    // A missing directory means zero shards exist, not that there's nothing to
+    // recover: it's the same "everything is gone" scenario this function exists
+    // to handle, so it must still fall through to the DB lookup below.
+    let entries: string[];
+    if (existsSync(INDEX_CACHE_DIR)) {
+        entries = await readdir(INDEX_CACHE_DIR);
+    } else {
+        entries = [];
     }
 
-    const entries = await readdir(INDEX_CACHE_DIR);
     const repoIdsWithShards = new Set<number>();
     for (const entry of entries) {
-        // .tmp files are left behind by in-progress or previously failed index
-        // attempts. They aren't searchable, so they don't count as a valid shard.
-        if (entry.includes(".tmp")) {
+        // Only a real, searchable shard file counts. This excludes in-progress
+        // or failed .tmp artifacts, the .meta sidecar zoekt writes alongside
+        // each shard, and any other numeric-prefixed file that isn't actually
+        // an index (e.g. a stray backup file).
+        if (!entry.endsWith(".zoekt")) {
             continue;
         }
         const repoId = getRepoIdFromShardFileName(entry);
