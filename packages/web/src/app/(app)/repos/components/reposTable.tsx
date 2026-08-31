@@ -51,7 +51,7 @@ import { getBrowsePath } from "../../browse/hooks/utils";
 import type { RepoIndexingStatusesResponse } from "../types";
 import { RepoActionsMenu } from "./repoActionsMenu";
 import { SyncIssuePopover } from "./syncIssuePopover";
-import { SyncingPopover } from "./syncingPopover";
+import { SyncingBadge } from "./syncingBadge";
 
 const POLL_INTERVAL_MS = 5_000;
 const COMPLETED_BADGE_VISIBLE_MS = 5_000;
@@ -192,8 +192,7 @@ const SyncAnnotationBadge = ({
                 );
             case "SYNCING":
                 return (
-                    <SyncingPopover
-                        repoDisplayName={getRepoName(repo)}
+                    <SyncingBadge
                         startedAt={repo.latestJob?.status === "IN_PROGRESS"
                             ? repo.latestJob.startedAt
                             : null}
