@@ -318,6 +318,7 @@ export const ConnectionsTable = ({
                 id: jobId,
                 data: { connectionId },
                 status: "PENDING",
+                startedAt: null,
                 errorMessage: null,
                 result: null,
             });
