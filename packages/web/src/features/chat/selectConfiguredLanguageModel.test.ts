@@ -111,6 +111,26 @@ describe("selectConfiguredLanguageModel", () => {
             expect(result.error.message).toContain("Multiple configurations found for language model 'anthropic/claude-opus-4-7'");
             expect(result.error.message).toContain("'Claude Opus 4.7 (Fast)'");
             expect(result.error.message).toContain("'Claude Opus 4.7 (Thinking)'");
+            expect(result.error.message).not.toContain("(default)");
+        }
+    });
+
+    test("handles multiple models with identical provider/model when none have displayName", () => {
+        const duplicateUnnamed = [
+            { provider: "ollama", model: "llama3" },
+            { provider: "ollama", model: "llama3" },
+        ];
+
+        const result = selectConfiguredLanguageModel(duplicateUnnamed, {
+            provider: "ollama",
+            model: "llama3",
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error.statusCode).toBe(StatusCodes.BAD_REQUEST);
+            expect(result.error.errorCode).toBe(ErrorCode.INVALID_REQUEST_BODY);
+            expect(result.error.message).toContain("Please configure distinct displayNames in your configuration");
         }
     });
 
@@ -140,6 +160,23 @@ describe("selectConfiguredLanguageModel", () => {
             expect(result.error.statusCode).toBe(StatusCodes.BAD_REQUEST);
             expect(result.error.errorCode).toBe(ErrorCode.INVALID_REQUEST_BODY);
             expect(result.error.message).toBe("Language model 'anthropic/claude-sonnet-4-6' ('Nonexistent Display Name') is not configured.");
+        }
+    });
+
+    test("matches when displayName is empty string if configured with empty string", () => {
+        const modelsWithEmpty = [
+            { provider: "openai", model: "gpt-4o", displayName: "" },
+        ];
+
+        const result = selectConfiguredLanguageModel(modelsWithEmpty, {
+            provider: "openai",
+            model: "gpt-4o",
+            displayName: "",
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.model.displayName).toBe("");
         }
     });
 });

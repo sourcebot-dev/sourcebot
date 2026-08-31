@@ -12,17 +12,6 @@ type MatchableModel = {
     displayName?: string;
 };
 
-/**
- * Selects a configured language model from a list of configured models
- * based on a requested language model specifier.
- *
- * - If no language model is requested, defaults to the first configured model.
- * - If `displayName` is provided in the request, matches strictly on `(provider, model, displayName)`.
- * - If `displayName` is omitted in the request:
- *   - If exactly one model matches `(provider, model)`, that model is selected.
- *   - If multiple models match `(provider, model)`, returns a 400 error requiring `displayName` disambiguation.
- *   - If no models match, returns a 400 error indicating the model is not configured.
- */
 export const selectConfiguredLanguageModel = <T extends MatchableModel>(
     configuredModels: T[],
     requestedLanguageModel?: Partial<MatchableModel>
@@ -47,8 +36,7 @@ export const selectConfiguredLanguageModel = <T extends MatchableModel>(
 
     const { provider, model, displayName } = requestedLanguageModel;
 
-    // If displayName is explicitly provided, match on exact (provider, model, displayName)
-    if (displayName) {
+    if (displayName !== undefined) {
         const exactMatch = configuredModels.find((m) => {
             return m.provider === provider && m.model === model && m.displayName === displayName;
         });
@@ -70,7 +58,6 @@ export const selectConfiguredLanguageModel = <T extends MatchableModel>(
         };
     }
 
-    // If displayName is omitted, find all configs matching (provider, model)
     const matchingModels = configuredModels.filter((m) => {
         return m.provider === provider && m.model === model;
     });
@@ -83,17 +70,21 @@ export const selectConfiguredLanguageModel = <T extends MatchableModel>(
     }
 
     if (matchingModels.length > 1) {
-        const displayNames = matchingModels
-            .map((m) => m.displayName || "(default)")
-            .map((name) => `'${name}'`)
-            .join(', ');
+        const availableNames = matchingModels
+            .map((m) => m.displayName)
+            .filter((name): name is string => typeof name === "string" && name.length > 0)
+            .map((name) => `'${name}'`);
+
+        const hint = availableNames.length > 0
+            ? `Please specify a displayName (${availableNames.join(', ')}) to disambiguate.`
+            : `Please configure distinct displayNames in your configuration to disambiguate.`;
 
         return {
             success: false,
             error: {
                 statusCode: StatusCodes.BAD_REQUEST,
                 errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: `Multiple configurations found for language model '${provider}/${model}'. Please specify a displayName (${displayNames}) to disambiguate.`,
+                message: `Multiple configurations found for language model '${provider}/${model}'. ${hint}`,
             },
         };
     }
