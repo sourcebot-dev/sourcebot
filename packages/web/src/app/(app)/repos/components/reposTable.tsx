@@ -51,6 +51,7 @@ import { getBrowsePath } from "../../browse/hooks/utils";
 import type { RepoIndexingStatusesResponse } from "../types";
 import { RepoActionsMenu } from "./repoActionsMenu";
 import { SyncIssuePopover } from "./syncIssuePopover";
+import { SyncingPopover } from "./syncingPopover";
 
 const POLL_INTERVAL_MS = 5_000;
 const COMPLETED_BADGE_VISIBLE_MS = 5_000;
@@ -191,10 +192,12 @@ const SyncAnnotationBadge = ({
                 );
             case "SYNCING":
                 return (
-                    <Badge variant="secondary" className="shrink-0 gap-1 rounded-sm">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Syncing
-                    </Badge>
+                    <SyncingPopover
+                        repoDisplayName={getRepoName(repo)}
+                        startedAt={repo.latestJob?.status === "IN_PROGRESS"
+                            ? repo.latestJob.startedAt
+                            : null}
+                    />
                 );
             case "WARNING":
                 return (
@@ -571,6 +574,7 @@ export const ReposTable = ({
                 id: jobId,
                 data: { repoId },
                 status: "PENDING",
+                startedAt: null,
                 errorMessage: null,
                 result: null,
             });
@@ -585,6 +589,7 @@ export const ReposTable = ({
                     id: jobId,
                     data: { repoId },
                     status: "PENDING",
+                    startedAt: null,
                     errorMessage: null,
                     result: null,
                 });

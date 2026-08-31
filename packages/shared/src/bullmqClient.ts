@@ -24,6 +24,7 @@ export interface WorkloadJob<TName extends QueueName> {
     id: string;
     data: DataOf<TName>;
     status: WorkloadJobStatus;
+    startedAt: number | null;
     errorMessage: string | null;
     result: ResultOf<TName> | null;
 }
@@ -100,6 +101,9 @@ export class BullMQClient {
             id: job.id ?? jobId,
             data: job.data as DataOf<TName>,
             status,
+            startedAt: typeof job.processedOn === "number"
+                ? job.processedOn
+                : null,
             errorMessage: status === "FAILED" ? job.failedReason || null : null,
             result,
         };

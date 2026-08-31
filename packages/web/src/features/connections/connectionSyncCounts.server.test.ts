@@ -39,6 +39,7 @@ const job = (
     id,
     data: { connectionId },
     status,
+    startedAt: null,
     errorMessage: status === "FAILED" ? "sync failed" : null,
     result,
 });

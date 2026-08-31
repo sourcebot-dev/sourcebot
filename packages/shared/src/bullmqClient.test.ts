@@ -50,6 +50,7 @@ describe("BullMQClient", () => {
                 return {
                     id: jobId,
                     data: { connectionId: 1 },
+                    processedOn: 900_000,
                     failedReason: "",
                     returnvalue: null,
                     getState: vi.fn(async () => "active"),
@@ -75,6 +76,7 @@ describe("BullMQClient", () => {
                 id: "job-1",
                 data: { connectionId: 1 },
                 status: "IN_PROGRESS",
+                startedAt: 900_000,
                 errorMessage: null,
                 result: null,
             }],
@@ -83,6 +85,7 @@ describe("BullMQClient", () => {
                 id: "job-2",
                 data: { connectionId: 2 },
                 status: "COMPLETED",
+                startedAt: null,
                 errorMessage: null,
                 result: { outcome: "SUCCESS" },
             }],
@@ -108,6 +111,7 @@ describe("BullMQClient", () => {
             id: "job-1",
             data: { connectionId: 1 },
             status: "COMPLETED",
+            startedAt: null,
             errorMessage: null,
             result: null,
         });
