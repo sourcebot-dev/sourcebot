@@ -60,6 +60,7 @@ describe("BullMQClient", () => {
                 return {
                     id: jobId,
                     data: { connectionId: 2 },
+                    processedOn: 800_000,
                     failedReason: "",
                     returnvalue: { outcome: "SUCCESS" },
                     getState: vi.fn(async () => "completed"),
@@ -90,6 +91,29 @@ describe("BullMQClient", () => {
                 result: { outcome: "SUCCESS" },
             }],
         ]));
+    });
+
+    test("does not expose a stale start time for a pending job", async () => {
+        mocks.getJob.mockResolvedValue({
+            id: "job-1",
+            data: { connectionId: 1 },
+            processedOn: 900_000,
+            failedReason: "",
+            returnvalue: null,
+            getState: vi.fn(async () => "waiting"),
+        });
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getJob(CONNECTION_QUEUE, "job-1"),
+        ).resolves.toEqual({
+            id: "job-1",
+            data: { connectionId: 1 },
+            status: "PENDING",
+            startedAt: null,
+            errorMessage: null,
+            result: null,
+        });
     });
 
     test("returns null for an unrecognized legacy connection result", async () => {

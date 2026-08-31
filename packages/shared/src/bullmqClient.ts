@@ -101,7 +101,8 @@ export class BullMQClient {
             id: job.id ?? jobId,
             data: job.data as DataOf<TName>,
             status,
-            startedAt: typeof job.processedOn === "number"
+            startedAt: status === "IN_PROGRESS"
+                && typeof job.processedOn === "number"
                 ? job.processedOn
                 : null,
             errorMessage: status === "FAILED" ? job.failedReason || null : null,
