@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a live repository indexing job runtime to the syncing badge. [#1623](https://github.com/sourcebot-dev/sourcebot/pull/1623)
 
+### Fixed
+- Fixed MCP `ask_codebase` rejecting explicit language model selection by resolving matching model configurations when `displayName` is omitted and providing clear disambiguation errors for multi-config models. [#1622](https://github.com/sourcebot-dev/sourcebot/pull/1622)
+
 ## [5.1.10] - 2026-08-27
 
 ### Fixed
