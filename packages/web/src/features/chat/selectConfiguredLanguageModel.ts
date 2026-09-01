@@ -70,14 +70,19 @@ export const selectConfiguredLanguageModel = <T extends MatchableModel>(
     }
 
     if (matchingModels.length > 1) {
-        const availableNames = matchingModels
+        const hasUnnamed = matchingModels.some((m) => m.displayName === undefined);
+        const namedConfigs = matchingModels
             .map((m) => m.displayName)
-            .filter((name): name is string => typeof name === "string" && name.length > 0)
-            .map((name) => `'${name}'`);
+            .filter((name): name is string => typeof name === "string");
 
-        const hint = availableNames.length > 0
-            ? `Please specify a displayName (${availableNames.join(', ')}) to disambiguate.`
-            : `Please configure distinct displayNames in your configuration to disambiguate.`;
+        let hint: string;
+        if (hasUnnamed) {
+            hint = namedConfigs.length > 0
+                ? `Please specify a displayName from [${namedConfigs.map((n) => `'${n}'`).join(', ')}] or configure distinct displayNames in your configuration for unnamed models.`
+                : `Please configure distinct displayNames in your configuration to disambiguate.`;
+        } else {
+            hint = `Please specify a displayName (${namedConfigs.map((n) => `'${n}'`).join(', ')}) to disambiguate.`;
+        }
 
         return {
             success: false,

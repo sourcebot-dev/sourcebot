@@ -134,6 +134,44 @@ describe("selectConfiguredLanguageModel", () => {
         }
     });
 
+    test("handles mixed named and unnamed models sharing provider and model", () => {
+        const mixed = [
+            { provider: "anthropic", model: "claude-opus-4-7" },
+            { provider: "anthropic", model: "claude-opus-4-7", displayName: "Thinking Mode" },
+        ];
+
+        const result = selectConfiguredLanguageModel(mixed, {
+            provider: "anthropic",
+            model: "claude-opus-4-7",
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error.statusCode).toBe(StatusCodes.BAD_REQUEST);
+            expect(result.error.errorCode).toBe(ErrorCode.INVALID_REQUEST_BODY);
+            expect(result.error.message).toContain("Please specify a displayName from ['Thinking Mode'] or configure distinct displayNames in your configuration for unnamed models.");
+        }
+    });
+
+    test("preserves empty-string displayName in disambiguation message", () => {
+        const withEmptyString = [
+            { provider: "openai", model: "gpt-4o", displayName: "" },
+            { provider: "openai", model: "gpt-4o", displayName: "Named" },
+        ];
+
+        const result = selectConfiguredLanguageModel(withEmptyString, {
+            provider: "openai",
+            model: "gpt-4o",
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error.statusCode).toBe(StatusCodes.BAD_REQUEST);
+            expect(result.error.errorCode).toBe(ErrorCode.INVALID_REQUEST_BODY);
+            expect(result.error.message).toContain("('', 'Named')");
+        }
+    });
+
     test("returns 400 when model is not configured", () => {
         const result = selectConfiguredLanguageModel(configuredModels, {
             provider: "google",
