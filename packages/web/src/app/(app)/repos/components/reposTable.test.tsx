@@ -42,6 +42,7 @@ const repos: Repo[] = [
             id: "job-1",
             data: { repoId: 1 },
             status: "IN_PROGRESS",
+            startedAt: Date.now() - 30_000,
             errorMessage: null,
             result: null,
         },
@@ -222,6 +223,7 @@ describe("ReposTable", () => {
                 id: "completed-job",
                 data: { repoId: 2 },
                 status: "COMPLETED",
+                startedAt: null,
                 errorMessage: null,
                 result: null,
             },
@@ -288,7 +290,7 @@ describe("ReposTable", () => {
 
         await waitFor(() => {
             expect(reposActions.indexRepo).toHaveBeenCalledWith(2);
-            expect(screen.getByText("Syncing")).toBeTruthy();
+            expect(screen.getByText("Pending")).toBeTruthy();
             expect(fetch).toHaveBeenCalledOnce();
         });
 
@@ -311,6 +313,7 @@ describe("ReposTable", () => {
                 id: "active-reindex-job",
                 data: { repoId: repos[1].id },
                 status: "IN_PROGRESS",
+                startedAt: Date.now() - 30_000,
                 errorMessage: null,
                 result: null,
             },
@@ -348,6 +351,7 @@ describe("ReposTable", () => {
                     id: "first-interactive-job",
                     data: { repoId: 1 },
                     status: "COMPLETED",
+                    startedAt: null,
                     errorMessage: null,
                     result: null,
                 },
@@ -392,6 +396,7 @@ describe("ReposTable", () => {
                 id: "warning-job",
                 data: { repoId: 2 },
                 status: "FAILED",
+                startedAt: null,
                 errorMessage: "The remote repository could not be reached",
                 result: null,
             },
@@ -518,6 +523,7 @@ describe("ReposTable", () => {
                     id: "job-1",
                     data: { repoId: 1 },
                     status: "FAILED",
+                    startedAt: null,
                     errorMessage: "Authentication failed while cloning",
                     result: null,
                 },
@@ -540,7 +546,7 @@ describe("ReposTable", () => {
 
         await waitFor(() => {
             expect(reposActions.indexRepo).toHaveBeenCalledWith(1);
-            expect(screen.getByText("Syncing")).toBeTruthy();
+            expect(screen.getByText("Pending")).toBeTruthy();
             expect(fetch).toHaveBeenCalledOnce();
         });
         expect(screen.queryByText("Repository sync failed")).toBeNull();
@@ -570,6 +576,7 @@ describe("ReposTable", () => {
                     id: "job-1",
                     data: { repoId: 1 },
                     status: "COMPLETED",
+                    startedAt: null,
                     errorMessage: null,
                     result: null,
                 },
@@ -600,7 +607,7 @@ describe("ReposTable", () => {
         expect(navigation.refresh).not.toHaveBeenCalled();
     });
 
-    test("polls a syncing repository whose latest job is missing", async () => {
+    test("polls a pending repository whose latest job is missing", async () => {
         const response: RepoIndexingStatusesResponse = {
             repositories: [{
                 repoId: 1,
@@ -610,6 +617,7 @@ describe("ReposTable", () => {
                     id: "job-1",
                     data: { repoId: 1 },
                     status: "FAILED",
+                    startedAt: null,
                     errorMessage: "Indexing failed",
                     result: null,
                 },
@@ -619,10 +627,10 @@ describe("ReposTable", () => {
 
         renderTable([{ ...repos[0], latestJob: null }]);
 
-        expect(screen.getByText("Syncing")).toBeTruthy();
+        expect(screen.getByText("Pending")).toBeTruthy();
         await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
         await waitFor(() => expect(screen.getByText("Failed")).toBeTruthy());
-        expect(screen.queryByText("Syncing")).toBeNull();
+        expect(screen.queryByText("Pending")).toBeNull();
         expect(navigation.refresh).not.toHaveBeenCalled();
     });
 });

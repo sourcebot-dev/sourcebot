@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added a live repository indexing job runtime to the syncing badge. [#1623](https://github.com/sourcebot-dev/sourcebot/pull/1623)
+
 ### Fixed
 - Reindexed repositories on startup when their persisted indexed state no longer had corresponding Zoekt shard files on disk. [#1621](https://github.com/sourcebot-dev/sourcebot/pull/1621)
 
