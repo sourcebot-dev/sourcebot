@@ -201,6 +201,47 @@ describe("reindexReposWithMissingShards", () => {
         trigger.mockResolvedValue("job-id");
     });
 
+    test("no-op when there are no indexed repos, even if stray shard-like files exist on disk", async () => {
+        fsMocks.readdir.mockResolvedValue(["1_42_v16.00000.zoekt"]);
+        repoFindMany.mockResolvedValue([]);
+
+        await reindexReposWithMissingShards(db, jobManager);
+
+        expect(trigger).not.toHaveBeenCalled();
+    });
+
+    test("logs and returns instead of throwing when the DB lookup fails", async () => {
+        // Regression: this detection phase runs before the worker installs its
+        // uncaught-exception handlers (see repoCleanupWorkload.ts), so a transient
+        // failure here must degrade to "recovery skipped this run", not an unhandled
+        // rejection that crashes startup.
+        repoFindMany.mockRejectedValue(new Error("connection reset"));
+
+        await expect(
+            reindexReposWithMissingShards(db, jobManager),
+        ).resolves.not.toThrow();
+
+        expect(trigger).not.toHaveBeenCalled();
+        expect(lifecycleLogger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to detect repos with missing shard files"),
+            expect.any(Error),
+        );
+    });
+
+    test("logs and returns instead of throwing when reading the index directory fails", async () => {
+        fsMocks.readdir.mockRejectedValue(new Error("EACCES: permission denied"));
+
+        await expect(
+            reindexReposWithMissingShards(db, jobManager),
+        ).resolves.not.toThrow();
+
+        expect(trigger).not.toHaveBeenCalled();
+        expect(lifecycleLogger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to detect repos with missing shard files"),
+            expect.any(Error),
+        );
+    });
+
     test("still recovers eligible repos when the index directory doesn't exist", async () => {
         fsMocks.existsSync.mockReturnValue(false);
         repoFindMany.mockResolvedValue([

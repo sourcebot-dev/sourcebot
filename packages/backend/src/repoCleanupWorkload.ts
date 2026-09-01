@@ -242,49 +242,64 @@ export const reindexReposWithMissingShards = async (
     db: PrismaClient,
     jobManager: JobManager,
 ) => {
-    // A missing directory means zero shards exist, not that there's nothing to
-    // recover: it's the same "everything is gone" scenario this function exists
-    // to handle, so it must still fall through to the DB lookup below.
-    let entries: string[];
-    if (existsSync(INDEX_CACHE_DIR)) {
-        entries = await readdir(INDEX_CACHE_DIR);
-    } else {
-        entries = [];
-    }
-
-    const repoIdsWithShards = new Set<number>();
-    for (const entry of entries) {
-        // Only a real, searchable shard file counts. This excludes in-progress
-        // or failed .tmp artifacts, the .meta sidecar zoekt writes alongside
-        // each shard, and any other numeric-prefixed file that isn't actually
-        // an index (e.g. a stray backup file).
-        if (!entry.endsWith(".zoekt")) {
-            continue;
+    // This whole detection phase (disk scan + DB lookup) is wrapped in one try/catch
+    // so a transient failure here (e.g. a disk read error or a DB hiccup) degrades to
+    // "recovery skipped this run" instead of an unhandled rejection — this runs before
+    // the worker installs its uncaught-exception handlers, so an unhandled rejection
+    // here would crash startup, contradicting the resilience the per-repo loop below
+    // already has.
+    let reposMissingShards: { id: number; name: string }[];
+    try {
+        // A missing directory means zero shards exist, not that there's nothing to
+        // recover: it's the same "everything is gone" scenario this function exists
+        // to handle, so it must still fall through to the DB lookup below.
+        let entries: string[];
+        if (existsSync(INDEX_CACHE_DIR)) {
+            entries = await readdir(INDEX_CACHE_DIR);
+        } else {
+            entries = [];
         }
-        const repoId = getRepoIdFromShardFileName(entry);
-        if (repoId !== undefined) {
-            repoIdsWithShards.add(repoId);
+
+        const repoIdsWithShards = new Set<number>();
+        for (const entry of entries) {
+            // Only a real, searchable shard file counts. This excludes in-progress
+            // or failed .tmp artifacts, the .meta sidecar zoekt writes alongside
+            // each shard, and any other numeric-prefixed file that isn't actually
+            // an index (e.g. a stray backup file).
+            if (!entry.endsWith(".zoekt")) {
+                continue;
+            }
+            const repoId = getRepoIdFromShardFileName(entry);
+            if (repoId !== undefined) {
+                repoIdsWithShards.add(repoId);
+            }
         }
+
+        // Considers the same set of repos reconcileJobSchedulers keeps on a recurring
+        // reindex schedule: attached to a connection, or explicitly pinned via
+        // isAutoCleanupDisabled. Anything outside that set is owned by the cleanup
+        // workload above, not re-indexed.
+        const indexedRepos = await db.repo.findMany({
+            where: {
+                indexedAt: { not: null },
+                OR: [
+                    { connections: { some: {} } },
+                    { isAutoCleanupDisabled: true },
+                ],
+            },
+            select: { id: true, name: true },
+        });
+
+        reposMissingShards = indexedRepos.filter(
+            (repo) => !repoIdsWithShards.has(repo.id),
+        );
+    } catch (error) {
+        logger.error(
+            "Failed to detect repos with missing shard files; skipping recovery for this startup. They'll be re-queued on their next scheduled reindex.",
+            error,
+        );
+        return;
     }
-
-    // Considers the same set of repos reconcileJobSchedulers keeps on a recurring
-    // reindex schedule: attached to a connection, or explicitly pinned via
-    // isAutoCleanupDisabled. Anything outside that set is owned by the cleanup
-    // workload above, not re-indexed.
-    const indexedRepos = await db.repo.findMany({
-        where: {
-            indexedAt: { not: null },
-            OR: [
-                { connections: { some: {} } },
-                { isAutoCleanupDisabled: true },
-            ],
-        },
-        select: { id: true, name: true },
-    });
-
-    const reposMissingShards = indexedRepos.filter(
-        (repo) => !repoIdsWithShards.has(repo.id),
-    );
 
     // Triggered sequentially so that one repo failing to enqueue (e.g. a
     // transient Redis error) doesn't stop the rest from being recovered, and
