@@ -4,7 +4,8 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
+import { selectConfiguredLanguageModel } from "@/features/chat/selectConfiguredLanguageModel";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
@@ -61,28 +62,11 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility, source } = params;
 
             const configuredModels = await getConfiguredLanguageModels();
-            if (configuredModels.length === 0) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "No language models are configured. Please configure at least one language model. See: https://docs.sourcebot.dev/docs/configuration/language-model-providers",
-                } satisfies ServiceError;
+            const modelSelection = selectConfiguredLanguageModel(configuredModels, requestedLanguageModel);
+            if (!modelSelection.success) {
+                return modelSelection.error;
             }
-
-            let languageModelConfig = configuredModels[0];
-            if (requestedLanguageModel) {
-                const matchingModel = configuredModels.find(
-                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel)
-                );
-                if (!matchingModel) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`,
-                    } satisfies ServiceError;
-                }
-                languageModelConfig = matchingModel;
-            }
+            const languageModelConfig = modelSelection.model;
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
