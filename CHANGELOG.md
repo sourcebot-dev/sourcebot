@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a live repository indexing job runtime to the syncing badge. [#1623](https://github.com/sourcebot-dev/sourcebot/pull/1623)
 
+### Changed
+- Updated the bundled Zoekt version. [#1628](https://github.com/sourcebot-dev/sourcebot/pull/1628)
+
 ### Fixed
 - Upgraded `browserslist` to `^4.28.8`. [#1624](https://github.com/sourcebot-dev/sourcebot/pull/1624)
 - Upgraded `postcss-selector-parser` to `^6.1.4`. [#1625](https://github.com/sourcebot-dev/sourcebot/pull/1625)
