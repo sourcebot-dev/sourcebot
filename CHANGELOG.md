@@ -10,8 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a live repository indexing job runtime to the syncing badge. [#1623](https://github.com/sourcebot-dev/sourcebot/pull/1623)
 
+### Changed
+- Updated the bundled Zoekt version. [#1628](https://github.com/sourcebot-dev/sourcebot/pull/1628)
+
 ### Fixed
 - Reindexed repositories on startup when their persisted indexed state no longer had corresponding Zoekt shard files on disk. [#1621](https://github.com/sourcebot-dev/sourcebot/pull/1621)
+- Upgraded `browserslist` to `^4.28.8`. [#1624](https://github.com/sourcebot-dev/sourcebot/pull/1624)
+- Upgraded `postcss-selector-parser` to `^6.1.4`. [#1625](https://github.com/sourcebot-dev/sourcebot/pull/1625)
+- Upgraded `fast-uri` to `3.1.7`. [#1626](https://github.com/sourcebot-dev/sourcebot/pull/1626)
+- Upgraded `qs` to `6.16.0`. [#1627](https://github.com/sourcebot-dev/sourcebot/pull/1627)
 
 ## [5.1.10] - 2026-08-27
 
