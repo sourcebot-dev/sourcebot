@@ -76,6 +76,42 @@ describe('compileMcpJsonSchemaValidator', () => {
         expect(second(42)).toBe(true);
     });
 
+    test('reuses validators for freshly deserialized copies of the same schema', () => {
+        const serializedSchema = JSON.stringify({
+            type: 'object',
+            properties: {
+                query: { type: 'string' },
+            },
+            required: ['query'],
+        });
+
+        const first = compileMcpJsonSchemaValidator(JSON.parse(serializedSchema));
+        const second = compileMcpJsonSchemaValidator(JSON.parse(serializedSchema));
+
+        expect(second).toBe(first);
+        expect(second({ query: 'memory leak' })).toBe(true);
+        expect(second({})).toBe(false);
+    });
+
+    test('evicts least-recently-used validators when the cache is full', () => {
+        const firstSchema = {
+            type: 'object',
+            $comment: 'validator-cache-eviction-target',
+        };
+        const first = compileMcpJsonSchemaValidator(firstSchema);
+
+        for (let index = 0; index < 101; index++) {
+            compileMcpJsonSchemaValidator({
+                type: 'object',
+                $comment: `validator-cache-entry-${index}`,
+            });
+        }
+
+        const recompiled = compileMcpJsonSchemaValidator({ ...firstSchema });
+        expect(recompiled).not.toBe(first);
+        expect(recompiled({})).toBe(true);
+    });
+
     test.each([
         'http://json-schema.org/draft-07/schema#',
         'https://json-schema.org/draft/2019-09/schema',
