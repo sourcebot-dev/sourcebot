@@ -2,6 +2,14 @@ import { StatusCodes } from 'http-status-codes';
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// robots.txt disallows search and AI-training crawlers, but robots directives
+// are advisory. meta-externalagent has been observed ignoring that policy and
+// exhaustively walking the unbounded /browse URL space, so enforce the same
+// restriction before the request reaches server-side rendering.
+const BLOCKED_CRAWLER_USER_AGENTS = [
+    'meta-externalagent',
+] as const;
+
 /**
  * As part of our original SaaS effort in April 2025, we introduced
  * multi-tenancy into Sourcebot as part of v3.0.0. Organizations
@@ -24,6 +32,16 @@ import type { NextRequest } from 'next/server'
  * See: https://github.com/sourcebot-dev/sourcebot/pull/1076
  */
 export async function proxy(request: NextRequest) {
+    const userAgent = request.headers.get('user-agent')?.toLowerCase();
+    if (
+        userAgent
+        && BLOCKED_CRAWLER_USER_AGENTS.some(blockedCrawler => userAgent.includes(blockedCrawler))
+    ) {
+        return new NextResponse('Crawler access is disallowed.', {
+            status: StatusCodes.FORBIDDEN,
+        });
+    }
+
     const url = request.nextUrl.clone();
 
     if (url.pathname.startsWith('/~/')) {
