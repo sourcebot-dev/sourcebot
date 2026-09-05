@@ -508,7 +508,7 @@ export const shouldExcludeRepo = ({
             return true;
         }
 
-        if (!!exclude?.private && repo.visibility === 'private') {
+        if (!!exclude?.private && repo.private && repo.visibility !== 'internal') {
             reason = `\`exclude.private\` is true`;
             return true;
         }
