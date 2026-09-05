@@ -77,6 +77,7 @@ export type OctokitRepository = {
     full_name: string,
     fork: boolean,
     private: boolean,
+    visibility?: string,
     html_url: string,
     clone_url?: string,
     stargazers_count?: number,
@@ -504,6 +505,11 @@ export const shouldExcludeRepo = ({
 
         if (!!exclude?.archived && !!repo.archived) {
             reason = `\`exclude.archived\` is true`;
+            return true;
+        }
+
+        if (!!exclude?.private && repo.visibility === 'private') {
+            reason = `\`exclude.private\` is true`;
             return true;
         }
 

@@ -214,6 +214,30 @@ test('shouldExcludeRepo handles archived repos correctly', () => {
     expect(shouldExcludeRepo({ repo, exclude: { archived: false } })).toBe(false);
 });
 
+test('shouldExcludeRepo handles private repos correctly', () => {
+    const privateRepo = {
+        full_name: 'test/private-repo',
+        clone_url: 'https://github.com/test/private-repo.git',
+        private: true,
+        visibility: 'private',
+    } as OctokitRepository;
+
+    expect(shouldExcludeRepo({ repo: privateRepo })).toBe(false);
+    expect(shouldExcludeRepo({ repo: privateRepo, exclude: { private: true } })).toBe(true);
+    expect(shouldExcludeRepo({ repo: privateRepo, exclude: { private: false } })).toBe(false);
+});
+
+test('shouldExcludeRepo does not exclude internal repos when exclude.private is true', () => {
+    const internalRepo = {
+        full_name: 'test/internal-repo',
+        clone_url: 'https://github.com/test/internal-repo.git',
+        private: true,
+        visibility: 'internal',
+    } as OctokitRepository;
+
+    expect(shouldExcludeRepo({ repo: internalRepo, exclude: { private: true } })).toBe(false);
+});
+
 test('shouldExcludeRepo handles include.topics correctly', () => {
     const repo = {
         full_name: 'test/repo',
