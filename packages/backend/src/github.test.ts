@@ -238,6 +238,16 @@ test('shouldExcludeRepo does not exclude internal repos when exclude.private is 
     expect(shouldExcludeRepo({ repo: internalRepo, exclude: { private: true } })).toBe(false);
 });
 
+test('shouldExcludeRepo excludes private repos with missing visibility when exclude.private is true', () => {
+    const repo = {
+        full_name: 'test/private-no-visibility',
+        clone_url: 'https://github.com/test/private-no-visibility.git',
+        private: true,
+    } as OctokitRepository;
+
+    expect(shouldExcludeRepo({ repo, exclude: { private: true } })).toBe(true);
+});
+
 test('shouldExcludeRepo handles include.topics correctly', () => {
     const repo = {
         full_name: 'test/repo',
