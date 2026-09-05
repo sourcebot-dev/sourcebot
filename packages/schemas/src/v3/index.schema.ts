@@ -621,6 +621,11 @@ const schema = {
                       "default": false,
                       "description": "Exclude archived repositories from syncing."
                     },
+                    "private": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Exclude private repositories from syncing. Internal repositories are not affected."
+                    },
                     "repos": {
                       "type": "array",
                       "items": {
