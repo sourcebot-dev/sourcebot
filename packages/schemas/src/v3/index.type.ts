@@ -293,7 +293,7 @@ export interface GithubConnectionConfig {
      */
     archived?: boolean;
     /**
-     * Exclude private repositories from syncing. Internal repositories are not affected.
+     * You can exclude private repositories from syncing. Internal repositories are not affected.
      */
     private?: boolean;
     /**

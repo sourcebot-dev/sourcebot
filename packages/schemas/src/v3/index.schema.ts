@@ -624,7 +624,7 @@ const schema = {
                     "private": {
                       "type": "boolean",
                       "default": false,
-                      "description": "Exclude private repositories from syncing. Internal repositories are not affected."
+                      "description": "You can exclude private repositories from syncing. Internal repositories are not affected."
                     },
                     "repos": {
                       "type": "array",
