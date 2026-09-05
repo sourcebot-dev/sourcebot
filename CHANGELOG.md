@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `postcss-selector-parser` to `^6.1.4`. [#1625](https://github.com/sourcebot-dev/sourcebot/pull/1625)
 - Upgraded `fast-uri` to `3.1.7`. [#1626](https://github.com/sourcebot-dev/sourcebot/pull/1626)
 - Upgraded `qs` to `6.16.0`. [#1627](https://github.com/sourcebot-dev/sourcebot/pull/1627)
+- Upgraded `util-linux` to `2.41.6-r0` in the container image. [#1635](https://github.com/sourcebot-dev/sourcebot/pull/1635)
 
 ## [5.1.10] - 2026-08-27
 
