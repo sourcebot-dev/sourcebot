@@ -7,13 +7,16 @@ import { ChatBox, ChatBoxHandle } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
 import { ChatPaneDropzone } from "@/features/chat/components/chatBox/chatPaneDropzone";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
-import { LanguageModelInfo, RepoSearchScope } from "@/features/chat/types";
+import { LanguageModelInfo, RepoSearchScope, SearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { getRepoImageSrc } from '@/lib/utils';
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import type { AskCommandDefinition } from '@/features/chat/commands/types';
+import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
+
+const ASKGH_SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY = 'askGhSelectedSearchScopes';
 
 interface LandingPageProps {
     languageModels: LanguageModelInfo[];
@@ -24,6 +27,8 @@ interface LandingPageProps {
     askCommands: AskCommandDefinition[];
     isAuthenticated: boolean;
     maxImageBytes: number;
+    repos: RepositoryQuery[];
+    searchContexts: SearchContextQuery[];
 }
 
 export const LandingPage = ({
@@ -35,6 +40,8 @@ export const LandingPage = ({
     askCommands,
     isAuthenticated,
     maxImageBytes,
+    repos,
+    searchContexts,
 }: LandingPageProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
@@ -42,14 +49,40 @@ export const LandingPage = ({
     const chatBoxRef = useRef<ChatBoxHandle>(null);
     const isChatBoxDisabled = languageModels.length === 0;
 
-    const selectedSearchScopes = useMemo(() => [
-        {
-            type: 'repo',
-            name: repoDisplayName ?? repoName,
-            value: repoName,
-            codeHostType: 'github' as const,
-        } satisfies RepoSearchScope,
-    ], [repoDisplayName, repoName]);
+    // Default scope for the current repo
+    const defaultRepoScope = useMemo(() => ({
+        type: 'repo' as const,
+        name: repoDisplayName ?? repoName,
+        value: repoName,
+        codeHostType: 'github' as const,
+    } satisfies RepoSearchScope), [repoDisplayName, repoName]);
+
+    // Use local storage for selected scopes, with the current repo as default
+    const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>(
+        ASKGH_SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY,
+        [defaultRepoScope],
+        { initializeWithValue: false }
+    );
+
+    // Ensure the current repo is always included in selected scopes when visiting this page
+    // This handles the case where the user visits a different repo's Ask GH page
+    const [hasInitialized, setHasInitialized] = useState(false);
+    useEffect(() => {
+        if (hasInitialized) {
+            return;
+        }
+        setHasInitialized(true);
+        
+        // Check if the current repo is already in the selected scopes
+        const currentRepoIncluded = selectedSearchScopes.some(
+            (scope) => scope.type === 'repo' && scope.value === repoName
+        );
+        
+        // If not, add it to the scopes
+        if (!currentRepoIncluded) {
+            setSelectedSearchScopes([defaultRepoScope, ...selectedSearchScopes]);
+        }
+    }, [hasInitialized, selectedSearchScopes, repoName, defaultRepoScope, setSelectedSearchScopes]);
 
     const imageSrc = imageUrl ? getRepoImageSrc(imageUrl, repoId) : undefined;
     const displayName = repoDisplayName ?? repoName;
@@ -88,7 +121,7 @@ export const LandingPage = ({
                             className="min-h-[50px]"
                             isRedirecting={isLoading}
                             selectedSearchScopes={selectedSearchScopes}
-                            searchContexts={[]}
+                            searchContexts={searchContexts}
                             askCommands={askCommands}
                             isDisabled={isChatBoxDisabled}
                             isAuthenticated={isAuthenticated}
@@ -100,10 +133,10 @@ export const LandingPage = ({
                             <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                                 <ChatBoxToolbar
                                     languageModels={languageModels}
-                                    repos={[]}
-                                    searchContexts={[]}
+                                    repos={repos}
+                                    searchContexts={searchContexts}
                                     selectedSearchScopes={selectedSearchScopes}
-                                    onSelectedSearchScopesChange={() => { }}
+                                    onSelectedSearchScopesChange={setSelectedSearchScopes}
                                     isContextSelectorOpen={isContextSelectorOpen}
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                     disabledMcpServerIds={disabledMcpServerIds}
