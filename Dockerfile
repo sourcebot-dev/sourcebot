@@ -156,7 +156,12 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
+# `util-linux` and its `uuidgen` subpackage carry an explicit minimum version so
+# the build fails loudly if the patched Alpine package is missing, rather than
+# silently shipping a stale util-linux from a cached layer. The remaining
+# util-linux subpackages (libblkid, libmount, libuuid, ...) are pulled in
+# transitively and track the same aport version.
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor "uuidgen>=2.41.6-r0" curl perl jq openssl "util-linux>=2.41.6-r0" unzip && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm
