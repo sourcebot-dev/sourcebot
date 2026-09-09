@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated the bundled Zoekt version. [#1628](https://github.com/sourcebot-dev/sourcebot/pull/1628)
+- Updated the bundled Zoekt version. [#1640](https://github.com/sourcebot-dev/sourcebot/pull/1640)
 
 ### Fixed
 - Upgraded `browserslist` to `^4.28.8`. [#1624](https://github.com/sourcebot-dev/sourcebot/pull/1624)
