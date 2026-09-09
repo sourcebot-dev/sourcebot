@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated the bundled Zoekt version. [#1628](https://github.com/sourcebot-dev/sourcebot/pull/1628)
+- Updated the bundled Zoekt version. [#1640](https://github.com/sourcebot-dev/sourcebot/pull/1640)
 
 ### Fixed
 - Upgraded `browserslist` to `^4.28.8`. [#1624](https://github.com/sourcebot-dev/sourcebot/pull/1624)
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `fast-uri` to `3.1.7`. [#1626](https://github.com/sourcebot-dev/sourcebot/pull/1626)
 - Upgraded `qs` to `6.16.0`. [#1627](https://github.com/sourcebot-dev/sourcebot/pull/1627)
 - Upgraded `@humanfs/node` to `0.16.8`. [#1630](https://github.com/sourcebot-dev/sourcebot/pull/1630)
+- Upgraded `fflate` to `0.4.9`. [#1629](https://github.com/sourcebot-dev/sourcebot/pull/1629)
 
 ## [5.1.10] - 2026-08-27
 
