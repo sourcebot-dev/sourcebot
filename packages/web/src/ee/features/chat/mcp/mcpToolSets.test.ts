@@ -53,10 +53,6 @@ vi.mock('@/lib/redis', () => ({
     }),
 }));
 
-vi.mock('ai', () => ({
-    jsonSchema: vi.fn((schema: unknown, opts: unknown) => ({ schema, ...(opts as object) })),
-}));
-
 // --- Helpers ---
 
 interface MockToolDef {
@@ -510,7 +506,7 @@ describe('getMcpTools', () => {
         ]);
 
         const tool = result.tools['mcp_linear__create_issue'];
-        // The inputSchema should have a validate function from our jsonSchema mock
+        // Exercise the real AI SDK schema with our MCP input validator.
         const schema = tool.inputSchema as { validate?: (value: unknown) => Promise<{ success: boolean; error?: Error }> };
         expect(schema.validate).toBeDefined();
 

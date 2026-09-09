@@ -363,13 +363,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                 clientTools[qualifiedName] = {
                     ...tool,
                     execute: executeWithTimeout,
-                    // The @ai-sdk/mcp package bundles its own copy of @ai-sdk/provider-utils,
-                    // so its Schema<unknown> isn't structurally identical to the workspace copy.
-                    // The runtime shape is the same; cast through `any` to bridge the duplicate
-                    // type identity (the two FlexibleSchema types differ only by their internal
-                    // schemaSymbol brand).
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    inputSchema: validatedInputSchema as any,
+                    inputSchema: validatedInputSchema,
                     ...(needsApproval ? { needsApproval: true } : {}),
                 };
             }
