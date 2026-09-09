@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `js-yaml` to `4.3.2`. [#1636](https://github.com/sourcebot-dev/sourcebot/pull/1636)
 - Upgraded `@humanfs/node` to `0.16.8`. [#1630](https://github.com/sourcebot-dev/sourcebot/pull/1630)
 - Upgraded `fflate` to `0.4.9`. [#1629](https://github.com/sourcebot-dev/sourcebot/pull/1629)
+- [EE] Fixed Idira authentication for issuer URLs with a trailing slash. [#1641](https://github.com/sourcebot-dev/sourcebot/pull/1641)
 
 ## [5.1.10] - 2026-08-27
 
