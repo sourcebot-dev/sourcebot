@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `nodemailer` to `9.1.1`. [#1642](https://github.com/sourcebot-dev/sourcebot/pull/1642)
+
 ## [5.1.11] - 2026-09-10
 
 ### Added
