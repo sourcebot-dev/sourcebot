@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Updated the bundled Zoekt version. [#1646](https://github.com/sourcebot-dev/sourcebot/pull/1646)
-- Updated the bundled Zoekt version. [#1647](https://github.com/sourcebot-dev/sourcebot/pull/1647)
+- Updated the bundled Zoekt version. [#1646](https://github.com/sourcebot-dev/sourcebot/pull/1646) [#1647](https://github.com/sourcebot-dev/sourcebot/pull/1647)
 
 ### Fixed
 - Upgraded `baseline-browser-mapping` to `2.11.21`. [#1645](https://github.com/sourcebot-dev/sourcebot/pull/1645)
