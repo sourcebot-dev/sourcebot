@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `baseline-browser-mapping` to `2.11.21`. [#1645](https://github.com/sourcebot-dev/sourcebot/pull/1645)
+
 ## [5.1.11] - 2026-09-10
 
 ### Added
