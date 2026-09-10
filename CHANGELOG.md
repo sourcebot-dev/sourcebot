@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Upgraded `hono` to `4.13.7`. [#1643](https://github.com/sourcebot-dev/sourcebot/pull/1643)
+
 ## [5.1.11] - 2026-09-10
 
 ### Added
