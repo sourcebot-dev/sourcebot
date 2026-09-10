@@ -165,7 +165,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         if (idpConfig.provider === "idira") {
             const clientId = await getTokenFromConfig(idpConfig.clientId);
             const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
+            const issuer = await getTokenFromConfig(idpConfig.issuer);
             providers.push({
                 __provider: createIdiraProvider({
                     id,

@@ -124,30 +124,32 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
     const client = createGrpcClient();
     const metadata = new grpc.Metadata();
 
-    return new Promise((resolve, reject) => {
-        client.Search(searchRequest, metadata, (error, response) => {
-            if (error || !response) {
-                reject(new ServiceErrorException(unexpectedError(error?.details || 'No response received')))
-                return;
-            }
-
-            (async () => {
-                try {
-                    const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
-                    const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
-
-                    resolve({
-                        stats,
-                        files,
-                        repositoryInfo,
-                        isSearchExhaustive: stats.totalMatchCount <= stats.actualMatchCount,
-                    } satisfies SearchResponse);
-                } catch (err) {
-                    reject(err);
+    try {
+        const response = await new Promise<ZoektGrpcSearchResponse>((resolve, reject) => {
+            client.Search(searchRequest, metadata, (error, response) => {
+                if (error || !response) {
+                    reject(new ServiceErrorException(unexpectedError(error?.details || 'No response received')))
+                    return;
                 }
-            })();
+
+                resolve(response);
+            });
         });
-    });
+
+        const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
+        const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
+
+        return {
+            stats,
+            files,
+            repositoryInfo,
+            isSearchExhaustive: stats.totalMatchCount <= stats.actualMatchCount,
+        } satisfies SearchResponse;
+    } finally {
+        // grpc-js keeps each channel in its process-wide channelz registry until
+        // the owning client is explicitly closed.
+        client.close();
+    }
 }
 
 export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma: PrismaClient): Promise<ReadableStream> => {

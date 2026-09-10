@@ -1,5 +1,7 @@
 import { Redis } from "ioredis";
+import type { ConnectionSyncResult } from "@sourcebot/shared";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { z, type ZodType } from "zod";
 import { ProcessContext, Workload } from "./types.js";
 
 const mocks = vi.hoisted(() => {
@@ -33,6 +35,7 @@ const mocks = vi.hoisted(() => {
         workers: [] as Array<{
             processor: (job: unknown) => Promise<unknown>;
             handlers: Map<string, (...args: unknown[]) => void>;
+            options: unknown;
         }>,
     };
 });
@@ -81,8 +84,9 @@ vi.mock("bullmq", () => ({
         constructor(
             _name: string,
             processor: (job: unknown) => Promise<unknown>,
+            options: unknown,
         ) {
-            this.record = { processor, handlers: new Map() };
+            this.record = { processor, handlers: new Map(), options };
             mocks.workers.push(this.record);
         }
 
@@ -92,16 +96,20 @@ vi.mock("bullmq", () => ({
 
         close = mocks.workerClose;
     },
+    MetricsTime: { ONE_WEEK: 10_080 },
 }));
 
 import { BullMQJobManager } from "./jobManager.js";
 
 const createWorkload = (
-    overrides: Partial<Workload<"connection-sync", { repoCount: number }>> = {},
-): Workload<"connection-sync", { repoCount: number }> => ({
+    overrides: Partial<Workload<"connection-sync">> = {},
+): Workload<"connection-sync"> => ({
     queueSpec: {
         name: "connection-sync",
-        dedupKey: ({ connectionId }) => `connection:${connectionId}`,
+        resultSchema: z.unknown() as ZodType<ConnectionSyncResult>,
+        deduplication: ({ connectionId }) => ({
+            id: `connection:${connectionId}`,
+        }),
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
@@ -113,7 +121,7 @@ const createWorkload = (
         },
     },
     concurrency: 2,
-    process: vi.fn(async () => ({ repoCount: 3 })),
+    process: vi.fn(async () => ({ outcome: "SUCCESS" as const })),
     ...overrides,
 });
 
@@ -234,6 +242,17 @@ describe("BullMQJobManager lifecycle", () => {
         expect(mocks.producerClose).toHaveBeenCalledOnce();
     });
 
+    test("retains one week of native metrics for history recording", async () => {
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(createWorkload());
+
+        await manager.start();
+
+        expect(mocks.workers[0].options).toMatchObject({
+            metrics: { maxDataPoints: 10_080 },
+        });
+    });
+
     test("calls onStarted before processing and onCompleted after completion", async () => {
         const calls: string[] = [];
         const workload = createWorkload({
@@ -242,7 +261,7 @@ describe("BullMQJobManager lifecycle", () => {
             }),
             process: vi.fn(async () => {
                 calls.push("processed");
-                return { repoCount: 3 };
+                return { outcome: "SUCCESS" };
             }),
             onCompleted: vi.fn(async () => {
                 calls.push("completed");
@@ -268,7 +287,7 @@ describe("BullMQJobManager lifecycle", () => {
                 jobId: "job-1",
                 maxAttempts: 2,
             }),
-            { repoCount: 3 },
+            { outcome: "SUCCESS" },
         );
         expect(
             vi.mocked(workload.onCompleted!).mock.calls[0][0],
@@ -301,7 +320,7 @@ describe("BullMQJobManager lifecycle", () => {
             process: vi.fn(async ({ signal }) => {
                 expect(signal).toBe(workloadSignal);
                 calls.push("processed");
-                return { repoCount: 3 };
+                return { outcome: "SUCCESS" };
             }),
         });
         const manager = new BullMQJobManager({} as Redis);
@@ -310,7 +329,7 @@ describe("BullMQJobManager lifecycle", () => {
 
         await expect(
             mocks.workers[0].processor({ ...job, attemptsMade: 0 }),
-        ).resolves.toEqual({ repoCount: 3 });
+        ).resolves.toEqual({ outcome: "SUCCESS" });
 
         expect(calls).toEqual([
             "lock-acquired",
@@ -344,7 +363,7 @@ describe("BullMQJobManager lifecycle", () => {
         const process = vi.fn(
             async (context: ProcessContext<"connection-sync">) => {
                 expect(context).not.toHaveProperty("logger");
-                return { repoCount: 3 };
+                return { outcome: "SUCCESS" };
             },
         );
         const manager = new BullMQJobManager({} as Redis);

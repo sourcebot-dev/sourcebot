@@ -1,5 +1,6 @@
 export * from './readFile';
 export * from './listCommits';
+export * from './listBranches';
 export * from './listRepos';
 export * from './grep';
 export * from './glob';
@@ -7,5 +8,8 @@ export * from './getDiff';
 export * from './findSymbolReferences';
 export * from './findSymbolDefinitions';
 export * from './listTree';
+export * from './createSkill';
+export * from './updateSkill';
+export * from './listSkills';
 export * from './adapters';
 export * from './types';

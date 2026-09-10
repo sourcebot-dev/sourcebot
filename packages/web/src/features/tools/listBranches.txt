@@ -1,0 +1,9 @@
+Lists branches in a repository, sorted by latest commit date (newest first).
+
+Usage:
+- Results come from Sourcebot's most recent local snapshot of the repository, not live from the code host. Branches created or deleted on the code host appear here only after Sourcebot next fetches the repository.
+- Use `query` to filter branch names (case-insensitive substring match).
+- Use `page`/`perPage` to paginate through large branch lists. Check `totalCount` in the response to know if more pages exist.
+- `isDefault` marks the repository's default branch.
+- `isIndexed` marks branches that are searchable with code search tools (e.g. `grep`, `glob`). Branches with `isIndexed: false` exist in the repository but cannot be searched.
+- If the repository name is not known, use `list_repos` first to discover the correct name.

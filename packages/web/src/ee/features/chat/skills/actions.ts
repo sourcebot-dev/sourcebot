@@ -7,10 +7,8 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
 import type {
     AskSkillActorRelationship,
-    AskSkillChangedField,
     AskSkillCreationMethod,
     AskSkillEntryPoint,
-    PosthogEventMap,
 } from "@/lib/posthogEvents";
 import { isRecordNotFoundError, isUniqueConstraintError } from "@/lib/prismaErrors";
 import { requestBodySchemaValidationError, unexpectedError, ServiceError } from "@/lib/serviceError";
@@ -49,24 +47,16 @@ import {
 } from "./commandCatalog";
 import { canAccessSkillSource, filterSkillsBySourceRepoAccess } from "./sourceRepoAccess";
 import { hashSkillId, normalizeSkillAnalyticsEntryPoint } from "./skillAnalytics";
-
-const skillAlreadyExists = (slug: string): ServiceError => ({
-    statusCode: StatusCodes.CONFLICT,
-    errorCode: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
-    message: `A skill with command /${slug} already exists.`,
-});
-
-const skillNotFound = (): ServiceError => ({
-    statusCode: StatusCodes.NOT_FOUND,
-    errorCode: ErrorCode.AGENT_SKILL_NOT_FOUND,
-    message: "Skill not found.",
-});
-
-const insufficientSkillPermissions = (): ServiceError => ({
-    statusCode: StatusCodes.FORBIDDEN,
-    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-    message: "You do not have sufficient permissions to manage this skill.",
-});
+import {
+    canManageSharedSkill,
+    createPersonalAgentSkillForContext,
+    emitSkillEvent,
+    insufficientSkillPermissions,
+    skillAlreadyExists,
+    skillNotFound,
+    updateAgentSkillForContext,
+    type SkillEventBase,
+} from "./skillCreation";
 
 const skillNotSynced = (): ServiceError => ({
     statusCode: StatusCodes.BAD_REQUEST,
@@ -93,28 +83,6 @@ type SkillAnalyticsContext = {
 
 const SKILL_ANALYTICS_SOURCE = 'sourcebot-web-client' as const;
 
-type SkillOutcomeEventName = {
-    [EventName in keyof PosthogEventMap]: PosthogEventMap[EventName] extends { success: boolean }
-        ? EventName
-        : never;
-}[keyof PosthogEventMap];
-type SkillEventBase<EventName extends SkillOutcomeEventName> =
-    Omit<PosthogEventMap[EventName], "success" | "failureReason">;
-type SkillEventOutcome =
-    | { success: true }
-    | { success: false; failureReason: string };
-
-const emitSkillEvent = <EventName extends SkillOutcomeEventName>(
-    eventName: EventName,
-    base: SkillEventBase<EventName>,
-    outcome: SkillEventOutcome,
-) => {
-    void captureEvent(eventName, {
-        ...base,
-        ...outcome,
-    } as PosthogEventMap[EventName]);
-};
-
 const getSkillAnalyticsEntryPoint = (analytics?: SkillAnalyticsContext): AskSkillEntryPoint =>
     normalizeSkillAnalyticsEntryPoint(analytics?.entryPoint);
 
@@ -135,26 +103,6 @@ const getSharedSkillActorRelationship = (
         return 'owner';
     }
     return 'member';
-};
-
-const getChangedFieldTypes = (
-    before: Pick<AgentSkill, "name" | "slug" | "description" | "instructions">,
-    after: AgentSkillInput,
-): AskSkillChangedField[] => {
-    const changedFields: AskSkillChangedField[] = [];
-    if (before.name !== after.name) {
-        changedFields.push('name');
-    }
-    if (before.slug !== after.slug) {
-        changedFields.push('command');
-    }
-    if (before.description !== after.description) {
-        changedFields.push('description');
-    }
-    if (before.instructions !== after.instructions) {
-        changedFields.push('instructions');
-    }
-    return changedFields;
 };
 
 const sharedCatalogSkillSelect = (userId: string, orgId: number) => ({
@@ -239,12 +187,6 @@ const sourceColumnsCarryOver = (skill: AgentSkillSourceColumns): AgentSkillSourc
     sourceBlobSha: skill.sourceBlobSha,
     sourceImportedAt: skill.sourceImportedAt,
 });
-
-const canManageSharedSkill = (
-    skill: { createdById: string },
-    userId: string,
-    role: OrgRole,
-) => skill.createdById === userId || role === OrgRole.OWNER;
 
 async function requireManageableSharedSkill(
     params: RequireManageableSharedSkillParams & { includeUpdateSnapshot: true },
@@ -515,62 +457,23 @@ export const createPersonalAgentSkill = async (
                 return askError;
             }
 
-            const scope = personalAgentSkillScope(user.id, org.id);
             const { source } = parsed.data;
-            const entryPoint = getSkillAnalyticsEntryPoint(analytics);
-            const creationMethod = analytics?.creationMethod ?? (source ? 'repository' : 'manual');
-            const eventBase: SkillEventBase<'ask_skill_created'> = {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'personal',
-                creationMethod,
-                isSynced: source !== undefined,
-            };
+            const result = await createPersonalAgentSkillForContext({
+                prisma,
+                userId: user.id,
+                orgId: org.id,
+                input: parsed.data,
+                analytics: {
+                    source: SKILL_ANALYTICS_SOURCE,
+                    entryPoint: getSkillAnalyticsEntryPoint(analytics),
+                    creationMethod: analytics?.creationMethod ?? (source ? 'repository' : 'manual'),
+                },
+            });
 
-            try {
-                const skill = await prisma.agentSkill.create({
-                    data: {
-                        ...scope,
-                        slug: parsed.data.slug,
-                        name: parsed.data.name,
-                        description: parsed.data.description,
-                        instructions: parsed.data.instructions,
-                        createdById: user.id,
-                        updatedById: user.id,
-                        // When imported from a repository file, record provenance so the
-                        // skill can be synced against the indexed file. sourceBlobSha is
-                        // the comparison key.
-                        ...(source ? {
-                            sourceRepoName: source.repoName,
-                            sourceFilePath: source.filePath,
-                            sourceRevision: source.revision,
-                            sourceBlobSha: source.blobSha,
-                            sourceImportedAt: new Date(),
-                        } : {}),
-                    },
-                });
-
+            if (!isServiceError(result)) {
                 refreshSkillSettingsViews();
-                emitSkillEvent('ask_skill_created', {
-                    ...eventBase,
-                    skillIdHash: hashSkillId(skill.id),
-                }, { success: true });
-                return toAgentSkillListItem(skill);
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    emitSkillEvent('ask_skill_created', eventBase, {
-                        success: false,
-                        failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
-                    });
-                    return skillAlreadyExists(parsed.data.slug);
-                }
-
-                emitSkillEvent('ask_skill_created', eventBase, {
-                    success: false,
-                    failureReason: ErrorCode.UNEXPECTED_ERROR,
-                });
-                throw error;
             }
+            return result;
         }));
 };
 
@@ -590,71 +493,26 @@ export const updatePersonalAgentSkill = async (
                 return askError;
             }
 
-            const scope = personalAgentSkillAuthScope(user.id, org.id);
-            const existingSkill = await prisma.agentSkill.findFirst({
-                where: {
-                    id: parsed.data.id,
-                    ...scope,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    description: true,
-                    instructions: true,
-                    sourceRepoName: true,
-                },
-            });
-
-            if (!existingSkill) {
-                return skillNotFound();
-            }
-
             // Synced skills stay editable: local edits to description/instructions
             // persist until the user updates the skill from its source file, which
             // replaces them with the file's content.
-            const isSynced = existingSkill.sourceRepoName !== null;
-            const entryPoint = getSkillAnalyticsEntryPoint(analytics);
-            const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
-            const eventBase: SkillEventBase<'ask_skill_updated'> = {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'personal',
-                isSynced,
-                skillIdHash: hashSkillId(existingSkill.id),
-                changedFieldTypes,
-            };
+            const result = await updateAgentSkillForContext({
+                prisma,
+                userId: user.id,
+                orgId: org.id,
+                target: { scope: 'personal', id: parsed.data.id },
+                fields: parsed.data,
+                policy: { sharedManageableBy: 'creator-or-owner', allowSynced: true },
+                analytics: {
+                    source: SKILL_ANALYTICS_SOURCE,
+                    entryPoint: getSkillAnalyticsEntryPoint(analytics),
+                },
+            });
 
-            try {
-                const skill = await prisma.agentSkill.update({
-                    where: { id: existingSkill.id },
-                    data: {
-                        slug: parsed.data.slug,
-                        name: parsed.data.name,
-                        description: parsed.data.description,
-                        instructions: parsed.data.instructions,
-                        updatedById: user.id,
-                    },
-                });
-
+            if (!isServiceError(result)) {
                 refreshSkillSettingsViews();
-                emitSkillEvent('ask_skill_updated', eventBase, { success: true });
-                return toAgentSkillListItem(skill);
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    emitSkillEvent('ask_skill_updated', eventBase, {
-                        success: false,
-                        failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
-                    });
-                    return skillAlreadyExists(parsed.data.slug);
-                }
-
-                emitSkillEvent('ask_skill_updated', eventBase, {
-                    success: false,
-                    failureReason: ErrorCode.UNEXPECTED_ERROR,
-                });
-                throw error;
             }
+            return result;
         }));
 };
 
@@ -1458,64 +1316,26 @@ export const updateSharedAgentSkill = async (
                 return askError;
             }
 
-            const existingSkill = await requireManageableSharedSkill({
-                prisma,
-                orgId: org.id,
-                userId: user.id,
-                role,
-                skillId: parsed.data.id,
-                requireEnabled: true,
-                includeUpdateSnapshot: true,
-            });
-
-            if ("errorCode" in existingSkill) {
-                return existingSkill;
-            }
-
             // As with personal skills, a synced shared skill stays editable; local
             // edits persist until an update from source replaces them.
-            const isSynced = existingSkill.sourceRepoName !== null;
-            const entryPoint = getSkillAnalyticsEntryPoint(analytics);
-            const changedFieldTypes = getChangedFieldTypes(existingSkill, parsed.data);
-            const eventBase: SkillEventBase<'ask_skill_updated'> = {
-                source: SKILL_ANALYTICS_SOURCE,
-                entryPoint,
-                scope: 'shared',
-                isSynced,
-                skillIdHash: hashSkillId(existingSkill.id),
-                changedFieldTypes,
-            };
+            const result = await updateAgentSkillForContext({
+                prisma,
+                userId: user.id,
+                orgId: org.id,
+                role,
+                target: { scope: 'shared', id: parsed.data.id },
+                fields: parsed.data,
+                policy: { sharedManageableBy: 'creator-or-owner', allowSynced: true },
+                analytics: {
+                    source: SKILL_ANALYTICS_SOURCE,
+                    entryPoint: getSkillAnalyticsEntryPoint(analytics),
+                },
+            });
 
-            try {
-                const skill = await prisma.agentSkill.update({
-                    where: { id: existingSkill.id },
-                    data: {
-                        slug: parsed.data.slug,
-                        name: parsed.data.name,
-                        description: parsed.data.description,
-                        instructions: parsed.data.instructions,
-                        updatedById: user.id,
-                    },
-                });
-
+            if (!isServiceError(result)) {
                 refreshSkillSettingsViews();
-                emitSkillEvent('ask_skill_updated', eventBase, { success: true });
-                return toAgentSkillListItem(skill);
-            } catch (error) {
-                if (isUniqueConstraintError(error)) {
-                    emitSkillEvent('ask_skill_updated', eventBase, {
-                        success: false,
-                        failureReason: ErrorCode.AGENT_SKILL_ALREADY_EXISTS,
-                    });
-                    return skillAlreadyExists(parsed.data.slug);
-                }
-
-                emitSkillEvent('ask_skill_updated', eventBase, {
-                    success: false,
-                    failureReason: ErrorCode.UNEXPECTED_ERROR,
-                });
-                throw error;
             }
+            return result;
         }));
 };
 

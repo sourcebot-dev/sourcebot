@@ -30,6 +30,10 @@ export interface ToolDefinition<
     inputSchema: z.ZodObject<TShape>;
     isReadOnly: boolean;
     isIdempotent: boolean;
+    // Whether the tool can destroy or overwrite existing data. Emitted as the
+    // MCP destructiveHint annotation (which MCP clients default to true for
+    // non-read-only tools, so additive writes should set this to false).
+    isDestructive?: boolean;
     execute: (input: z.infer<z.ZodObject<TShape>>, context: ToolContext) => Promise<ToolResult<TMetadata>>;
 }
 

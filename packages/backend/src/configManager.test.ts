@@ -217,13 +217,13 @@ describe("ConfigManager", () => {
             "repo-index-v1-2",
         );
         expect(mocks.trigger).toHaveBeenCalledWith(
-            "repo-index",
-            { repoId: 1, type: "CLEANUP" },
+            "repo-cleanup",
+            { repoId: 1 },
             { priority: 10 },
         );
         expect(mocks.trigger).not.toHaveBeenCalledWith(
-            "repo-index",
-            { repoId: 2, type: "CLEANUP" },
+            "repo-cleanup",
+            { repoId: 2 },
             expect.anything(),
         );
         expect(mocks.removeJobScheduler).toHaveBeenCalledWith(

@@ -6,6 +6,7 @@ import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { env } from "@sourcebot/shared";
 import micromatch from "micromatch";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 import { fetchWithRetry, measure } from "./utils.js";
 
 const logger = createLogger('gitlab');
@@ -50,7 +51,6 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
     });
 
     let allRepos: ProjectSchema[] = [];
-    let allWarnings: string[] = [];
 
     if (config.all === true) {
         if (hostname !== GITLAB_CLOUD_HOSTNAME) {
@@ -72,7 +72,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
         } else {
             const warning = `Ignoring option all:true in config : host is ${GITLAB_CLOUD_HOSTNAME}`;
             logger.warn(warning);
-            allWarnings = allWarnings.concat(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "UNSUPPORTED_CONFIGURATION",
+                effect: "CONFIGURATION_IGNORED",
+                subject: {
+                    kind: "configuration",
+                    value: "all",
+                },
+                message: "The all option is not supported for GitLab Cloud.",
+            });
         }
     }
 
@@ -88,10 +96,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                     return fetchWithRetry(fetchFn, `group ${group}`, logger);
                 });
                 logger.debug(`Found ${data.length} projects in group ${group} in ${durationMs}ms.`);
-                return {
-                    type: 'valid' as const,
-                    data
-                };
+                return data;
             } catch (e: any) {
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch projects for group ${group}.`, e);
@@ -99,10 +104,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 if (e?.cause?.response?.status === 404) {
                     const warning = `Group ${group} not found or no access`;
                     logger.warn(warning);
-                    return {
-                        type: 'warning' as const,
-                        warning
-                    };
+                    reportRepositoryDiscoveryIssue({
+                        code: "NOT_FOUND_OR_INACCESSIBLE",
+                        effect: "TARGET_SKIPPED",
+                        subject: {
+                            kind: "group",
+                            value: group,
+                        },
+                        message: "GitLab group was not found or is inaccessible.",
+                    });
+                    return [];
                 }
 
                 throw e;
@@ -110,9 +121,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
         }));
 
         throwIfAnyFailed(results);
-        const { validItems: validRepos, warnings } = processPromiseResults(results);
-        allRepos = allRepos.concat(validRepos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(processPromiseResults(results));
     }
 
     if (config.users) {
@@ -126,10 +135,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                     return fetchWithRetry(fetchFn, `user ${user}`, logger);
                 });
                 logger.debug(`Found ${data.length} projects owned by user ${user} in ${durationMs}ms.`);
-                return {
-                    type: 'valid' as const,
-                    data
-                };
+                return data;
             } catch (e: any) {
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch projects for user ${user}.`, e);
@@ -137,10 +143,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 if (e?.cause?.response?.status === 404) {
                     const warning = `User ${user} not found or no access`;
                     logger.warn(warning);
-                    return {
-                        type: 'warning' as const,
-                        warning
-                    };
+                    reportRepositoryDiscoveryIssue({
+                        code: "NOT_FOUND_OR_INACCESSIBLE",
+                        effect: "TARGET_SKIPPED",
+                        subject: {
+                            kind: "user",
+                            value: user,
+                        },
+                        message: "GitLab user was not found or is inaccessible.",
+                    });
+                    return [];
                 }
 
                 throw e;
@@ -148,9 +160,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
         }));
 
         throwIfAnyFailed(results);
-        const { validItems: validRepos, warnings } = processPromiseResults(results);
-        allRepos = allRepos.concat(validRepos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(processPromiseResults(results));
     }
 
     if (config.projects) {
@@ -162,10 +172,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                     return fetchWithRetry(fetchFn, `project ${project}`, logger);
                 });
                 logger.debug(`Found project ${project} in ${durationMs}ms.`);
-                return {
-                    type: 'valid' as const,
-                    data: [data]
-                };
+                return [data];
             } catch (e: any) {
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch project ${project}.`, e);
@@ -173,10 +180,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 if (e?.cause?.response?.status === 404) {
                     const warning = `Project ${project} not found or no access`;
                     logger.warn(warning);
-                    return {
-                        type: 'warning' as const,
-                        warning
-                    };
+                    reportRepositoryDiscoveryIssue({
+                        code: "NOT_FOUND_OR_INACCESSIBLE",
+                        effect: "TARGET_SKIPPED",
+                        subject: {
+                            kind: "project",
+                            value: project,
+                        },
+                        message: "GitLab project was not found or is inaccessible.",
+                    });
+                    return [];
                 }
 
                 throw e;
@@ -184,9 +197,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
         }));
 
         throwIfAnyFailed(results);
-        const { validItems: validRepos, warnings } = processPromiseResults(results);
-        allRepos = allRepos.concat(validRepos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(processPromiseResults(results));
     }
 
     let repos = allRepos
@@ -204,10 +215,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    return {
-        repos,
-        warnings: allWarnings,
-    };
+    return repos;
 }
 
 export const shouldExcludeProject = ({

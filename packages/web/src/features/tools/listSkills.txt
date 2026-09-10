@@ -1,0 +1,7 @@
+Lists the agent skills visible to the requesting user: their personal skills plus the organization's shared skill catalog (including shared skills they have not adopted or authored).
+
+Usage:
+- Use `scope` to list only `personal` or only `shared` skills; omit it to list both.
+- Each row carries `slug` and `scope`, the identifier pair `update_skill` needs, plus `enabled`, `isSynced` (linked to a repository file), `canEdit` (whether `update_skill` can edit it), and, on shared rows, `adopted` (whether the skill is active for this user).
+- Skill instructions are never included in the results.
+- Use this before `create_skill` to avoid slug conflicts, and before `update_skill` to locate the target skill and check whether it is editable.

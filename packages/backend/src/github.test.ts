@@ -1,10 +1,121 @@
-import { expect, test, describe } from 'vitest';
+import type { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
+import { expect, test, describe, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => {
+    const notFound = Object.assign(new Error("Not Found"), { status: 404 });
+
+    return {
+        reposGet: vi.fn(async () => {
+            throw notFound;
+        }),
+        paginateIterator: vi.fn(() => ({
+            async *[Symbol.asyncIterator]() {
+                throw notFound;
+            },
+        })),
+    };
+});
+
+vi.mock("@sentry/node", () => ({
+    captureException: vi.fn(),
+}));
+
+vi.mock("@octokit/rest", () => ({
+    Octokit: class {
+        repos = {
+            get: mocks.reposGet,
+            listForOrg: vi.fn(),
+        };
+        rest = {
+            search: {
+                repos: vi.fn(),
+            },
+            users: {
+                getAuthenticated: vi.fn(),
+            },
+        };
+        paginate = {
+            iterator: mocks.paginateIterator,
+        };
+    },
+}));
+
+vi.mock("./ee/githubAppManager.js", () => ({
+    GithubAppManager: {
+        getInstance: () => ({
+            ensureInitialized: vi.fn(),
+            appsConfigured: () => false,
+        }),
+    },
+}));
+
+vi.mock("./utils.js", () => ({
+    fetchWithRetry: (routine: () => Promise<unknown>) => routine(),
+    measure: async (routine: () => Promise<unknown>) => ({
+        durationMs: 1,
+        data: await routine(),
+    }),
+}));
+
+import { collectRepositoryDiscoveryIssues } from "./repositoryDiscoveryIssueContext.js";
 import {
     OctokitRepository,
     shouldExcludeRepo,
     detectGitHubTokenType,
     supportsOAuthScopeIntrospection,
+    getGitHubReposFromConfig,
 } from './github';
+
+describe("GitHub repository discovery", () => {
+    test("reports inaccessible configured targets as partial successes", async () => {
+        const config = {
+            type: "github",
+            url: "https://github.example.com",
+            orgs: ["missing-org"],
+            repos: ["missing-owner/missing-repo"],
+            users: ["missing-user"],
+        } satisfies GithubConnectionConfig;
+        const result = await collectRepositoryDiscoveryIssues(() =>
+            getGitHubReposFromConfig(
+                config,
+                new AbortController().signal,
+            )
+        );
+
+        expect(result).toEqual({
+            value: [],
+            issues: [
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "organization",
+                        value: "missing-org",
+                    },
+                    message: "GitHub organization was not found or is inaccessible.",
+                },
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: "missing-owner/missing-repo",
+                    },
+                    message: "GitHub repository was not found or is inaccessible.",
+                },
+                {
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "user",
+                        value: "missing-user",
+                    },
+                    message: "GitHub user was not found or is inaccessible.",
+                },
+            ],
+        });
+    });
+});
 
 describe('detectGitHubTokenType', () => {
     test('detects classic PAT (ghp_)', () => {

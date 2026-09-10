@@ -1,18 +1,17 @@
-import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, getRepoPath, getRepoIdFromPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
+import { PrismaClient } from "@sourcebot/db";
+import { createLogger, getRepoPath, RepoMetadata, repoMetadataSchema, REPO_INDEX_QUEUE } from "@sourcebot/shared";
 import { existsSync } from 'fs';
-import { readdir, rm } from 'fs/promises';
+import { rm } from 'fs/promises';
 import micromatch from 'micromatch';
-import { INDEX_CACHE_DIR, REPOS_CACHE_DIR } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig, writeCommitGraph } from './git.js';
 import { captureEvent } from './posthog.js';
+import { REPOSITORY_EXECUTION_LOCK } from "./repoLock.js";
 import { RepoWithConnections, Settings, Workload } from "./types.js";
-import { getAuthCredentialsForRepo, getRepoIdFromShardFileName, measure } from './utils.js';
+import { getAuthCredentialsForRepo, measure } from './utils.js';
 import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-workload';
 const logger = createLogger(LOG_TAG);
-const REPO_INDEX_LOCK_DURATION_MS = 60_000;
 
 interface Props {
     db: PrismaClient;
@@ -25,145 +24,87 @@ export const createRepoIndexWorkload = ({
 }: Props): Workload<'repo-index'> => ({
     queueSpec: REPO_INDEX_QUEUE,
     concurrency: settings.maxRepoIndexingJobConcurrency,
-    // Indexing and cleanup share this lock because both operate on the same
-    // repository path and search index.
-    executionLock: {
-        resource: ({ repoId }) => `sourcebot:lock:repo:${repoId}`,
-        durationMs: REPO_INDEX_LOCK_DURATION_MS,
-    },
+    executionLock: REPOSITORY_EXECUTION_LOCK,
     process: async ({ data, jobId, signal }) => {
         signal.throwIfAborted();
+
         const start = await prepareRepoIndexJob({
             db,
             repoId: data.repoId,
-            type: data.type,
             jobId,
         });
 
         if (start.action === "skip") {
             logger.debug(
-                `Skipping ${data.type} job for repo ${data.repoId}: ${start.reason}`,
+                `Skipping INDEX job for repo ${data.repoId}: ${start.reason}`,
             );
-
-            if (data.type === "CLEANUP" && start.repoMissing) {
-                signal.throwIfAborted();
-                await cleanupOrphanedRepoResourcesForRepoId(data.repoId);
-            }
             return;
         }
 
         signal.throwIfAborted();
         const { repo } = start;
-        logger.debug(`Running ${data.type} job for repo ${repo.name} (id: ${repo.id})`);
+        logger.debug(`Running INDEX job for repo ${repo.name} (id: ${repo.id})`);
 
-        if (data.type === "CLEANUP") {
-            signal.throwIfAborted();
-            const { count } = await db.repo.deleteMany({
-                where: {
-                    id: repo.id,
-                    isAutoCleanupDisabled: false,
-                    connections: {
-                        none: {},
-                    },
-                },
+        const isFirstIndex = repo.indexedAt === null;
+        const revisions = await indexRepository(db, settings, repo, signal);
+        signal.throwIfAborted();
+        const { path: repoPath } = getRepoPath(repo);
+        const isEmpty = await isRepoEmpty({ path: repoPath });
+        const commitHash = isEmpty ? undefined : await getCommitHashForRefName({
+            path: repoPath,
+            refName: 'HEAD',
+        });
+        const pushedAt = await getLatestCommitTimestamp({ path: repoPath });
+        const defaultBranch = await getLocalDefaultBranch({ path: repoPath });
+        const currentRepo = await db.repo.findUniqueOrThrow({
+            where: { id: repo.id },
+            select: { metadata: true },
+        });
+
+        signal.throwIfAborted();
+        await db.repo.update({
+            where: { id: repo.id },
+            data: {
+                indexedAt: new Date(),
+                indexedCommitHash: commitHash,
+                pushedAt,
+                metadata: {
+                    ...(currentRepo.metadata as RepoMetadata),
+                    indexedRevisions: revisions,
+                } satisfies RepoMetadata,
+                defaultBranch,
+            },
+        });
+
+        if (isFirstIndex) {
+            captureEvent('backend_repo_first_indexed', {
+                repoId: repo.id,
+                type: repo.external_codeHostType,
             });
-
-            if (count === 0) {
-                logger.debug(
-                    `Skipping CLEANUP job for repo ${repo.id}: repository is no longer eligible for cleanup`,
-                );
-                return;
-            }
-
-            signal.throwIfAborted();
-            await cleanupRepository(repo);
-        } else {
-            const isFirstIndex = repo.indexedAt === null;
-            const revisions = await indexRepository(db, settings, repo, signal);
-            signal.throwIfAborted();
-            const { path: repoPath } = getRepoPath(repo);
-            const isEmpty = await isRepoEmpty({ path: repoPath });
-            const commitHash = isEmpty ? undefined : await getCommitHashForRefName({
-                path: repoPath,
-                refName: 'HEAD',
-            });
-            const pushedAt = await getLatestCommitTimestamp({ path: repoPath });
-            const defaultBranch = await getLocalDefaultBranch({ path: repoPath });
-            const currentRepo = await db.repo.findUniqueOrThrow({
-                where: { id: repo.id },
-                select: { metadata: true },
-            });
-
-            signal.throwIfAborted();
-            await db.repo.update({
-                where: { id: repo.id },
-                data: {
-                    indexedAt: new Date(),
-                    indexedCommitHash: commitHash,
-                    pushedAt,
-                    metadata: {
-                        ...(currentRepo.metadata as RepoMetadata),
-                        indexedRevisions: revisions,
-                    } satisfies RepoMetadata,
-                    defaultBranch,
-                },
-            });
-
-            if (isFirstIndex) {
-                captureEvent('backend_repo_first_indexed', {
-                    repoId: repo.id,
-                    type: repo.external_codeHostType,
-                });
-            }
         }
     },
-    onCompleted: async ({ data: { repoId }, jobId }) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: RepoIndexingJobStatus.COMPLETED,
-                    completedAt: new Date(),
-                    errorMessage: null,
-                },
-            });
-            await tx.repo.updateMany({
-                where: {
-                    id: repoId,
-                    latestIndexingJobId: jobId,
-                },
-                data: {
-                    latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
-                },
-            });
-        });
+    onCompleted: async ({ data }) => {
+        await markFirstIndexingJobFinished(db, data);
     },
-    onTerminalFailure: async ({ data: { repoId }, jobId }, error) => {
-        await db.$transaction(async (tx) => {
-            await tx.repoIndexingJob.updateMany({
-                where: {
-                    id: jobId,
-                },
-                data: {
-                    status: RepoIndexingJobStatus.FAILED,
-                    completedAt: new Date(),
-                    errorMessage: error.message,
-                },
-            });
-            await tx.repo.updateMany({
-                where: {
-                    id: repoId,
-                    latestIndexingJobId: jobId,
-                },
-                data: {
-                    latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
-                },
-            });
-        });
+    onTerminalFailure: async ({ data }) => {
+        await markFirstIndexingJobFinished(db, data);
     },
 });
+
+const markFirstIndexingJobFinished = async (
+    db: PrismaClient,
+    data: { repoId: number },
+) => {
+    await db.repo.updateMany({
+        where: {
+            id: data.repoId,
+            firstIndexingJobFinishedAt: null,
+        },
+        data: {
+            firstIndexingJobFinishedAt: new Date(),
+        },
+    });
+};
 
 type RepoIndexStartDecision =
     | {
@@ -173,18 +114,15 @@ type RepoIndexStartDecision =
     | {
           action: "skip";
           reason: string;
-          repoMissing: boolean;
       };
 
 const prepareRepoIndexJob = async ({
     db,
     repoId,
-    type,
     jobId,
 }: {
     db: PrismaClient;
     repoId: number;
-    type: "INDEX" | "CLEANUP";
     jobId: string;
 }): Promise<RepoIndexStartDecision> =>
     db.$transaction(async (tx) => {
@@ -203,49 +141,15 @@ const prepareRepoIndexJob = async ({
             return {
                 action: "skip",
                 reason: "repository no longer exists",
-                repoMissing: true,
             };
         }
 
-        if (type === "CLEANUP" && repo.isAutoCleanupDisabled) {
-            return {
-                action: "skip",
-                reason: "automatic cleanup is disabled",
-                repoMissing: false,
-            };
-        }
-
-        if (type === "CLEANUP" && repo.connections.length > 0) {
-            return {
-                action: "skip",
-                reason: "repository has been reattached to a connection",
-                repoMissing: false,
-            };
-        }
-
-        await tx.repoIndexingJob.upsert({
-            where: {
-                id: jobId,
-            },
-            update: {
-                status: RepoIndexingJobStatus.IN_PROGRESS,
-                completedAt: null,
-                errorMessage: null,
-            },
-            create: {
-                id: jobId,
-                repoId,
-                type: RepoIndexingJobType[type],
-                status: RepoIndexingJobStatus.IN_PROGRESS,
-            },
-        });
         await tx.repo.update({
             where: {
                 id: repoId,
             },
             data: {
                 latestIndexingJobId: jobId,
-                latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
             },
         });
 
@@ -444,107 +348,4 @@ const indexRepository = async (
     }
 
     return revisions;
-};
-
-const cleanupRepository = async (repo: Repo) => {
-    const { path: repoPath, isReadOnly } = getRepoPath(repo);
-    if (existsSync(repoPath) && !isReadOnly) {
-        logger.debug(`Deleting repo directory ${repoPath}`);
-        await rm(repoPath, { recursive: true, force: true });
-    }
-
-    const files = (await readdir(INDEX_CACHE_DIR)).filter(file => getRepoIdFromShardFileName(file) === repo.id);
-    for (const file of files) {
-        const filePath = `${INDEX_CACHE_DIR}/${file}`;
-        logger.debug(`Deleting shard file ${filePath}`);
-        await rm(filePath, { force: true });
-    }
-};
-
-const cleanupOrphanedRepoResourcesForRepoId = async (
-    repoId: number,
-) => {
-    const repoPath = `${REPOS_CACHE_DIR}/${repoId}`;
-    if (existsSync(repoPath)) {
-        logger.debug(`Deleting orphaned repo directory ${repoPath}`);
-        await rm(repoPath, { recursive: true, force: true });
-    }
-
-    if (!existsSync(INDEX_CACHE_DIR)) {
-        return;
-    }
-
-    const shardFiles = (await readdir(INDEX_CACHE_DIR)).filter(
-        (file) => getRepoIdFromShardFileName(file) === repoId,
-    );
-    for (const file of shardFiles) {
-        const filePath = `${INDEX_CACHE_DIR}/${file}`;
-        logger.debug(`Deleting orphaned shard file ${filePath}`);
-        await rm(filePath, { force: true });
-    }
-};
-
-// Scans the repos and index directories on disk and removes any entries
-// that have no corresponding Repo record in the database. This handles
-// edge cases where the DB and disk resources are out of sync.
-export const cleanupOrphanedRepoResources = async (db: PrismaClient) => {
-    // --- Repo directories ---
-    // Dirs are named by repoId: DATA_CACHE_DIR/repos/<repoId>/
-    if (existsSync(REPOS_CACHE_DIR)) {
-        const entries = await readdir(REPOS_CACHE_DIR);
-        const repoIdToPath = new Map<number, string>();
-        for (const entry of entries) {
-            const repoPath = `${REPOS_CACHE_DIR}/${entry}`;
-            const repoId = getRepoIdFromPath(repoPath);
-            if (repoId !== undefined) {
-                repoIdToPath.set(repoId, repoPath);
-            }
-        }
-
-        if (repoIdToPath.size > 0) {
-            const existingRepos = await db.repo.findMany({
-                where: { id: { in: [...repoIdToPath.keys()] } },
-                select: { id: true },
-            });
-            const existingIds = new Set(existingRepos.map(r => r.id));
-            for (const [repoId, repoPath] of repoIdToPath) {
-                if (!existingIds.has(repoId)) {
-                    logger.debug(`Removing orphaned repo directory with no DB record: ${repoPath}`);
-                    await rm(repoPath, { recursive: true, force: true });
-                }
-            }
-        }
-    }
-
-    // --- Index shards ---
-    // Shard files are prefixed with <orgId>_<repoId>: DATA_CACHE_DIR/index/<orgId>_<repoId>_*.zoekt
-    if (existsSync(INDEX_CACHE_DIR)) {
-        const entries = await readdir(INDEX_CACHE_DIR);
-        const repoIdToShards = new Map<number, string[]>();
-        for (const entry of entries) {
-            const repoId = getRepoIdFromShardFileName(entry);
-            if (repoId !== undefined) {
-                const shards = repoIdToShards.get(repoId) ?? [];
-                shards.push(entry);
-                repoIdToShards.set(repoId, shards);
-            }
-        }
-
-        if (repoIdToShards.size > 0) {
-            const existingRepos = await db.repo.findMany({
-                where: { id: { in: [...repoIdToShards.keys()] } },
-                select: { id: true },
-            });
-            const existingIds = new Set(existingRepos.map(r => r.id));
-            for (const [repoId, shards] of repoIdToShards) {
-                if (!existingIds.has(repoId)) {
-                    for (const entry of shards) {
-                        const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
-                        logger.debug(`Removing orphaned index shard with no DB record: ${shardPath}`);
-                        await rm(shardPath, { force: true });
-                    }
-                }
-            }
-        }
-    }
 };

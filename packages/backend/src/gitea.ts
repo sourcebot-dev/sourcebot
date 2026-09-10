@@ -7,6 +7,7 @@ import fetch from 'cross-fetch';
 import { Api, giteaApi, Repository as GiteaRepository, HttpResponse } from 'gitea-js';
 import micromatch from 'micromatch';
 import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
+import { reportRepositoryDiscoveryIssue } from './repositoryDiscoveryIssueContext.js';
 import { measure } from './utils.js';
 
 const logger = createLogger('gitea');
@@ -45,33 +46,42 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => 
     });
 
     let allRepos: GiteaRepository[] = [];
-    let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { repos, warnings } = await getReposForOrgs(config.orgs, api);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(await getReposForOrgs(config.orgs, api));
     }
 
     if (config.repos) {
-        const { repos, warnings } = await getRepos(config.repos, api);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(await getRepos(config.repos, api));
     }
 
     if (config.users) {
-        const { repos, warnings } = await getReposOwnedByUsers(config.users, api);
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        allRepos = allRepos.concat(await getReposOwnedByUsers(config.users, api));
     }
     
     allRepos = allRepos.filter(repo => {
         if (repo === null || repo === undefined) {
             logger.warn(`Skipping null/undefined repository returned by the Gitea API`);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_PROVIDER_RESPONSE",
+                effect: "DISCOVERY_INCOMPLETE",
+                message: "Gitea returned a null repository, so it was skipped.",
+            });
             return false;
         }
         if (repo.full_name === undefined) {
             logger.warn(`Repository with undefined full_name found: repoId=${repo.id}`);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_PROVIDER_RESPONSE",
+                effect: "DISCOVERY_INCOMPLETE",
+                ...(repo.id !== undefined && repo.id !== null ? {
+                    subject: {
+                        kind: "repository" as const,
+                        value: String(repo.id),
+                    },
+                } : {}),
+                message: "Gitea returned a repository without a full name, so it was skipped.",
+            });
             return false;
         }
         return true;
@@ -88,10 +98,7 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => 
         });
     
     logger.debug(`Found ${repos.length} total repositories.`);
-    return {
-        repos,
-        warnings: allWarnings,
-    };
+    return repos;
 }
 
 const shouldExcludeRepo = ({
@@ -148,32 +155,30 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos owned by user ${user} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (e: any) {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
                 const warning = `User ${user} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "user",
+                        value: user,
+                    },
+                    message: "Gitea user was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
 const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
@@ -189,32 +194,30 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             );
 
             logger.debug(`Found ${data.length} repos for org ${org} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (e: any) {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
                 const warning = `Organization ${org} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "organization",
+                        value: org,
+                    },
+                    message: "Gitea organization was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
 const getRepos = async <T>(repoList: string[], api: Api<T>) => {
@@ -232,32 +235,30 @@ const getRepos = async <T>(repoList: string[], api: Api<T>) => {
             }
 
             logger.debug(`Found repo ${repo} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data: [response.data]
-            };
+            return [response.data];
         } catch (e: any) {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
                 const warning = `Repository ${repo} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: repo,
+                    },
+                    message: "Gitea repository was not found or is inaccessible.",
+                });
+                return [];
             }
             throw e;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
 // @see : https://docs.gitea.com/development/api-usage#pagination

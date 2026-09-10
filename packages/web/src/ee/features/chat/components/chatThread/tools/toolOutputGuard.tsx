@@ -62,6 +62,14 @@ export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessage
                         <span className="text-sm flex-1 text-destructive">
                             {part.title!} failed with error: {part.errorText}
                         </span>
+                    ) : part.state === 'approval-requested' ? (
+                        <span className="text-sm flex-1 text-muted-foreground">
+                            Waiting for approval
+                        </span>
+                    ) : part.state === 'output-denied' ? (
+                        <span className="text-sm flex-1 text-muted-foreground">
+                            {part.title ?? 'Tool call'} denied
+                        </span>
                     ) : part.state !== 'output-available' ? (
                         <span className="text-sm flex-1 text-muted-foreground animate-pulse">
                             {loadingText}

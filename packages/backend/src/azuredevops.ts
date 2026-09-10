@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/node";
 import * as azdev from "azure-devops-node-api";
 import { GitRepository } from "azure-devops-node-api/interfaces/GitInterfaces.js";
 import { getTokenFromConfig } from "@sourcebot/shared";
+import { reportRepositoryDiscoveryIssue } from "./repositoryDiscoveryIssueContext.js";
 
 const logger = createLogger('azuredevops');
 const AZUREDEVOPS_CLOUD_HOSTNAME = "dev.azure.com";
@@ -42,39 +43,32 @@ export const getAzureDevOpsReposFromConfig = async (
 
     const useTfsPath = config.useTfsPath || false;
     let allRepos: GitRepository[] = [];
-    let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { repos, warnings } = await getReposForOrganizations(
+        allRepos = allRepos.concat(await getReposForOrganizations(
             config.orgs, 
             baseUrl,
             token,
             useTfsPath
-        );
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        ));
     }
 
     if (config.projects) {
-        const { repos, warnings } = await getReposForProjects(
+        allRepos = allRepos.concat(await getReposForProjects(
             config.projects,
             baseUrl,
             token,
             useTfsPath
-        );
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        ));
     }
 
     if (config.repos) {
-        const { repos, warnings } = await getRepos(
+        allRepos = allRepos.concat(await getRepos(
             config.repos,
             baseUrl,
             token,
             useTfsPath
-        );
-        allRepos = allRepos.concat(repos);
-        allWarnings = allWarnings.concat(warnings);
+        ));
     }
 
     let repos = allRepos
@@ -89,10 +83,7 @@ export const getAzureDevOpsReposFromConfig = async (
 
     logger.debug(`Found ${repos.length} total repositories.`);
 
-    return {
-        repos,
-        warnings: allWarnings,
-    };
+    return repos;
 };
 
 export const shouldExcludeRepo = ({
@@ -180,6 +171,15 @@ async function getReposForOrganizations(
                     for (const project of projects) {
                         if (!project.id) {
                             logger.warn(`Encountered project in org ${org} with no id: ${project.name}`);
+                            reportRepositoryDiscoveryIssue({
+                                code: "INVALID_PROVIDER_RESPONSE",
+                                effect: "DISCOVERY_INCOMPLETE",
+                                subject: {
+                                    kind: "project",
+                                    value: `${org}/${project.name ?? "unknown"}`,
+                                },
+                                message: "Azure DevOps returned a project without an ID, so its repositories were skipped.",
+                            });
                             continue;
                         }
 
@@ -188,6 +188,15 @@ async function getReposForOrganizations(
                             allRepos.push(...repos);
                         } catch (error) {
                             logger.warn(`Failed to fetch repositories for project ${project.name}: ${error}`);
+                            reportRepositoryDiscoveryIssue({
+                                code: "ENUMERATION_FAILED",
+                                effect: "DISCOVERY_INCOMPLETE",
+                                subject: {
+                                    kind: "project",
+                                    value: `${org}/${project.name ?? project.id}`,
+                                },
+                                message: "Azure DevOps repository enumeration did not complete for this project.",
+                            });
                         }
                     }
 
@@ -198,10 +207,7 @@ async function getReposForOrganizations(
             });
 
             logger.debug(`Found ${data.length} repositories in organization ${org} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Failed to fetch repositories for organization ${org}.`, error);
@@ -210,22 +216,23 @@ async function getReposForOrganizations(
             if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
                 const warning = `Organization ${org} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "organization",
+                        value: org,
+                    },
+                    message: "Azure DevOps organization was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
 async function getReposForProjects(
@@ -253,10 +260,7 @@ async function getReposForProjects(
             });
 
             logger.debug(`Found ${data.length} repositories in project ${project} in ${durationMs}ms.`);
-            return {
-                type: 'valid' as const,
-                data
-            };
+            return data;
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Failed to fetch repositories for project ${project}.`, error);
@@ -264,22 +268,23 @@ async function getReposForProjects(
             if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
                 const warning = `Project ${project} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "project",
+                        value: project,
+                    },
+                    message: "Azure DevOps project was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }
 
 async function getRepos(
@@ -307,10 +312,7 @@ async function getRepos(
             });
 
             logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
-            return {
-                type: 'valid' as const,
-                data: [result]
-            };
+            return [result];
 
         } catch (error) {
             Sentry.captureException(error);
@@ -319,20 +321,21 @@ async function getRepos(
             if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
                 const warning = `Repository ${repo} not found or no access`;
                 logger.warn(warning);
-                return {
-                    type: 'warning' as const,
-                    warning
-                };
+                reportRepositoryDiscoveryIssue({
+                    code: "NOT_FOUND_OR_INACCESSIBLE",
+                    effect: "TARGET_SKIPPED",
+                    subject: {
+                        kind: "repository",
+                        value: repo,
+                    },
+                    message: "Azure DevOps repository was not found or is inaccessible.",
+                });
+                return [];
             }
             throw error;
         }
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: repos, warnings } = processPromiseResults<GitRepository>(results);
-
-    return {
-        repos,
-        warnings,
-    };
+    return processPromiseResults(results);
 }

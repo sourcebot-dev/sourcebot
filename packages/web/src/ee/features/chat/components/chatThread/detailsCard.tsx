@@ -20,6 +20,7 @@ import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesT
 import { GlobToolComponent } from './tools/globToolComponent';
 import { GrepToolComponent } from './tools/grepToolComponent';
 import { GetDiffToolComponent } from './tools/getDiffToolComponent';
+import { ListBranchesToolComponent } from './tools/listBranchesToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
@@ -28,6 +29,9 @@ import { ToolOutputGuard } from './tools/toolOutputGuard';
 import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
 import { LoadSkillToolComponent } from './tools/loadSkillToolComponent';
+import { CreateSkillToolComponent } from './tools/createSkillToolComponent';
+import { UpdateSkillToolComponent } from './tools/updateSkillToolComponent';
+import { ListSkillsToolComponent } from './tools/listSkillsToolComponent';
 
 
 // A UI-visible step: the parts of one LLM invocation, tagged with the
@@ -459,9 +463,13 @@ type GuardedToolType =
     | 'tool-find_symbol_definitions'
     | 'tool-find_symbol_references'
     | 'tool-list_repos'
+    | 'tool-list_branches'
     | 'tool-list_commits'
     | 'tool-get_diff'
-    | 'tool-list_tree';
+    | 'tool-list_tree'
+    | 'tool-create_skill'
+    | 'tool-update_skill'
+    | 'tool-list_skills';
 
 type GuardedToolPart = Extract<SBChatMessagePart, { type: GuardedToolType }>;
 
@@ -475,9 +483,13 @@ const TOOL_GUARD_CONFIG = {
     'tool-find_symbol_definitions': { loadingText: 'Resolving definitions...', render: (output) => <FindSymbolDefinitionsToolComponent {...output} /> },
     'tool-find_symbol_references': { loadingText: 'Resolving references...', render: (output) => <FindSymbolReferencesToolComponent {...output} /> },
     'tool-list_repos': { loadingText: 'Listing repositories...', render: (output) => <ListReposToolComponent {...output} /> },
+    'tool-list_branches': { loadingText: 'Listing branches...', render: (output) => <ListBranchesToolComponent {...output} /> },
     'tool-list_commits': { loadingText: 'Listing commits...', render: (output) => <ListCommitsToolComponent {...output} /> },
     'tool-get_diff': { loadingText: 'Comparing revisions...', render: (output) => <GetDiffToolComponent {...output} /> },
     'tool-list_tree': { loadingText: 'Listing tree...', render: (output) => <ListTreeToolComponent {...output} /> },
+    'tool-create_skill': { loadingText: 'Creating skill...', render: (output) => <CreateSkillToolComponent {...output} /> },
+    'tool-update_skill': { loadingText: 'Updating skill...', render: (output) => <UpdateSkillToolComponent {...output} /> },
+    'tool-list_skills': { loadingText: 'Listing skills...', render: (output) => <ListSkillsToolComponent {...output} /> },
 } satisfies {
     [K in GuardedToolType]: {
         loadingText: string;
@@ -503,9 +515,13 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
         case 'tool-find_symbol_definitions':
         case 'tool-find_symbol_references':
         case 'tool-list_repos':
+        case 'tool-list_branches':
         case 'tool-list_commits':
         case 'tool-get_diff':
-        case 'tool-list_tree': {
+        case 'tool-list_tree':
+        case 'tool-create_skill':
+        case 'tool-update_skill':
+        case 'tool-list_skills': {
             const { loadingText, render } = TOOL_GUARD_CONFIG[part.type];
             return (
                 <ToolOutputGuard

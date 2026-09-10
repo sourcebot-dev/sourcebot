@@ -9,14 +9,6 @@ export const getRepoInfo = async (repoId: number): Promise<RepoInfo | ServiceErr
     withOptionalAuth(async ({ prisma }) => {
         const repo = await prisma.repo.findUnique({
             where: { id: repoId },
-            include: {
-                jobs: {
-                    orderBy: {
-                        createdAt: 'desc',
-                    },
-                    take: 1,
-                },
-            },
         });
 
         if (!repo) {

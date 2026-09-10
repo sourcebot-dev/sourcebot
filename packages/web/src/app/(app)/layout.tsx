@@ -36,6 +36,8 @@ import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 import { LanguageModelProvider } from "@/features/chat/languageModelContext";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { NavigationGuardProvider } from "next-navigation-guard";
+import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
+import { getConnectionSyncCounts } from "@/features/connections/connectionSyncCounts.server";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -169,6 +171,34 @@ export default async function Layout(props: LayoutProps) {
         permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
             ? permissionSyncStatus.issues
             : [];
+    const repositorySyncCountsResult = role === OrgRole.OWNER
+        ? await getRepositorySyncCounts().catch((error) => {
+              console.error("Failed to load repository sync counts", error);
+              return {
+                  firstTimeSyncingCount: 0,
+                  failedCount: 0,
+                  warningCount: 0,
+              };
+          })
+        : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
+    if (isServiceError(repositorySyncCountsResult)) {
+        throw new ServiceErrorException(repositorySyncCountsResult);
+    }
+    const repositorySyncCounts = repositorySyncCountsResult;
+    const connectionSyncCountsResult = role === OrgRole.OWNER
+        ? await getConnectionSyncCounts().catch((error) => {
+              console.error("Failed to load connection sync counts", error);
+              return {
+                  firstTimeSyncingCount: 0,
+                  failedCount: 0,
+                  warningCount: 0,
+              };
+          })
+        : { firstTimeSyncingCount: 0, failedCount: 0, warningCount: 0 };
+    if (isServiceError(connectionSyncCountsResult)) {
+        throw new ServiceErrorException(connectionSyncCountsResult);
+    }
+    const connectionSyncCounts = connectionSyncCountsResult;
 
     const offlineLicense = getOfflineLicenseMetadata();
     const license = offlineLicense
@@ -203,6 +233,8 @@ export default async function Layout(props: LayoutProps) {
                                                     hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
                                                     hasPendingFirstSync={hasPendingFirstSync}
                                                     permissionSyncIssues={permissionSyncIssues}
+                                                    connectionSyncCounts={connectionSyncCounts}
+                                                    repositorySyncCounts={repositorySyncCounts}
                                                     currentVersion={SOURCEBOT_VERSION}
                                                     latestVersion={latestVersion}
                                                 />

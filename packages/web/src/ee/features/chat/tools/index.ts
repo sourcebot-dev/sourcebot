@@ -1,6 +1,7 @@
 import {
     toVercelAITool,
     readFileDefinition,
+    listBranchesDefinition,
     listCommitsDefinition,
     listReposDefinition,
     getDiffDefinition,
@@ -9,6 +10,9 @@ import {
     findSymbolReferencesDefinition,
     findSymbolDefinitionsDefinition,
     listTreeDefinition,
+    createSkillDefinition,
+    updateSkillDefinition,
+    listSkillsDefinition,
 } from "@/features/tools";
 import type { ToolContext } from "@/features/tools/types";
 import type { ToolUIPart } from "ai";
@@ -16,6 +20,7 @@ import type { SBChatMessageToolTypes } from "@/features/chat/types";
 
 export const createTools = (context: ToolContext) => ({
     [readFileDefinition.name]: toVercelAITool(readFileDefinition, context),
+    [listBranchesDefinition.name]: toVercelAITool(listBranchesDefinition, context),
     [listCommitsDefinition.name]: toVercelAITool(listCommitsDefinition, context),
     [listReposDefinition.name]: toVercelAITool(listReposDefinition, context),
     [getDiffDefinition.name]: toVercelAITool(getDiffDefinition, context),
@@ -24,9 +29,13 @@ export const createTools = (context: ToolContext) => ({
     [findSymbolReferencesDefinition.name]: toVercelAITool(findSymbolReferencesDefinition, context),
     [findSymbolDefinitionsDefinition.name]: toVercelAITool(findSymbolDefinitionsDefinition, context),
     [listTreeDefinition.name]: toVercelAITool(listTreeDefinition, context),
+    [createSkillDefinition.name]: toVercelAITool(createSkillDefinition, context),
+    [updateSkillDefinition.name]: toVercelAITool(updateSkillDefinition, context),
+    [listSkillsDefinition.name]: toVercelAITool(listSkillsDefinition, context),
 });
 
 export type ReadFileToolUIPart = ToolUIPart<{ read_file: SBChatMessageToolTypes['read_file'] }>;
+export type ListBranchesToolUIPart = ToolUIPart<{ list_branches: SBChatMessageToolTypes['list_branches'] }>;
 export type ListCommitsToolUIPart = ToolUIPart<{ list_commits: SBChatMessageToolTypes['list_commits'] }>;
 export type ListReposToolUIPart = ToolUIPart<{ list_repos: SBChatMessageToolTypes['list_repos'] }>;
 export type GetDiffToolUIPart = ToolUIPart<{ get_diff: SBChatMessageToolTypes['get_diff'] }>;
@@ -35,3 +44,6 @@ export type GlobToolUIPart = ToolUIPart<{ glob: SBChatMessageToolTypes['glob'] }
 export type FindSymbolReferencesToolUIPart = ToolUIPart<{ find_symbol_references: SBChatMessageToolTypes['find_symbol_references'] }>;
 export type FindSymbolDefinitionsToolUIPart = ToolUIPart<{ find_symbol_definitions: SBChatMessageToolTypes['find_symbol_definitions'] }>;
 export type ListTreeToolUIPart = ToolUIPart<{ list_tree: SBChatMessageToolTypes['list_tree'] }>;
+export type CreateSkillToolUIPart = ToolUIPart<{ create_skill: SBChatMessageToolTypes['create_skill'] }>;
+export type UpdateSkillToolUIPart = ToolUIPart<{ update_skill: SBChatMessageToolTypes['update_skill'] }>;
+export type ListSkillsToolUIPart = ToolUIPart<{ list_skills: SBChatMessageToolTypes['list_skills'] }>;

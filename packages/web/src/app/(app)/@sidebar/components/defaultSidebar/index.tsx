@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
 import { HomeView } from "@/hooks/useHomeView";
-import { getConnectionStats } from "@/actions";
 import { getOrgAccountRequests } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -46,11 +45,9 @@ export async function DefaultSidebar() {
         if (!isOwner) {
             return false;
         }
-        const connectionStats = await getConnectionStats();
         const joinRequests = await getOrgAccountRequests();
-        const hasConnectionNotification = !isServiceError(connectionStats) && connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0;
         const hasJoinRequestNotification = !isServiceError(joinRequests) && joinRequests.length > 0;
-        return hasConnectionNotification || hasJoinRequestNotification;
+        return hasJoinRequestNotification;
     })();
 
     return (

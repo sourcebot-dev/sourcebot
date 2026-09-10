@@ -1,0 +1,10 @@
+Updates an existing agent skill in place.
+
+Usage:
+- ONLY call this tool when the user explicitly asks to change a skill. NEVER rewrite a skill on your own initiative.
+- Identify the skill by its current `slug` (without the leading `/`) and `scope` (`personal` or `shared`). Use `list_skills` to discover both.
+- All content fields (`name`, `newSlug`, `description`, `instructions`) are optional; omitted fields keep their current values. `newSlug` renames the skill's slash command.
+- Personal skills are editable by their owner. Shared skills are editable only by the user who created them, and only while enabled.
+- Skills synced from a repository file cannot be edited here; they must be edited in Settings → Skills so they stay linked to their source file.
+- This tool never enables/disables a skill and never moves it between the personal and shared catalogs — those actions belong to Settings → Skills.
+- Editing a shared skill changes it immediately for everyone in the organization who has adopted it.

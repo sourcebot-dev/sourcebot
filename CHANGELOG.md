@@ -7,14 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.11] - 2026-09-10
+
+### Added
+- Added a live repository indexing job runtime to the syncing badge. [#1623](https://github.com/sourcebot-dev/sourcebot/pull/1623)
+
+### Changed
+- Updated the bundled Zoekt version. [#1628](https://github.com/sourcebot-dev/sourcebot/pull/1628) [#1640](https://github.com/sourcebot-dev/sourcebot/pull/1640)
+
+### Fixed
+- Upgraded `browserslist` to `^4.28.8`. [#1624](https://github.com/sourcebot-dev/sourcebot/pull/1624)
+- Upgraded `postcss-selector-parser` to `^6.1.4`. [#1625](https://github.com/sourcebot-dev/sourcebot/pull/1625)
+- Upgraded `fast-uri` to `3.1.7`. [#1626](https://github.com/sourcebot-dev/sourcebot/pull/1626)
+- Upgraded `qs` to `6.16.0`. [#1627](https://github.com/sourcebot-dev/sourcebot/pull/1627)
+- Upgraded `sharp` to `0.35.4`. [#1638](https://github.com/sourcebot-dev/sourcebot/pull/1638)
+- Upgraded `vitest` to `4.1.11`. [#1637](https://github.com/sourcebot-dev/sourcebot/pull/1637)
+- Upgraded `js-yaml` to `4.3.2`. [#1636](https://github.com/sourcebot-dev/sourcebot/pull/1636)
+- Upgraded `@humanfs/node` to `0.16.8`. [#1630](https://github.com/sourcebot-dev/sourcebot/pull/1630)
+- Upgraded `fflate` to `0.4.9`. [#1629](https://github.com/sourcebot-dev/sourcebot/pull/1629)
+- [EE] Fixed Idira authentication for issuer URLs with a trailing slash. [#1641](https://github.com/sourcebot-dev/sourcebot/pull/1641)
+
+## [5.1.10] - 2026-08-27
+
+### Fixed
+- Upgraded `posthog-node` to `^5.51.2` and `@sentry/*` to `^10.71.0` to stop request contexts and child spans from being retained indefinitely. [#1617](https://github.com/sourcebot-dev/sourcebot/pull/1617)
+- [EE] Fixed MCP protocol traffic marking users as active by recording activity only for tool calls. [#1613](https://github.com/sourcebot-dev/sourcebot/pull/1613)
+- Upgraded Next.js to 16.3.3 to include the latest upstream security fixes. [#1619](https://github.com/sourcebot-dev/sourcebot/pull/1619)
+
+## [5.1.9] - 2026-08-22
+
+### Fixed
+- Fixed unary Zoekt searches retaining a gRPC channel after every request by closing each client on completion. [#1591](https://github.com/sourcebot-dev/sourcebot/pull/1591)
+- Fixed Ask error banner persisting after transient network errors were cleared, causing stale "Network error" messages to appear after every question. [#1614](https://github.com/sourcebot-dev/sourcebot/pull/1614)
+
+## [5.1.8] - 2026-08-19
+
+### Added
+- [EE] Added a `list_branches` tool to the MCP server and Ask Sourcebot for discovering repository branches and whether they are indexed. [#1609](https://github.com/sourcebot-dev/sourcebot/pull/1609)
+- [EE] Added `create_skill`, `update_skill`, and `list_skills` tools to the MCP server and Ask Sourcebot for managing skills. [#1612](https://github.com/sourcebot-dev/sourcebot/pull/1612)
+
 ### Changed
 - Migrated connection syncing, repository indexing, permission syncing, and background pruning from in-process managers and pollers to BullMQ workloads with retries and per-resource execution locking. [#1427](https://github.com/sourcebot-dev/sourcebot/pull/1427)
+- Refactored the repository and connection list view to display useful debugging information to owners, such as failure reasons and logs. [#1608](https://github.com/sourcebot-dev/sourcebot/pull/1608)
 
 ### Fixed
 - Upgraded Next.js to 16.3.1 to bound memory retained by high-cardinality dynamic route cache entries. [#1594](https://github.com/sourcebot-dev/sourcebot/pull/1594)
 - Fixed memory leak attributed to CodeMirror allocating objects on heap that were never freed. [#1580](https://github.com/sourcebot-dev/sourcebot/pull/1580)
 - Kept Git provider credentials out of subprocess arguments and on-disk configuration by using isolated in-memory credential caches. [#1584](https://github.com/sourcebot-dev/sourcebot/pull/1584)
-- Upgraded `hono` to `^4.13.2`. [#1597](https://github.com/sourcebot-dev/sourcebot/pull/1597)
 
 ## [5.1.7] - 2026-08-13
 

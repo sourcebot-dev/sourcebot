@@ -57,6 +57,8 @@ export type AuthResult = {
 type AuthOptions = {
     requiredOAuthScopes?: readonly string[];
     requiredAuthSource?: AuthSource;
+    /** Whether this request should update user activity and activate a pending membership. Defaults to true. */
+    recordActivity?: boolean;
 };
 
 export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, options: AuthOptions = {}) => {
@@ -92,6 +94,11 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
 };
 
 export const getAuthContext = async (options: AuthOptions = {}): Promise<OptionalAuthContext | ServiceError> => {
+    const {
+        requiredOAuthScopes,
+        requiredAuthSource,
+        recordActivity = true,
+    } = options;
     const authResult = await getAuthenticatedUser();
     const user = authResult?.user;
 
@@ -145,8 +152,8 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
 
     if (
         authResult &&
-        options.requiredAuthSource &&
-        authResult.principal.source !== options.requiredAuthSource
+        requiredAuthSource &&
+        authResult.principal.source !== requiredAuthSource
     ) {
         return {
             statusCode: StatusCodes.FORBIDDEN,
@@ -157,10 +164,10 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
 
     if (
         authResult?.principal.source === 'oauth' &&
-        options.requiredOAuthScopes?.length &&
-        !hasRequiredOAuthScopes(authResult.principal.oauthScopes, options.requiredOAuthScopes)
+        requiredOAuthScopes?.length &&
+        !hasRequiredOAuthScopes(authResult.principal.oauthScopes, requiredOAuthScopes)
     ) {
-        return insufficientOAuthScope(options.requiredOAuthScopes);
+        return insufficientOAuthScope(requiredOAuthScopes);
     }
 
     const repositoryIds = authResult?.principal.source === 'scoped_access_token'
@@ -170,25 +177,27 @@ export const getAuthContext = async (options: AuthOptions = {}): Promise<Optiona
         await userScopedPrismaClientExtension(user, repositoryIds),
     ) as PrismaClient;
 
-    if (user) {
-        updateUserLastActiveAt(user);
-    }
-
-    // If the user is currently in a "pending"
-    // state, then we need to activate them.
-    if (
-        membership &&
-        membership.suspendedAt === null &&
-        membership.lastActiveAt === null
-    ) {
-        const result = await activatePendingMembership(membership);
-        if (isServiceError(result)) {
-            return result;
+    if (recordActivity) {
+        if (user) {
+            updateUserLastActiveAt(user);
         }
-    }
 
-    if (membership) {
-        updateMembershipLastActiveAt(membership);
+        // If the user is currently in a "pending"
+        // state, then we need to activate them.
+        if (
+            membership &&
+            membership.suspendedAt === null &&
+            membership.lastActiveAt === null
+        ) {
+            const result = await activatePendingMembership(membership);
+            if (isServiceError(result)) {
+                return result;
+            }
+        }
+
+        if (membership) {
+            updateMembershipLastActiveAt(membership);
+        }
     }
 
     if (user && role && authResult) {

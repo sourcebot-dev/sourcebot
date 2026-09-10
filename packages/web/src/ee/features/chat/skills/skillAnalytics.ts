@@ -14,6 +14,7 @@ const VALID_SKILL_ENTRY_POINTS = new Set<AskSkillEntryPoint>([
     'account_ask_agent_settings',
     'workspace_ask_agent_settings',
     'chat_box',
+    'agent_tool',
     'unknown',
 ]);
 

@@ -36,6 +36,9 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
+import type { JobLogs, QueueName } from "@sourcebot/shared";
+import type { RepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
+import type { ConnectionSyncCounts } from "@/features/connections/connectionSyncCounts.server";
 import type { OffersResponse } from "@sourcebot/shared/client";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
@@ -260,6 +263,28 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
     return result as PermissionSyncStatusResponse | ServiceError;
 }
 
+export const getRepositorySyncCounts = async (): Promise<RepositorySyncCounts | ServiceError> => {
+    const result = await fetch("/api/repository-sync-counts", {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as RepositorySyncCounts | ServiceError;
+}
+
+export const getConnectionSyncCounts = async (): Promise<ConnectionSyncCounts | ServiceError> => {
+    const result = await fetch("/api/connection-sync-counts", {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as ConnectionSyncCounts | ServiceError;
+}
+
 export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> => {
     const url = new URL("/api/ee/accountPermissionSyncJobStatus", window.location.origin);
     url.searchParams.set("jobId", jobId);
@@ -395,3 +420,25 @@ export const getMcpServerToolPermissions = async (serverId: string): Promise<Get
 
     return result as GetMcpServerToolPermissionsResponse | ServiceError;
 }
+
+export const getJobLogs = async (
+    queue: QueueName,
+    jobId: string,
+    signal?: AbortSignal,
+): Promise<JobLogs> => {
+    const response = await fetch("/api/job-logs", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+        body: JSON.stringify({ queue, jobId }),
+        signal,
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to load job logs");
+    }
+
+    return response.json() as Promise<JobLogs>;
+};

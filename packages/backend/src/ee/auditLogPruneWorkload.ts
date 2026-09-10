@@ -16,15 +16,11 @@ interface Props {
     retentionDays: number;
 }
 
-interface AuditLogPruneResult {
-    deleted: number;
-}
-
 export const createAuditLogPruneWorkload = ({
     db,
     enabled,
     retentionDays,
-}: Props): Workload<"audit-log-prune", AuditLogPruneResult> => ({
+}: Props): Workload<"audit-log-prune"> => ({
     queueSpec: AUDIT_LOG_PRUNE_QUEUE,
     concurrency: 1,
     ...(enabled && retentionDays > 0

@@ -56,9 +56,16 @@ export const reconcileJobSchedulers = async ({
         }),
         db.repo.findMany({
             where: {
-                connections: {
-                    some: {},
-                },
+                OR: [
+                    {
+                        connections: {
+                            some: {},
+                        },
+                    },
+                    {
+                        isAutoCleanupDisabled: true,
+                    },
+                ],
             },
             select: {
                 id: true,
@@ -111,7 +118,7 @@ export const reconcileJobSchedulers = async ({
             schedulerIdPrefix: "repo-index-v1-",
             targets: repos.map(({ id }) => ({
                 schedulerId: `repo-index-v1-${id}`,
-                data: { repoId: id, type: "INDEX" },
+                data: { repoId: id },
             })),
             schedule: settings.reindexIntervalMs,
             jobOptions: { priority: JOB_PRIORITIES.SCHEDULED },
@@ -143,8 +150,8 @@ export const reconcileJobSchedulers = async ({
     await Promise.all(
         orphanedReposToCleanup.map(({ id }) =>
             jobManager.trigger(
-                "repo-index",
-                { repoId: id, type: "CLEANUP" },
+                "repo-cleanup",
+                { repoId: id },
                 { priority: JOB_PRIORITIES.SCHEDULED },
             ),
         ),

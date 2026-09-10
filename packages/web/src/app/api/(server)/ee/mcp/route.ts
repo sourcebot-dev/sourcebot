@@ -13,6 +13,7 @@ import { apiHandler } from '@/lib/apiHandler';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { SOURCEBOT_OAUTH_SCOPES } from '@/ee/features/oauth/constants';
+import { isMcpActivityMessage } from '@/ee/features/mcp/activity';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
@@ -74,8 +75,16 @@ export const POST = apiHandler(async (request: NextRequest) => {
         });
     }
 
+    let jsonRpcMessage: unknown;
+    try {
+        jsonRpcMessage = await request.clone().json();
+    } catch {
+        jsonRpcMessage = undefined;
+    }
+    const recordActivity = isMcpActivityMessage(jsonRpcMessage);
+
     const response = await sew(() =>
-        withOptionalAuth(async ({ user }) => {
+        withOptionalAuth(async ({ user, principal }) => {
             if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
@@ -111,11 +120,17 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            const mcpServer = await createMcpServer();
+            // Repository-scoped access tokens never get the skill management
+            // tools: their documented authorization boundary is the selected
+            // repositories only. The tools also reject scoped principals
+            // per-request, since a session is keyed by owner, not principal.
+            const mcpServer = await createMcpServer({
+                canManageSkills: ownerId !== null && principal?.source !== 'scoped_access_token',
+            });
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
-        })
+        }, { recordActivity })
     );
 
     if (isServiceError(response)) {
@@ -159,7 +174,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
             }
 
             return session.transport.handleRequest(request);
-        })
+        }, { recordActivity: false })
     );
 
     if (isServiceError(result)) {
