@@ -146,48 +146,52 @@ fi
 FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv3"
 
 if [ ! -f "$FIRST_RUN_FILE" ]; then
-    touch "$FIRST_RUN_FILE"
-    export SOURCEBOT_INSTALL_ID=$(uuidgen)
+    if [ -z "$SOURCEBOT_INSTALL_ID" ]; then
+        SOURCEBOT_INSTALL_ID=$(uuidgen)
+    fi
+    export SOURCEBOT_INSTALL_ID
     
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
     if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
-        if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
-            "api_key": "'"$POSTHOG_PAPIK"'",
-            "event": "install",
-            "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
-            "properties": {
-                "sourcebot_version": "'"$SOURCEBOT_VERSION"'"
-            }
-        }' https://us.i.posthog.com/capture/ ) then
+        INSTALL_EVENT_PAYLOAD=$(jq -n \
+            --arg api_key "$POSTHOG_PAPIK" \
+            --arg distinct_id "$SOURCEBOT_INSTALL_ID" \
+            --arg sourcebot_version "$SOURCEBOT_VERSION" \
+            '{api_key: $api_key, event: "install", distinct_id: $distinct_id, properties: {sourcebot_version: $sourcebot_version}}')
+
+        if ! ( curl -L --proto-redir '=https' --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$INSTALL_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
             echo -e "\e[33m[Warning] Failed to send install event.\e[0m"
         fi
     fi
 else
-    export SOURCEBOT_INSTALL_ID=$(cat "$FIRST_RUN_FILE" | jq -r '.install_id')
-    PREVIOUS_VERSION=$(cat "$FIRST_RUN_FILE" | jq -r '.version')
+    SOURCEBOT_INSTALL_ID=$(jq -r '.install_id' "$FIRST_RUN_FILE")
+    export SOURCEBOT_INSTALL_ID
+    PREVIOUS_VERSION=$(jq -r '.version' "$FIRST_RUN_FILE")
 
     # If the version has changed, we assume an upgrade has occurred.
     if [ "$PREVIOUS_VERSION" != "$SOURCEBOT_VERSION" ]; then
         echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $SOURCEBOT_VERSION\e[0m"
 
         if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
-            if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
-                "api_key": "'"$POSTHOG_PAPIK"'",
-                "event": "upgrade",
-                "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
-                "properties": {
-                    "from_version": "'"$PREVIOUS_VERSION"'",
-                    "to_version": "'"$SOURCEBOT_VERSION"'"
-                }
-            }' https://us.i.posthog.com/capture/ ) then
+            UPGRADE_EVENT_PAYLOAD=$(jq -n \
+                --arg api_key "$POSTHOG_PAPIK" \
+                --arg distinct_id "$SOURCEBOT_INSTALL_ID" \
+                --arg from_version "$PREVIOUS_VERSION" \
+                --arg to_version "$SOURCEBOT_VERSION" \
+                '{api_key: $api_key, event: "upgrade", distinct_id: $distinct_id, properties: {from_version: $from_version, to_version: $to_version}}')
+
+            if ! ( curl -L --proto-redir '=https' --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$UPGRADE_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
                 echo -e "\e[33m[Warning] Failed to send upgrade event.\e[0m"
             fi
         fi
     fi
 fi
 
-echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
+jq -n \
+    --arg version "$SOURCEBOT_VERSION" \
+    --arg install_id "$SOURCEBOT_INSTALL_ID" \
+    '{version: $version, install_id: $install_id}' > "$FIRST_RUN_FILE"
 
 # Run a Database migration
 echo -e "\e[34m[Info] Running database migration...\e[0m"

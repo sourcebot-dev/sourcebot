@@ -20,6 +20,8 @@ jobs:
         run: .github/scripts/test-cve-remediation.sh
       - name: Test Zoekt sync automation
         run: .github/scripts/testZoektSync.sh
+      - name: Test entrypoint install ID behavior
+        run: .github/scripts/test-entrypoint-install-id.sh
 
   test:
     runs-on: ubuntu-latest
