@@ -9,8 +9,10 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 FAKE_BIN="$TEST_ROOT/bin"
 UUIDGEN_LOG="$TEST_ROOT/uuidgen.log"
 CURL_PAYLOAD_FILE="$TEST_ROOT/curl-payload.json"
+CURL_REDIRECT_POLICY_LOG="$TEST_ROOT/curl-redirect-policy.log"
 mkdir -p "$FAKE_BIN"
 : > "$UUIDGEN_LOG"
+: > "$CURL_REDIRECT_POLICY_LOG"
 
 cat > "$FAKE_BIN/uuidgen" <<'EOF'
 #!/usr/bin/env bash
@@ -23,14 +25,45 @@ EOF
 
 cat > "$FAKE_BIN/curl" <<'EOF'
 #!/usr/bin/env bash
+follow_redirects=false
+proto_redir=""
+payload=""
+method="GET"
+
 while (($# > 0)); do
-  if [[ "$1" == "-d" ]]; then
-    printf '%s\n' "$2" > "$CURL_PAYLOAD_FILE"
-    exit 0
-  fi
+  case "$1" in
+    -L|--location)
+      follow_redirects=true
+      ;;
+    --proto-redir)
+      shift
+      proto_redir="$1"
+      ;;
+    -d|--data)
+      shift
+      payload="$1"
+      method="POST"
+      ;;
+    -X|--request)
+      shift
+      method="$1"
+      ;;
+  esac
   shift
 done
-exit 1
+
+if [[ -z "$payload" ]]; then
+  exit 1
+fi
+printf '%s\n' "$payload" > "$CURL_PAYLOAD_FILE"
+
+if [[ "${CURL_REDIRECT_STATUS:-}" =~ ^30(7|8)$ && "${CURL_REDIRECT_URL:-}" == http://* ]]; then
+  printf '%s|%s|%s|%s\n' "$CURL_REDIRECT_STATUS" "$follow_redirects" "$proto_redir" "$method" >> "$CURL_REDIRECT_POLICY_LOG"
+  if [[ "$follow_redirects" == "true" && "$proto_redir" != "=https" ]]; then
+    printf 'followed insecure redirect\n' >> "$CURL_REDIRECT_POLICY_LOG"
+  fi
+  exit 1
+fi
 EOF
 
 cat > "$FAKE_BIN/yarn" <<'EOF'
@@ -60,6 +93,9 @@ run_entrypoint() {
     UUIDGEN_LOG="$UUIDGEN_LOG" \
     UUIDGEN_SHOULD_FAIL="false" \
     CURL_PAYLOAD_FILE="$CURL_PAYLOAD_FILE" \
+    CURL_REDIRECT_POLICY_LOG="$CURL_REDIRECT_POLICY_LOG" \
+    CURL_REDIRECT_STATUS="" \
+    CURL_REDIRECT_URL="" \
     RESULT_FILE="$result_file" \
     DATA_CACHE_DIR="$data_dir" \
     DATABASE_URL="postgresql://test" \
@@ -89,7 +125,7 @@ supplied_data="$TEST_ROOT/supplied-data"
 supplied_result="$TEST_ROOT/supplied-result"
 supplied_id=$'supplied"install\\id\nsecond-line'
 mkdir -p "$supplied_data"
-run_entrypoint "$supplied_data" "$supplied_result" SOURCEBOT_INSTALL_ID="$supplied_id" SOURCEBOT_TELEMETRY_DISABLED="false" POSTHOG_PAPIK="test-project-key"
+run_entrypoint "$supplied_data" "$supplied_result" SOURCEBOT_INSTALL_ID="$supplied_id" SOURCEBOT_TELEMETRY_DISABLED="false" POSTHOG_PAPIK="test-project-key" CURL_REDIRECT_STATUS="307" CURL_REDIRECT_URL="http://insecure.example/capture/"
 assert_equals "uses the supplied install ID on first boot" "$(<"$supplied_result")" "$supplied_id"
 assert_equals "persists the supplied install ID as valid JSON" "$(jq -r '.install_id' "$supplied_data/.installedv3")" "$supplied_id"
 assert_equals "does not generate an ID when one is supplied" "$(wc -l < "$UUIDGEN_LOG" | tr -d ' ')" "0"
@@ -99,12 +135,13 @@ if ! jq -e --arg expected "$supplied_id" \
   echo "FAIL: install telemetry payload did not safely encode the supplied install ID"
   exit 1
 fi
+assert_equals "blocks an HTTP 307 redirect without changing the POST method" "$(sed -n '1p' "$CURL_REDIRECT_POLICY_LOG")" "307|true|=https|POST"
 
 # Exercise the next-boot read and upgrade telemetry paths with the same escaped ID.
 jq -n --arg install_id "$supplied_id" \
   '{version: "previous-version", install_id: $install_id}' > "$supplied_data/.installedv3"
 supplied_restart_result="$TEST_ROOT/supplied-restart-result"
-run_entrypoint "$supplied_data" "$supplied_restart_result" SOURCEBOT_INSTALL_ID="conflicting-install-id" SOURCEBOT_TELEMETRY_DISABLED="false" POSTHOG_PAPIK="test-project-key"
+run_entrypoint "$supplied_data" "$supplied_restart_result" SOURCEBOT_INSTALL_ID="conflicting-install-id" SOURCEBOT_TELEMETRY_DISABLED="false" POSTHOG_PAPIK="test-project-key" CURL_REDIRECT_STATUS="308" CURL_REDIRECT_URL="http://insecure.example/capture/"
 assert_equals "reads the escaped install ID on the next boot" "$(<"$supplied_restart_result")" "$supplied_id"
 if ! jq -e --arg expected "$supplied_id" \
   '.event == "upgrade" and .distinct_id == $expected and .api_key == "test-project-key"' \
@@ -112,6 +149,8 @@ if ! jq -e --arg expected "$supplied_id" \
   echo "FAIL: upgrade telemetry payload did not safely encode the persisted install ID"
   exit 1
 fi
+assert_equals "blocks an HTTP 308 redirect without changing the POST method" "$(sed -n '2p' "$CURL_REDIRECT_POLICY_LOG")" "308|true|=https|POST"
+assert_equals "never follows an insecure telemetry redirect" "$(wc -l < "$CURL_REDIRECT_POLICY_LOG" | tr -d ' ')" "2"
 
 generated_data="$TEST_ROOT/generated-data"
 generated_result="$TEST_ROOT/generated-result"

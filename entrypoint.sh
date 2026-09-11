@@ -160,7 +160,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
             --arg sourcebot_version "$SOURCEBOT_VERSION" \
             '{api_key: $api_key, event: "install", distinct_id: $distinct_id, properties: {sourcebot_version: $sourcebot_version}}')
 
-        if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$INSTALL_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
+        if ! ( curl -L --proto-redir '=https' --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$INSTALL_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
             echo -e "\e[33m[Warning] Failed to send install event.\e[0m"
         fi
     fi
@@ -181,7 +181,7 @@ else
                 --arg to_version "$SOURCEBOT_VERSION" \
                 '{api_key: $api_key, event: "upgrade", distinct_id: $distinct_id, properties: {from_version: $from_version, to_version: $to_version}}')
 
-            if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$UPGRADE_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
+            if ! ( curl -L --proto-redir '=https' --output /dev/null --silent --fail --header "Content-Type: application/json" -d "$UPGRADE_EVENT_PAYLOAD" https://us.i.posthog.com/capture/ ) then
                 echo -e "\e[33m[Warning] Failed to send upgrade event.\e[0m"
             fi
         fi
