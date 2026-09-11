@@ -211,6 +211,7 @@
   },
   "devDependencies": {
     "@asteasolutions/zod-to-openapi": "7.3.4",
+    "@electric-sql/pglite": "0.5.8",
     "@eslint/eslintrc": "^3",
     "@react-email/ui": "6.1.4",
     "@react-grab/mcp": "^0.1.23",
