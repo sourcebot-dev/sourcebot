@@ -38,6 +38,7 @@ import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { NavigationGuardProvider } from "next-navigation-guard";
 import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
 import { getConnectionSyncCounts } from "@/features/connections/connectionSyncCounts.server";
+import { createLoginUrl, normalizeCallbackUrl, REQUEST_PATH_HEADER } from "@/lib/authRedirect";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -60,6 +61,7 @@ export default async function Layout(props: LayoutProps) {
 
     const session = await auth();
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
+    const requestHeaders = await headers();
 
     let role: OrgRole | null = null;
 
@@ -111,9 +113,9 @@ export default async function Layout(props: LayoutProps) {
         if (!anonymousAccessEnabled) {
             const ssoEntitlement = await hasEntitlement("sso");
             if (ssoEntitlement && env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-                return <GcpIapAuth callbackUrl="/" />;
+                return <GcpIapAuth callbackUrl={normalizeCallbackUrl(requestHeaders.get(REQUEST_PATH_HEADER))} />;
             } else {
-                redirect('/login');
+                redirect(createLoginUrl(requestHeaders.get(REQUEST_PATH_HEADER)));
             }
         }
     }
@@ -144,16 +146,18 @@ export default async function Layout(props: LayoutProps) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                        <ConnectAccountsCard linkedAccounts={linkedAccounts} callbackUrl="/" />
+                        <ConnectAccountsCard
+                            linkedAccounts={linkedAccounts}
+                            callbackUrl={normalizeCallbackUrl(requestHeaders.get(REQUEST_PATH_HEADER))}
+                        />
                     </div>
                 )
             }
         }
     }
 
-    const headersList = await headers();
     const cookieStore = await cookies()
-    const userAgent = headersList.get('user-agent');
+    const userAgent = requestHeaders.get('user-agent');
     const { isMobile } = userAgent ? getSelectorsByUserAgent(userAgent) : { isMobile: false };
 
     if (isMobile && !cookieStore.has(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME)) {

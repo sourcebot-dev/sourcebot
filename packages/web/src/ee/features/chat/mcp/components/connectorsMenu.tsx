@@ -22,7 +22,8 @@ import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { createLoginUrl } from "@/lib/authRedirect";
 import { useEffect, useRef, useState } from "react";
 import { useSlate } from "slate-react";
 import { Editor } from "slate";
@@ -118,9 +119,10 @@ export const ConnectorsMenu = ({
     const queryClient = useQueryClient();
     const router = useRouter();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const isOwner = useRole() === OrgRole.OWNER;
-    const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname)}`;
+    const loginHref = createLoginUrl(`${pathname}?${searchParams.toString()}`);
 
     const { data: servers = [], error, isError, isLoading, refetch } = useQuery({
         queryKey: mcpQueryKeys.serversWithStatus,

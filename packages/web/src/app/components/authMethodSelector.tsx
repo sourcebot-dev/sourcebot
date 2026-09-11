@@ -10,6 +10,7 @@ import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
 import Link from "next/link";
 import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
+import { normalizeCallbackUrl } from "@/lib/authRedirect";
 
 interface AuthMethodSelectorProps {
     callbackUrl?: string;
@@ -27,6 +28,7 @@ export const AuthMethodSelector = ({
     hideSecurityNotice = false
 }: AuthMethodSelectorProps) => {
     const providers = useIdentityProviders();
+    const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
 
     const onSignInWithOauth = useCallback((provider: string) => {
         // Call the optional analytics callback first
@@ -35,10 +37,10 @@ export const AuthMethodSelector = ({
         signIn(
             provider,
             {
-                redirectTo: callbackUrl ?? "/",
+                redirectTo: safeCallbackUrl,
             }
         );
-    }, [callbackUrl, onProviderClick]);
+    }, [onProviderClick, safeCallbackUrl]);
 
     // Separate OAuth providers from special auth methods
     const oauthProviders = providers.filter(p => p.purpose === "sso" &&
@@ -80,13 +82,13 @@ export const AuthMethodSelector = ({
                         </div>
                     ] : []),
                     ...(hasMagicLink ? [
-                        <MagicLinkForm key="magic-link" callbackUrl={callbackUrl} context={context} />
+                        <MagicLinkForm key="magic-link" callbackUrl={safeCallbackUrl} context={context} />
                     ] : []),
                     ...(hasCredentials ? [
-                        <CredentialsForm key="credentials" callbackUrl={callbackUrl} context={context} />
+                        <CredentialsForm key="credentials" callbackUrl={safeCallbackUrl} context={context} />
                     ] : [])
                 ]}
             />
         </>
     );
-}; 
+};

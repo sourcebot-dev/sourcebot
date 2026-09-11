@@ -17,7 +17,8 @@ import { ChatVisibility } from "@sourcebot/db";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Link2Icon, Loader2, Lock, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { createLoginUrl } from "@/lib/authRedirect";
 import { useCallback, useState } from "react";
 import { captureEvent } from "@/hooks/useCaptureEvent";
 
@@ -48,6 +49,8 @@ export const ShareSettings = ({
     const [removingUserIds, setRemovingUserIds] = useState<Set<string>>(new Set());
     const { toast } = useToast();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const loginHref = createLoginUrl(`${pathname}?${searchParams.toString()}`);
     const isAuthenticated = !!currentUser;
 
     const handleCopyLink = useCallback(async () => {
@@ -217,7 +220,7 @@ export const ShareSettings = ({
             </Select>
             {!isAuthenticated && (
                 <p className="text-xs text-muted-foreground mt-2">
-                    <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`} className="underline">Sign in</Link> to change chat visibility.
+                    <Link href={loginHref} className="underline">Sign in</Link> to change chat visibility.
                 </p>
             )}
             <Separator className="-mx-4 w-auto my-4" />

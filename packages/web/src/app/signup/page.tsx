@@ -6,6 +6,7 @@ import { createLogger, env } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
 import { isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { normalizeCallbackUrl } from "@/lib/authRedirect";
 
 const logger = createLogger('signup-page');
 
@@ -18,10 +19,11 @@ interface LoginProps {
 
 export default async function Signup(props: LoginProps) {
     const searchParams = await props.searchParams;
+    const callbackUrl = normalizeCallbackUrl(searchParams.callbackUrl);
     const session = await auth();
     if (session) {
         logger.info("Session found in signup page, redirecting to home");
-        return redirect("/");
+        return redirect(callbackUrl);
     }
 
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
@@ -35,7 +37,7 @@ export default async function Signup(props: LoginProps) {
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">
                 <LoginForm
-                    callbackUrl={searchParams.callbackUrl}
+                    callbackUrl={callbackUrl}
                     error={searchParams.error}
                     context="signup"
                     isAnonymousAccessEnabled={anonymousAccessEnabled}

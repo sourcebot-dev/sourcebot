@@ -2,6 +2,8 @@ import { withAuth, withOptionalAuth } from "./withAuth";
 import { isServiceError } from "@/lib/utils";
 import { Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { createLoginUrl, REQUEST_PATH_HEADER } from "@/lib/authRedirect";
 
 type RequiredPageAuthContext = {
     user: UserWithAccounts;
@@ -77,7 +79,8 @@ export function authenticatedPage<
             const result = await withOptionalAuth(async (ctx) => ctx);
 
             if (isServiceError(result)) {
-                redirect('/login');
+                const requestHeaders = await headers();
+                redirect(createLoginUrl(requestHeaders.get(REQUEST_PATH_HEADER)));
             }
 
             return fn(result as AuthContextFor<O>, props);
@@ -85,7 +88,8 @@ export function authenticatedPage<
             const result = await withAuth(async (ctx) => ctx);
 
             if (isServiceError(result)) {
-                redirect('/login');
+                const requestHeaders = await headers();
+                redirect(createLoginUrl(requestHeaders.get(REQUEST_PATH_HEADER)));
             }
 
             const requiredOpts = opts as RequiredAuthOptions | undefined;

@@ -6,6 +6,7 @@ import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
 import { env } from "@sourcebot/shared";
 import { isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { normalizeCallbackUrl } from "@/lib/authRedirect";
 
 interface LoginProps {
     searchParams: Promise<{
@@ -16,9 +17,10 @@ interface LoginProps {
 
 export default async function Login(props: LoginProps) {
     const searchParams = await props.searchParams;
+    const callbackUrl = normalizeCallbackUrl(searchParams.callbackUrl);
     const session = await auth();
     if (session) {
-        return redirect("/");
+        return redirect(callbackUrl);
     }
 
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
@@ -32,7 +34,7 @@ export default async function Login(props: LoginProps) {
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">
                 <LoginForm
-                    callbackUrl={searchParams.callbackUrl}
+                    callbackUrl={callbackUrl}
                     error={searchParams.error}
                     context="login"
                     isAnonymousAccessEnabled={anonymousAccessEnabled}

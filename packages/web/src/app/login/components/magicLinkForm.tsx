@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useRouter } from "next/navigation";
+import { normalizeCallbackUrl } from "@/lib/authRedirect";
 
 const magicLinkSchema = z.object({
     email: z.string().email(),
@@ -25,6 +26,7 @@ export const MagicLinkForm = ({ callbackUrl, context }: MagicLinkFormProps) => {
     const captureEvent = useCaptureEvent();
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
 
     const magicLinkForm = useForm<z.infer<typeof magicLinkSchema>>({
         resolver: zodResolver(magicLinkSchema),
@@ -37,11 +39,11 @@ export const MagicLinkForm = ({ callbackUrl, context }: MagicLinkFormProps) => {
         setIsLoading(true);
         captureEvent("wa_login_with_magic_link", {});
 
-        signIn("nodemailer", { email: values.email, redirect: false, redirectTo: callbackUrl ?? "/" })
+        signIn("nodemailer", { email: values.email, redirect: false, redirectTo: safeCallbackUrl })
             .then(() => {
                 setIsLoading(false);
 
-                router.push("/login/verify?email=" + encodeURIComponent(values.email));
+                router.push(`/login/verify?email=${encodeURIComponent(values.email)}&callbackUrl=${encodeURIComponent(safeCallbackUrl)}`);
             })
             .catch((error) => {
                 console.error("Error signing in", error);

@@ -14,12 +14,14 @@ import useCaptureEvent from "@/hooks/useCaptureEvent"
 import { Footer } from "@/app/components/footer"
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
 import { Redirect } from "@/app/components/redirect"
+import { normalizeCallbackUrl } from "@/lib/authRedirect"
 
 function VerifyPageContent() {
     const [value, setValue] = useState("")
     const [isVerifying, setIsVerifying] = useState(false)
     const searchParams = useSearchParams()
     const email = searchParams.get("email")
+    const callbackUrl = normalizeCallbackUrl(searchParams.get("callbackUrl"))
     const captureEvent = useCaptureEvent();
 
     const handleSubmit = useCallback((code: string) => {
@@ -31,11 +33,12 @@ function VerifyPageContent() {
         const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
         url.searchParams.set("token", code)
         url.searchParams.set("email", email)
+        url.searchParams.set("callbackUrl", callbackUrl)
         // Use a full-page navigation (not router.push) so the auth callback's
         // session cookie + 302 redirect are applied by the browser, and the
         // one-time token isn't consumed twice by a client-side RSC navigation.
         window.location.href = url.toString()
-    }, [email, isVerifying])
+    }, [callbackUrl, email, isVerifying])
 
     // Auto-submit once the full 6-digit code is entered. Pass the new value
     // directly rather than reading `value`, which hasn't been committed yet.

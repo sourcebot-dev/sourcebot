@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface LoginDialogProps {
     isOpen: boolean;
@@ -20,6 +20,8 @@ export const LoginDialog = ({
     onOpenChange,
 }: LoginDialogProps) => {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const callbackUrl = `${pathname}?${searchParams.toString()}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -33,7 +35,7 @@ export const LoginDialog = ({
                 <div className="mt-4">
                     <AuthMethodSelector
                         context="login"
-                        callbackUrl={pathname}
+                        callbackUrl={callbackUrl}
                         hideSecurityNotice={true}
                     />
                 </div>

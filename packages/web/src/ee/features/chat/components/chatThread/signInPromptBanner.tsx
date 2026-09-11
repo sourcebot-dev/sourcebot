@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { captureEvent } from '@/hooks/useCaptureEvent';
 import { X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { createLoginUrl } from '@/lib/authRedirect';
 import { useState, useEffect } from 'react';
 
 const DISMISSED_KEY = 'sb.chat-sign-in-prompt-dismissed';
@@ -25,6 +26,8 @@ export const SignInPromptBanner = ({
     isTurnInProgress,
 }: SignInPromptBannerProps) => {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const loginHref = createLoginUrl(`${pathname}?${searchParams.toString()}`);
     const [isDismissed, setIsDismissed] = useState(true); // Start as true to avoid flash
     const [hasDisplayedEventFired, setHasDisplayedEventFired] = useState(false);
 
@@ -76,7 +79,7 @@ export const SignInPromptBanner = ({
                     asChild
                     onClick={handleSignInClick}
                 >
-                    <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}>
+                    <Link href={loginHref}>
                         Sign in
                     </Link>
                 </Button>

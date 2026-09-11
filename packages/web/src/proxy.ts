@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { REQUEST_PATH_HEADER } from './lib/authRedirect';
 
 /**
  * As part of our original SaaS effort in April 2025, we introduced
@@ -36,5 +37,12 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url, StatusCodes.MOVED_PERMANENTLY);
     }
 
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(REQUEST_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`);
+
+    return NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
 }

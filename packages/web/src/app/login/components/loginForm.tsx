@@ -7,6 +7,7 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import Link from "next/link";
+import { normalizeCallbackUrl } from "@/lib/authRedirect";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -20,14 +21,7 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
     const captureEvent = useCaptureEvent();
     const providers = useIdentityProviders();
 
-    const safeCallbackUrl = useMemo(() => {
-        if (!callbackUrl) return "/";
-        // Allow only relative paths that start with "/" but not "//" (protocol-relative URLs)
-        if (callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")) {
-            return callbackUrl;
-        }
-        return "/";
-    }, [callbackUrl]);
+    const safeCallbackUrl = useMemo(() => normalizeCallbackUrl(callbackUrl), [callbackUrl]);
 
     const errorMessage = useMemo(() => {
         if (!error) {
@@ -90,7 +84,7 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
                     </div>
                 )}
                 <AuthMethodSelector
-                    callbackUrl={callbackUrl}
+                    callbackUrl={safeCallbackUrl}
                     context={context}
                     onProviderClick={handleProviderClick}
                     securityNoticeClosable={true}
@@ -99,11 +93,11 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
                         <>
-                            Don&apos;t have an account? <Link className="underline" href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"}>Sign up</Link>
+                            Don&apos;t have an account? <Link className="underline" href={`/signup?callbackUrl=${encodeURIComponent(safeCallbackUrl)}`}>Sign up</Link>
                         </>
                     :
                         <>
-                            Already have an account? <Link className="underline" href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}>Sign in</Link>
+                            Already have an account? <Link className="underline" href={`/login?callbackUrl=${encodeURIComponent(safeCallbackUrl)}`}>Sign in</Link>
                         </>
                     }
                 </p>

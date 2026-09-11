@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Preserved search and Ask URLs through login redirects. [#1650](https://github.com/sourcebot-dev/sourcebot/pull/1650)
+
 ## [5.1.12] - 2026-09-10
 
 ### Changed
