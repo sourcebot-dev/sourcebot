@@ -10,6 +10,7 @@ import { hasEntitlement } from "@/lib/entitlements";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { OrgRole } from "@sourcebot/db";
+import { LEGACY_MCP_SERVER_SOURCE, MCP_SERVER_SOURCE } from "@/ee/features/mcp/constants";
 
 export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> => sew(() =>
   withAuth(async ({ org, role, prisma }) =>
@@ -30,7 +31,13 @@ export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> 
           date_trunc('month', "timestamp") AS month,
           action,
           "actorId",
-          metadata
+          metadata,
+          CASE
+            WHEN metadata->>'source' IN (${LEGACY_MCP_SERVER_SOURCE}, ${MCP_SERVER_SOURCE}) THEN 'mcp'
+            WHEN metadata->>'source' IS NULL
+              OR metadata->>'source' NOT LIKE 'sourcebot-%' THEN 'api'
+            ELSE 'sourcebot'
+          END AS source_category
         FROM "Audit"
         WHERE "orgId" = ${org.id}
           AND action IN (
@@ -85,7 +92,7 @@ export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> 
 
           -- Global active users (any action, any source; excludes web repo listings)
           COUNT(DISTINCT c."actorId") FILTER (
-            WHERE NOT (c.action = 'user.listed_repos' AND c.metadata->>'source' LIKE 'sourcebot-%')
+            WHERE NOT (c.action = 'user.listed_repos' AND c.source_category = 'sourcebot')
           ) AS active_users,
 
           -- Web App metrics
@@ -116,26 +123,23 @@ export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> 
 
           -- MCP + API combined active users (any non-web source)
           COUNT(DISTINCT c."actorId") FILTER (
-            WHERE c.metadata->>'source' IS NULL
-              OR c.metadata->>'source' NOT LIKE 'sourcebot-%'
+            WHERE c.source_category IN ('mcp', 'api')
           ) AS non_web_active_users,
 
-          -- MCP metrics (source = 'mcp')
+          -- MCP metrics (canonical source plus the legacy 'mcp' source)
           COUNT(*) FILTER (
-            WHERE c.metadata->>'source' = 'mcp'
+            WHERE c.source_category = 'mcp'
           ) AS mcp_requests,
           COUNT(DISTINCT c."actorId") FILTER (
-            WHERE c.metadata->>'source' = 'mcp'
+            WHERE c.source_category = 'mcp'
           ) AS mcp_active_users,
 
-          -- API metrics (source IS NULL or not sourcebot-*/mcp)
+          -- API metrics (source IS NULL or not a Sourcebot/MCP source)
           COUNT(*) FILTER (
-            WHERE c.metadata->>'source' IS NULL
-              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+            WHERE c.source_category = 'api'
           ) AS api_requests,
           COUNT(DISTINCT c."actorId") FILTER (
-            WHERE c.metadata->>'source' IS NULL
-              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+            WHERE c.source_category = 'api'
           ) AS api_active_users
 
         FROM core c

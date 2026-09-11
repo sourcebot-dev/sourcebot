@@ -1,4 +1,7 @@
 export const MCP_DOCS_URL = "https://docs.sourcebot.dev/docs/features/mcp-server";
+
+export const MCP_SERVER_SOURCE = 'sourcebot-mcp-server';
+export const LEGACY_MCP_SERVER_SOURCE = 'mcp';
 export const PRICING_URL = "https://www.sourcebot.dev/pricing";
 
 // Surfaced to MCP clients (and the programmatic blocking endpoint) when the

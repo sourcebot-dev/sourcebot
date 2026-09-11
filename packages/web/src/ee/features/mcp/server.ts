@@ -28,6 +28,7 @@ import {
     globDefinition,
     updateSkillDefinition,
 } from '@/features/tools';
+import { MCP_SERVER_SOURCE } from './constants';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -41,7 +42,7 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
     }
 
     const server = new McpServer({
-        name: 'sourcebot-mcp-server',
+        name: MCP_SERVER_SOURCE,
         version: SOURCEBOT_VERSION,
     });
 
@@ -49,7 +50,7 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
     const hasLanguageModels = configuredLanguageModels.length > 0;
 
     const toolContext: ToolContext = {
-        source: 'sourcebot-mcp-server',
+        source: MCP_SERVER_SOURCE,
     }
 
     registerMcpTool(server, grepDefinition, toolContext);
@@ -89,7 +90,7 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
             const models = await getConfiguredLanguageModelsInfo();
             captureEvent('tool_used', {
                 toolName: 'list_language_models',
-                source: 'sourcebot-mcp-server',
+                source: MCP_SERVER_SOURCE,
                 success: true,
             });
             return { content: [{ type: "text", text: JSON.stringify(models) }] };
@@ -132,13 +133,13 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
                     repos: request.repos,
                     languageModel: request.languageModel,
                     visibility: request.visibility as ChatVisibility | undefined,
-                    source: 'mcp',
+                    source: MCP_SERVER_SOURCE,
                 });
 
                 if (isServiceError(result)) {
                     captureEvent('tool_used', {
                         toolName: 'ask_codebase',
-                        source: 'sourcebot-mcp-server',
+                        source: MCP_SERVER_SOURCE,
                         success: false,
                     });
                     return {
@@ -148,7 +149,7 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
 
                 captureEvent('tool_used', {
                     toolName: 'ask_codebase',
-                    source: 'sourcebot-mcp-server',
+                    source: MCP_SERVER_SOURCE,
                     success: true,
                 });
 
