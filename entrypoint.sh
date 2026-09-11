@@ -147,7 +147,9 @@ FIRST_RUN_FILE="$DATA_CACHE_DIR/.installedv3"
 
 if [ ! -f "$FIRST_RUN_FILE" ]; then
     touch "$FIRST_RUN_FILE"
-    export SOURCEBOT_INSTALL_ID=$(uuidgen)
+    if [ -z "$SOURCEBOT_INSTALL_ID" ]; then
+        export SOURCEBOT_INSTALL_ID=$(uuidgen)
+    fi
     
     # If this is our first run, send a `install` event to PostHog
     # (if telemetry is enabled)
