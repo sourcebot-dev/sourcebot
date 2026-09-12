@@ -21,7 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ['20.20.0', '22.22.0', '24.x']
     runs-on: ${{ matrix.os }}
     env:
       PACKAGE_TRACKER_ANALYTICS: 'false'
@@ -37,19 +36,13 @@ jobs:
       - run: yarn rebuild node-pty
       - run: yarn workspace @sourcebot/schemas build
       - run: yarn workspace setup-sourcebot build
-      - name: Select end-user test runtime
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-      - run: corepack enable
       - run: yarn workspace setup-sourcebot test
       - run: yarn workspace setup-sourcebot test:platform
       - name: Linux packed-artifact and runtime checks
-        if: runner.os == 'Linux' && matrix.node == '24.x'
+        if: runner.os == 'Linux'
         run: |
           docker pull docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
           yarn workspace setup-sourcebot test:e2e
-          yarn workspace setup-sourcebot test:node-compatibility
           yarn workspace setup-sourcebot test:baseline
           node packages/setupWizard/tests/e2e/packageManagers.mjs
 

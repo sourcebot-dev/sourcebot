@@ -41,6 +41,6 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Test
-        # The CLI has separate packed-artifact and Node-compatibility gates in setup-wizard-e2e.
+        # The CLI has separate Node 24 packed-artifact checks in setup-wizard-e2e.
         # Keep the application workspaces on their existing runtime here.
         run: yarn workspaces foreach --all --topological --exclude setup-sourcebot --exclude 'root-workspace-*' run test

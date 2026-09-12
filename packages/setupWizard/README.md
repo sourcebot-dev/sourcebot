@@ -29,15 +29,14 @@ yarn workspace @sourcebot/schemas build
 yarn workspace setup-sourcebot build
 yarn workspace setup-sourcebot test
 yarn workspace setup-sourcebot test:e2e
-yarn workspace setup-sourcebot test:node-compatibility
 ```
 
 The E2E tests compile and pack the package, install it outside the repository,
 drive its published binary in a PTY, inspect real SDK requests through a local TLS
 collector, and clean up temporary installations. OpenSSL and Docker are required.
-The compatibility suite tests the same tarball under Node 20.20.0 and 22.22.0,
-and checks early rejection on Node 18, 20.19, and 22.21. Build/release tooling
-continues to use Node 24; that is not the end-user minimum.
+PR and release verification run on Node 24 only; that is not the end-user minimum.
+The optional `yarn workspace setup-sourcebot test:node-compatibility` command remains
+available for targeted compatibility investigations, but is not part of CI or release verification.
 The runtime suite uses `docker.sourcebot.dev/sourcebot-dev/sourcebot:latest`
 (override only the test image with `SETUP_TEST_SOURCEBOT_IMAGE`).
 
