@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed setup-sourcebot service-account credentials for Google Vertex providers by generating a read-only container mount and using its container path.
+
 ## [5.1.13] - 2026-09-12
 
 ### Fixed

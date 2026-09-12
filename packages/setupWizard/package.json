@@ -11,6 +11,7 @@
     "bin": "./dist/index.js",
     "scripts": {
         "build": "tsc",
+        "test": "tsx --test test/*.test.ts",
         "watch": "tsc --watch",
         "dev": "tsx src/index.ts",
         "prepublishOnly": "yarn build"

@@ -1,5 +1,8 @@
 import { confirm, input, password, select } from '@inquirer/prompts';
 import { select as searchSelect } from 'inquirer-select-pro';
+import { accessSync, constants, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 import type {
     AmazonBedrockLanguageModel,
     AzureLanguageModel,
@@ -52,6 +55,32 @@ const FETCH_TIMEOUT_MS = 8000;
 const PROVIDER_ID_OVERRIDES: Record<string, string> = {
     'google-generative-ai': 'google',
 };
+
+function expandHostPath(p: string): string {
+    const trimmed = p.trim();
+    if (trimmed.startsWith('~')) {
+        return resolve(join(homedir(), trimmed.slice(1)));
+    }
+    return resolve(trimmed);
+}
+
+function isReadableFile(path: string): boolean {
+    try {
+        return statSync(path).isFile() && accessSync(path, constants.R_OK) === undefined;
+    } catch {
+        return false;
+    }
+}
+
+export function validateCredentialPath(value: string): true | string {
+    if (!value?.trim()) {
+        return 'Credentials path is required';
+    }
+    const path = expandHostPath(value);
+    return isReadableFile(path)
+        ? true
+        : 'Credentials file must exist and be readable';
+}
 
 let catalogPromise: Promise<ModelsDevCatalog | null> | null = null;
 
@@ -164,6 +193,7 @@ async function collectModelConfig(
     provider: Provider,
     model: string,
     env: EnvVars,
+    credentialPath: { value?: string },
 ): Promise<LanguageModel> {
     switch (provider) {
         case 'anthropic':
@@ -284,9 +314,11 @@ async function collectModelConfig(
             if (!useAppDefault) {
                 if (!env['GOOGLE_APPLICATION_CREDENTIALS']) {
                     env['GOOGLE_APPLICATION_CREDENTIALS'] = await input({
-                        message: 'Path to service account credentials JSON (stored locally in .env as GOOGLE_APPLICATION_CREDENTIALS)',
-                        validate: (v) => !v?.trim() ? 'Credentials path is required' : true,
+                        message: 'Path to service account credentials JSON (mounted read-only into the Sourcebot container)',
+                        validate: validateCredentialPath,
                     });
+                    env['GOOGLE_APPLICATION_CREDENTIALS'] = expandHostPath(env['GOOGLE_APPLICATION_CREDENTIALS']);
+                    credentialPath.value = env['GOOGLE_APPLICATION_CREDENTIALS'];
                 }
                 config.credentials = { env: 'GOOGLE_APPLICATION_CREDENTIALS' };
             }
@@ -295,9 +327,10 @@ async function collectModelConfig(
     }
 }
 
-export async function collectModels(): Promise<{ models: LanguageModel[]; env: EnvVars }> {
+export async function collectModels(): Promise<{ models: LanguageModel[]; env: EnvVars; credentialHostPath?: string }> {
     const models: LanguageModel[] = [];
     const env: EnvVars = {};
+    const credentialPath: { value?: string } = {};
 
     note(
         [
@@ -317,7 +350,7 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
     });
 
     if (!wantsAI) {
-        return { models, env };
+        return { models, env, credentialHostPath: credentialPath.value };
     }
 
     // eslint-disable-next-line no-constant-condition
@@ -354,7 +387,7 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
                 validate: (v) => !v?.trim() ? 'Model name is required' : true,
             });
 
-        const config = await collectModelConfig(provider, model, env);
+        const config = await collectModelConfig(provider, model, env, credentialPath);
 
         const displayName = (await input({
             message: 'Display name (optional, press enter to skip)',
@@ -374,5 +407,5 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
         }
     }
 
-    return { models, env };
+    return { models, env, credentialHostPath: credentialPath.value };
 }

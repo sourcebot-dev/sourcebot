@@ -5,6 +5,23 @@ import type { ConnectionConfig } from '@sourcebot/schemas/v3/index.type';
 
 export type { ConnectionConfig };
 export type EnvVars = Record<string, string>;
+
+// Keep the credential path stable across generated config and Compose files. The
+// host path is emitted only as a bind source; Sourcebot always reads this path in
+// the container.
+export const GOOGLE_APPLICATION_CREDENTIALS_CONTAINER_PATH = '/run/secrets/sourcebot-google-application-credentials.json';
+
+// JSON strings are valid YAML double-quoted scalars. Using JSON.stringify here
+// keeps bind sources safe when host paths contain spaces, quotes, or YAML syntax.
+export function readOnlyBindMount(source: string, target: string): string[] {
+    return [
+        '      - type: bind',
+        `        source: ${JSON.stringify(source)}`,
+        `        target: ${JSON.stringify(target)}`,
+        '        read_only: true',
+    ];
+}
+
 export type CollectResult = {
     /**
      * One or more connections produced by the host's collect function. Single-connection
