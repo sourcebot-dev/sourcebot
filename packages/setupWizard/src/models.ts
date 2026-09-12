@@ -1,5 +1,7 @@
-import { confirm, input, password, select } from '@inquirer/prompts';
-import { select as searchSelect } from 'inquirer-select-pro';
+import { wizardFetch, lifecycle } from './lifecycle.js';
+import type { AiSummary } from './telemetryEvents.js';
+import { confirm, input, password, select } from './prompts.js';
+import { searchSelect } from './prompts.js';
 import type {
     AmazonBedrockLanguageModel,
     AzureLanguageModel,
@@ -59,14 +61,21 @@ async function loadCatalog(): Promise<ModelsDevCatalog | null> {
     if (!catalogPromise) {
         catalogPromise = (async () => {
             try {
-                const response = await fetch(MODELS_DEV_API_URL, {
+                const response = await wizardFetch(MODELS_DEV_API_URL, {
                     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
                 });
                 if (!response.ok) {
+                    lifecycle.fail('network', true);
                     return null;
                 }
-                return await response.json() as ModelsDevCatalog;
+                const catalog = await response.json();
+                if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) {
+                    throw new Error('Invalid model catalog');
+                }
+                return catalog as ModelsDevCatalog;
             } catch {
+                lifecycle.check();
+                lifecycle.fail('network', true);
                 return null;
             }
         })();
@@ -86,6 +95,19 @@ async function getModelOptionsForProvider(providerKey: string): Promise<ModelOpt
     }
     const models = Object.values(provider.models);
     if (models.length === 0) {
+        return null;
+    }
+    if (
+        models.some(
+            (m) =>
+                !m ||
+                typeof m.id !== 'string' ||
+                !m.id ||
+                (m.name !== undefined && typeof m.name !== 'string') ||
+                (m.release_date !== undefined && typeof m.release_date !== 'string'),
+        )
+    ) {
+        lifecycle.fail('network', true);
         return null;
     }
     return models
@@ -164,6 +186,7 @@ async function collectModelConfig(
     provider: Provider,
     model: string,
     env: EnvVars,
+    setCredentialMode: (mode: AiSummary['credentialMode']) => void,
 ): Promise<LanguageModel> {
     switch (provider) {
         case 'anthropic':
@@ -224,6 +247,7 @@ async function collectModelConfig(
                 message: 'Use the default AWS credential chain? (No to provide Access Key ID and Secret explicitly)',
                 default: true,
             });
+            setCredentialMode(useDefaultChain ? 'aws_default_chain' : 'aws_explicit_keys');
 
             const config: AmazonBedrockLanguageModel = { provider, model };
 
@@ -275,6 +299,7 @@ async function collectModelConfig(
                 message: 'Use Application Default Credentials? (No to provide a service account credentials file path)',
                 default: true,
             });
+            setCredentialMode(useAppDefault ? 'google_application_default_credentials' : 'google_credentials_file');
 
             const config: GoogleVertexLanguageModel | GoogleVertexAnthropicLanguageModel = {
                 provider,
@@ -295,9 +320,12 @@ async function collectModelConfig(
     }
 }
 
-export async function collectModels(): Promise<{ models: LanguageModel[]; env: EnvVars }> {
+export async function collectModels(
+    onAccepted: (summary: AiSummary) => void = () => {},
+): Promise<{ models: LanguageModel[]; env: EnvVars; telemetry: AiSummary[] }> {
     const models: LanguageModel[] = [];
     const env: EnvVars = {};
+    const telemetry: AiSummary[] = [];
 
     note(
         [
@@ -317,7 +345,7 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
     });
 
     if (!wantsAI) {
-        return { models, env };
+        return { models, env, telemetry };
     }
 
     // eslint-disable-next-line no-constant-condition
@@ -354,7 +382,10 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
                 validate: (v) => !v?.trim() ? 'Model name is required' : true,
             });
 
-        const config = await collectModelConfig(provider, model, env);
+        let credentialMode: AiSummary['credentialMode'] = 'api_key';
+        const config = await collectModelConfig(provider, model, env, (mode) => {
+            credentialMode = mode;
+        });
 
         const displayName = (await input({
             message: 'Display name (optional, press enter to skip)',
@@ -363,6 +394,19 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
             config.displayName = displayName;
         }
         models.push(config);
+        const summary: AiSummary = {
+            provider,
+            credentialMode,
+            usesCustomEndpoint: provider === 'openai-compatible',
+            hasDisplayName: !!displayName,
+            modelSelectionMethod: modelOptions?.length
+                ? modelOptions.some((option) => option.id === model)
+                    ? 'catalog'
+                    : 'custom_entry'
+                : 'manual_fallback',
+        };
+        telemetry.push(summary);
+        onAccepted(summary);
 
         const addAnother = await confirm({
             message: 'Add another model?',
@@ -374,5 +418,5 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
         }
     }
 
-    return { models, env };
+    return { models, env, telemetry };
 }

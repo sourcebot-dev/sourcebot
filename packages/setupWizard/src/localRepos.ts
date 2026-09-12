@@ -1,5 +1,7 @@
-import { input } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { lifecycle } from './lifecycle.js';
+import { sourceSummary, discoveredBucket } from './telemetrySummary.js';
+import { input } from './prompts.js';
+import { checkbox } from './prompts.js';
 import { existsSync, statSync } from 'fs';
 import { readdir } from 'fs/promises';
 import { homedir } from 'os';
@@ -34,6 +36,7 @@ async function findGitRepos(root: string, maxDepth: number): Promise<string[]> {
     const repos: string[] = [];
 
     async function walk(dir: string, depth: number): Promise<void> {
+        lifecycle.check();
         if (existsSync(join(dir, '.git'))) {
             repos.push(dir);
             return;
@@ -102,7 +105,14 @@ export async function collectLocalReposConfig(
         hostPath = expandHostPath(rawPath);
 
         const spinner = ora(`Scanning ${hostPath} for git repositories...`).start();
-        repos = await findGitRepos(hostPath, MAX_DEPTH);
+        const releaseSpinner = lifecycle.own(() => spinner.stop());
+        try {
+            repos = await findGitRepos(hostPath, MAX_DEPTH);
+            lifecycle.check();
+        } finally {
+            spinner.stop();
+            releaseSpinner();
+        }
         if (repos.length === 0) {
             spinner.fail(`No git repositories found under ${hostPath}`);
             continue;
@@ -130,6 +140,12 @@ export async function collectLocalReposConfig(
             }],
             env: {},
             localRepoHostPath: hostPath,
+            telemetry: sourceSummary('local_git', {
+                deploymentType: 'local',
+                scopeTypes: ['repositories'],
+                repositoryCount: 1,
+                localDiscoveredRepoCountBucket: '1',
+            }),
         };
     }
 
@@ -167,5 +183,16 @@ export async function collectLocalReposConfig(
             return { name: basename(repoPath), config };
         });
 
-    return { connections, env: {}, localRepoHostPath: hostPath };
+    return {
+        connections,
+        env: {},
+        localRepoHostPath: hostPath,
+        telemetry: sourceSummary('local_git', {
+            deploymentType: 'local',
+            scopeTypes: ['repositories'],
+            repositoryCount: selected.length,
+            generatedConnectionCount: connections.length,
+            localDiscoveredRepoCountBucket: discoveredBucket(repos.length),
+        }),
+    };
 }

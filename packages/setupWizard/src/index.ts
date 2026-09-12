@@ -1,8 +1,22 @@
 #!/usr/bin/env node
-import { confirm, input, select } from '@inquirer/prompts';
+import { confirm, input, select } from './prompts.js';
 import chalk from 'chalk';
-import ora from 'ora';
+import { spinner } from './spinner.js';
 import { spawn } from 'node:child_process';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { lifecycle, wizardFetch } from './lifecycle.js';
+import { invocationMethod } from './telemetry.js';
+import {
+    aggregateSources,
+    aggregateAi,
+    hostCategory,
+    selectInstallId,
+    emptyDockerSummary,
+    dockerOutcome,
+} from './telemetrySummary.js';
+import { Docker } from './docker.js';
+import { DockerStartFailure } from './dockerStartFailure.js';
+import type { CodeSourceSummary, Events } from './telemetryEvents.js';
 import net from 'node:net';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
@@ -63,22 +77,26 @@ function openBrowser(url: string): void {
         : process.platform === 'win32' ? 'cmd'
             : 'xdg-open';
     const args = process.platform === 'win32' ? ['/c', 'start', '""', url] : [url];
-    spawn(cmd, args, { stdio: 'ignore', detached: true }).unref();
+    lifecycle.check();
+    const browser = spawn(cmd, args, { stdio: 'ignore', detached: true });
+    browser.on('error', () => {});
+    browser.unref();
 }
 
-async function openBrowserWhenReady(url: string, timeoutMs = 120_000): Promise<void> {
+async function openBrowserWhenReady(url: string, signal: AbortSignal, timeoutMs = 120_000): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+            const res = await wizardFetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(2000)]) });
             if (res.status < 500) {
+                signal.throwIfAborted();
                 openBrowser(url);
                 return;
             }
         } catch {
             // not yet ready
         }
-        await new Promise((r) => setTimeout(r, 2000));
+        await sleep(2000, undefined, { signal });
     }
 }
 
@@ -189,11 +207,19 @@ function parsePublishedHostPorts(composeYaml: string): PublishedPort[] {
 // 5432), which is the actual failure mode `docker compose up` hits.
 function isPortInUse({ host, port }: PublishedPort): Promise<boolean> {
     return new Promise((resolve) => {
+        lifecycle.check();
         const server = net.createServer();
+        const release = lifecycle.own(() => server.close());
+        server.once('close', release);
         server.once('error', (err: NodeJS.ErrnoException) => {
             server.close(() => { /* noop */ });
             // EADDRINUSE = taken. Other errors (e.g. EACCES on privileged ports) aren't
             // a "someone else has it" conflict we can meaningfully report, so treat as free.
+            if (err.code !== 'EADDRINUSE') {
+                portInspectionFailed = true;
+                docker.failed = true;
+                lifecycle.fail('validation', true);
+            }
             resolve(err.code === 'EADDRINUSE');
         });
         server.once('listening', () => {
@@ -207,65 +233,8 @@ function isPortInUse({ host, port }: PublishedPort): Promise<boolean> {
     });
 }
 
-// Best-effort: maps a host port to the running Docker container(s) publishing it, so
-// a conflict can name the offender. Returns an empty map if Docker isn't available.
-async function getDockerPublishedPortOwners(): Promise<Map<number, string[]>> {
-    return new Promise<Map<number, string[]>>((resolve) => {
-        const child = spawn('docker', ['ps', '--format', '{{.Names}}\t{{.Ports}}'], {
-            stdio: ['ignore', 'pipe', 'ignore'],
-        });
-        let out = '';
-        child.stdout?.on('data', (chunk: Buffer) => {
-            out += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            const map = new Map<number, string[]>();
-            if (code !== 0) {
-                resolve(map);
-                return;
-            }
-            for (const line of out.split('\n')) {
-                const [name, portsStr] = line.split('\t');
-                if (!name || !portsStr) {
-                    continue;
-                }
-                // e.g. "0.0.0.0:5432->5432/tcp, :::5432->5432/tcp" — the number before
-                // each "->" is the published host port.
-                for (const m of portsStr.matchAll(/(\d+)->/g)) {
-                    const port = Number(m[1]);
-                    const list = map.get(port) ?? [];
-                    if (!list.includes(name)) {
-                        list.push(name);
-                    }
-                    map.set(port, list);
-                }
-            }
-            resolve(map);
-        });
-        child.on('error', () => resolve(new Map<number, string[]>()));
-    });
-}
-
-// Stops the given containers (by name). Returns true only if all stopped cleanly.
-async function stopDockerContainers(names: string[]): Promise<boolean> {
-    if (names.length === 0) {
-        return true;
-    }
-    return new Promise<boolean>((resolve) => {
-        const child = spawn('docker', ['stop', ...names], { stdio: ['ignore', 'ignore', 'pipe'] });
-        let err = '';
-        child.stderr?.on('data', (chunk: Buffer) => {
-            err += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            if (code !== 0 && err.trim()) {
-                console.error(chalk.red('✗ ') + err.trim());
-            }
-            resolve(code === 0);
-        });
-        child.on('error', () => resolve(false));
-    });
-}
+const docker = new Docker((category) => lifecycle.fail(category, true));
+let portInspectionFailed = false;
 
 // Mirrors Docker Compose's project-name normalization for the default case
 // where the project name is derived from the working directory basename.
@@ -273,115 +242,6 @@ function dockerComposeProjectName(): string {
     return basename(process.cwd())
         .toLowerCase()
         .replace(/[^a-z0-9_-]/g, '');
-}
-
-async function listExistingDockerVolumes(expectedNames: string[]): Promise<string[]> {
-    if (expectedNames.length === 0) {
-        return [];
-    }
-    return new Promise<string[]>((resolve) => {
-        const child = spawn('docker', ['volume', 'ls', '--format', '{{.Name}}'], {
-            stdio: ['ignore', 'pipe', 'ignore'],
-        });
-        let out = '';
-        child.stdout?.on('data', (chunk: Buffer) => {
-            out += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            if (code !== 0) {
-                resolve([]);
-                return;
-            }
-            const existing = new Set(out.split('\n').map((l) => l.trim()).filter(Boolean));
-            resolve(expectedNames.filter((name) => existing.has(name)));
-        });
-        child.on('error', () => resolve([]));
-    });
-}
-
-async function removeDockerVolumes(volumes: string[]): Promise<boolean> {
-    if (volumes.length === 0) {
-        return true;
-    }
-    return new Promise<boolean>((resolve) => {
-        const child = spawn('docker', ['volume', 'rm', ...volumes], { stdio: ['ignore', 'ignore', 'pipe'] });
-        let err = '';
-        child.stderr?.on('data', (chunk: Buffer) => {
-            err += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            if (code !== 0 && err.trim()) {
-                console.error(chalk.red('✗ ') + err.trim());
-            }
-            resolve(code === 0);
-        });
-        child.on('error', () => resolve(false));
-    });
-}
-
-type ComposeContainer = { Name: string; Service: string; State: string };
-
-function parseComposePsOutput(output: string): ComposeContainer[] {
-    const trimmed = output.trim();
-    if (!trimmed) {
-        return [];
-    }
-    if (trimmed.startsWith('[')) {
-        try {
-            return JSON.parse(trimmed) as ComposeContainer[];
-        } catch {
-            // fall through to line-based parse
-        }
-    }
-    const containers: ComposeContainer[] = [];
-    for (const line of trimmed.split('\n')) {
-        if (!line.trim()) {
-            continue;
-        }
-        try {
-            containers.push(JSON.parse(line) as ComposeContainer);
-        } catch {
-            // skip unparseable line
-        }
-    }
-    return containers;
-}
-
-async function listComposeContainers(): Promise<ComposeContainer[]> {
-    return new Promise<ComposeContainer[]>((resolve) => {
-        const child = spawn('docker', ['compose', 'ps', '-a', '--format', 'json'], {
-            stdio: ['ignore', 'pipe', 'ignore'],
-        });
-        let out = '';
-        child.stdout?.on('data', (chunk: Buffer) => {
-            out += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            if (code !== 0) {
-                resolve([]);
-                return;
-            }
-            resolve(parseComposePsOutput(out));
-        });
-        child.on('error', () => resolve([]));
-    });
-}
-
-async function runComposeCommand(args: string[], label: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-        const child = spawn('docker', ['compose', ...args], { stdio: ['ignore', 'ignore', 'pipe'] });
-        let err = '';
-        child.stderr?.on('data', (chunk: Buffer) => {
-            err += chunk.toString();
-        });
-        child.on('exit', (code) => {
-            if (code !== 0 && err.trim()) {
-                console.error(chalk.red('✗ ') + `${label}: ` + err.trim());
-            }
-            resolve(code === 0);
-        });
-        child.on('error', () => resolve(false));
-    });
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -396,6 +256,9 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 async function main() {
+    lifecycle.install();
+    lifecycle.capture('started', { invocationMethod: invocationMethod(), isInteractive: !!process.stdin.isTTY });
+    lifecycle.failureCategory = 'filesystem';
     console.log(String.raw`
 ███████╗ ██████╗ ██╗   ██╗██████╗  ██████╗███████╗██████╗  ██████╗ ████████╗
 ██╔════╝██╔═══██╗██║   ██║██╔══██╗██╔════╝██╔════╝██╔══██╗██╔═══██╗╚══██╔══╝
@@ -417,7 +280,8 @@ async function main() {
         },
     });
 
-    if (existsSync(setupDir)) {
+    const selectedDirectoryExisted = existsSync(setupDir);
+    if (selectedDirectoryExisted) {
         const overwrite = await confirm({
             message: `Directory '${setupDir}' already exists. Do you want to overwrite it?`,
             default: false,
@@ -425,13 +289,23 @@ async function main() {
         if (!overwrite) {
             console.log();
             console.log(chalk.red('✗ ') + 'Setup cancelled.');
-            process.exit(0);
+            await lifecycle.decline('existing_directory_declined');
+            return;
         }
     } else {
         mkdirSync(setupDir, { recursive: true });
     }
 
+    lifecycle.check();
     process.chdir(setupDir);
+    lifecycle.capture('chose_setup_directory', {
+        usedDefaultDirectory: setupDir === 'sourcebot',
+        directoryExisted: selectedDirectoryExisted,
+        directoryAction: selectedDirectoryExisted ? 'existing_directory_accepted' : 'created',
+    });
+    lifecycle.stage = 'code_sources';
+    lifecycle.failureCategory = 'unknown';
+    const sourceSummaries: CodeSourceSummary[] = [];
 
     const connections: Record<string, ConnectionConfig> = {};
     const allEnv: EnvVars = {};
@@ -493,6 +367,12 @@ async function main() {
                 continue;
         }
 
+        lifecycle.check();
+        sourceSummaries.push(result.telemetry);
+        lifecycle.capture('configured_code_source', {
+            configurationIndex: sourceSummaries.length,
+            ...result.telemetry,
+        });
         for (const { name, config } of result.connections) {
             const finalName = name
                 ? generateConnectionName(name, connections)
@@ -511,7 +391,20 @@ async function main() {
         }
     }
 
-    const { models, env: modelEnv } = await collectModels();
+    const sourceSummary = aggregateSources(sourceSummaries);
+    lifecycle.capture('configured_code_sources', sourceSummary);
+    lifecycle.stage = 'ai_setup';
+    let modelIndex = 0;
+    const {
+        models,
+        env: modelEnv,
+        telemetry: modelSummaries,
+    } = await collectModels((summary) => {
+        lifecycle.capture('configured_ai_provider', { configurationIndex: ++modelIndex, ...summary });
+    });
+    const aiSummary = aggregateAi(modelSummaries);
+    lifecycle.capture('ai_setup_completed', aiSummary);
+    lifecycle.stage = 'hosted_url';
     Object.assign(allEnv, modelEnv);
 
     const authUrl = await input({
@@ -529,8 +422,17 @@ async function main() {
         },
     });
     allEnv.AUTH_URL = authUrl;
+    lifecycle.capture('configured_hosted_url', {
+        usedDefaultUrl: authUrl === SOURCEBOT_URL,
+        protocol: authUrl.startsWith('https:') ? 'https' : 'http',
+        hostCategory: hostCategory(authUrl),
+    });
+    lifecycle.stage = 'config_overwrite';
+    lifecycle.failureCategory = 'filesystem';
+    const overwritten: Events['generated_configs']['overwroteExistingFiles'] = [];
 
     if (existsSync('config.json')) {
+        overwritten.push('config_json');
         const overwrite = await confirm({
             message: 'config.json already exists. Overwrite?',
             default: true,
@@ -538,11 +440,13 @@ async function main() {
         if (!overwrite) {
             console.log();
             console.log(chalk.red('✗ ') + 'config.json was not overwritten.');
-            process.exit(0);
+            await lifecycle.decline('config_overwrite_declined');
+            return;
         }
     }
 
     if (existsSync('.env')) {
+        overwritten.push('env');
         const overwrite = await confirm({
             message: '.env already exists. Overwrite?',
             default: true,
@@ -550,11 +454,13 @@ async function main() {
         if (!overwrite) {
             console.log();
             console.log(chalk.red('✗ ') + '.env was not overwritten.');
-            process.exit(0);
+            await lifecycle.decline('config_overwrite_declined');
+            return;
         }
     }
 
     if (localRepoIndex.size > 0 && existsSync('docker-compose.override.yml')) {
+        overwritten.push('compose_override');
         const overwrite = await confirm({
             message: 'docker-compose.override.yml already exists. Overwrite?',
             default: true,
@@ -562,11 +468,18 @@ async function main() {
         if (!overwrite) {
             console.log();
             console.log(chalk.red('✗ ') + 'docker-compose.override.yml was not overwritten.');
-            process.exit(0);
+            await lifecycle.decline('config_overwrite_declined');
+            return;
         }
     }
 
-    const s = ora('Writing configuration files...').start();
+    lifecycle.check();
+    const deploymentIdentity = selectInstallId(
+        existsSync('.env') ? readFileSync('.env', 'utf8') : '',
+        lifecycle.telemetry.setupSessionId,
+    );
+    const s = spinner('Writing configuration files...');
+    const releaseWriter = lifecycle.own(() => s.stop());
 
     const configOutput: Record<string, unknown> = {
         $schema: 'https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json',
@@ -596,6 +509,10 @@ async function main() {
         `AUTH_URL=${allEnv.AUTH_URL}`,
     ];
 
+    if (deploymentIdentity.id) {
+        envLines.push('', '# Deployment identifier', `SOURCEBOT_INSTALL_ID=${deploymentIdentity.id}`);
+    }
+
     if (Object.keys(connectionEnv).length > 0) {
         envLines.push('', '# Code host credentials');
         for (const [key, value] of Object.entries(connectionEnv)) {
@@ -610,6 +527,7 @@ async function main() {
         }
     }
 
+    lifecycle.check();
     writeFileSync('config.json', configJson + '\n');
     writeFileSync('.env', envLines.join('\n') + '\n');
 
@@ -632,6 +550,19 @@ async function main() {
         writtenFiles.push('docker-compose.override.yml');
     }
 
+    lifecycle.capture('generated_configs', {
+        filesWritten: ['config_json', 'env', ...(localRepoIndex.size > 0 ? ['compose_override' as const] : [])],
+        overwroteExistingFiles: overwritten,
+        wroteComposeOverride: localRepoIndex.size > 0,
+        localMountCount: localRepoIndex.size,
+        generatedConnectionCount: sourceSummary.generatedConnectionCount,
+        aiConfigurationCount: aiSummary.aiConfigurationCount,
+        credentialVariableCount:
+            Object.keys(connectionEnv).filter((k) => !['GOOGLE_VERTEX_PROJECT', 'GOOGLE_VERTEX_REGION'].includes(k))
+                .length + Object.keys(aiEnv).length,
+        deploymentIdentityAction: deploymentIdentity.action,
+    });
+    releaseWriter();
     const fileInfo: Record<string, { description: string; docsLabel?: string; docsUrl?: string }> = {
         'config.json': {
             description: 'The Sourcebot configuration file. This controls which repos Sourcebot indexes and which language models it connects to.',
@@ -669,25 +600,48 @@ async function main() {
     s.succeed(chalk.bold('Wrote the following files:'));
     console.log(['', ...fileLines].join('\n'));
 
+    lifecycle.stage = 'compose_file';
     let downloadedCompose = false;
+    const compose: Events['resolved_compose_file'] = {
+        outcome: 'already_present',
+        composeAvailable: true,
+        downloadPromptShown: false,
+        downloadAttempted: false,
+        failureCategory: null,
+    };
 
     if (!existsSync('docker-compose.yml')) {
+        compose.downloadPromptShown = true;
+        compose.outcome = 'declined';
+        compose.composeAvailable = false;
         const download = await confirm({
             message: 'Download docker-compose.yml?',
             default: true,
         });
 
         if (download) {
-            const ds = ora('Downloading docker-compose.yml...').start();
+            compose.downloadAttempted = true;
+            let downloadFailure: NonNullable<Events['resolved_compose_file']['failureCategory']> = 'network';
+            const ds = spinner('Downloading docker-compose.yml...');
             try {
-                const res = await fetch(DOCKER_COMPOSE_URL);
+                const res = await wizardFetch(DOCKER_COMPOSE_URL);
+                downloadFailure = res.status >= 500 ? 'http_5xx' : res.status >= 400 ? 'http_4xx' : 'network';
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
                 }
-                await writeFile('docker-compose.yml', await res.text());
+                const body = await res.text();
+                lifecycle.check();
+                downloadFailure = 'filesystem';
+                await writeFile('docker-compose.yml', body);
                 ds.succeed('Downloaded docker-compose.yml');
                 downloadedCompose = true;
+                compose.outcome = 'downloaded';
+                compose.composeAvailable = true;
             } catch {
+                lifecycle.check();
+                compose.outcome = 'download_failed';
+                compose.failureCategory = downloadFailure;
+                lifecycle.fail(downloadFailure === 'filesystem' ? 'filesystem' : 'network', true);
                 ds.fail('Download failed — you can get it manually (see next steps)');
             }
         }
@@ -695,12 +649,28 @@ async function main() {
         downloadedCompose = true;
     }
 
+    lifecycle.capture('resolved_compose_file', compose);
+    lifecycle.stage = 'docker_validation';
+    lifecycle.failureCategory = 'docker_command';
+    const dockerSummary = emptyDockerSummary();
     let leftDeploymentRunning = false;
 
     if (downloadedCompose) {
-        const containers = await listComposeContainers();
+        const containerResult = await docker.containers();
+        const containers = containerResult.ok ? containerResult.value : [];
         const running = containers.filter((c) => c.State === 'running');
         const stopped = containers.filter((c) => c.State !== 'running');
+        if (containerResult.ok) {
+            dockerSummary.runningComposeContainerCount = running.length;
+            dockerSummary.stoppedComposeContainerCount = stopped.length;
+            dockerSummary.composeContainerState = running.length
+                ? stopped.length
+                    ? 'mixed'
+                    : 'running'
+                : stopped.length
+                  ? 'stopped'
+                  : 'none';
+        }
 
         if (running.length > 0) {
             console.log();
@@ -713,8 +683,9 @@ async function main() {
                 default: true,
             });
             if (stop) {
-                const ds = ora('Stopping deployment...').start();
-                const ok = await runComposeCommand(['down'], 'docker compose down');
+                const ds = spinner('Stopping deployment...');
+                const ok = (await docker.run(['compose', 'down'])).ok;
+                dockerSummary.existingDeploymentAction = ok ? 'stopped' : 'stop_failed';
                 if (ok) {
                     ds.succeed('Stopped deployment');
                 } else {
@@ -722,6 +693,7 @@ async function main() {
                     leftDeploymentRunning = true;
                 }
             } else {
+                dockerSummary.existingDeploymentAction = 'left_running';
                 leftDeploymentRunning = true;
             }
         } else if (stopped.length > 0) {
@@ -734,9 +706,11 @@ async function main() {
                 message: 'Remove them now to prevent name conflicts when Sourcebot starts?',
                 default: true,
             });
+            dockerSummary.stoppedContainerAction = 'kept';
             if (remove) {
-                const rs = ora('Removing containers...').start();
-                const ok = await runComposeCommand(['rm', '-f'], 'docker compose rm');
+                const rs = spinner('Removing containers...');
+                const ok = (await docker.run(['compose', 'rm', '-f'])).ok;
+                dockerSummary.stoppedContainerAction = ok ? 'removed' : 'remove_failed';
                 if (ok) {
                     rs.succeed('Removed containers');
                 } else {
@@ -751,7 +725,9 @@ async function main() {
         const declaredVolumes = parseTopLevelVolumes(readFileSync('docker-compose.yml', 'utf-8'));
         const project = dockerComposeProjectName();
         const expectedNames = declaredVolumes.map((v) => `${project}_${v}`);
-        const existing = await listExistingDockerVolumes(expectedNames);
+        const volumeResult = await docker.volumes(expectedNames);
+        const existing = volumeResult.ok ? volumeResult.value : [];
+        dockerSummary.existingVolumeCount = volumeResult.ok ? existing.length : null;
 
         if (existing.length > 0) {
             console.log();
@@ -763,9 +739,11 @@ async function main() {
                 message: 'Wipe these volumes? This will permanently delete any existing Sourcebot data in them.',
                 default: false,
             });
+            dockerSummary.volumeAction = 'kept';
             if (wipe) {
-                const ws = ora('Removing volumes...').start();
-                const ok = await removeDockerVolumes(existing);
+                const ws = spinner('Removing volumes...');
+                const ok = (await docker.run(['volume', 'rm', ...existing])).ok;
+                dockerSummary.volumeAction = ok ? 'removed' : 'remove_failed';
                 if (ok) {
                     ws.succeed(`Removed ${existing.length} volume${existing.length === 1 ? '' : 's'}`);
                 } else {
@@ -786,19 +764,37 @@ async function main() {
         }
         const publishedPorts = parsePublishedHostPorts(composeYaml);
 
+        if (publishedPorts.length === 0) {
+            dockerSummary.initialPortConflictCount = 0;
+            dockerSummary.remainingPortConflictCount = 0;
+            dockerSummary.portConflictSource = 'none';
+        }
         if (publishedPorts.length > 0) {
-            const ps = ora('Checking for port conflicts...').start();
+            const ps = spinner('Checking for port conflicts...');
             // Detect via two complementary sources: `docker ps` (authoritative for ports
             // published by other containers — a plain socket bind can't see those reliably,
             // e.g. Docker Desktop on macOS lets us bind a port it already forwards), and a
             // socket bind (catches non-Docker processes like a local Postgres/Redis).
-            const owners = await getDockerPublishedPortOwners();
+            const ownersResult = await docker.portOwners();
+            const owners = ownersResult.ok ? ownersResult.value : new Map<number, string[]>();
             const inUse: PublishedPort[] = [];
             for (const p of publishedPorts) {
                 const ownedByContainer = (owners.get(p.port)?.length ?? 0) > 0;
                 if (ownedByContainer || await isPortInUse(p)) {
                     inUse.push(p);
                 }
+            }
+            if (ownersResult.ok && !portInspectionFailed) {
+                dockerSummary.initialPortConflictCount = inUse.length;
+                dockerSummary.remainingPortConflictCount = inUse.length;
+                const dockerOwned = inUse.filter((p) => owners.has(p.port)).length;
+                dockerSummary.portConflictSource = !inUse.length
+                    ? 'none'
+                    : dockerOwned === inUse.length
+                      ? 'docker'
+                      : dockerOwned === 0
+                        ? 'non_docker'
+                        : 'mixed';
             }
             if (inUse.length === 0) {
                 ps.succeed('No port conflicts detected');
@@ -827,9 +823,11 @@ async function main() {
                         message: `Stop ${conflictingContainers.length === 1 ? 'this container' : 'these containers'} (${conflictingContainers.join(', ')}) to free the ports?`,
                         default: true,
                     });
+                    dockerSummary.portConflictAction = 'kept';
                     if (stop) {
-                        const ss = ora('Stopping containers...').start();
-                        const ok = await stopDockerContainers(conflictingContainers);
+                        const ss = spinner('Stopping containers...');
+                        const ok = (await docker.run(['stop', ...conflictingContainers])).ok;
+                        dockerSummary.portConflictAction = ok ? 'containers_stopped' : 'stop_failed';
                         if (ok) {
                             ss.succeed(`Stopped ${conflictingContainers.join(', ')}`);
                         } else {
@@ -837,13 +835,17 @@ async function main() {
                         }
                         // Re-check the conflicting ports now that the containers are stopped.
                         const stillInUse: PublishedPort[] = [];
-                        const freshOwners = await getDockerPublishedPortOwners();
+                        portInspectionFailed = false;
+                        const freshResult = await docker.portOwners();
+                        const freshOwners = freshResult.ok ? freshResult.value : new Map<number, string[]>();
                         for (const p of inUse) {
                             const ownedByContainer = (freshOwners.get(p.port)?.length ?? 0) > 0;
                             if (ownedByContainer || await isPortInUse(p)) {
                                 stillInUse.push(p);
                             }
                         }
+                        dockerSummary.remainingPortConflictCount =
+                            freshResult.ok && !portInspectionFailed ? stillInUse.length : null;
                         if (stillInUse.length === 0) {
                             hasPortConflicts = false;
                             console.log(chalk.green('✓ ') + 'All required ports are now free');
@@ -867,6 +869,32 @@ async function main() {
         }
     }
 
+    dockerSummary.dockerStatus = docker.status;
+    dockerSummary.leftExistingDeploymentRunning = leftDeploymentRunning;
+    dockerSummary.outcome = dockerOutcome(dockerSummary, downloadedCompose, docker.failed);
+    lifecycle.capture('validated_docker_state', dockerSummary);
+    lifecycle.stage = 'start';
+    lifecycle.failureCategory = 'process_spawn';
+    const completion: Events['completed'] = {
+        completionMode: leftDeploymentRunning ? 'existing_deployment_left_running' : 'manual_start_required',
+        sourcebotStartOffered: downloadedCompose && !leftDeploymentRunning,
+        sourcebotStartRequested: false,
+        sourcebotStartOutcome: 'not_offered',
+        composeAvailable: downloadedCompose,
+        dockerValidationOutcome: dockerSummary.outcome,
+        remainingPortConflictCount: dockerSummary.remainingPortConflictCount,
+        generatedConnectionCount: sourceSummary.generatedConnectionCount,
+        codeHostTypes: sourceSummary.codeHostTypes,
+        repositoryCount: sourceSummary.repositoryCount,
+        aiConfigured: aiSummary.aiConfigured,
+        aiConfigurationCount: aiSummary.aiConfigurationCount,
+        providerTypes: aiSummary.providerTypes,
+        deploymentIdentityAction: deploymentIdentity.action,
+        totalDurationMs: 0,
+    };
+    const complete = (keepTelemetryOpen = false) => lifecycle.complete(
+        { ...completion, totalDurationMs: lifecycle.telemetry.elapsed() }, keepTelemetryOpen,
+    );
     if (downloadedCompose && !leftDeploymentRunning) {
         const startNow = await confirm({
             message: hasPortConflicts
@@ -880,16 +908,74 @@ async function main() {
                 `Sourcebot will open at ${SOURCEBOT_URL} once it's ready.\nPress Ctrl+C to stop.`,
                 'Starting Sourcebot',
             );
-            void openBrowserWhenReady(SOURCEBOT_URL).catch(() => { /* best effort */ });
+            lifecycle.check();
+            completion.sourcebotStartRequested = true;
+            const readiness = new AbortController();
+            const releaseReadiness = lifecycle.own(() => readiness.abort());
+            let spawned = false;
+            const startFailure = new DockerStartFailure();
             await new Promise<void>((resolve) => {
-                const child = spawn('docker', ['compose', 'up'], { stdio: 'inherit' });
-                child.on('exit', () => resolve());
-                child.on('error', (err) => {
-                    console.error(chalk.red('✗ ') + 'Failed to run `docker compose up`: ' + (err instanceof Error ? err.message : String(err)));
+                const child = lifecycle.child(
+                    spawn('docker', ['compose', 'up'], { stdio: ['inherit', 'inherit', 'pipe'], detached: process.platform !== 'win32' }),
+                );
+                child.stderr?.pipe(process.stderr, { end: false });
+                child.stderr?.on('data', (chunk: Buffer) => startFailure.write(chunk));
+                child.once('spawn', () => {
+                    if (lifecycle.interrupted) {
+                        child.kill();
+                        return;
+                    }
+                    spawned = true;
+                    completion.sourcebotStartOutcome = 'spawned';
+                    completion.completionMode = 'sourcebot_start_spawned';
+                    // Complete the setup handoff now, but keep diagnostics available
+                    // until Compose exits or the user interrupts it.
+                    void complete(true);
+                    void openBrowserWhenReady(
+                        SOURCEBOT_URL,
+                        AbortSignal.any([lifecycle.signal, readiness.signal]),
+                    ).catch(() => {});
+                });
+                child.once('close', (code, signal) => {
+                    readiness.abort();
+                    if (spawned && code !== 0 && signal !== 'SIGINT' && signal !== 'SIGTERM') {
+                        const reason = startFailure.reason();
+                        lifecycle.startFailed({
+                            failurePhase: 'compose_exit',
+                            failureCategory: reason === 'docker_unavailable' ? 'docker_unavailable' : 'docker_command',
+                            failureReason: reason,
+                        });
+                    }
+                    resolve();
+                });
+                child.once('error', (error: NodeJS.ErrnoException) => {
+                    readiness.abort();
+                    if (!lifecycle.interrupted) {
+                        lifecycle.startFailed({
+                            failurePhase: 'spawn',
+                            failureCategory: error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'process_spawn',
+                            failureReason: error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'unknown',
+                        });
+                        lifecycle.fail(
+                            error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'process_spawn',
+                            true,
+                        );
+                        completion.sourcebotStartOutcome = 'spawn_failed';
+                        completion.completionMode = 'sourcebot_start_failed';
+                        console.error(chalk.red('✗ ') + 'Failed to run docker compose up.');
+                    }
                     resolve();
                 });
             });
-            return;
+            readiness.abort();
+            releaseReadiness();
+            lifecycle.check();
+            if (spawned) {
+                await lifecycle.telemetry.shutdown();
+                return;
+            }
+        } else {
+            completion.sourcebotStartOutcome = 'declined';
         }
     }
 
@@ -904,6 +990,7 @@ async function main() {
         nextSteps.push(`${step++}. To apply your new configuration, restart Sourcebot:`);
         nextSteps.push('   docker compose down && docker compose up');
         note(nextSteps.join('\n'), 'Sourcebot is already running');
+        await complete();
         return;
     }
 
@@ -924,16 +1011,31 @@ async function main() {
     nextSteps.push(`${step}. Open ${SOURCEBOT_URL}`);
 
     note(nextSteps.join('\n'), 'Next steps');
+    await complete();
 }
 
-main().catch(err => {
-    const isExitPrompt = err instanceof Error
-        && (err.name === 'ExitPromptError' || err.message?.startsWith('User force closed the prompt'));
-    if (isExitPrompt) {
-        console.log();
-        console.log(chalk.red('✗ ') + 'Setup cancelled.');
-        process.exit(0);
-    }
-    console.error(err);
-    process.exit(1);
-});
+main()
+    .catch(async (error) => {
+        if (lifecycle.interrupted) {
+            return;
+        }
+        if (error instanceof Error && error.name === 'ExitPromptError') {
+            lifecycle.interrupt();
+            return;
+        }
+        const code = error && typeof error === 'object' ? error.code : undefined;
+        const category = ['ENOENT', 'ENOTDIR', 'EISDIR', 'EROFS', 'ENOSPC', 'EACCES', 'EPERM'].includes(code)
+            ? 'filesystem'
+            : error instanceof Error && error.name === 'ValidationError'
+              ? 'validation'
+              : lifecycle.failureCategory;
+        lifecycle.fail(category, false);
+        console.error(error);
+        await lifecycle.telemetry.shutdown();
+        process.exitCode = 1;
+    })
+    .finally(() => {
+        if (!lifecycle.interrupted) {
+            lifecycle.exit(Number(process.exitCode ?? 0));
+        }
+    });

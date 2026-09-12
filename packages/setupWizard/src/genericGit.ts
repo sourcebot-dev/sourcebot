@@ -1,4 +1,5 @@
-import { input } from '@inquirer/prompts';
+import { sourceSummary } from './telemetrySummary.js';
+import { input } from './prompts.js';
 import type { GenericGitHostConnectionConfig } from '@sourcebot/schemas/v3/genericGitHost.type';
 import type { CollectResult } from './utils.js';
 
@@ -21,5 +22,13 @@ export async function collectGenericGitConfig(): Promise<CollectResult> {
         url,
     };
 
-    return { connections: [{ config }], env: {} };
+    return {
+        connections: [{ config }],
+        env: {},
+        telemetry: sourceSummary('remote_git', {
+            deploymentType: 'remote',
+            repositoryCount: 1,
+            scopeTypes: ['repositories'],
+        }),
+    };
 }

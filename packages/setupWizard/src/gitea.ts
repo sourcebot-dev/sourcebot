@@ -1,5 +1,6 @@
-import { input, password } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { sourceSummary, deployment } from './telemetrySummary.js';
+import { input, password } from './prompts.js';
+import { checkbox } from './prompts.js';
 import type { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { INPUT_THEME, multiInput, toEnvKey } from './utils.js';
@@ -64,5 +65,20 @@ export async function collectGiteaConfig(connectionName: string): Promise<Collec
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('gitea', {
+            deploymentType: deployment('gitea', url),
+            credentialMode: giteaToken.trim() ? 'access_token' : 'none',
+            scopeTypes: [
+                ...(targets.includes('orgs') ? ['organizations' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+                ...(targets.includes('users') ? ['users' as const] : []),
+            ],
+            organizationCount: config.orgs?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+            userCount: config.users?.length ?? 0,
+        }),
+    };
 }

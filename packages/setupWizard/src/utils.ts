@@ -1,6 +1,7 @@
+import type { CodeSourceSummary } from './telemetryEvents.js';
 import chalk from 'chalk';
 import { randomBytes } from 'crypto';
-import { select as searchSelect } from 'inquirer-select-pro';
+import { searchSelect } from './prompts.js';
 import type { ConnectionConfig } from '@sourcebot/schemas/v3/index.type';
 
 export type { ConnectionConfig };
@@ -13,6 +14,7 @@ export type CollectResult = {
      */
     connections: Array<{ name?: string; config: ConnectionConfig }>;
     env: EnvVars;
+    telemetry: CodeSourceSummary;
     /**
      * Optional host path that needs to be mounted into the Sourcebot container.
      * Surfaced in the wizard's next-steps so users get the matching volume mount line.

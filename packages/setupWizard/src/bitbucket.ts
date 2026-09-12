@@ -1,5 +1,6 @@
-import { confirm, input, password, select } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { sourceSummary } from './telemetrySummary.js';
+import { confirm, input, password, select } from './prompts.js';
+import { checkbox } from './prompts.js';
 import type { BitbucketConnectionConfig } from '@sourcebot/schemas/v3/bitbucket.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { multiInput, note, toEnvKey } from './utils.js';
@@ -151,7 +152,25 @@ async function collectBitbucketCloud(
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('bitbucket', {
+            deploymentType: 'cloud',
+            credentialMode:
+                authMethod === 'api-token'
+                    ? 'api_token'
+                    : authMethod === 'access-token'
+                      ? 'access_token'
+                      : 'app_password',
+            scopeTypes: [
+                ...(targets.includes('workspaces') ? ['workspaces' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+            ],
+            workspaceCount: config.workspaces?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+        }),
+    };
 }
 
 async function collectBitbucketServer(
@@ -208,7 +227,16 @@ async function collectBitbucketServer(
 
     if (indexAll) {
         config.all = true;
-        return { connections: [{ config }], env };
+        return {
+            connections: [{ config }],
+            env,
+            telemetry: sourceSummary('bitbucket', {
+                deploymentType: 'self_hosted',
+                credentialMode: 'http_access_token',
+                indexAll: true,
+                scopeTypes: ['all'],
+            }),
+        };
     }
 
     const targets = await checkbox<string>({
@@ -232,5 +260,18 @@ async function collectBitbucketServer(
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('bitbucket', {
+            deploymentType: 'self_hosted',
+            credentialMode: 'http_access_token',
+            scopeTypes: [
+                ...(targets.includes('projects') ? ['projects' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+            ],
+            projectCount: config.projects?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+        }),
+    };
 }

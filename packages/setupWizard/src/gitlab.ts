@@ -1,6 +1,9 @@
-import { input, password } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
-import { select as searchSelect, Separator } from 'inquirer-select-pro';
+import { sourceSummary, deployment } from './telemetrySummary.js';
+import { wizardFetch, lifecycle } from './lifecycle.js';
+import { input, password } from './prompts.js';
+import { checkbox } from './prompts.js';
+import { searchSelect } from './prompts.js';
+import { Separator } from 'inquirer-select-pro';
 import type { GitlabConnectionConfig } from '@sourcebot/schemas/v3/gitlab.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { createSearchSelectContext, INPUT_THEME, note, toEnvKey } from './utils.js';
@@ -39,48 +42,70 @@ async function searchGitLab(
     const endpoint = type === 'group' ? 'groups' : type === 'project' ? 'projects' : 'users';
     const extraParams = type === 'project' ? '&simple=true' : '';
     const url = `${apiBase}/${endpoint}?search=${encodeURIComponent(query)}&per_page=8${extraParams}`;
-    const res = await fetch(url, { headers });
+    try {
+        const res = await wizardFetch(url, { headers, signal: AbortSignal.timeout(8000) });
 
-    const literalFallback = (): SearchOption | null => {
-        if (type === 'project') {
-            return PROJECT_PATTERN.test(query) ? { name: query, value: query } : null;
+        const literalFallback = (): SearchOption | null => {
+            if (type === 'project') {
+                return PROJECT_PATTERN.test(query) ? { name: query, value: query } : null;
+            }
+            return { name: query, value: query };
+        };
+
+        if (!res.ok) {
+            lifecycle.fail('network', true);
+            const warning = res.status === 401
+                ? '⚠ Autocomplete disabled — authentication failed, check your PAT.'
+                : `⚠ Autocomplete disabled — GitLab API error (${res.status}).`;
+            const fallback = literalFallback();
+            return fallback ? [fallback, new Separator(warning)] : [new Separator(warning)];
         }
-        return { name: query, value: query };
-    };
 
-    if (!res.ok) {
-        const warning = res.status === 401
-            ? '⚠ Autocomplete disabled — authentication failed, check your PAT.'
-            : `⚠ Autocomplete disabled — GitLab API error (${res.status}).`;
-        const fallback = literalFallback();
-        return fallback ? [fallback, new Separator(warning)] : [new Separator(warning)];
-    }
+        const data = await res.json() as Array<{
+            full_path?: string;
+            path_with_namespace?: string;
+            username?: string;
+        }>;
 
-    const data = await res.json() as Array<{
-        full_path?: string;
-        path_with_namespace?: string;
-        username?: string;
-    }>;
-
-    const results: SearchOption[] = data.map((item) => {
-        let value: string;
-        if (type === 'group') {
-            value = item.full_path!;
-        } else if (type === 'project') {
-            value = item.path_with_namespace!;
-        } else {
-            value = item.username!;
+        if (
+            !Array.isArray(data) ||
+            data.some(
+                (item) =>
+                    typeof (type === 'group'
+                        ? item?.full_path
+                        : type === 'project'
+                          ? item?.path_with_namespace
+                          : item?.username) !== 'string',
+            )
+        ) {
+            throw new Error('Invalid search response');
         }
-        return { name: value, value };
-    });
+        const results: SearchOption[] = data.map((item) => {
+            let value: string;
+            if (type === 'group') {
+                value = item.full_path!;
+            } else if (type === 'project') {
+                value = item.path_with_namespace!;
+            } else {
+                value = item.username!;
+            }
+            return { name: value, value };
+        });
 
-    if (results.length === 0) {
-        const fallback = literalFallback();
-        return fallback ? [fallback] : [];
+        if (results.length === 0) {
+            const fallback = literalFallback();
+            return fallback ? [fallback] : [];
+        }
+
+        gitlabSearchCache.set(cacheKey, results);
+        return results;
+    } catch {
+        lifecycle.check();
+        lifecycle.fail('network', true);
+        const fallback = type !== 'project' || PROJECT_PATTERN.test(query);
+        const warning = new Separator('⚠ Autocomplete unavailable — enter a value manually.');
+        return fallback ? [{ name: query, value: query }, warning] : [warning];
     }
-
-    gitlabSearchCache.set(cacheKey, results);
-    return results;
 }
 
 export async function collectGitLabConfig(connectionName: string): Promise<CollectResult> {
@@ -235,5 +260,22 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
         config.users = users;
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('gitlab', {
+            deploymentType: deployment('gitlab', url),
+            credentialMode: gitlabToken.trim() ? 'personal_access_token' : 'none',
+            scopeTypes: [
+                ...(targets.includes('groups') ? ['groups' as const] : []),
+                ...(targets.includes('projects') ? ['projects' as const] : []),
+                ...(targets.includes('users') ? ['users' as const] : []),
+                ...(targets.includes('all') ? ['all' as const] : []),
+            ],
+            groupCount: config.groups?.length ?? 0,
+            projectCount: config.projects?.length ?? 0,
+            userCount: config.users?.length ?? 0,
+            indexAll: targets.includes('all'),
+        }),
+    };
 }

@@ -60,7 +60,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '24.x'
 
       - name: Install dependencies
         working-directory: .
@@ -103,11 +103,21 @@ jobs:
           # publishing.
           yarn pack --out /tmp/setup-sourcebot.tgz
 
+      - name: Verify the exact publish artifact
+        working-directory: .
+        env:
+          PACKAGE_TRACKER_ANALYTICS: 'false'
+          SETUP_TEST_TARBALL: /tmp/setup-sourcebot.tgz
+        run: |
+          docker pull docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
+          yarn workspace setup-sourcebot test
+          yarn workspace setup-sourcebot test:e2e
+          yarn workspace setup-sourcebot test:node-compatibility
+
       - name: Upgrade npm for Trusted Publishing
         working-directory: .
         run: |
-          # OIDC Trusted Publishing requires npm >= 11.5.1; Node 20 ships an
-          # older npm.
+          # OIDC Trusted Publishing requires npm >= 11.5.1.
           npm install -g npm@latest
           npm --version
 
