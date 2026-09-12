@@ -117,7 +117,7 @@ jobs:
       - name: Upgrade npm for Trusted Publishing
         working-directory: .
         run: |
-          # Keep npm current for OIDC Trusted Publishing.
+          # OIDC Trusted Publishing requires npm >= 11.5.1.
           npm install -g npm@latest
           npm --version
 
