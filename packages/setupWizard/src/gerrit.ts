@@ -1,4 +1,5 @@
-import { confirm, input } from '@inquirer/prompts';
+import { sourceSummary } from './telemetrySummary.js';
+import { confirm, input } from './prompts.js';
 import type { GerritConnectionConfig } from '@sourcebot/schemas/v3/gerrit.type';
 import type { CollectResult } from './utils.js';
 import { multiInput } from './utils.js';
@@ -33,5 +34,14 @@ export async function collectGerritConfig(): Promise<CollectResult> {
         });
     }
 
-    return { connections: [{ config }], env: {} };
+    return {
+        connections: [{ config }],
+        env: {},
+        telemetry: sourceSummary('gerrit', {
+            deploymentType: 'self_hosted',
+            indexAll,
+            scopeTypes: indexAll ? ['all'] : ['projects'],
+            projectCount: config.projects?.length ?? 0,
+        }),
+    };
 }

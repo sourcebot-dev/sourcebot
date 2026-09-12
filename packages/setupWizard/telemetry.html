@@ -1,0 +1,2090 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Review proposal for setup-sourcebot PostHog telemetry.">
+  <title>setup-sourcebot telemetry proposal</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18201d;
+      --muted: #65706b;
+      --line: #dce2de;
+      --surface: #ffffff;
+      --surface-soft: #f4f7f5;
+      --accent: #176b4d;
+      --accent-soft: #e4f2eb;
+      --code: #eef2ef;
+      --shadow: 0 14px 40px rgba(19, 42, 33, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f7f9f8;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--accent); text-underline-offset: 0.18em; }
+    a:hover { text-decoration-thickness: 2px; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .sidebar {
+      display: none;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 2rem 1.4rem;
+      border-right: 1px solid var(--line);
+      background: rgba(247, 249, 248, 0.96);
+      overflow-y: auto;
+    }
+
+    .sidebar-label {
+      margin: 0 0 0.8rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .toc { display: grid; gap: 0.18rem; }
+    .toc a {
+      padding: 0.5rem 0.65rem;
+      color: #49534f;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.3;
+      text-decoration: none;
+    }
+    .toc a:hover { color: var(--accent); background: var(--accent-soft); }
+
+    main { min-width: 0; padding: 1rem; }
+
+    .toolbar {
+      position: sticky;
+      z-index: 10;
+      top: 0.75rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      max-width: 1040px;
+      margin: 0 auto 1rem;
+      pointer-events: none;
+    }
+
+    button {
+      pointer-events: auto;
+      appearance: none;
+      padding: 0.52rem 0.78rem;
+      color: var(--ink);
+      border: 1px solid #cfd7d2;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 4px 14px rgba(19, 42, 33, 0.06);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button:focus-visible, summary:focus-visible, a:focus-visible {
+      outline: 3px solid rgba(23, 107, 77, 0.24);
+      outline-offset: 2px;
+    }
+
+    article {
+      max-width: 1040px;
+      margin: 0 auto 5rem;
+      padding: clamp(1.4rem, 3vw, 3.4rem);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.025em; }
+    h1 { margin: 0 0 0.55rem; font-size: clamp(2rem, 4vw, 3.4rem); }
+    h2 {
+      margin: 3.4rem 0 1.15rem;
+      padding-top: 0.5rem;
+      font-size: clamp(1.45rem, 2.5vw, 2rem);
+      border-top: 1px solid var(--line);
+    }
+    h2:first-of-type { margin-top: 2rem; }
+    h3 { margin: 2rem 0 0.8rem; font-size: 1.22rem; }
+    h4 { margin: 1.5rem 0 0.7rem; font-size: 1.06rem; }
+    p { margin: 0.75rem 0; }
+    article > p:nth-of-type(1) {
+      display: inline-flex;
+      margin: 0 0 1.4rem;
+      padding: 0.28rem 0.65rem;
+      color: var(--accent);
+      border: 1px solid #bedacb;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      font-size: 0.82rem;
+      font-weight: 750;
+    }
+
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 0.38rem; }
+
+    code {
+      padding: 0.12em 0.34em;
+      border-radius: 5px;
+      background: var(--code);
+      font: 0.9em ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    pre {
+      margin: 1rem 0;
+      padding: 1rem 1.1rem;
+      border: 1px solid #d9e1dc;
+      border-radius: 11px;
+      background: #15201b;
+      color: #eaf4ee;
+      overflow-x: auto;
+    }
+    pre code { padding: 0; color: inherit; background: transparent; overflow-wrap: normal; }
+
+    .table-wrap {
+      width: 100%;
+      margin: 1rem 0 1.35rem;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; line-height: 1.45; }
+    th, td { padding: 0.72rem 0.8rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #3c4943; background: var(--surface-soft); font-size: 0.8rem; letter-spacing: 0.015em; }
+    tr:last-child td { border-bottom: 0; }
+
+    details.disclosure {
+      margin: 0.75rem 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      overflow: clip;
+    }
+    details.disclosure[open] { border-color: #b9cec2; box-shadow: 0 8px 24px rgba(19, 42, 33, 0.06); }
+    details.event { border-left: 4px solid var(--accent); }
+    summary {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      font-weight: 760;
+      line-height: 1.35;
+      list-style: none;
+      background: var(--surface-soft);
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: "+";
+      display: grid;
+      flex: 0 0 1.4rem;
+      place-items: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      color: var(--accent);
+      border: 1px solid #b8cfc2;
+      border-radius: 50%;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    details[open] > summary::before { content: "−"; }
+    .disclosure-body { padding: 0.55rem 1rem 1rem; }
+    .disclosure-body > :first-child { margin-top: 0.55rem; }
+    .disclosure-body > :last-child { margin-bottom: 0; }
+
+    .event summary code { color: var(--accent); background: transparent; font-size: 0.92rem; }
+
+    @media (min-width: 1120px) {
+      .shell { grid-template-columns: 245px minmax(0, 1fr); }
+      .sidebar { display: block; }
+      main { padding: 1.5rem 2rem; }
+    }
+
+    @media (max-width: 680px) {
+      main { padding: 0; }
+      article { margin: 0; padding: 1.2rem; border: 0; border-radius: 0; box-shadow: none; }
+      .toolbar { top: 0; margin: 0; padding: 0.65rem; background: rgba(247, 249, 248, 0.94); }
+      h2 { margin-top: 2.6rem; }
+      th, td { min-width: 9rem; }
+      summary { padding: 0.85rem; }
+      .disclosure-body { padding-inline: 0.85rem; }
+    }
+
+    @media print {
+      body { background: white; }
+      .sidebar, .toolbar { display: none; }
+      article { max-width: none; margin: 0; border: 0; box-shadow: none; }
+      details.disclosure > .disclosure-body { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Proposal sections">
+      <p class="sidebar-label">On this page</p>
+      <nav class="toc"></nav>
+    </aside>
+    <main>
+      <div class="toolbar" aria-label="Disclosure controls">
+        <button type="button" data-action="expand">Expand all</button>
+        <button type="button" data-action="collapse">Collapse all</button>
+      </div>
+      <article id="proposal"><h1><code>setup-sourcebot</code> PostHog telemetry proposal</h1>
+<p>Status: Draft for review · Canonical plan</p>
+<p><strong>Source of truth:</strong> this HTML document is the authoritative proposal. Make future plan changes here first. <code>telemetry.md</code> is a convenience mirror and should only be regenerated from this page when explicitly needed.</p>
+<p><strong>Implementation status (September 11, 2026):</strong> the required repository-root <code>entrypoint.sh</code> change was merged through <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">Sourcebot PR #1648</a> as commit <code>a0ee2233</code>, with all automated checks passing. Runtime support is therefore landed in the Sourcebot repository; setup-to-deployment continuity becomes available to users once the wizard selects a published Sourcebot image containing that merge. A container-level compatibility test verified first boot, same-version restart, upgrade restart, generated-ID fallback, telemetry-disabled behavior, PostHog-compatible HTTPS payloads, and stable identity propagation using the merged entrypoint. The setup-wizard implementation is in progress in the separate <code>codex/setup-wizard-posthog</code> worktree. It is not release-complete until every mandatory verification gate below has passed.</p>
+<h2>Executive summary</h2>
+<p>Instrument the <code>setup-sourcebot</code> CLI so Sourcebot can measure progression from wizard start through a completed setup, identify where users leave the flow, and understand high-level configuration choices without collecting repository information, credentials, real-world user identifiers, or other sensitive values.</p>
+<p>The canonical product funnel is:</p>
+<pre><code class="language-text">started
+  -&gt; chose_setup_directory
+  -&gt; configured_code_sources
+  -&gt; ai_setup_completed (configured or explicitly skipped)
+  -&gt; configured_hosted_url
+  -&gt; generated_configs
+  -&gt; resolved_compose_file
+  -&gt; validated_docker_state
+  -&gt; completed
+</code></pre>
+<p>The AI checkpoint must fire whether AI is configured or skipped. The compose and Docker checkpoints must likewise fire with an outcome describing success, an existing resource, an explicit skip, or a failure. This keeps valid branches in the funnel instead of reporting them as abandonment.</p>
+<p>The recommended implementation upgrades <code>setup-sourcebot</code> to Node 24 LTS and uses the official <code>posthog-node</code> SDK behind a small package-owned privacy wrapper. At process start, the wizard creates one canonical lowercase UUIDv4 <code>setupSessionId</code> with <code>crypto.randomUUID()</code> and uses it as the PostHog <code>distinctId</code>. The normative application format is exactly <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>: 36 ASCII characters, lowercase hexadecimal, canonical hyphens, version 4, and the IETF UUID variant. RFC 9562 is the current UUID standard and supersedes RFC 4122; Node’s current API documentation still describes <code>randomUUID()</code> as generating an “RFC 4122 version 4 UUID.” These descriptions are compatible for this value, but the regex and byte-for-byte reuse rule are authoritative for this plan.</p>
+<p>For a new generated deployment, that exact, unmodified value is written to <code>.env</code> as <code>SOURCEBOT_INSTALL_ID</code>. The required Sourcebot repository change to the root <code>entrypoint.sh</code> is merged in <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a>. When built into a published Sourcebot container image, the script preserves the supplied ID on first boot. It does not validate, normalize, regenerate, uppercase, or otherwise transform a non-empty supplied value; the wizard is responsible for supplying the canonical UUIDv4. The setup wizard does not download, patch, or rewrite <code>entrypoint.sh</code> at runtime. Together, these changes allow setup events and resulting deployment telemetry to share the same installation identity without a telemetry-only state file. No email, name, account, or other PII is associated with it.</p>
+<h2>Goals</h2>
+<ul>
+<li>Measure conversion from wizard start through completion.</li>
+<li>Explain conversion using only coarse product choices, counts, branch outcomes, and runtime compatibility information.</li>
+<li>Associate a successful first-time setup with the resulting Sourcebot deployment without storing telemetry-only state or linking the random ID to a real person, organization, repository, or machine.</li>
+<li>Make the schema stable enough to build PostHog funnels and breakdowns before implementation ships.</li>
+<li>Require a comprehensive isolated E2E suite against the compiled npm artifact—including all setup branches, exact PostHog contracts, behavioral regression checks, Docker identity continuity, and cleanup—before the feature can be marked complete.</li>
+</ul>
+<h2>Non-goals</h2>
+<ul>
+<li>Product analytics after the deployed Sourcebot instance starts. Existing Sourcebot telemetry owns that lifecycle.</li>
+<li>Capturing prompt text, user-entered values, configuration objects, errors, logs, or debugging traces.</li>
+<li>Proving that Sourcebot became healthy. The v1 completion event records the wizard’s terminal handoff, not application readiness.</li>
+<li>Exactly-once delivery. A CLI can be killed before a best-effort request completes.</li>
+<li>Building a durable workflow or adding a queue. This is a local interactive CLI whose telemetry must remain non-blocking.</li>
+</ul>
+<h2>Decisions and rationale</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Recommendation</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Installation boundary</td>
+<td>Do not emit a Sourcebot PostHog event from package installation. Begin the funnel at <code>started</code>.</td>
+<td>This removes the need to correlate two processes or persist telemetry state. Reo’s existing installation tracker remains independent and unchanged.</td>
+</tr>
+<tr>
+<td>Setup identity</td>
+<td>Create one canonical lowercase UUIDv4 <code>setupSessionId</code> in memory at wizard startup with <code>crypto.randomUUID()</code>; require the exact plan regex and use the same string as the setup PostHog <code>distinctId</code>.</td>
+<td>One identifier is sufficient for the complete <code>started -&gt; completed</code> funnel. It requires no telemetry-only persistence and cannot survive or combine separate wizard invocations.</td>
+</tr>
+<tr>
+<td>Install-ID format</td>
+<td>Require exactly <code>xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx</code>, where every character is lowercase hexadecimal and <code>y</code> is <code>8</code>, <code>9</code>, <code>a</code>, or <code>b</code>. The complete validation expression is <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>.</td>
+<td>This is the canonical 36-character UUIDv4 representation produced by Node’s <code>crypto.randomUUID()</code> and observed from Sourcebot’s container <code>uuidgen</code> fallback. RFC 9562 is the current standard; it preserves the version-4 and IETF-variant layout formerly specified by RFC 4122. Defining the regex explicitly prevents prefixes, braces, uppercase conversion, hyphen removal, or other transformations.</td>
+</tr>
+<tr>
+<td>PostHog person handling</td>
+<td>Use <code>setupSessionId</code> as <code>distinctId</code> and keep PostHog’s default person-profile processing. Do not call <code>identify</code> or send <code>$set</code>/<code>$set_once</code> person properties.</td>
+<td>For a new setup, the same UUID becomes the deployment’s <code>SOURCEBOT_INSTALL_ID</code>. The profile remains pseudonymous and must never be enriched with email, name, organization, repository, credentials, or other PII/sensitive data.</td>
+</tr>
+<tr>
+<td>ID storage</td>
+<td>Do not create any telemetry state outside the selected setup directory. Keep the ID in memory and write it only into the generated <code>.env</code> as <code>SOURCEBOT_INSTALL_ID</code>.</td>
+<td>The <code>.env</code> is already a required Sourcebot file. Reusing it avoids a second state location while giving the deployment the same identity as its setup session.</td>
+</tr>
+<tr>
+<td>Deployment handoff</td>
+<td>Use a published Sourcebot image containing merged <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a>, whose repository-root <code>entrypoint.sh</code> preserves a non-empty pre-supplied <code>SOURCEBOT_INSTALL_ID</code> on first boot and generates one with <code>uuidgen</code> only when none was supplied.</td>
+<td>This is a Sourcebot runtime/container-image change, not a script the wizard modifies. Released images without the PR overwrite the value on first boot and break setup-to-deployment correlation. After first boot, the existing <code>/data/.installedv3</code> file remains authoritative.</td>
+</tr>
+<tr>
+<td>Transport</td>
+<td>Use the official <code>posthog-node</code> SDK behind a package-owned typed privacy wrapper.</td>
+<td>The SDK owns delivery mechanics. The wrapper remains responsible for event allowlists, identity, privacy, and failure isolation.</td>
+</tr>
+<tr>
+<td>Node runtime</td>
+<td>Raise <code>setup-sourcebot</code> from the stale <code>&gt;=18</code> declaration to <code>&gt;=24.0.0</code>, update <code>@types/node</code> to 24, and run its build, E2E tests, and release job on Node 24.</td>
+<td>Node 24 is the highest current LTS line. The wizard’s existing dependencies already require newer Node versions than its declared Node 18 floor, and all current runtime dependencies support Node 24. Staying on an LTS line avoids the churn of Node 26 Current while removing the need for a custom PostHog transport.</td>
+</tr>
+<tr>
+<td>Delivery</td>
+<td>Use <code>posthog-node</code>'s asynchronous capture and transport defaults, then perform a bounded SDK shutdown when the process exits.</td>
+<td>No custom delivery policy is needed. The exit bound is the one CLI-specific choice because the SDK's default shutdown wait can be too long for an interactive command.</td>
+</tr>
+<tr>
+<td>Stage timing</td>
+<td>Emit a checkpoint only when that stage reaches a terminal outcome.</td>
+<td>Prompt views or button clicks would overstate progress and make branches difficult to compare.</td>
+</tr>
+<tr>
+<td>Optional stages</td>
+<td>Always emit the AI, compose, and Docker checkpoints with an explicit outcome.</td>
+<td>A valid skip or pre-existing resource should remain in the canonical funnel rather than appear as abandonment.</td>
+</tr>
+<tr>
+<td>Repository counts</td>
+<td>Send exact counts for repositories the user selected; bucket only the total discovered by a local filesystem scan.</td>
+<td>Selected counts answer configuration-depth questions; discovered totals can expose unusually distinctive local environments without adding comparable value.</td>
+</tr>
+<tr>
+<td>Completion boundary</td>
+<td>Emit completion after Docker’s child process emits <code>spawn</code>, or after manual next steps are printed.</td>
+<td>Waiting for foreground <code>docker compose up</code> to exit can delay conversion for hours and still does not prove readiness.</td>
+</tr>
+<tr>
+<td>Readiness</td>
+<td>Defer a separate readiness event until there is a defined health-check requirement.</td>
+<td>Process launch and application health are different semantics and should not be mixed in one event.</td>
+</tr>
+<tr>
+<td>Existing tracker</td>
+<td>Retain <code>reo-census</code> unchanged alongside the new PostHog telemetry.</td>
+<td>Reo remains an independent installation tracker with its own endpoint, payload, and <code>PACKAGE_TRACKER_ANALYTICS</code> control. Its events must not be imported into or treated as PostHog funnel events.</td>
+</tr>
+<tr>
+<td>PostHog opt-out</td>
+<td>Do not provide an environment-variable or wizard-level opt-out for the new setup-wizard PostHog telemetry.</td>
+<td>npm does not require packages to provide a telemetry opt-out. <code>PACKAGE_TRACKER_ANALYTICS</code> remains Reo-only, and <code>SOURCEBOT_TELEMETRY_DISABLED</code> continues to govern deployed Sourcebot telemetry rather than this setup funnel. This policy still requires privacy/legal review and clear documentation before release.</td>
+</tr>
+</tbody>
+</table>
+<h2>Funnel strategy</h2>
+<h3>Timestamp ordering: validated during implementation</h3>
+<p>The live dev-project smoke exposed an ordering issue: with immediate independent requests, PostHog adjusts each event by its request's <code>sent_at</code> clock skew, which can reorder closely spaced checkpoints. Set the documented <code>$ignore_sent_at: true</code> control on every setup event. Pass an SDK-envelope <code>timestamp</code> anchored to invocation-start wall time plus monotonic elapsed time, increasing by at least 1 ms per event. This preserves within-run order without delaying setup or serializing network requests. It adds no custom wall-clock application property and does not change transport retry defaults.</p>
+<p>Tradeoff: absolute dates depend on the invoking machine's clock; durations and within-run order do not. Cross-machine chronological ordering against deployment events is not guaranteed when clocks are badly skewed. Verify stored event order in the live smoke, not only capture-call order. Reference: <a href="https://posthog.com/docs/data/timestamps">PostHog timestamp processing</a>.</p>
+<h3>Event semantics</h3>
+<ul>
+<li>Event names use <code>snake_case</code>, matching existing Sourcebot PostHog conventions.</li>
+<li>Events use the <code>setup_sourcebot_</code> prefix. The <code>wa_</code> prefix is not appropriate because these events come from the CLI, not the web app.</li>
+<li>Product funnel events fire at most once per setup session, after the corresponding stage reaches a terminal outcome.</li>
+<li>Repeated detail events may fire once per configured code source or AI model configuration.</li>
+<li>A telemetry failure must never block, delay materially, or fail setup.</li>
+<li>Events use PostHog’s default person-profile behavior, keyed by the random <code>setupSessionId</code>. The CLI must never call <code>identify</code>, set custom person properties, or associate the profile with PII or sensitive data.</li>
+</ul>
+<h3>Feasibility finding</h3>
+<p>This identity handoff fits the existing Sourcebot path with one small deployment-runtime change:</p>
+<ul>
+<li>The generated deployment already loads <code>.env</code> into the Sourcebot container through <code>docker-compose.yml</code>’s <code>env_file</code>, so the wizard can pass <code>SOURCEBOT_INSTALL_ID</code> without changing the compose schema.</li>
+<li>Sourcebot images built before <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a> replace <code>SOURCEBOT_INSTALL_ID</code> with <code>uuidgen</code> whenever <code>/data/.installedv3</code> does not exist. The merged repository-root <code>entrypoint.sh</code> now lets a non-empty supplied value win on first boot. The image selected by the wizard must contain the merge before identity continuity is available to users.</li>
+<li>Sourcebot’s current runtime and Lighthouse schemas accept a general non-empty string for the ID; they do not impose a stricter UUID validator. This proposal deliberately adopts the canonical format produced by Sourcebot’s own first-boot generator as the setup-wizard contract.</li>
+<li>Backend deployment telemetry already uses <code>SOURCEBOT_INSTALL_ID</code> as <code>distinctId</code>, the <code>install_id</code> event property, and the PostHog <code>company</code> group.</li>
+<li>Some web telemetry uses a browser- or user-level <code>distinctId</code>, but it still attaches the deployment <code>install_id</code> and <code>company</code> group. Cross-surface deployment analysis should therefore use those deployment dimensions.</li>
+</ul>
+<p><strong>Scope boundary:</strong> the wizard change ends after writing <code>SOURCEBOT_INSTALL_ID</code> to the generated <code>.env</code>. The root <code>entrypoint.sh</code> change is merged through <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">Sourcebot PR #1648</a> and ships through the normal Sourcebot container-image build. The wizard never fetches or edits that script.</p>
+<p><strong>Conclusion:</strong> full identity continuity is achievable for deployments newly generated by the wizard. It requires coordinated setup-wizard and Sourcebot container-runtime changes, but does not require a second persisted ID, PostHog aliases, or changes to the deployed telemetry schema.</p>
+<h3>Normative install-ID compatibility contract</h3>
+<p>The wizard creates one canonical lowercase UUIDv4 before emitting <code>started</code>. It remains in memory for that invocation and is reused byte-for-byte as the resulting deployment ID for a new setup.</p>
+<p><strong>This is a MUST-level implementation requirement:</strong> <code>setupSessionId</code> must be the direct string returned by Node’s <code>crypto.randomUUID()</code> and must match <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>. The plan calls this a canonical lowercase UUIDv4 under RFC 9562, compatible with the RFC 4122 UUIDv4 terminology used by Node. The exact regex is normative if terminology differs between documentation versions.</p>
+<p>The value must remain byte-for-byte identical across this chain:</p>
+<pre><code class="language-text">crypto.randomUUID()
+  = setupSessionId
+  = every setup event distinctId
+  = every setup event install_id
+  = every setup event company group key
+  = generated .env SOURCEBOT_INSTALL_ID
+  = first-boot container SOURCEBOT_INSTALL_ID
+  = deployment install event distinct_id
+  = /data/.installedv3 install_id
+  = SOURCEBOT_INSTALL_ID restored on every later boot
+</code></pre>
+<p>No boundary may add a prefix, braces, quotes, whitespace, or a trailing newline; change letter case; remove hyphens; hash, encode, parse and reformat, or regenerate the value. The generated <code>.env</code> line is exactly <code>SOURCEBOT_INSTALL_ID=&lt;setupSessionId&gt;</code>. Canonical UUID characters require no shell or dotenv escaping.</p>
+<p><strong>Responsibility boundary:</strong> the wizard enforces and tests the UUIDv4 format. PR #1648 intentionally keeps the runtime handoff simple: on first boot, <code>entrypoint.sh</code> preserves any non-empty supplied value and calls <code>uuidgen</code> only when the value is missing or empty. It then safely serializes the selected value with <code>jq</code>. On later boots, <code>/data/.installedv3</code> wins over the environment. Because the entrypoint does not normalize the supplied value, a conforming wizard value passes through unchanged.</p>
+<p><strong>Release compatibility gate:</strong> the default downloaded Compose file must select a published Sourcebot image containing PR #1648. Existing or user-customized Compose files are outside this compatibility guarantee: reuse them without image inspection, rewriting, warnings, or blocking setup. The wizard still writes the install ID normally, but setup-to-deployment continuity is not guaranteed if a user-selected image replaces it. This exception applies to all image-compatibility and deployment-continuity requirements below.</p>
+<h3>Identity and funnel correlation</h3>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Lifetime</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setupSessionId</code></td>
+<td>One CLI invocation</td>
+<td>Canonical lowercase 36-character UUIDv4 created with <code>crypto.randomUUID()</code> before <code>started</code>, conforming to the exact plan regex. It correlates every event in this wizard run.</td>
+</tr>
+<tr>
+<td>PostHog <code>distinctId</code></td>
+<td>One CLI invocation, then deployment identity</td>
+<td>Set to <code>setupSessionId</code> for every setup event. For a new setup, deployment backend and first-run events later use the same value as <code>SOURCEBOT_INSTALL_ID</code>.</td>
+</tr>
+<tr>
+<td>PostHog <code>install_id</code> and <code>company</code> group</td>
+<td>One CLI invocation, then deployment identity</td>
+<td>Set to <code>setupSessionId</code> on setup events, matching Sourcebot’s existing deployment telemetry convention and enabling group-level continuity even where web-user <code>distinctId</code> values differ.</td>
+</tr>
+</tbody>
+</table>
+<p>This supports two deliberately simple analyses:</p>
+<ol>
+<li>Setup funnel: <code>started</code> to <code>completed</code> using <code>setupSessionId</code> as the PostHog person/distinct identity.</li>
+<li>Setup-to-deployment continuity for a new setup: query the same UUID through setup events and later deployment events/properties/groups.</li>
+</ol>
+<p>Separate wizard invocations intentionally receive different IDs and are not merged. The plan does not attempt eventual conversion across retries because doing so would require persisted telemetry state or identity merging.</p>
+<h3>Recommended PostHog analyses</h3>
+<ol>
+<li>Canonical product funnel: <code>started -&gt; chose_setup_directory -&gt; configured_code_sources -&gt; ai_setup_completed -&gt; configured_hosted_url -&gt; generated_configs -&gt; resolved_compose_file -&gt; validated_docker_state -&gt; completed</code>.</li>
+<li>Setup-to-deployment continuity: filter or break down setup and deployment events by the shared <code>install_id</code> property or <code>company</code> group.</li>
+<li>AI branch comparison: break down <code>ai_setup_completed</code> by <code>aiConfigured</code>, then compare downstream completion rather than removing the AI checkpoint.</li>
+<li>Completion breakdown: break down <code>completed</code> by <code>completionMode</code>, <code>codeHostTypes</code>, <code>aiConfigured</code>, and <code>dockerValidationOutcome</code>.</li>
+<li>Drop-off diagnosis: compare the next missing checkpoint with <code>cancelled</code> and <code>failed</code> where <code>recoverable: false</code>, broken down only by their fixed <code>stage</code> and reason/category enums. Analyze <code>failed</code> with <code>recoverable: true</code> separately as friction that may precede further progress, completion, cancellation, or a later fatal error.</li>
+</ol>
+<p>The canonical setup funnel can use a standard ordered PostHog funnel because every event in one run has the same <code>distinctId</code>. For a new deployment, backend and container first-run events also use that ID. Browser events may use an anonymous browser or authenticated-user <code>distinctId</code>, but Sourcebot already attaches <code>install_id</code> and the <code>company</code> group, so deployment-level analysis should use those dimensions rather than assuming every web event shares the setup person ID.</p>
+<h2>PostHog event schema</h2>
+<h3>Common properties</h3>
+<p>These properties are included on every event unless explicitly noted.</p>
+<p>The system-derived properties are <code>platform</code>, <code>arch</code>, <code>nodeMajorVersion</code>, <code>packageManager</code>, and <code>isCI</code>. Collect each one independently and best-effort. Failure to read, detect, or parse any system-derived property must never suppress the event, throw into the wizard, change its exit status, or affect setup behavior. Use the fallback defined for that property below while retaining every other successfully collected property.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schemaVersion</code></td>
+<td><code>1</code></td>
+<td>Version of this event contract.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td><code>&quot;setup-sourcebot-cli&quot;</code></td>
+<td>Stable event source.</td>
+</tr>
+<tr>
+<td><code>setupSourcebotVersion</code></td>
+<td><code>string</code></td>
+<td>Published <code>setup-sourcebot</code> package version.</td>
+</tr>
+<tr>
+<td><code>setupSessionId</code></td>
+<td>canonical lowercase UUIDv4 string</td>
+<td>Canonical lowercase UUIDv4 under RFC 9562, compatible with Node’s RFC 4122 terminology, matching <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>. The exact same string is also used as PostHog <code>distinctId</code> and, for a new generated deployment, <code>SOURCEBOT_INSTALL_ID</code>.</td>
+</tr>
+<tr>
+<td><code>install_id</code></td>
+<td><code>string</code></td>
+<td>Set to <code>setupSessionId</code>, matching Sourcebot deployment telemetry’s existing property name.</td>
+</tr>
+<tr>
+<td><code>platform</code></td>
+<td><code>&quot;darwin&quot; | &quot;linux&quot; | &quot;win32&quot; | &quot;other&quot;</code></td>
+<td>Coarse operating-system family. Use <code>&quot;other&quot;</code> when unavailable or outside the allowlist.</td>
+</tr>
+<tr>
+<td><code>arch</code></td>
+<td><code>&quot;arm64&quot; | &quot;x64&quot; | &quot;other&quot;</code></td>
+<td>Coarse processor architecture. Use <code>&quot;other&quot;</code> when unavailable or outside the allowlist.</td>
+</tr>
+<tr>
+<td><code>nodeMajorVersion</code></td>
+<td><code>number | null</code></td>
+<td>Node.js major version only. Use <code>null</code> if the value cannot be read or parsed; do not substitute <code>0</code> or a string.</td>
+</tr>
+<tr>
+<td><code>packageManager</code></td>
+<td><code>&quot;npm&quot; | &quot;yarn&quot; | &quot;pnpm&quot; | &quot;bun&quot; | &quot;unknown&quot;</code></td>
+<td>Detected package manager. Use <code>&quot;unknown&quot;</code> when it cannot be detected or is outside the allowlist.</td>
+</tr>
+<tr>
+<td><code>isCI</code></td>
+<td><code>boolean | null</code></td>
+<td>Whether a recognized CI environment is active. Use <code>null</code> when detection cannot determine the answer; do not treat detection failure as <code>false</code>. Do not include CI vendor names or environment values.</td>
+</tr>
+<tr>
+<td><code>elapsedMs</code></td>
+<td><code>number</code></td>
+<td>Milliseconds since the CLI invocation began.</td>
+</tr>
+<tr>
+<td><code>$ignore_sent_at</code></td>
+<td><code>true</code></td>
+<td>Preserve ordered SDK-envelope timestamps instead of per-request clock-skew adjustment. Fixed ingestion control, never a wizard answer.</td>
+</tr>
+<tr>
+<td><code>$geoip_disable</code></td>
+<td><code>true</code></td>
+<td>Prevent IP-based geolocation enrichment.</td>
+</tr>
+</tbody>
+</table>
+<p>Every capture also sets PostHog <code>distinctId: setupSessionId</code> and <code>groups: { company: setupSessionId }</code>. This mirrors Sourcebot’s deployment-level grouping without adding another identifier.</p>
+<p>Do not add working directory, OS release, CPU count, hostname, IP-derived location, Git configuration, npm username, or arbitrary environment variables as common properties.</p>
+<h3>Product funnel event catalog</h3>
+<table>
+<thead>
+<tr>
+<th>Funnel concept</th>
+<th>Proposed event</th>
+<th>Fires when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>started</td>
+<td><code>setup_sourcebot_started</code></td>
+<td>The CLI process starts, before the first prompt.</td>
+</tr>
+<tr>
+<td>chose setup directory</td>
+<td><code>setup_sourcebot_chose_setup_directory</code></td>
+<td>The directory is created or the user agrees to reuse an existing directory.</td>
+</tr>
+<tr>
+<td>configured code sources</td>
+<td><code>setup_sourcebot_configured_code_sources</code></td>
+<td>The user finishes the one-or-more code-source loop.</td>
+</tr>
+<tr>
+<td>optional AI setup</td>
+<td><code>setup_sourcebot_ai_setup_completed</code></td>
+<td>The user finishes AI configuration or explicitly skips it.</td>
+</tr>
+<tr>
+<td>configured hosted URL</td>
+<td><code>setup_sourcebot_configured_hosted_url</code></td>
+<td>A valid hosted URL is accepted.</td>
+</tr>
+<tr>
+<td>generated configs</td>
+<td><code>setup_sourcebot_generated_configs</code></td>
+<td>All required configuration files are written successfully.</td>
+</tr>
+<tr>
+<td>downloaded compose file</td>
+<td><code>setup_sourcebot_resolved_compose_file</code></td>
+<td>The compose-file stage ends with a download, existing file, explicit decline, or failure.</td>
+</tr>
+<tr>
+<td>Docker state validated</td>
+<td><code>setup_sourcebot_validated_docker_state</code></td>
+<td>Docker validation and optional cleanup finish, or validation is skipped for a known reason.</td>
+</tr>
+<tr>
+<td>complete setup</td>
+<td><code>setup_sourcebot_completed</code></td>
+<td>The wizard hands off to Docker or prints actionable manual next steps.</td>
+</tr>
+</tbody>
+</table>
+<p><code>setup_sourcebot_resolved_compose_file</code> is intentionally named “resolved” rather than “downloaded.” A pre-existing compose file is a successful outcome, while a declined or failed download still allows the wizard to finish with manual next steps.</p>
+<h3>Event definitions</h3>
+<h4><code>setup_sourcebot_started</code></h4>
+<p>Purpose: establish the start of the setup funnel and its in-memory session/deployment identity.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invocationMethod</code></td>
+<td><code>&quot;npx&quot; | &quot;global_binary&quot; | &quot;local_binary&quot; | &quot;workspace&quot; | &quot;unknown&quot;</code></td>
+<td>yes</td>
+<td>How the CLI appears to have been launched.</td>
+</tr>
+<tr>
+<td><code>isInteractive</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether stdin and stdout are interactive terminals.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>setup_sourcebot_chose_setup_directory</code></h4>
+<p>Purpose: measure progression through the first prompt and whether setup is new or overwriting an existing directory.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>usedDefaultDirectory</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the default <code>sourcebot</code> directory was accepted.</td>
+</tr>
+<tr>
+<td><code>directoryExisted</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the selected directory already existed.</td>
+</tr>
+<tr>
+<td><code>directoryAction</code></td>
+<td><code>&quot;created&quot; | &quot;existing_directory_accepted&quot;</code></td>
+<td>yes</td>
+<td>The resulting directory path branch.</td>
+</tr>
+</tbody>
+</table>
+<p>Never include the entered path, its basename, its parent, or any information about files already in the directory.</p>
+<h4><code>setup_sourcebot_configured_code_source</code></h4>
+<p>This is a repeated diagnostic event, emitted once after each code-source configuration is accepted. It is not a required step in the product funnel, but it makes the aggregate checkpoint explainable.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>configurationIndex</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>One-based position in the code-source configuration loop.</td>
+</tr>
+<tr>
+<td><code>codeHost</code></td>
+<td><code>&quot;github&quot; | &quot;gitlab&quot; | &quot;bitbucket&quot; | &quot;gitea&quot; | &quot;azure_devops&quot; | &quot;gerrit&quot; | &quot;local_git&quot; | &quot;remote_git&quot;</code></td>
+<td>yes</td>
+<td>Configured source type.</td>
+</tr>
+<tr>
+<td><code>deploymentType</code></td>
+<td><code>&quot;cloud&quot; | &quot;self_hosted&quot; | &quot;local&quot; | &quot;remote&quot; | &quot;unknown&quot;</code></td>
+<td>yes</td>
+<td>Coarse hosting mode derived locally from the source branch and existing wizard answers. Use <code>&quot;unknown&quot;</code> when the available answers cannot distinguish the mode.</td>
+</tr>
+<tr>
+<td><code>credentialMode</code></td>
+<td><code>&quot;none&quot; | &quot;personal_access_token&quot; | &quot;api_token&quot; | &quot;access_token&quot; | &quot;app_password&quot; | &quot;http_access_token&quot;</code></td>
+<td>yes</td>
+<td>Credential mechanism, never the credential value.</td>
+</tr>
+<tr>
+<td><code>scopeTypes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Subset of <code>all</code>, <code>repositories</code>, <code>organizations</code>, <code>users</code>, <code>groups</code>, <code>projects</code>, and <code>workspaces</code>.</td>
+</tr>
+<tr>
+<td><code>indexAll</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether every repository visible to the credential was selected.</td>
+</tr>
+<tr>
+<td><code>repositoryCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Explicit remote repositories or selected local repositories; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>organizationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Selected organizations; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>userCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Selected users; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>groupCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Selected groups; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>projectCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Selected projects; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>workspaceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Selected Bitbucket workspaces; use <code>0</code> when not applicable.</td>
+</tr>
+<tr>
+<td><code>generatedConnectionCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of config connections generated by this selection.</td>
+</tr>
+<tr>
+<td><code>localDiscoveredRepoCountBucket</code></td>
+<td><code>&quot;1&quot; | &quot;2-5&quot; | &quot;6-20&quot; | &quot;21-100&quot; | &quot;101+&quot; | null</code></td>
+<td>yes</td>
+<td>Bucketed number of discovered local repositories. <code>null</code> for non-local sources.</td>
+</tr>
+</tbody>
+</table>
+<p>Rules by source:</p>
+<ul>
+<li>For URL-based classification, trim surrounding whitespace. If the value has no URI scheme, prepend <code>https://</code> for classification only; this does not rewrite the user’s configuration. Accept only <code>http:</code> or <code>https:</code>, parse with Node’s <code>URL</code>, lowercase <code>URL.hostname</code>, remove trailing DNS dots, and remove one leading <code>www.</code>. <code>URL.hostname</code> naturally excludes the protocol, credentials, port, path, query, and fragment, so inputs such as <code>github.com</code>, <code>www.github.com</code>, <code>https://github.com</code>, and <code>https://www.github.com:443/path</code> all classify from the same normalized hostname. Do not perform DNS, HTTP, IP, or ownership lookups. Never retain or send the hostname, URL, path, port, or parse error.</li>
+<li>Match provider domains only by exact normalized hostname or a dot-boundary suffix that includes the leading dot, such as <code>.ghe.com</code>. Never use substring matching: a hostname such as <code>notgithub.com</code> must not match <code>github.com</code>.</li>
+<li>GitHub is <code>cloud</code> when the normalized hostname is exactly <code>github.com</code> or ends in <code>.ghe.com</code>; other valid hostnames are <code>self_hosted</code>. The <code>.ghe.com</code> rule covers GitHub Enterprise Cloud with data residency.</li>
+<li>GitLab is <code>cloud</code> when the normalized hostname is exactly <code>gitlab.com</code>, ends in <code>.gitlab-dedicated.com</code>, or ends in <code>.gitlab-dedicated.systems</code>. Other valid hostnames are <code>unknown</code>, because GitLab Dedicated supports arbitrary custom domains that cannot be distinguished locally from GitLab Self-Managed without adding a new prompt or network lookup.</li>
+<li>Bitbucket uses the existing explicit Cloud versus Data Center wizard answer: Cloud maps to <code>cloud</code> and Data Center maps to <code>self_hosted</code>.</li>
+<li>Azure DevOps uses the existing explicit Cloud versus Server wizard answer: Cloud maps to <code>cloud</code> and Server maps to <code>self_hosted</code>. Do not report organization names, server URLs, or whether <code>/tfs</code> appears in a real URL.</li>
+<li>Gitea is <code>cloud</code> when the normalized hostname is exactly <code>gitea.com</code>; other valid hostnames are <code>self_hosted</code>.</li>
+<li>Gerrit always maps to <code>self_hosted</code>.</li>
+<li>The Local Git source branch always maps to <code>local</code>. Report selected repository counts and a bucketed discovered count, never paths or repository names.</li>
+<li>The arbitrary Remote Git source branch always maps to <code>remote</code>. Report one repository, never its clone URL.</li>
+<li>An unparseable URL, missing collector answer, unsupported source type, or unexpected value maps to <code>unknown</code>. The event must still be captured.</li>
+</ul>
+<h4><code>setup_sourcebot_configured_code_sources</code></h4>
+<p>Purpose: product-funnel checkpoint after all code sources have been configured.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>codeSourceConfigurationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of passes through the code-source loop.</td>
+</tr>
+<tr>
+<td><code>generatedConnectionCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total generated <code>config.json</code> connections. This can exceed the loop count for local repositories.</td>
+</tr>
+<tr>
+<td><code>uniqueCodeHostCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of unique code-host types.</td>
+</tr>
+<tr>
+<td><code>codeHostTypes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated <code>codeHost</code> values, sorted for stable payloads.</td>
+</tr>
+<tr>
+<td><code>credentialedCodeSourceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Configured sources with a credential present.</td>
+</tr>
+<tr>
+<td><code>cloudCodeSourceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Sources configured against known cloud services.</td>
+</tr>
+<tr>
+<td><code>selfHostedCodeSourceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Sources configured against self-hosted services.</td>
+</tr>
+<tr>
+<td><code>localCodeSourceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Local directory selections.</td>
+</tr>
+<tr>
+<td><code>indexAllCodeSourceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Sources configured to index everything visible.</td>
+</tr>
+<tr>
+<td><code>repositoryCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total explicit remote and selected local repositories.</td>
+</tr>
+<tr>
+<td><code>organizationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total selected organizations.</td>
+</tr>
+<tr>
+<td><code>userCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total selected users.</td>
+</tr>
+<tr>
+<td><code>groupCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total selected groups.</td>
+</tr>
+<tr>
+<td><code>projectCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total selected projects.</td>
+</tr>
+<tr>
+<td><code>workspaceCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total selected Bitbucket workspaces.</td>
+</tr>
+</tbody>
+</table>
+<p>Do not serialize or spread <code>connections</code> into telemetry. Construct this event from an explicit allowlisted summary object.</p>
+<h4><code>setup_sourcebot_configured_ai_provider</code></h4>
+<p>This is a repeated diagnostic event, emitted once per configured model. A user can configure multiple models for the same provider.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>configurationIndex</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>One-based position in the model configuration loop.</td>
+</tr>
+<tr>
+<td><code>provider</code></td>
+<td>fixed enum</td>
+<td>yes</td>
+<td>One of <code>anthropic</code>, <code>openai</code>, <code>openai-compatible</code>, <code>amazon-bedrock</code>, <code>google-generative-ai</code>, <code>google-vertex</code>, <code>google-vertex-anthropic</code>, <code>azure</code>, <code>deepseek</code>, <code>mistral</code>, <code>openrouter</code>, or <code>xai</code>.</td>
+</tr>
+<tr>
+<td><code>modelSelectionMethod</code></td>
+<td><code>&quot;catalog&quot; | &quot;custom_entry&quot; | &quot;manual_fallback&quot;</code></td>
+<td>yes</td>
+<td>Whether the model came from the catalog, a custom value entered through catalog search, or manual input after catalog failure/unavailability.</td>
+</tr>
+<tr>
+<td><code>credentialMode</code></td>
+<td><code>&quot;api_key&quot; | &quot;aws_default_chain&quot; | &quot;aws_explicit_keys&quot; | &quot;google_application_default_credentials&quot; | &quot;google_credentials_file&quot;</code></td>
+<td>yes</td>
+<td>Coarse credential strategy.</td>
+</tr>
+<tr>
+<td><code>usesCustomEndpoint</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>True only for an OpenAI-compatible custom endpoint.</td>
+</tr>
+<tr>
+<td><code>hasDisplayName</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the optional display-name field was populated.</td>
+</tr>
+</tbody>
+</table>
+<p>Never include model names or IDs, display names, API keys, resource names, base URLs, cloud project IDs, regions, API versions, access-key IDs, or credential-file paths.</p>
+<h4><code>setup_sourcebot_ai_setup_completed</code></h4>
+<p>Purpose: preserve a linear funnel while distinguishing configured and intentionally skipped AI setup.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>aiConfigured</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether at least one model was configured.</td>
+</tr>
+<tr>
+<td><code>aiConfigurationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of configured models; <code>0</code> when skipped.</td>
+</tr>
+<tr>
+<td><code>uniqueProviderCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of unique provider types; <code>0</code> when skipped.</td>
+</tr>
+<tr>
+<td><code>providerTypes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated provider values, sorted; empty when skipped.</td>
+</tr>
+<tr>
+<td><code>usesCustomEndpoint</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether any OpenAI-compatible endpoint was configured.</td>
+</tr>
+<tr>
+<td><code>credentialModes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated credential strategies, sorted; empty when skipped.</td>
+</tr>
+<tr>
+<td><code>modelSelectionMethods</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated selection methods, sorted; empty when skipped.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>setup_sourcebot_configured_hosted_url</code></h4>
+<p>Purpose: measure progression through deployment URL configuration without collecting the URL.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>usedDefaultUrl</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether <code>http://localhost:3000</code> was accepted unchanged.</td>
+</tr>
+<tr>
+<td><code>protocol</code></td>
+<td><code>&quot;http&quot; | &quot;https&quot;</code></td>
+<td>yes</td>
+<td>URL protocol only.</td>
+</tr>
+<tr>
+<td><code>hostCategory</code></td>
+<td><code>&quot;localhost&quot; | &quot;address&quot; | &quot;unknown&quot;</code></td>
+<td>yes</td>
+<td>Local structural classification that distinguishes confirmed loopback hosts from every other successfully parsed address.</td>
+</tr>
+</tbody>
+</table>
+<p>Determine <code>hostCategory</code> only from the already-entered hosted URL. Parse it with Node’s <code>URL</code>, lowercase the hostname, remove trailing DNS dots, and remove IPv6 URL brackets before applying these rules:</p>
+<ul>
+<li><code>localhost</code>: the parsed hostname is exactly <code>localhost</code>, ends in <code>.localhost</code>, is an IPv4 address in <code>127.0.0.0/8</code>, or is the IPv6 loopback address <code>::1</code>.</li>
+<li><code>address</code>: the URL parses successfully and has any other non-empty hostname or IP address. This value makes no claim about whether the address is public, private, reachable, or resolvable.</li>
+<li><code>unknown</code>: the URL or hostname is unavailable, cannot be parsed, or the classifier fails unexpectedly. The event must still be captured.</li>
+</ul>
+<p>This classifier performs no DNS, HTTP, socket, IP ownership, or reachability lookup. It must discard the parsed value after producing the fixed category.</p>
+<p>Never include the URL, hostname, domain, path, query, fragment, or port.</p>
+<h4><code>setup_sourcebot_generated_configs</code></h4>
+<p>Purpose: record that the configuration-writing stage completed successfully.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filesWritten</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Subset of <code>config_json</code>, <code>env</code>, and <code>compose_override</code>.</td>
+</tr>
+<tr>
+<td><code>overwroteExistingFiles</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Existing fixed file types the user agreed to overwrite. Empty for a new setup.</td>
+</tr>
+<tr>
+<td><code>wroteComposeOverride</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether local-repository mounts required an override file.</td>
+</tr>
+<tr>
+<td><code>localMountCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of local root directories mounted.</td>
+</tr>
+<tr>
+<td><code>generatedConnectionCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of connections written to <code>config.json</code>.</td>
+</tr>
+<tr>
+<td><code>aiConfigurationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of model configurations written.</td>
+</tr>
+<tr>
+<td><code>credentialVariableCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Count of credential environment variables written, never their names or values.</td>
+</tr>
+<tr>
+<td><code>deploymentIdentityAction</code></td>
+<td><code>&quot;created_from_setup_session&quot; | &quot;preserved_existing&quot;</code></td>
+<td>yes</td>
+<td>Whether the generated deployment received this run’s <code>setupSessionId</code> or retained a valid ID from an existing <code>.env</code>. The existing ID itself is never copied into setup telemetry.</td>
+</tr>
+</tbody>
+</table>
+<p>The event fires only after every required write succeeds. It must not include file paths, file contents, environment-variable names, or generated secrets.</p>
+<h4><code>setup_sourcebot_resolved_compose_file</code></h4>
+<p>Purpose: represent every terminal branch of the compose-file stage.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>outcome</code></td>
+<td><code>&quot;downloaded&quot; | &quot;already_present&quot; | &quot;declined&quot; | &quot;download_failed&quot;</code></td>
+<td>yes</td>
+<td>Result of the compose-file stage.</td>
+</tr>
+<tr>
+<td><code>composeAvailable</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether a compose file is available for later validation and startup.</td>
+</tr>
+<tr>
+<td><code>downloadPromptShown</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the download prompt was shown.</td>
+</tr>
+<tr>
+<td><code>downloadAttempted</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether an HTTP download was attempted.</td>
+</tr>
+<tr>
+<td><code>failureCategory</code></td>
+<td><code>&quot;network&quot; | &quot;http_4xx&quot; | &quot;http_5xx&quot; | &quot;filesystem&quot; | &quot;timeout&quot; | &quot;unknown&quot; | null</code></td>
+<td>yes</td>
+<td>Coarse failure reason. <code>null</code> unless <code>outcome</code> is <code>download_failed</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Never include the download URL, HTTP body, destination path, or raw error message.</p>
+<h4><code>setup_sourcebot_validated_docker_state</code></h4>
+<p>Purpose: measure whether the generated setup can be started immediately and how often existing Docker state requires intervention.</p>
+<p>This event must fire even when the phase is skipped because no compose file is available or because an existing deployment is intentionally left running.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>outcome</code></td>
+<td><code>&quot;passed&quot; | &quot;passed_after_cleanup&quot; | &quot;unresolved_conflicts&quot; | &quot;skipped_no_compose&quot; | &quot;skipped_existing_deployment_running&quot; | &quot;validation_failed&quot;</code></td>
+<td>yes</td>
+<td>Overall result of the Docker validation phase.</td>
+</tr>
+<tr>
+<td><code>dockerStatus</code></td>
+<td><code>&quot;available&quot; | &quot;unavailable&quot; | &quot;error&quot; | &quot;not_checked&quot;</code></td>
+<td>yes</td>
+<td>Whether Docker commands could be executed successfully.</td>
+</tr>
+<tr>
+<td><code>composeContainerState</code></td>
+<td><code>&quot;none&quot; | &quot;running&quot; | &quot;stopped&quot; | &quot;mixed&quot; | &quot;unknown&quot;</code></td>
+<td>yes</td>
+<td>Aggregate state, never container names.</td>
+</tr>
+<tr>
+<td><code>runningComposeContainerCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Count of running containers belonging to the compose project.</td>
+</tr>
+<tr>
+<td><code>stoppedComposeContainerCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Count of stopped containers belonging to the compose project.</td>
+</tr>
+<tr>
+<td><code>existingVolumeCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Count of matching existing volumes.</td>
+</tr>
+<tr>
+<td><code>initialPortConflictCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Conflicts found before remediation. Do not include port numbers.</td>
+</tr>
+<tr>
+<td><code>remainingPortConflictCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Conflicts remaining after remediation.</td>
+</tr>
+<tr>
+<td><code>portConflictSource</code></td>
+<td><code>&quot;none&quot; | &quot;docker&quot; | &quot;non_docker&quot; | &quot;mixed&quot; | &quot;unknown&quot;</code></td>
+<td>yes</td>
+<td>Coarse owner category.</td>
+</tr>
+<tr>
+<td><code>existingDeploymentAction</code></td>
+<td><code>&quot;none&quot; | &quot;stopped&quot; | &quot;left_running&quot; | &quot;stop_failed&quot;</code></td>
+<td>yes</td>
+<td>Outcome of the running-deployment prompt.</td>
+</tr>
+<tr>
+<td><code>stoppedContainerAction</code></td>
+<td><code>&quot;none&quot; | &quot;removed&quot; | &quot;kept&quot; | &quot;remove_failed&quot;</code></td>
+<td>yes</td>
+<td>Outcome of stopped-container cleanup.</td>
+</tr>
+<tr>
+<td><code>volumeAction</code></td>
+<td><code>&quot;none&quot; | &quot;removed&quot; | &quot;kept&quot; | &quot;remove_failed&quot;</code></td>
+<td>yes</td>
+<td>Outcome of existing-volume cleanup.</td>
+</tr>
+<tr>
+<td><code>portConflictAction</code></td>
+<td><code>&quot;none&quot; | &quot;containers_stopped&quot; | &quot;kept&quot; | &quot;stop_failed&quot;</code></td>
+<td>yes</td>
+<td>Outcome of port-conflict cleanup.</td>
+</tr>
+<tr>
+<td><code>leftExistingDeploymentRunning</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether an existing deployment was intentionally or unsuccessfully left running.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unknown and skipped measurements:</strong> all five Docker count properties remain required, but use <code>null</code> when their check was skipped, failed, or could not produce a complete result. Use <code>0</code> only after a successful check confirmed zero matching resources/conflicts (including successfully parsing a Compose file with no published ports). Never coerce unknown values to zero in completion summaries or PostHog analyses. Preserve independent successful measurements when another check fails.</p>
+<ul>
+<li>Container counts and <code>composeContainerState</code> describe the initial successful Compose inventory, before cleanup. Volume count describes the inventory before volume cleanup. An unavailable inventory produces <code>null</code> counts and, for containers, <code>unknown</code> state.</li>
+<li><code>initialPortConflictCount</code> and <code>portConflictSource</code> describe the first complete port check, after deployment/volume cleanup and before port-conflict remediation. If the necessary Docker-owner or socket checks fail, use <code>null</code> and <code>unknown</code> rather than claiming a complete inventory. <code>remainingPortConflictCount</code> describes the recheck after attempted port remediation; use <code>null</code> if that recheck fails. If no port remediation is attempted, reuse the initial count, including <code>null</code>.</li>
+<li>With no Compose file, emit <code>skipped_no_compose</code>, <code>dockerStatus: "not_checked"</code>, all five counts as <code>null</code>, container state and conflict source as <code>unknown</code>, actions as <code>none</code>, and <code>leftExistingDeploymentRunning: false</code>.</li>
+<li>When an existing deployment is left running, retain the measured initial container inventory; skipped volume and port checks stay <code>null</code> and conflict source stays <code>unknown</code>. Set <code>leftExistingDeploymentRunning: true</code> and retain the actual deployment action, including <code>stop_failed</code> when applicable.</li>
+<li>Action <code>none</code> means no action was offered or attempted, including skipped checks; it does not assert that no resources existed. <code>kept</code> and <code>left_running</code> mean the user explicitly declined the corresponding action.</li>
+<li><code>dockerStatus</code> is <code>not_checked</code> if no Docker check ran, <code>unavailable</code> if a check established a missing/inaccessible executable, Compose plugin, daemon, or socket, <code>error</code> if attempted checks cannot establish availability, and <code>available</code> when availability was confirmed. An individual cleanup command failure does not by itself mean Docker is unavailable.</li>
+</ul>
+<p><strong>Overall outcome precedence:</strong> first use <code>skipped_no_compose</code> when applicable. Otherwise, any required inspection or attempted cleanup failure yields <code>validation_failed</code>, even when later checks succeed or conflicts also exist. With no such failure, use <code>skipped_existing_deployment_running</code> for a deliberately retained running deployment, then <code>unresolved_conflicts</code> for remaining measured port conflicts, then <code>passed_after_cleanup</code> if cleanup occurred successfully, otherwise <code>passed</code>. Action fields and counts retain the additional detail. This classification does not alter prompts, Docker actions, or continuation behavior; operation failures also emit the nonterminal diagnostics defined below.</p>
+<p>Never include container names, service names, volume names, Docker project names, port numbers, process information, compose contents, or raw command output.</p>
+<h4><code>setup_sourcebot_completed</code></h4>
+<p>Purpose: final funnel conversion event. “Completed” means the wizard finished its work and either handed off to Docker or printed sufficient manual next steps; it does not claim that Sourcebot became healthy.</p>
+<p>Additional properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>completionMode</code></td>
+<td><code>&quot;sourcebot_start_spawned&quot; | &quot;sourcebot_start_failed&quot; | &quot;existing_deployment_left_running&quot; | &quot;manual_start_required&quot;</code></td>
+<td>yes</td>
+<td>How the wizard ended.</td>
+</tr>
+<tr>
+<td><code>sourcebotStartOffered</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the final start prompt was shown.</td>
+</tr>
+<tr>
+<td><code>sourcebotStartRequested</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the user chose to run <code>docker compose up</code>.</td>
+</tr>
+<tr>
+<td><code>sourcebotStartOutcome</code></td>
+<td><code>&quot;spawned&quot; | &quot;declined&quot; | &quot;not_offered&quot; | &quot;spawn_failed&quot;</code></td>
+<td>yes</td>
+<td>Result of the start handoff. This describes process launch, not application readiness.</td>
+</tr>
+<tr>
+<td><code>composeAvailable</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether the compose file was available at completion.</td>
+</tr>
+<tr>
+<td><code>dockerValidationOutcome</code></td>
+<td>enum from validation event</td>
+<td>yes</td>
+<td>Final Docker validation result.</td>
+</tr>
+<tr>
+<td><code>remainingPortConflictCount</code></td>
+<td><code>number | null</code></td>
+<td>yes</td>
+<td>Copy the Docker validation value unchanged, including <code>null</code> when unmeasured. Do not replace unknown with zero.</td>
+</tr>
+<tr>
+<td><code>generatedConnectionCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total generated code connections.</td>
+</tr>
+<tr>
+<td><code>codeHostTypes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated configured code-host types.</td>
+</tr>
+<tr>
+<td><code>repositoryCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Total explicit remote and selected local repositories.</td>
+</tr>
+<tr>
+<td><code>aiConfigured</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td>Whether any AI model was configured.</td>
+</tr>
+<tr>
+<td><code>aiConfigurationCount</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Number of configured models.</td>
+</tr>
+<tr>
+<td><code>providerTypes</code></td>
+<td>fixed enum array</td>
+<td>yes</td>
+<td>Deduplicated AI provider types.</td>
+</tr>
+<tr>
+<td><code>deploymentIdentityAction</code></td>
+<td><code>&quot;created_from_setup_session&quot; | &quot;preserved_existing&quot;</code></td>
+<td>yes</td>
+<td>Safe summary of whether this run established deployment identity continuity. This repeats the generated-config value so completion can be filtered directly.</td>
+</tr>
+<tr>
+<td><code>totalDurationMs</code></td>
+<td><code>number</code></td>
+<td>yes</td>
+<td>Duration from CLI start to this terminal handoff.</td>
+</tr>
+</tbody>
+</table>
+<p>When the user chooses to start Sourcebot, emit this event after the child process successfully emits <code>spawn</code>, not after foreground <code>docker compose up</code> exits. Waiting for process exit can delay the event until the user stops Sourcebot hours later or presses Ctrl+C.</p>
+<p>If actual readiness is important, add a separate <code>setup_sourcebot_became_ready</code> event when the local readiness poll succeeds. Do not overload <code>setup_sourcebot_completed</code> with a health claim.</p>
+<h3>Drop-off diagnostic events</h3>
+<p>These events are not funnel checkpoints, but they are necessary to explain missing next-step events.</p>
+<h4><code>setup_sourcebot_cancelled</code></h4>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>fixed enum</td>
+<td>yes</td>
+<td>One of <code>setup_directory</code>, <code>code_sources</code>, <code>ai_setup</code>, <code>hosted_url</code>, <code>config_overwrite</code>, <code>compose_file</code>, <code>docker_validation</code>, or <code>start</code>.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td><code>&quot;keyboard_interrupt&quot; | &quot;existing_directory_declined&quot; | &quot;config_overwrite_declined&quot;</code></td>
+<td>yes</td>
+<td>Allowlisted cancellation reason.</td>
+</tr>
+</tbody>
+</table>
+<p>The config-overwrite case may additionally include <code>fileType: &quot;config_json&quot; | &quot;env&quot; | &quot;compose_override&quot;</code>. Never include a path or filename supplied by the user.</p>
+<h4><code>setup_sourcebot_failed</code></h4>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>same stage enum as cancellation</td>
+<td>yes</td>
+<td>Stage active when the failure occurred.</td>
+</tr>
+<tr>
+<td><code>failureCategory</code></td>
+<td>fixed enum</td>
+<td>yes</td>
+<td>One of <code>validation</code>, <code>network</code>, <code>filesystem</code>, <code>docker_unavailable</code>, <code>docker_command</code>, <code>process_spawn</code>, or <code>unknown</code>.</td>
+</tr>
+<tr>
+<td><code>recoverable</code></td>
+<td><code>boolean</code></td>
+<td>yes</td>
+<td><code>true</code> when the wizard handles the error and continues to further setup work or manual next steps; <code>false</code> only when the error causes the wizard to terminate. This describes actual control flow, not whether the underlying problem could theoretically be fixed.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Failure-event lifecycle:</strong> <code>setup_sourcebot_failed</code> with <code>recoverable: true</code> is a nonterminal diagnostic event. Emit it once per distinct handled operation failure; multiple such events may occur in one stage or session, including with identical stage/category values. Keep the same session ID and the SDK active so later checkpoints and diagnostics can be captured. A stage outcome may summarize the same failure without emitting a second failure event for that operation. Only <code>failed</code> with <code>recoverable: false</code> ends the setup telemetry chain due to an error.</p>
+<p>These categories intentionally stay coarse and cover the wizard’s current fatal and recoverable failure paths:</p>
+<ul>
+<li><code>validation</code>: malformed or unsupported user/configuration data that escapes normal prompt validation, including local parsing or invariant failures. Ordinary rejected prompt input is not a failure event because the prompt remains open.</li>
+<li><code>network</code>: a required <code>fetch</code>, HTTP response, timeout, or response-decoding operation fails. Best-effort autocomplete/model-catalog failures that successfully fall back do not emit <code>setup_sourcebot_failed</code>.</li>
+<li><code>filesystem</code>: directory creation/change, local repository inspection, configuration or compose-file read/write, permissions, missing files, or storage-capacity operations fail.</li>
+<li><code>docker_unavailable</code>: the Docker executable, Compose plugin, daemon, or daemon socket is unavailable or inaccessible.</li>
+<li><code>docker_command</code>: Docker is available, but a Docker/Compose inspect, stop, remove, volume, or startup command fails or returns unusable output.</li>
+<li><code>process_spawn</code>: a required child process fails to spawn and the failure is not more specifically <code>docker_unavailable</code>. A missing Docker executable therefore remains <code>docker_unavailable</code>.</li>
+<li><code>unknown</code>: any remaining unexpected runtime, prompt-library, cryptography, serialization, dependency, or programming failure. This catch-all ensures telemetry classification never replaces or masks the original wizard behavior.</li>
+</ul>
+<p>Classify from the operation that failed and fixed error metadata such as a known operation result or error code; never inspect or transmit free-form exception messages, command output, paths, URLs, or user input. When more than one category appears applicable, prefer the most specific category above rather than emitting multiple failure events.</p>
+<p>Do not send exception messages, stack traces, command lines, stderr, HTTP bodies, or arbitrary error codes. If more detail is needed, add a reviewed fixed enum rather than forwarding runtime text.</p>
+<h2>Privacy and data minimization</h2>
+<h3>Explicitly allowed</h3>
+<ul>
+<li>Fixed enums describing product choices.</li>
+<li>Booleans describing whether optional capabilities or credentials were configured.</li>
+<li>Counts of selected configuration entities.</li>
+<li>Bucketed counts where the exact value is not needed, such as repositories discovered during a local filesystem scan.</li>
+<li>Coarse runtime compatibility fields: OS family, architecture family, Node major version, and package manager.</li>
+<li>Random UUIDs generated solely for pseudonymous telemetry correlation and PostHog’s default Person profile.</li>
+</ul>
+<h3>Explicitly prohibited</h3>
+<ul>
+<li>Access tokens, API keys, passwords, generated secrets, credential contents, or arbitrary environment variables.</li>
+<li>Repository, organization, group, project, workspace, or user names.</li>
+<li>Search/autocomplete input.</li>
+<li>Git clone URLs, code-host URLs, hosted Sourcebot URLs, custom AI endpoint URLs, domains, hostnames, IP addresses, or port numbers.</li>
+<li>Setup directories, working directories, local repository paths, credential-file paths, filenames derived from user input, or file contents.</li>
+<li>Email addresses or domains, Git usernames, npm usernames, OS usernames, or machine hostnames.</li>
+<li>Model names/IDs, display names, cloud project/resource names, regions, or API versions.</li>
+<li>Container, service, volume, process, or Docker project names.</li>
+<li>Raw errors, stack traces, command output, or HTTP response bodies.</li>
+<li>Sourcebot configuration objects or environment maps, even after attempted redaction.</li>
+<li>PostHog <code>identify</code>, <code>alias</code>, <code>$set</code>, <code>$set_once</code>, or any custom Person property that could enrich or link the random session/deployment profile to a real person, organization, repository, or machine.</li>
+</ul>
+<p>Every event must be built from an event-specific allowlisted object. Code must never spread prompt results, connection configs, model configs, environment maps, <code>process.env</code>, errors, or Docker command results into event properties.</p>
+<p>The SDK wrapper does not deliberately send an IP address, hostname, or user agent as an event property, and <code>disableGeoip: true</code> prevents PostHog GeoIP enrichment. As with any direct HTTPS request, the receiving endpoint can observe the source IP at the transport layer. If policy requires that PostHog never receive the client IP at all, direct client-side capture is insufficient and the design must instead use a reviewed first-party relay. That stricter requirement is not assumed by this proposal.</p>
+<h2>Telemetry controls and delivery</h2>
+<ul>
+<li>The new setup-wizard PostHog telemetry has no package-level opt-out. It does not inspect <code>SOURCEBOT_TELEMETRY_DISABLED</code> or <code>PACKAGE_TRACKER_ANALYTICS</code> before creating its random ID or sending events.</li>
+<li><code>PACKAGE_TRACKER_ANALYTICS</code> remains owned and interpreted only by <code>reo-census</code>. Setting it to <code>false</code> disables Reo’s tracking but does not disable PostHog setup-wizard telemetry.</li>
+<li><code>SOURCEBOT_TELEMETRY_DISABLED</code> remains applicable to telemetry from the deployed Sourcebot product. It does not disable the setup-wizard PostHog funnel proposed here.</li>
+<li>Use the SDK's non-blocking capture queue during the wizard and a bounded SDK shutdown at terminal events.</li>
+<li>Do not add a custom telemetry transport around <code>posthog-node</code>.</li>
+<li>Suppress telemetry transport errors unless verbose debugging is explicitly enabled; never print payloads because future payload changes could expose data in terminal logs.</li>
+<li>Document the always-on setup-wizard PostHog telemetry, its collected data categories, Person-profile behavior, in-memory session identity, deployment-ID handoff, and separation from Reo before release.</li>
+</ul>
+<h2>Existing <code>reo-census</code> tracker</h2>
+<p>The package currently depends on <code>reo-census</code>, whose install hook sends data to Reo rather than PostHog. Its default payload includes the working directory, Git username, email domain, npm username when available, detailed OS information, and CPU count. Full-data mode can include a full email address and dependency lists.</p>
+<p>Reo remains installed and continues its existing behavior, including its own <code>PACKAGE_TRACKER_ANALYTICS</code> variable. The PostHog allowlist in this proposal governs only the new Sourcebot-owned PostHog events; it does not modify or make claims about Reo’s separate payload. The two systems must use separate event definitions and reporting so Reo installation data is not mistaken for the Sourcebot PostHog funnel.</p>
+<h2>Implementation proposal</h2>
+<h3>Architecture</h3>
+<p>Keep telemetry isolated from prompt and configuration objects:</p>
+<pre><code class="language-text">setup-sourcebot CLI
+        |
+        +--- create in-memory UUIDv4 setupSessionId
+        |
+        +--- typed, allowlisted PostHog events
+        |          distinctId = setupSessionId
+        |          install_id/company = setupSessionId
+        |
+        +--- generated .env
+                   SOURCEBOT_INSTALL_ID = setupSessionId
+                              |
+                              +--- Sourcebot first boot preserves the ID
+                              +--- deployed telemetry continues on that ID
+</code></pre>
+<p>The implementation does not need a postinstall hook, telemetry state file, background daemon, local queue, or server-side proxy. Delivery is best-effort from the short-lived wizard process. The only persisted identifier is <code>SOURCEBOT_INSTALL_ID</code> in the generated deployment configuration, where it is operational Sourcebot state rather than setup-wizard telemetry state.</p>
+<h3>Proposed files and responsibilities</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/telemetry.ts</code></td>
+<td>add</td>
+<td>Create the in-memory <code>setupSessionId</code>, create common properties, initialize <code>posthog-node</code>, send allowlisted events, and perform bounded shutdown.</td>
+</tr>
+<tr>
+<td><code>src/telemetryEvents.ts</code></td>
+<td>add</td>
+<td>Define event-name-to-property TypeScript types, fixed enums, schema version, and pure event payload builders.</td>
+</tr>
+<tr>
+<td><code>bin.cjs</code></td>
+<td>add</td>
+<td>Perform a dependency-free Node 24 runtime check before dynamically importing <code>dist/index.js</code>, ensuring unsupported runtimes fail with a clear message before prompts, telemetry, file writes, or other side effects.</td>
+</tr>
+<tr>
+<td><code>src/index.ts</code></td>
+<td>modify</td>
+<td>Create the setup session, track the active stage, emit aggregate checkpoints, write or preserve <code>SOURCEBOT_INSTALL_ID</code> in <code>.env</code>, and route terminal paths through bounded flush helpers.</td>
+</tr>
+<tr>
+<td><code>src/models.ts</code> and code-host collectors</td>
+<td>modify</td>
+<td>Return non-sensitive telemetry summaries beside generated config, built from already-known branch choices and counts.</td>
+</tr>
+<tr>
+<td>Docker helper module(s)</td>
+<td>modify</td>
+<td>Return structured outcomes instead of swallowing command failures that need to be distinguished from an empty Docker state. Never expose stderr to telemetry.</td>
+</tr>
+<tr>
+<td>Repository-root <code>entrypoint.sh</code></td>
+<td>merged</td>
+<td><a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a> implements the Sourcebot runtime change built into subsequent published container images: on first boot, preserve a non-empty pre-supplied <code>SOURCEBOT_INSTALL_ID</code>; generate a UUID only when one was not supplied. It safely serializes the selected ID into <code>/data/.installedv3</code> and telemetry JSON, propagates <code>uuidgen</code> failures, and includes restart regression coverage for JSON-special characters. This file is not owned, downloaded, or modified by the setup wizard at runtime.</td>
+</tr>
+<tr>
+<td><code>package.json</code></td>
+<td>modify</td>
+<td>Set <code>engines.node</code> to <code>&gt;=24.0.0</code>, point <code>bin</code> at <code>bin.cjs</code>, update <code>@types/node</code> to 24, add <code>posthog-node</code>, publish the runtime bootstrap, and retain <code>reo-census</code> and its existing hook unchanged.</td>
+</tr>
+<tr>
+<td><code>packages/setupWizard/tests/e2e/</code></td>
+<td>add</td>
+<td>Own the compiled-artifact builder, PTY driver, scenario manifest, prompt fixtures, PostHog-compatible TLS capture service, fake Docker executable/state machine, filesystem fixtures, payload oracle, privacy scanner, cleanup audit, and redacted completion reporter.</td>
+</tr>
+<tr>
+<td><code>packages/setupWizard/tests/integration/</code></td>
+<td>add</td>
+<td>Exercise the real <code>posthog-node</code> client and package-owned wrapper against local capture fixtures, including transport degradation and exact envelope/property validation. These tests complement but do not replace packed CLI E2E runs.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/setup-wizard-e2e.yml</code></td>
+<td>modify</td>
+<td>Add the required <code>setup-wizard-e2e</code> jobs: exhaustive Linux/Node 24 packed-artifact and Docker coverage, macOS/Windows Node 24 smoke coverage, and intentional Node 22.22 rejection. Upload only redacted failure diagnostics and cleanup reports.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/release-setup-sourcebot.yml</code></td>
+<td>modify</td>
+<td>Change the setup-sourcebot release runtime from Node 20 to Node 24, build one candidate tarball, and require packed-artifact smoke, identity-continuity, PostHog contract, and cleanup gates against that artifact before publishing.</td>
+</tr>
+<tr>
+<td>package README and <code>docs/docs/misc/telemetry.mdx</code></td>
+<td>modify</td>
+<td>Describe the events at a category level, pseudonymous ID/profile behavior, deployment-ID handoff, always-on setup-wizard PostHog policy, and the independent Reo/deployed-product controls.</td>
+</tr>
+</tbody>
+</table>
+<p>The build and <code>files</code> configuration must include <code>bin.cjs</code> and the compiled wizard. No Sourcebot-owned postinstall entrypoint is added. <code>npm pack --dry-run</code> should verify the executable package contents before release.</p>
+<h3>Node 24 migration and PostHog SDK</h3>
+<p>Use Node 24 LTS as the package’s minimum and CI/release runtime. This is the highest production LTS line that does not require an architectural migration for this CLI: the code already targets ES2022, TypeScript is already configured with Node typings, native APIs used by the wizard remain available, and the current runtime dependencies accept Node 24. Node 26 is a Current release rather than LTS and is therefore not selected for a published setup tool.</p>
+<p>The existing <code>&gt;=18</code> declaration is already inaccurate: <code>@inquirer/prompts</code> 8.4.3 requires at least Node 20.12 on the Node 20 line, and <code>ora</code> 9.4.0 requires Node 20. Raising the floor makes the supported runtime truthful. Updating <code>@types/node</code> from 22 to 24 keeps compile-time APIs aligned with the declared runtime; no application rewrite is expected.</p>
+<p>Initialize the official SDK once per process:</p>
+<pre><code class="language-ts">const posthog = new PostHog(projectToken, {
+    host: "https://us.i.posthog.com",
+    flushAt: 1,
+    flushInterval: 0,
+    disableGeoip: true,
+    isServer: false,
+});
+</code></pre>
+<p>PostHog's Node guide recommends <code>flushAt: 1</code> and <code>flushInterval: 0</code> when a short-lived runtime should send queued events immediately. Leave the SDK's request and retry options unspecified so its maintained defaults apply. <code>disableGeoip: true</code> prevents location enrichment, and <code>isServer: false</code> tells PostHog this is a CLI-like runtime. Use the same public project token already configured by Sourcebot, defined as a setup-package constant with a comment linking it to the canonical shared default. Do not source the token or host from a user’s <code>POSTHOG_*</code> environment variables.</p>
+<p>The package-owned wrapper should:</p>
+<ol>
+<li>Initialize independently of Reo and deployed-Sourcebot telemetry environment variables.</li>
+<li>Accept only a typed event name and the matching allowlisted property type.</li>
+<li>Add common properties and use PostHog’s default person-profile processing without sending <code>$set</code>, <code>$set_once</code>, or other person properties.</li>
+<li>Call <code>posthog.capture()</code> without forwarding configuration objects, prompt values, exceptions, or arbitrary environment data.</li>
+<li>Swallow SDK capture and shutdown errors without printing payloads or changing setup behavior.</li>
+</ol>
+<p>At normal completion and handled-exit boundaries, call <code>await posthog.shutdown(1_000)</code>. PostHog recommends awaiting <code>shutdown()</code> in short-lived runtimes so queued events are sent; supplying 1,000 ms instead of accepting its longer default caps the effect on CLI exit. Validate that budget in E2E tests. No additional delivery machinery is required.</p>
+<h3><code>setupSessionId</code> creation and deployment handoff</h3>
+<ol>
+<li>At the start of <code>main()</code>, before <code>setup_sourcebot_started</code>, create <code>setupSessionId</code> directly with Node’s <code>crypto.randomUUID()</code>. Do not use a custom random-byte encoder or derive it from any user, repository, path, machine, or environment value.</li>
+<li>Assert in tests that the generated value matches the exact canonical contract: <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>. This enforces 36 ASCII characters, lowercase hexadecimal, standard hyphen positions, UUID version <code>4</code>, and the IETF variant defined by RFC 9562 (historically called the RFC 4122 variant).</li>
+<li>Keep the value only in process memory while the wizard runs. Every setup event uses the same string, without normalization or transformation, as <code>distinctId</code>, <code>setupSessionId</code>, the <code>install_id</code> property, and the PostHog <code>company</code> group key.</li>
+<li>When generating a new <code>.env</code>, write the same string byte-for-byte as <code>SOURCEBOT_INSTALL_ID=&lt;setupSessionId&gt;</code> alongside the other generated Sourcebot settings. Do not uppercase it, add braces or a prefix, remove hyphens, hash it, or encode it again. Docker Compose already loads this file through <code>env_file</code>, so no compose-file change is required.</li>
+<li>Require a published Sourcebot image containing merged <a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a>. In that image, first boot uses a non-empty supplied <code>SOURCEBOT_INSTALL_ID</code> when present and calls <code>uuidgen</code> only as a fallback. The entrypoint intentionally does not reformat or regenerate a supplied value; the wizard guarantees that it already matches the canonical UUIDv4 contract. The existing deployment <code>install</code> event and <code>/data/.installedv3</code> record then use that same ID. The wizard itself never modifies this script.</li>
+<li>On subsequent container boots, keep the current behavior: the ID persisted in <code>/data/.installedv3</code> is authoritative. This prevents an edited environment file from silently changing the identity of an existing deployment.</li>
+</ol>
+<p>Recommended implementation:</p>
+<pre><code class="language-ts">import { randomUUID } from "node:crypto";
+
+const setupSessionId = randomUUID();
+</code></pre>
+<p>No conversion step is needed or allowed between generation and use. <code>randomUUID()</code> already returns the canonical lowercase hyphenated UUIDv4 string required by this plan. A runtime reformatter would add risk without adding validation; enforce the invariant at the generation boundary and in tests instead.</p>
+<p>No telemetry-only file or registry entry is created. If the wizard exits before configuration generation, the ID disappears with the process. Once configuration is generated, the value exists only as the deployment’s required <code>SOURCEBOT_INSTALL_ID</code> in <code>.env</code> and later in Sourcebot’s existing <code>.installedv3</code> deployment record.</p>
+<p><strong>Existing setup directories:</strong> before overwriting an existing <code>.env</code>, read only the exact <code>SOURCEBOT_INSTALL_ID</code> key and preserve it if it matches the canonical UUIDv4 expression above. Do not send that existing value in setup telemetry or change the current session’s <code>distinctId</code>. Record only a safe enum such as <code>deploymentIdentityAction: "preserved_existing"</code>. Therefore end-to-end identity continuity is guaranteed for newly generated deployments; a rerun against an existing deployment remains a separate setup session and is not aliased or merged.</p>
+<h3>Tracker-specific controls</h3>
+<table>
+<thead>
+<tr><th>Tracker</th><th>Control</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>Setup-wizard PostHog</td><td>None</td><td>Always attempts capture when the relevant wizard checkpoint executes.</td></tr>
+<tr><td>Reo</td><td><code>PACKAGE_TRACKER_ANALYTICS=false</code></td><td>Interpreted only by <code>reo-census</code>; it has no effect on PostHog.</td></tr>
+<tr><td>Deployed Sourcebot</td><td><code>SOURCEBOT_TELEMETRY_DISABLED=true</code></td><td>Applies to product telemetry after Sourcebot is deployed; it has no effect on setup-wizard PostHog events.</td></tr>
+</tbody>
+</table>
+<p>No Sourcebot code should intercept, override, remove, or reinterpret Reo’s variable. Conversely, the setup-wizard PostHog wrapper must not use either variable as an early return. A setup event can still be absent because the wizard never reached that checkpoint, the process was terminated, the network was blocked, or best-effort delivery failed.</p>
+<h3>Collector result contract</h3>
+<p>Collectors currently return generated configuration. Extend their result type with an explicitly constructed summary:</p>
+<pre><code class="language-ts">type CollectResult&lt;TConfig, TSummary&gt; = {
+    config: TConfig;
+    env: Record&lt;string, string&gt;;
+    telemetry: TSummary;
+};
+</code></pre>
+<p><code>telemetry</code> must be built from booleans, fixed enums, and counts at the point where the collector already knows the user’s branch. It must never be produced by serializing, cloning, redacting, or spreading <code>config</code>, <code>env</code>, a prompt result, or an exception. The aggregate code-source and AI summaries should be computed from these safe summaries, not reconstructed from final configuration files.</p>
+<p>Use exhaustive TypeScript unions for <code>codeHost</code>, <code>providerType</code>, stage, outcomes, credential modes, and failure categories. A new provider or branch should fail type checking until its safe telemetry mapping is explicitly selected.</p>
+<h3>Instrumentation points</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Exact implementation point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setup_sourcebot_started</code></td>
+<td>At the beginning of <code>main()</code>, after telemetry/session initialization and before the banner or first prompt.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_chose_setup_directory</code></td>
+<td>After directory creation succeeds or reuse is confirmed. A declined existing-directory prompt emits <code>cancelled</code> instead.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_configured_code_source</code></td>
+<td>Immediately after each collector returns an accepted safe summary.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_configured_code_sources</code></td>
+<td>Once after the add-another-source loop ends, using aggregates of per-source safe summaries.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_configured_ai_provider</code></td>
+<td>After each selected model/provider configuration is accepted.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_ai_setup_completed</code></td>
+<td>Once when the AI loop returns, including the zero-configuration skip branch.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_configured_hosted_url</code></td>
+<td>After URL validation succeeds; derive only fixed booleans such as HTTPS/default acceptance, never preserve the URL.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_generated_configs</code></td>
+<td>After all required writes complete, including writing this session’s ID for a new setup or preserving a valid existing deployment ID. If any write fails, emit <code>failed</code> at <code>config_overwrite</code> or generation stage and do not emit this checkpoint.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_resolved_compose_file</code></td>
+<td>Once after the existing/download/decline/failure branch resolves. Record only the fixed outcome and coarse failure category.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_validated_docker_state</code></td>
+<td>Once after validation/cleanup, or immediately with an explicit skip outcome when compose is unavailable or an existing deployment is left running.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_completed</code></td>
+<td>After manual instructions are printed, after an existing deployment is intentionally retained, after a Docker child emits <code>spawn</code>, or after a spawn failure is converted to manual instructions. Begin bounded SDK shutdown without waiting for the foreground child to exit; the spawned child may already be running and producing output.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_cancelled</code></td>
+<td>In centralized handling for Ctrl+C and known declined terminal prompts, using the current fixed stage.</td>
+</tr>
+<tr>
+<td><code>setup_sourcebot_failed</code></td>
+<td>At the handling site for each recoverable infrastructure operation failure, with <code>recoverable: true</code>, even if later recovery succeeds. Emit <code>recoverable: false</code> at centralized fatal-error handling only when the error terminates the wizard. Do not recapture the same handled failure at the stage boundary.</td>
+</tr>
+</tbody>
+</table>
+<p>Maintain a <code>currentStage</code> enum in <code>main()</code> and update it immediately before each stage begins. This makes Ctrl+C and top-level failures classifiable without inspecting prompt text or exception messages.</p>
+<h3>Docker and process handling</h3>
+<p>Docker helpers must distinguish <code>command succeeded and found zero resources</code> from <code>command failed</code>. Return internal structured results such as <code>{ ok, value, failureCategory }</code>; keep stdout/stderr and command details local. This is necessary for truthful <code>dockerStatus</code>, cleanup actions, and <code>validation_failed</code> outcomes.</p>
+<p>For <code>docker compose up</code>, attach <code>spawn</code> and <code>error</code> listeners before deciding the completion event:</p>
+<ul>
+<li><code>spawn</code>: commit completion with <code>sourcebotStartOutcome: &quot;spawned&quot;</code> and begin bounded SDK shutdown while the foreground process continues. Keep child exit/error listeners and process cleanup active.</li>
+<li><code>error</code>: capture <code>failed</code> with <code>recoverable: true</code> and the applicable failure category, print existing/manual recovery guidance, and emit <code>completed</code> with <code>sourcebotStartOutcome: &quot;spawn_failed&quot;</code> and <code>completionMode: &quot;sourcebot_start_failed&quot;</code>.</li>
+<li>Later child exit: do not change the setup completion event. Runtime uptime and health belong to deployed Sourcebot observability.</li>
+</ul>
+<h3>Terminal paths and error policy</h3>
+<p>Use one lifecycle coordinator with separate setup-outcome and process-shutdown state. The mutually exclusive setup terminal events are <code>completed</code>, <code>cancelled</code>, and <code>failed</code> with <code>recoverable: false</code>. Commit the outcome synchronously before awaiting SDK shutdown so competing callbacks cannot emit another terminal event. Process cleanup must still run on Ctrl+C even when the setup outcome is already committed. Replace immediate exits with this coordinator; after main has returned and bounded SDK shutdown has finished, explicitly exit to prevent SDK retry sockets/timers from keeping the process alive. Never perform this final exit at the foreground Docker handoff; continue supervising Docker until it exits or Ctrl+C is handled.</p>
+<p>Recoverable failure capture must bypass the terminal helper: it does not mark the session finished, call <code>shutdown()</code>, or change the wizard’s existing continuation or exit behavior. For example, a failed stopped-container removal followed by a failed volume removal emits two <code>failed</code> events with <code>recoverable: true</code>; the run can then emit <code>validated_docker_state</code> and <code>completed</code>, or end with <code>cancelled</code> or a later fatal <code>failed</code>. Capture each failure only once for that operation; do not deduplicate distinct failures just because their stage/category values match.</p>
+<p>Telemetry code is outside the setup success/failure contract:</p>
+<ul>
+<li>Session-ID generation failure drops telemetry initialization and setup continues; no fallback file is created.</li>
+<li>Failure to collect one or more system-derived properties uses the schema-defined fallback values and the event is still captured.</li>
+<li>Payload construction failure drops that event.</li>
+<li>Network, HTTP, timeout, and flush failure are swallowed.</li>
+<li>Telemetry never changes generated files, Docker decisions, wizard exit status, or normal terminal messaging.</li>
+<li>Debug logs, if added for development, report only event name and fixed failure category and are disabled in published normal operation.</li>
+</ul>
+<h3>Completion, Ctrl+C, and process cleanup</h3>
+<p><strong>Code findings:</strong> <code>src/index.ts</code> currently catches Inquirer <code>ExitPromptError</code> and exits immediately, starts <code>openBrowserWhenReady()</code> before Docker emits <code>spawn</code>, and leaves its fetch/sleep loop active for up to 120 seconds. Docker helpers create child processes, port checks create temporary servers, and GitHub/GitLab autocomplete fetches have no shared cancellation signal. The custom <code>tabCheckbox</code> uses Inquirer core; prompt interruption can arrive through readline rather than the process-level signal listener. These resources need explicit ownership and cancellation.</p>
+<table>
+<thead><tr><th>Situation</th><th>Telemetry decision</th><th>Process behavior</th></tr></thead>
+<tbody>
+<tr><td>Manual instructions printed, or existing deployment retained</td><td>Commit and capture <code>completed</code> once.</td><td>Finish bounded SDK shutdown and release wizard resources; exit normally.</td></tr>
+<tr><td>Docker emits <code>spawn</code> while setup is active</td><td>Commit and capture <code>completed</code> immediately, then begin the one bounded SDK shutdown.</td><td>Keep waiting for foreground Docker. Begin cancellable readiness polling only after spawn; do not wait for readiness to count completion.</td></tr>
+<tr><td>Ctrl+C before any setup terminal outcome</td><td>Commit and capture <code>cancelled</code> with <code>reason: "keyboard_interrupt"</code> and the active stage, once.</td><td>Abort setup work immediately, begin resource cleanup and bounded telemetry shutdown in parallel, and exit within the interrupt deadline.</td></tr>
+<tr><td>Ctrl+C after completion, including during its flush</td><td>Keep <code>completed</code>; do not emit <code>cancelled</code> or reopen the SDK. Reuse the pending shutdown promise if present.</td><td>Stop the foreground CLI and readiness work within the same interrupt deadline. An already-finished setup is not cancelled by stopping its foreground runtime.</td></tr>
+<tr><td>Spawn error before completion</td><td>Capture a recoverable failure, print manual instructions, then commit <code>completed</code> with the existing spawn-failed properties.</td><td>Do not start readiness polling; clean up and exit. If cancellation already won the race, suppress this recovery/completion path.</td></tr>
+<tr><td>Foreground Docker exits after completion</td><td>No new setup event.</td><td>Cancel readiness polling and release handles immediately. Preserve the current normal child-exit behavior; do not wait out the readiness timeout.</td></tr>
+</tbody>
+</table>
+<p><strong>Implementation:</strong> introduce a small package-owned lifecycle helper (for example <code>src/lifecycle.ts</code>) used by <code>main()</code>, prompts, collectors, and Docker helpers. Track an initially unset terminal outcome, one shared SDK-shutdown promise, an interrupt flag, an <code>AbortController</code> for setup work, and a registry of owned child processes, probe servers, and timers. Check cancellation after awaited operations and before starting another prompt, writing files, spawning Docker, opening a browser, or emitting a checkpoint. A late callback must not resume setup after cancellation. Keep this lifecycle functioning when SDK initialization or capture fails.</p>
+<ul>
+<li>Install the process <code>SIGINT</code> listener before the first prompt. Route it and typed Inquirer <code>ExitPromptError</code> into the same idempotent interrupt handler. Pass the shared abort signal through the prompt context, including the custom checkbox and search prompts where supported. Treat a prompt abort caused by this controller as cancellation already in progress, not another failure. Do not add a competing raw-stdin reader. Ensure prompt cleanup restores terminal mode/cursor and releases readline; test third-party prompt behavior through the PTY.</li>
+<li>Abort pending fetches in autocomplete, model catalog, Compose download, and readiness checks. Combine existing request timeouts with lifecycle cancellation; never let a catch/fallback restart work after the lifecycle signal is aborted. Make readiness sleeps abortable and cancel them on interruption, spawn error, or child exit. Stop local repository traversal at asynchronous boundaries, close probe servers, and stop spinners. Synchronous file writes already underway cannot be interrupted mid-call; do not start another write after interruption is handled, and do not delete user files as cancellation cleanup.</li>
+<li>Use a maximum 3,000 ms process-shutdown budget from the first handled Ctrl+C. Start SDK shutdown (at most 1,000 ms) and resource cleanup concurrently. Signal only live subprocesses owned by this invocation; allow up to 2,000 ms for graceful termination, then force termination of those owned processes/descendants within the overall budget. Use a tested platform-specific child cleanup adapter: POSIX signal behavior and Windows process-tree termination differ. Do not assume <code>child.killed</code> proves exit; observe exit/close. Handle both terminal-delivered interruption and a signal sent only to the parent. Do not signal unrelated processes or run volume deletion, broad Docker cleanup, or extra destructive Compose commands.</li>
+<li>After cleanup, release stdin and owned handles and exit. A deadline watchdog must force the CLI to exit if a dependency leaves handles open; it must not rely only on <code>process.exitCode</code>. A second Ctrl+C escalates immediately without capturing another event or restarting any deadline. Resource cleanup proceeds even if telemetry throws or times out. Killing a Docker client does not prove its daemon-side operation or containers have stopped; retain Docker's normal interrupt behavior and do not promise deployment shutdown as part of the telemetry contract.</li>
+<li>Standardize Ctrl+C exit status to <code>130</code> before and after completion, including forced exit. This is an intentional change from the current prompt-cancellation status <code>0</code>; list it in the behavioral regression allowlist. Explicit decline prompts and ordinary completion keep status <code>0</code>, and fatal setup errors keep status <code>1</code>. An interrupt during an already-committed fatal/completion flush changes the process exit reason, not the recorded setup outcome.</li>
+</ul>
+<p><strong>Race and delivery contract:</strong> whichever handler first commits a setup outcome wins. If cancellation commits before Docker's spawn callback, clean up any subsequently spawned child and emit no completion; if spawn commits completion first, Ctrl+C performs process cleanup without cancellation telemetry. Capture always precedes the shutdown attempt. A healthy collector must receive the selected terminal event in tests; network failure, immediate repeated interruption, or an uncatchable kill can prevent delivery. Never extend the exit deadline or claim guaranteed receipt to compensate.</p>
+<p>These are lifecycle changes required to satisfy prompt cancellation and cleanup; they do not add application-readiness telemetry. Node's <a href="https://nodejs.org/api/process.html#signal-events">signal documentation</a> explains why installing a signal handler replaces default exit behavior; <a href="https://nodejs.org/api/child_process.html#subprocesskillsignal">child-process documentation</a> describes platform differences and why sending a signal alone does not establish process termination. <a href="https://github.com/SBoudrias/Inquirer.js#canceling-prompt">Inquirer documents prompt cancellation through AbortSignal</a>.</p>
+<h3>Reo coexistence</h3>
+<p>Keep <code>reo-census</code> in runtime dependencies without modifying its code, install hook, or <code>PACKAGE_TRACKER_ANALYTICS</code> behavior. The new Sourcebot PostHog telemetry starts only when the interactive wizard runs; no Sourcebot-owned PostHog postinstall hook is added.</p>
+<p>The Sourcebot PostHog wrapper must not read Reo’s variable, reuse Reo payloads, or attempt to combine the two trackers. Reo installation tracking remains a separate data source and is not a stage in the PostHog setup funnel.</p>
+<p>The release notes and telemetry documentation should state that setup-wizard PostHog telemetry is always on when its code executes, list the categories collected, explain that PostHog creates a Person profile keyed only by a random pseudonymous session/deployment ID, explain the new-deployment ID handoff, and distinguish PostHog from Reo’s separate tracking and variable. They must not describe the project ingestion token as a secret.</p>
+<h2>Testing plan</h2>
+<h3>Implementation verification status</h3>
+<p>The feature is not release-complete until the full completion gate below is satisfied. Executable tests cover packed-package collectors, terminal paths, real SDK payloads, Docker branches, and actual container identity continuity. CI definitions are not evidence that Windows or other remote jobs have run.</p>
+<p>Implementation-discovered changes for the behavioral baseline allowlist: status 130 for Ctrl+C; cancellation-aware readiness cleanup; explicit final process exit after bounded telemetry shutdown; recoverable autocomplete fallback on network/decode failure with an 8-second timeout; and fixed, credential-free SDK shutdown-timeout diagnostics where PostHog itself emits them. Do not patch SDK internals or silence the global console. Empty search/catalog results are not failures; actual infrastructure errors can emit recoverable diagnostics while retaining manual fallback.</p>
+<p>Docker availability failures can trigger fixed <code>docker info</code>/<code>docker compose version</code> probes for classification. These probes classify the original failed operation and do not create extra failure events. The dedicated workflow is <code>.github/workflows/setup-wizard-e2e.yml</code>.</p>
+<details>
+<summary>Local implementation evidence — September 11, 2026; release gate still incomplete</summary>
+<p>Implementation is isolated in the <code>msukkari/setup-wizard-telemetry-SOU-2211</code> branch and dedicated worktree. The original planning checkout is unchanged. The verified release-shaped package has SHA-256 <code>c4c6157ceacf224e023bf8233dc79830b6683d05fcd614493071037f464eddab</code>. Test infrastructure, this plan, certificates, transcripts, and temporary installations are excluded from the tarball.</p>
+<table>
+<thead><tr><th>Check</th><th>Observed result</th></tr></thead>
+<tbody>
+<tr><td>macOS, Node 24.21</td><td>106 unit/integration/packed-artifact tests passed, zero failures/skips. The subsequently expanded platform suite passed all four tests, adding foreground Docker spawn/interrupt coverage to the three existing platform cases.</td></tr>
+<tr><td>Isolated Linux, Node 24</td><td>91 packed-CLI cases passed, zero failures/skips, including all code-host collectors, all AI providers, recoverable failures, fatal writes, Ctrl+C races, stubborn subprocesses, and rejected/stalled/reset telemetry transport.</td></tr>
+<tr><td>Package-manager launchers</td><td>npm 12.0.2, Yarn 4.7.0, pnpm 12.4.1, and Bun 1.4.2 passed on macOS and Linux using the same installed tarball. Bun uses <code>bunx --no-install</code>, which launches the Node CLI; direct execution with the Bun runtime is not this supported launcher test. pnpm's own store/state is allowed only in its known test-owned directories; direct-binary tests still require an empty per-user home.</td></tr>
+<tr><td>Unsupported Node</td><td>Node 22.22 exits before importing the wizard, with the Node 24 requirement and no generated files.</td></tr>
+<tr><td>Baseline differential</td><td>Two representative manual/downloaded-Compose flows match base <code>31734dc2</code> for generated configuration and Docker commands, normalizing generated secrets and the intentional install-ID addition. The baseline uses current resolved dependencies and Node 24, not a reconstructed historical dependency/runtime environment.</td></tr>
+<tr><td>Real runtime identity</td><td>Eight disposable Sourcebot containers passed first boot, conflicting/missing env on restart, upgrade, generated-ID fallback, and deployment telemetry opt-out. The actual repository entrypoint and image's curl/jq/uuidgen run; database migration and supervisor are fixture stubs. This verifies entrypoint identity/telemetry, not full application health.</td></tr>
+<tr><td>Live dev PostHog</td><td>Twelve events were accepted and queried back in project <code>323169</code> for synthetic ID <code>519ed47f-27e2-45dc-a672-0960af758639</code>: all ten minimal setup checkpoints in order, followed by the real entrypoint's <code>install</code> and <code>upgrade</code> under the same distinct ID. The test relay changes only the project token after local payload assertions; normal tests do not enable this relay.</td></tr>
+</tbody>
+</table>
+<p><strong>Still required before declaring completion:</strong> execute the Windows CI job and resolve any platform failures; finish the complete scenario-manifest/enum/emission-site accounting and compiled branch-coverage review; close the remaining exhaustive fault-injection and behavioral-differential gaps against the full matrix below; and attach passing CI evidence for the final commit. The independent <code>tests/approvedSchema.json</code> snapshot prevents silent field/enum changes, but is not proof of 100% scenario coverage. No claim of full completion or 100% coverage is made by these local results.</p>
+<p><strong>Test-harness caveat:</strong> an exploratory direct-Bun-runtime launch did not produce local collector evidence and is excluded from the passing matrix. Its outbound delivery was not verified, so it must not be used as evidence of network isolation; it may have bypassed the Node-only transport shim. Use the verified <code>bunx</code> Node launcher, and require container-level egress enforcement before repeating unsupported-runtime experiments. Bun's <a href="https://bun.com/docs/pm/bunx">launcher documentation</a> describes respecting the executable's Node shebang.</p>
+</details>
+<h3>Unit tests</h3>
+<ul>
+<li>Inject filesystem, environment, clock, UUID generator, package metadata, and transport dependencies; never contact real PostHog in tests.</li>
+<li>Verify one ID is created before <code>started</code>, matches <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>, remains stable for all events in that invocation, and is never written outside the selected setup directory.</li>
+<li>Verify that setting either <code>SOURCEBOT_TELEMETRY_DISABLED=true</code> or <code>PACKAGE_TRACKER_ANALYTICS=false</code> does not prevent setup-wizard SDK initialization or event capture.</li>
+<li>Verify a new <code>.env</code> receives <code>SOURCEBOT_INSTALL_ID=setupSessionId</code>; an existing valid value is preserved; a missing or invalid existing value is replaced with the current session ID; and telemetry records only the approved action enum.</li>
+<li>Verify first-boot entrypoint identity selection: preserve a non-empty supplied ID, generate when missing or empty, persist the chosen value in <code>.installedv3</code>, and prefer <code>.installedv3</code> on subsequent boots. Format enforcement for wizard-generated values belongs to the wizard tests.</li>
+<li>Snapshot the exact property keys for every event. Seed collectors with token-, URL-, email-, repository-, model-, path-, hostname-, port-, and raw-error-shaped values and assert none occur anywhere in serialized payloads.</li>
+<li>Verify each system-property collector independently handles missing values, unsupported values, malformed values, and thrown errors; the event must still be captured with <code>&quot;other&quot;</code>, <code>&quot;unknown&quot;</code>, or <code>null</code> as defined in the schema, while successfully collected properties remain intact.</li>
+<li>Verify deployment classification with and without an HTTP(S) protocol, optional leading <code>www.</code>, mixed hostname case, trailing DNS dots, ports, paths, and surrounding whitespace. Cover exact public-service domains, dot-boundary managed-service suffixes, custom GitLab domains, malformed URLs, and lookalike domains such as <code>notgithub.com</code>. Assert only the fixed <code>deploymentType</code> value is captured and the input URL and normalized hostname are absent.</li>
+<li>Verify hosted-URL classification maps <code>localhost</code>, <code>*.localhost</code>, every IPv4 <code>127.0.0.0/8</code> loopback address, and IPv6 <code>::1</code> to <code>localhost</code>; maps every other successfully parsed non-empty host to <code>address</code>; and maps unavailable, malformed, or unexpectedly failing inputs to <code>unknown</code> without suppressing the event. Assert no URL or hostname is captured.</li>
+<li>Verify every other fixed enum rejects or maps unknown runtime input to its schema-defined fallback rather than forwarding it.</li>
+<li>Inject representative failures from the current wizard operations and verify the coarse mapping: prompt/config parsing to <code>validation</code>; required fetch/HTTP/decode failures to <code>network</code>; directory and file operations to <code>filesystem</code>; missing/inaccessible Docker or Compose to <code>docker_unavailable</code>; non-zero or unusable Docker results to <code>docker_command</code>; other child-process spawn errors to <code>process_spawn</code>; and uncategorized runtime errors to <code>unknown</code>. Assert only one failure event is emitted and no raw error data is captured.</li>
+<li>Verify application duration properties use an injected monotonic clock. Standard SDK envelope timestamps are permitted and validated separately; do not add custom wall-clock properties to the application schema.</li>
+<li>Verify the exact <code>posthog-node</code> options, use of SDK transport defaults, absence of <code>$process_person_profile: false</code>, absence of custom person properties, and bounded shutdown behavior.</li>
+</ul>
+<h3>Mandatory end-to-end completion gate</h3>
+<p>The E2E suite is part of the feature implementation, not deferred follow-up work. Implement and run it after the telemetry and Node changes are code-complete but before the feature is marked complete, merged, or released. The feature is incomplete while any required scenario is missing, skipped, quarantined, allowed to fail, or failing. Unit tests and source-level integration tests cannot substitute for this gate.</p>
+<p>Every required E2E scenario must execute the newly compiled and packed npm artifact through its published binary entrypoint. Tests must not import <code>src/</code>, run <code>tsx</code>, or execute a repository source entrypoint as a substitute. Build <code>@sourcebot/schemas</code>, build <code>setup-sourcebot</code>, create the same <code>.tgz</code> shape used by the release workflow, record its SHA-256 digest, install that tarball with lifecycle scripts enabled into a clean temporary project, and use that exact digest for every scenario in the run.</p>
+<p>A required CI check named <code>setup-wizard-e2e</code> must gate the feature PR. The release workflow must rebuild and rerun the packed-artifact smoke and identity-continuity tests before publishing. A release must stop before <code>npm publish</code> if the artifact, E2E suite, cleanup audit, or PostHog contract validation fails.</p>
+
+<h3>E2E harness and isolation architecture</h3>
+<ol>
+<li><strong>Artifact builder:</strong> compile dependencies and the wizard, pack the npm tarball using the release workflow’s Yarn command, inspect the archive, and install it into a new temporary project with npm lifecycle scripts enabled. Assert the published binary resolves and starts without repository-only dependencies.</li>
+<li><strong>PTY driver:</strong> launch <code>node_modules/.bin/setup-sourcebot</code> in a pseudoterminal, wait for each real prompt, submit answers or signals, enforce a per-prompt and per-scenario timeout, and retain a redacted transcript only as an ephemeral CI artifact on failure.</li>
+<li><strong>Scenario fixture:</strong> define each run as declarative prompt answers, filesystem seed state, fixture-server responses, Docker behavior, expected exit result, expected files, and expected ordered telemetry. Generate scenario names from fixed identifiers rather than user data.</li>
+<li><strong>PostHog capture service:</strong> run a local HTTPS endpoint that accepts the actual <code>posthog-node</code> request paths and records raw request bodies. In the isolated test network, resolve the fixed production ingestion hostname to this service and trust a test-only CA through the test environment. Do not add a production environment-variable host override or replace the SDK with a mock in packed-artifact tests.</li>
+<li><strong>Code-host and catalog fixtures:</strong> serve deterministic GitHub-, GitLab-, models.dev-, and compose-download-compatible responses locally. Deny all other outbound traffic during execution so a missed fixture fails the test rather than contacting a real service.</li>
+<li><strong>Deterministic Docker layer:</strong> place a stateful fake <code>docker</code> executable first on <code>PATH</code> for the exhaustive branch matrix. It must emulate command exit codes and stdout/stderr for Compose state, cleanup, volumes, and startup while recording only fixed test metadata.</li>
+<li><strong>Real Docker layer:</strong> separately run the generated files and repository-root <code>entrypoint.sh</code> in disposable Docker containers with unique Compose project names, networks, images, and data volumes. The fake Docker layer does not replace these container-level identity and restart tests.</li>
+<li><strong>Filesystem sandbox:</strong> give every scenario a fresh temporary home, working directory, setup directory, npm cache, and XDG state/config/cache directories. Afterward, assert that no telemetry file or unexpected setup artifact exists inside or outside the selected setup directory.</li>
+<li><strong>Secret canaries:</strong> use unique synthetic token-, email-, repository-, organization-, URL-, model-, path-, hostname-, and error-shaped values for every sensitive prompt and fixture response. Recursively scan captured PostHog bodies, terminal diagnostics, and retained test artifacts to prove none were transmitted through telemetry.</li>
+<li><strong>Cleanup controller:</strong> use <code>try/finally</code> cleanup for processes, PTYs, servers, temporary installations, Docker resources, and certificates. Cleanup runs after success, assertion failure, timeout, or signal and fails the suite if a labeled resource or temporary artifact remains.</li>
+</ol>
+
+<h3>Required isolated environment matrix</h3>
+<table>
+<thead><tr><th>Environment</th><th>Required coverage</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Linux container, Node 24</td><td>Full scenario matrix, fake Docker matrix, real Docker suite, PostHog capture, packaging, and cleanup audit</td><td>Primary deterministic release gate.</td></tr>
+<tr><td>Linux package-manager smoke, Node 24</td><td>Install/invoke the same packed tarball through npm/npx, Yarn, pnpm, and Bun’s package launcher</td><td>Verify the reported <code>packageManager</code>/<code>invocationMethod</code>, lifecycle behavior, binary resolution, and graceful <code>unknown</code> fallback without duplicating the full branch matrix.</td></tr>
+<tr><td>macOS, Node 24</td><td>Packed install, minimal happy path, local-repository path handling, cancellation, system properties, and spawn behavior</td><td>Protect Darwin-specific paths, process behavior, and package execution.</td></tr>
+<tr><td>Windows, Node 24</td><td>Packed install, minimal happy path, local-repository path handling, cancellation, system properties, and spawn behavior</td><td>Protect Win32 paths, executable resolution, signals available on Windows, and package execution.</td></tr>
+<tr><td>Linux container, Node 22.22</td><td>Unsupported-runtime rejection only</td><td>Prove the Node 24 boundary fails early without prompts, telemetry, files, or Docker work.</td></tr>
+</tbody>
+</table>
+<p>The Linux run is authoritative for exhaustive branch coverage. Platform smoke jobs must use the same tarball build recipe and must not be silently omitted from the required check; if CI infrastructure cannot support a platform temporarily, the feature remains incomplete until an equivalent isolated runner is available and passing.</p>
+
+<h3>Required setup-flow scenario matrix</h3>
+<table>
+<thead><tr><th>Area</th><th>Scenarios that must execute through the packed CLI</th><th>Primary assertions</th></tr></thead>
+<tbody>
+<tr><td>Installation and invocation</td><td>Fresh tarball install with lifecycle scripts; direct package binary; npm-exec/npx-style invocation; package path containing spaces; read-only package installation after install</td><td>No setup PostHog event during installation, no module-resolution failure, correct <code>packageManager</code>/<code>invocationMethod</code> classification or fallback, and no writes into the installed package.</td></tr>
+<tr><td>Setup directory</td><td>New relative path, new absolute path, existing directory accepted, existing directory declined, nested creation, spaces/Unicode, creation failure, and <code>chdir</code> failure</td><td>Correct checkpoint/cancellation/failure event, unchanged exit semantics, no path leakage, and no writes outside the chosen sandbox.</td></tr>
+<tr><td>GitHub</td><td>Default cloud and custom/GHE hosts; no token and token; repository, organization, and user scopes; autocomplete success, empty result, authentication/rate-limit response, malformed response, timeout, and connection failure</td><td>Correct safe summary and deployment classification, exact counts, successful literal fallback where supported, and no URL, token, search text, owner, or repository leakage.</td></tr>
+<tr><td>GitLab</td><td>GitLab.com, known Dedicated domain, ambiguous custom domain, and self-managed-shaped input; all, group, project, and user scopes; token/no-token; autocomplete success and every fallback/failure class</td><td>Correct <code>cloud</code>/<code>unknown</code> rule, scope/count properties, no hostname or selected-name leakage, and continued setup for supported fallback paths.</td></tr>
+<tr><td>Bitbucket</td><td>Cloud API token, access token, and app password; workspace and repository scopes; Data Center index-all and selected-project paths; cleanup of all credential-shaped canaries</td><td>Correct deployment and credential enums, counts, and complete exclusion of emails, usernames, hosts, and credentials.</td></tr>
+<tr><td>Azure DevOps</td><td>Cloud and Server, optional TFS path, organization/project/repository scopes, and multiple selections</td><td>Correct deployment/scope/count properties without organization, collection, server, URL, or token values.</td></tr>
+<tr><td>Gitea and Gerrit</td><td>Gitea.com and custom Gitea; token/no-token; organization/repository/user selections; Gerrit index-all and selected projects</td><td>Correct fixed deployment type, credential mode, counts, and no host/project leakage.</td></tr>
+<tr><td>Local and remote Git</td><td>Directory that is itself a repository; all depth-one repositories collapsed to a wildcard; subset and nested repositories generating multiple connections; unreadable directory; no repositories; arbitrary remote Git URL</td><td>Correct repository count, bucket, <code>generatedConnectionCount</code>, local/remote deployment type, mount file behavior, and no local path, basename, or clone URL leakage.</td></tr>
+<tr><td>Multiple code sources</td><td>One source, repeated provider, mixed providers, and three-or-more-source loop with both add-another choices</td><td>One repeated event per accepted source, one aggregate checkpoint, one-based indexes, deduplicated host types, exact totals, and stable ordering.</td></tr>
+<tr><td>AI setup</td><td>Skip; every provider offered by the wizard; one and multiple models; OpenAI-compatible endpoint; AWS default chain and explicit keys; Vertex ADC and credential-file path; catalog success, empty, malformed, HTTP failure, timeout, and manual-model fallback</td><td>Provider events and aggregate checkpoint are correct, skip remains in the funnel, counts match generated models, and no model, endpoint, region, resource, project, credential path, key, or display name is captured.</td></tr>
+<tr><td>Hosted URL</td><td>Default URL; <code>localhost</code>, subdomain of <code>localhost</code>, IPv4 loopback range, IPv6 loopback, other hostname/IP address, invalid input followed by valid input, and classifier failure injection</td><td>Correct <code>usedDefaultUrl</code>, protocol, and <code>hostCategory</code>; invalid prompt input does not create a failure event; URL, hostname, port, path, query, and fragment remain absent.</td></tr>
+<tr><td>Configuration generation</td><td>New files; each existing file accepted for overwrite; each overwrite declined; valid/missing/invalid existing install ID; write failure for each output; generated-secret failure</td><td>Existing behavior and exit codes remain stable, files parse, only approved files are listed, UUID handoff follows policy, no partial-success checkpoint is emitted, and failures use coarse categories without content leakage.</td></tr>
+<tr><td>Compose-file resolution</td><td>Existing file; download accepted and successful; download declined; HTTP 4xx/5xx; timeout/disconnect; malformed body where relevant; destination write failure</td><td>Every terminal branch emits the compose checkpoint with the right outcome/category, manual instructions remain correct, and setup continues only where it did before instrumentation.</td></tr>
+<tr><td>Docker validation</td><td>Docker executable missing; Compose missing; daemon/socket unavailable; empty state; running, stopped, and mixed containers; cleanup accepted/declined/success/failed; volumes absent/present/remove success/failure; no-compose skip</td><td>Success is not confused with command failure, outcomes and failure categories match, no container/volume names or stderr enter telemetry, and existing user-facing recovery behavior is preserved.</td></tr>
+<tr><td>Port conflicts</td><td>No published ports; free ports; Docker-owned conflict; non-Docker conflict; mixed conflict; stop accepted/declined/success/failed; conflict remains after cleanup</td><td>Correct aggregate conflict fields and completion mode, no port numbers/process/container names in telemetry, and temporary listening sockets are closed.</td></tr>
+<tr><td>Completion and startup</td><td>Manual completion, compose unavailable, existing deployment retained, start declined, <code>docker compose up</code> spawn success, spawn error, and later child exit</td><td>Exactly one completion/failure terminal decision, completion fires after <code>spawn</code> rather than child exit, and Sourcebot-start outcome is truthful.</td></tr>
+<tr><td>Cancellation and fatal errors</td><td><code>SIGINT</code> at every named stage and during shutdown; repeated signals; every explicit decline; one injected unexpected failure at each stage boundary; cancellation or fatal error after multiple recoverable failures</td><td>At most one terminal event across completion, cancellation, and fatal failure; recoverable diagnostics remain nonterminal. Correct stage/reason/category and exit semantics, bounded shutdown, no hanging PTY, and no corrupted partial files.</td></tr>
+<tr><td>Telemetry degradation</td><td>SDK initialization/capture/shutdown throw; collector returns 4xx/5xx; connection refusal; response timeout; connection reset; malformed response; system-property collector failure</td><td>The same prompts, files, Docker actions, terminal output, completion mode, and exit code as the matching telemetry-healthy control; system properties use approved fallbacks and no telemetry state file is created.</td></tr>
+</tbody>
+</table>
+
+<h3>Packed-artifact, container, and identity-continuity suite</h3>
+<p>Add a dedicated E2E suite that runs from the packed npm artifact under Node 24, rather than importing TypeScript source. This is the regression gate for the runtime upgrade, telemetry integration, generated files, Docker orchestration, and setup-to-deployment identity handoff.</p>
+<ol>
+<li>Build and pack <code>setup-sourcebot</code>, install the tarball into an isolated temporary project with <code>PACKAGE_TRACKER_ANALYTICS=false</code>, and assert installation succeeds under Node 24 without warnings or module-resolution errors. Assert no Sourcebot PostHog request occurs during package installation. Using Reo’s opt-out keeps the test from contacting Reo and does not affect wizard telemetry.</li>
+<li>Redirect the fixed PostHog ingestion hostname at the isolated test-network boundary to the local TLS capture service, leaving the packed production code and official SDK unchanged. Launch the wizard with both <code>PACKAGE_TRACKER_ANALYTICS=false</code> and <code>SOURCEBOT_TELEMETRY_DISABLED=true</code>; assert <code>started</code> is still captured, contains no <code>$process_person_profile: false</code>, PII, sensitive values, or custom person properties, and uses bounded shutdown. Production code must continue using the fixed Sourcebot host, and the E2E design must not add a user-accessible host override.</li>
+<li>Launch the packed binary through a PTY under Node 24 and drive a deterministic minimal happy path: choose a temporary setup directory, configure a fixture code source, skip AI, accept the hosted URL, generate configuration, resolve the compose branch, skip or stub Docker validation, and decline foreground startup.</li>
+<li>Assert the wizard exits successfully, generated files parse correctly, the expected ordered <code>started -&gt; completed</code> events arrive, each event contains only its approved keys, and secret-shaped fixture values are absent from serialized requests.</li>
+<li>Assert the generated <code>.env</code> value for <code>SOURCEBOT_INSTALL_ID</code> matches the canonical UUIDv4 expression and exactly equals, byte-for-byte, the setup events’ <code>distinctId</code>, <code>setupSessionId</code>, <code>install_id</code>, and <code>company</code> group key.</li>
+<li>Run the actual repository-root <code>entrypoint.sh</code> containing PR #1648 in an isolated Sourcebot container with an empty data volume and the wizard-produced UUID. Stub only external dependencies and long-running processes after identity initialization. Capture the HTTPS request at a local PostHog-compatible endpoint and assert the deployment <code>install</code> event’s <code>distinct_id</code>, the process environment, and <code>.installedv3.install_id</code> all equal the wizard value byte-for-byte.</li>
+<li>Recreate the container against the same data volume through the complete identity matrix: same-version restart with a conflicting environment value, upgrade restart with a conflicting value, another same-version restart with the environment value absent, first boot with the ID absent so <code>uuidgen</code> is exercised, and telemetry-disabled first boot/restart. Assert the persisted value always wins after first boot, upgrade telemetry retains the same <code>distinct_id</code>, same-version restarts do not duplicate install/upgrade events, generated fallback IDs match the canonical UUIDv4 expression, and telemetry-disabled runs emit no events.</li>
+<li>Run the wizard over a fixture existing <code>.env</code> with a valid deployment ID. Assert the ID is preserved, setup events remain keyed to the new session UUID, and <code>deploymentIdentityAction</code> is <code>preserved_existing</code> without transmitting the existing ID.</li>
+<li>Run a second packed invocation that sends <code>SIGINT</code> during a prompt. With a healthy collector, assert exactly one allowlisted <code>cancelled</code> event, bounded SDK shutdown, exit status <code>130</code> under the lifecycle policy, and no partial configuration corruption. This protects signal and process behavior that can differ across Node majors.</li>
+<li>Run the packed binary under Node 22.22 in a separate CI container and assert <code>bin.cjs</code> fails immediately with a clear Node 24 requirement before prompts, UUID generation, telemetry, file writes, or Docker commands. This verifies the migration boundary is intentional rather than a late dependency/runtime crash.</li>
+</ol>
+
+<h3>PostHog E2E contract assertions</h3>
+<p>The packed-artifact tests must use the real <code>posthog-node</code> dependency shipped in the tarball. Mocking the package-owned typed wrapper is appropriate for unit tests but does not satisfy E2E completion.</p>
+<ol>
+<li>Decode every request accepted by the local PostHog-compatible capture service, including SDK batching or compression, and validate the actual ingestion envelope rather than only the arguments passed to <code>posthog.capture()</code>.</li>
+<li>For each scenario, compare the received logical event sequence with an explicit oracle. Assert no missing or unexpected event, correct repeated-event count, checkpoint order, and at most one terminal event across <code>completed</code>, <code>cancelled</code>, and <code>failed</code> with <code>recoverable: false</code>. Recoverable failure events do not count toward this limit. Assert one logical failure capture per failed operation, allowing distinct operation failures with identical stage/category values. Transport retries caused by an induced ambiguous network failure are not treated as duplicate instrumentation.</li>
+<li>Run packed-CLI scenarios with both stopped-container removal and volume removal failing in the same session, followed respectively by manual completion, cancellation at a later prompt, and a later fatal error. Assert both recoverable events arrive under the same setup ID, subsequent reached checkpoints are still captured, and exactly one appropriate terminal event arrives. Add a spawn-error-to-manual-completion scenario. Verify the SDK remains active after recoverable failures and shuts down only at the terminal boundary; repeated signals or callbacks must not add a terminal event after that boundary.</li>
+<li>Verify Docker measurement semantics for no Compose file, deliberately retained deployment, unavailable Docker, partial inspection failure, confirmed empty inventories, and failed port rechecks. Assert skipped/failed counts are <code>null</code>, confirmed empty counts are <code>0</code>, independent measurements survive other failures, and completion copies the remaining-conflict value exactly. Combine cleanup failure with remaining port conflicts and with a left-running deployment to verify <code>validation_failed</code> takes precedence while action fields preserve the details.</li>
+<li>Validate setup event names against the 13-event allowlist, and validate application property keys/types against the common and event-specific schema. Separately validate SDK-generated properties and transport envelopes using the versioned allowlist below. Existing deployment install/upgrade events in the identity suite use their own runtime contract, not the setup-event allowlist.</li>
+<li>Assert one canonical UUIDv4 is reused for <code>distinct_id</code>, <code>setupSessionId</code>, <code>install_id</code>, and the <code>company</code> group throughout a new setup. Assert separate invocations receive different setup IDs and are not accidentally merged.</li>
+<li>Assert <code>schemaVersion</code>, package version, platform, architecture, Node major, package manager, CI state, elapsed timing, GeoIP disablement, and source attribution are correct for the test environment. Inject each permitted system-property failure and verify the documented fallback without dropping the event.</li>
+<li>Assert PostHog’s default Person behavior is preserved: no <code>$process_person_profile: false</code>, <code>identify</code>, alias, <code>$set</code>, or <code>$set_once</code> mutation is emitted, while the random setup identity and company group remain present.</li>
+<li>Recursively inspect both keys and values in the serialized requests. Reject exact canaries, substrings, URL-encoded forms, JSON-escaped forms, and accidental nested configuration objects containing credentials, repositories, emails, URLs, paths, model identifiers, hostnames, ports, command output, errors, or environment data.</li>
+<li>Exercise a successful collector, HTTP rejection, connection refusal/reset, and non-responsive collector. Assert capture remains non-blocking during prompts and the explicit shutdown deadline bounds normal completion, cancellation, and failure exits without changing setup correctness.</li>
+<li>Assert package installation itself produces no Sourcebot PostHog request, and assert the wizard creates no telemetry-only file, durable queue, identifier, cache entry, or state directory.</li>
+</ol>
+
+<h3>SDK metadata and transport-envelope allowlist</h3>
+<p>Keep two explicit contracts: the application schema above, and a transport contract for the exact <code>posthog-node</code>/<code>@posthog/core</code> versions resolved in the tested artifact. Inspect those resolved versions during implementation and record the enabled wire format in the fixtures. The inspected Node SDK 5.52.1/core 1.53.2 adds library metadata, event timestamps, event UUIDs, and grouping metadata. These fields must pass tests when correctly generated; they are not additional wizard answers.</p>
+<table>
+<thead><tr><th>Layer</th><th>Permitted metadata and assertions</th></tr></thead>
+<tbody>
+<tr><td>SDK event properties</td><td><code>$lib</code> equals <code>posthog-node</code>; <code>$lib_version</code> equals the resolved SDK version; <code>$groups</code> contains exactly <code>{ company: setupSessionId }</code>; <code>$geoip_disable</code> and <code>$ignore_sent_at</code> are <code>true</code>. Group and GeoIP assertions complement the application's existing contract. With the planned <code>isServer: false</code>, <code>$is_server</code> is absent.</td></tr>
+<tr><td>Event envelope</td><td>Validate the observed SDK fields such as <code>event</code>, <code>distinct_id</code>, <code>properties</code>, <code>timestamp</code>, and <code>uuid</code>. Timestamps must parse, increase strictly within the invocation, and fall within the test's allowed time window. The SDK's event UUID is separate from the setup UUID: the inspected core generates UUIDv7 event IDs, so do not require these to equal <code>setupSessionId</code> or match the setup UUIDv4 regex.</td></tr>
+<tr><td>Batch and HTTP transport</td><td>Allow the actual resolved format's project token field, batch array, send/creation timestamp, and content-type/compression/SDK-identification headers. For a capture-v1 format, validate its <code>options</code> object and SDK metadata in <code>PostHog-Sdk-Info</code> rather than requiring <code>$lib</code>/<code>$lib_version</code> inside every event. Only enable these alternatives when the tested artifact actually uses that format; do not accept arbitrary extra envelope keys.</td></tr>
+</tbody>
+</table>
+<p>The wire allowlist is implemented in test fixtures, not by stripping SDK-generated fields in production. SDK upgrades must update the fixture contract after inspecting their actual output. Do not blanket-allow <code>$*</code> properties: unexpected user identifiers, person mutations, feature-flag/session context, location data, raw errors, or arbitrary SDK enrichment must still fail. Scan both permitted metadata and application properties for sensitive canaries. The live PostHog smoke may observe additional server-generated ingestion metadata; distinguish that from outbound capture data and review unexpected enrichment rather than comparing a stored event object directly to the wire schema.</p>
+<h3>Behavioral regression comparison</h3>
+<p><strong>Required lifecycle regressions:</strong> through the packed CLI, exercise real PTY Ctrl+C and parent-directed SIGINT at prompts, stalled autocomplete/catalog/Compose fetches, repository scanning, Docker commands, port checks, immediately before/after spawn, readiness fetch/sleep, and pending terminal shutdown. Cover multiple recoverable errors followed by interruption, spawn failure, immediate child exit, and repeated Ctrl+C. For each interrupted case, assert no subsequent setup work, CLI exit within the 3-second budget plus a small documented CI scheduling tolerance, expected exit code, released terminal state, and no surviving owned test subprocesses/timers/listeners. With a healthy collector, assert exactly one cancelled event before completion, or exactly one completed event and no cancellation after completion. Repeat with a stalled collector and stubborn child to verify the bounded fallback. Verify Windows console/PTY interruption separately using supported platform mechanisms. Add the intentional status-130 and readiness-cleanup differences to the baseline comparison allowlist.</p>
+<p>Run representative non-telemetry setup scenarios against both the feature artifact and an artifact built from the PR base revision. Normalize only nondeterministic values such as temporary paths, ANSI timing, generated secrets, and the intentionally added <code>SOURCEBOT_INSTALL_ID</code>. Maintain a small reviewed allowlist of intentional differences; an unlisted difference fails the gate.</p>
+<ul>
+<li>Compare prompt order, prompt defaults, validation behavior, cancellation points, terminal success/failure messages, and process exit codes.</li>
+<li>Compare generated <code>config.json</code>, <code>.env</code>, and compose override semantics after redacting generated secrets. Validate JSON against the Sourcebot schema, parse compose YAML, and confirm the only telemetry-related persisted change is the install-ID entry in the existing <code>.env</code>.</li>
+<li>Compare fake-Docker command order and arguments, cleanup choices, port-conflict decisions, and whether foreground startup occurs.</li>
+<li>Run every happy-path scenario twice—once with a healthy local collector and once with telemetry transport forced to fail—and require identical wizard files, Docker actions, user-facing behavior, and exit status.</li>
+<li>Exercise the Node-migration-sensitive APIs used by the package, including ESM loading, global <code>fetch</code>, <code>AbortSignal.timeout</code>, cryptography, child-process events, filesystem/path behavior, and signal handling through the compiled package.</li>
+</ul>
+
+<h3>Coverage accounting and scenario completeness</h3>
+<p>Store a reviewed, machine-readable scenario manifest with the E2E tests. It must map every wizard stage, prompt branch, code-host collector, AI-provider branch, compose outcome, Docker outcome, terminal path, event name, event enum value, and failure category to at least one scenario ID. CI must fail when an implementation adds or changes a branch/event enum without updating the manifest and its assertions.</p>
+<ul>
+<li>Require 100% coverage of the manifest, all telemetry emission sites, all terminal-event paths, all event names, and every documented outcome enum before completion.</li>
+<li>Collect JavaScript branch coverage from the compiled <code>dist</code> execution as supporting evidence and review uncovered setup logic. Numeric source coverage alone is not a substitute for manifest coverage or behavioral assertions.</li>
+<li>Generate a compact machine-readable report containing the tarball digest, Node/OS matrix, scenario totals, pass/fail/skip counts, event names observed, enum values observed, cleanup result, and duration. Do not include prompt answers, request bodies, paths, credentials, or other canary values.</li>
+<li>Use zero test-level retries. A failed scenario must remain a failure until its cause is understood and fixed; rerunning an entire CI job for diagnosed infrastructure failure does not waive the original result.</li>
+</ul>
+
+<h3>Execution order, cleanup, and completion evidence</h3>
+<ol>
+<li>After implementation is ready, run formatting, type checking, unit tests, and source-level integration tests.</li>
+<li>Build and pack one candidate tarball, record its digest, and run the full isolated Linux E2E matrix against that artifact.</li>
+<li>Run the required macOS, Windows, unsupported-Node, fake-Docker, real-Docker, entrypoint identity, and telemetry-degradation jobs.</li>
+<li>Run one final PostHog ingestion smoke in the supplied dev project using the external relay described below and synthetic, non-sensitive fixture data. Query the resulting events by the known generated setup/deployment UUID and verify event visibility, ordering, property types, Person behavior, company grouping, and setup-to-deployment identity continuity. Delete or expire test data according to the test project’s retention policy; never send fixture secrets.</li>
+<li>Run the cleanup audit and repository-dirtiness check after every job. No temporary tarball, certificate, npm cache, setup directory, telemetry file, process, listener, Docker container, image, network, or volume may remain.</li>
+<li>Attach the redacted completion report and required CI links to the feature PR. Mark the feature complete only when every required scenario and environment passes against the final commit and artifact, the manifest reports no uncovered entry, cleanup passes, and the PostHog smoke is verified.</li>
+</ol>
+<p>All E2E infrastructure and tests land with the feature changes. None of these checks may be converted into a post-merge task merely to unblock completion.</p>
+<h3>Dev-project PostHog smoke routing</h3>
+<p>Use the user-supplied dev-project ingestion token <code>phc_EJR6BsaBbvIKhM4t4zp1boYC92Tpp5Fgb9Csa9Us5aw</code> for live test ingestion. Keep the production package token unchanged. Run the same packed artifact and digest used by the local E2E suite; the existing external HTTPS capture service acts as a forwarding relay only for the final live smoke. It substitutes the dev ingestion token in the SDK request’s project-authentication field, forwards to the dev project’s verified PostHog ingestion host, and preserves event names, UUIDs, timestamps, distinct IDs, groups, and properties. Apply the same routing to container install/upgrade telemetry so both surfaces reach the dev project.</p>
+<p>The relay must validate the original and forwarded envelopes and assert that only project-authentication metadata changes. Support the shipped SDK’s batching/compression and the entrypoint’s capture payload. Resolve the upstream host outside the local hostname override to avoid a forwarding loop. Confirm the dev project’s region/ingestion host before running; do not infer it from the token. The ingestion token does not grant event-query access: use the authenticated PostHog connection or a separately configured read credential to verify stored events. Record the observed results; request acceptance alone does not satisfy ingestion verification.</p>
+<p>Only the final synthetic live smoke permits this relay to reach PostHog. Exhaustive canary and failure tests remain on the local collector with external traffic denied. Never embed the dev token or relay controls into the published CLI; test routing is entirely external. The live smoke, including event-query verification, remains part of the mandatory development completion gate.</p>
+
+<h3>Packaging and integration tests</h3>
+<ul>
+<li>Use a local HTTP capture server with the real <code>posthog-node</code> client to verify the final JSON envelope, SDK options, default profile behavior, and absence of PII, sensitive fields, and custom person-property mutations.</li>
+<li>Add explicit package scripts for unit, integration, packed-artifact E2E, platform smoke, and cleanup-audit jobs so local development, pull-request CI, and release CI invoke the same commands.</li>
+<li>Run the packed CLI against deterministic local service fixtures and the fake Docker executable for exhaustive branches, then run the separate real-Docker identity suite; neither layer may be represented as covering the other.</li>
+<li>Run <code>npm pack --dry-run</code> and assert <code>bin.cjs</code> and the compiled wizard are included and executable through the package entrypoint, with no new Sourcebot-owned postinstall entrypoint.</li>
+<li>Inspect the actual release-shaped tarball and assert test harnesses, fixture secrets, certificates, transcripts, coverage output, and temporary files are excluded from the published package.</li>
+<li>Assert <code>reo-census</code> remains in the package manifest and packed dependency graph, and that Sourcebot code neither removes nor rewrites <code>PACKAGE_TRACKER_ANALYTICS</code>.</li>
+<li>Assert no test-only PostHog host/token override, fake transport, deterministic UUID hook, or failure-injection switch is reachable through the published CLI. Test redirection belongs to the external harness or internal dependency injection exercised outside the production entrypoint.</li>
+<li>Verify formatting, Node 24 type checking/build, the setup-wizard unit suite, integration suite, full packed-package E2E matrix, platform/package-manager smoke jobs, and cleanup audit in CI.</li>
+</ul>
+<h2>Rollout and operational validation</h2>
+<ol>
+<li><a href="https://github.com/sourcebot-dev/sourcebot/pull/1648">PR #1648</a> is merged for the repository-root <code>entrypoint.sh</code> first-boot behavior. Land the setup-wizard telemetry and <code>.env</code> handoff in <code>packages/setupWizard</code>.</li>
+<li>Publish a Sourcebot container image containing the updated root <code>entrypoint.sh</code> before or alongside the telemetry-enabled wizard. Older images will overwrite the wizard-supplied ID and therefore cannot provide setup-to-deployment continuity.</li>
+<li>Include the Node 24 runtime floor, Node typings, runtime bootstrap, <code>posthog-node</code> wrapper, typed schema, in-memory session identity, instrumentation, E2E tests, documentation, and explicit Reo coexistence behavior in the setup-wizard change.</li>
+<li>Run the packed-package E2E suite under Node 24 and its intentional Node 22.22 rejection case before testing production ingestion.</li>
+<li>After every required local packed-artifact scenario passes, run the final synthetic smoke in a non-production PostHog project and verify ingestion, Person/group behavior, and identity continuity by the generated UUID. Keep exhaustive sensitive-canary and failure testing on the isolated local collector.</li>
+<li>Point the production build at the existing Sourcebot PostHog project and release the Node requirement as a clearly documented breaking package version rather than a silent minor runtime change.</li>
+<li>Build the ordered <code>started -&gt; completed</code> funnel and setup-to-deployment analysis from the names and shared identity fields in this document; save breakdowns only on allowlisted properties.</li>
+<li>During the first release, monitor event counts, property-key cardinality, <code>unknown</code> enum rates, and impossible orderings such as <code>completed</code> without <code>started</code> in the same session. Do not add payload logging to diagnose delivery.</li>
+<li>If telemetry causes a setup regression, ship a patch that repairs or removes the faulty integration path; setup behavior and exit status must remain independent of telemetry delivery success.</li>
+</ol>
+<p>Schema changes after release require incrementing <code>schemaVersion</code> when meaning, type, or enum interpretation changes. Additive event properties still require privacy review and exact-key tests. Renaming an event or changing checkpoint timing should use a new event/schema version rather than silently changing the existing funnel.</p>
+<h2>Acceptance criteria for implementation</h2>
+<ul>
+<li>Every product-funnel checkpoint fires exactly once per setup session after its stage resolves.</li>
+<li>Skipping AI emits <code>setup_sourcebot_ai_setup_completed</code> with zero counts and <code>aiConfigured: false</code>.</li>
+<li>Existing, downloaded, declined, and failed compose-file branches all emit <code>setup_sourcebot_resolved_compose_file</code> with distinct outcomes.</li>
+<li>Docker validation emits an outcome even when skipped for a known reason. Skipped or failed measurements use required nullable counts, never fabricated zeroes; initial/final measurements, status values, action semantics, and outcome precedence follow the Docker schema and are covered by E2E tests.</li>
+<li>Completion is captured at the defined handoff without waiting for foreground Docker to exit. Ctrl+C before completion captures cancellation; Ctrl+C after completion cleans up and exits without changing the successful setup outcome. The lifecycle coordinator cancels owned background work, restores terminal state, and enforces the 3-second interrupt exit budget independently of telemetry success.</li>
+<li>Cancelling with Ctrl+C or declining an overwrite emits only fixed stage/reason values.</li>
+<li>Telemetry failure cannot alter wizard output files, Docker actions, exit status, or user-visible success.</li>
+<li>Every reported setup failure maps to exactly one coarse <code>failureCategory</code>; expected prompt rejection, cancellation, and best-effort autocomplete/model-catalog fallback are not misreported as failures. Handled infrastructure errors remain reportable as recoverable failures even when the wizard later completes successfully.</li>
+<li>Each handled infrastructure operation failure emits one nonterminal <code>failed</code> event with <code>recoverable: true</code> and leaves the telemetry session active. Multiple recoverable failures may precede further checkpoints. Only completion, cancellation, or an error that actually terminates the wizard ends the chain; at most one terminal event is emitted and SDK shutdown occurs only at that boundary.</li>
+<li>Automated tests assert separate exact application and resolved-SDK/envelope allowlists for every setup event and seed inputs with token-, URL-, email-, repository-, model-, path-, and error-shaped values to prove none enter captured payloads. Legitimate SDK-generated library metadata, timestamps, event UUIDs, and grouping fields pass the versioned transport contract.</li>
+<li>Deployment classification normalizes common URL formatting variants, uses exact or dot-boundary hostname matches, emits <code>unknown</code> when the mode is ambiguous, and never sends the entered or normalized hostname.</li>
+<li>Hosted-URL classification reports only confirmed loopback, another parsed address, or unknown; it performs no network lookup and makes no public/private or reachability claim.</li>
+<li><code>reo-census</code> remains installed and retains sole ownership of <code>PACKAGE_TRACKER_ANALYTICS</code>.</li>
+<li>A UUIDv4 <code>setupSessionId</code> is created in memory at wizard startup regardless of Reo or deployed-product telemetry variables; no telemetry-only state is persisted.</li>
+<li>The generated <code>setupSessionId</code> is exactly 36 ASCII characters and matches <code>^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$</code>; no code path transforms it before use. This is the plan’s normative UUIDv4 contract under current RFC 9562 and is compatible with Node’s RFC 4122 terminology.</li>
+<li>For a new setup, <code>SOURCEBOT_INSTALL_ID</code> in <code>.env</code>, every setup event identity field, the deployment’s first-run event, and <code>.installedv3</code> all use the same UUID.</li>
+<li>The identity-continuity E2E test runs against Sourcebot runtime code containing the committed repository-root <code>entrypoint.sh</code> change; the setup wizard never edits or substitutes that script.</li>
+<li>Existing valid deployment IDs are preserved without being sent in setup telemetry; <code>.installedv3</code> remains authoritative after first boot.</li>
+<li><code>package.json</code> declares Node <code>&gt;=24.0.0</code>, Node typings use major 24, and setup-sourcebot CI/release jobs run on Node 24.</li>
+<li>The packed-package E2E suite passes on Node 24 and verifies a clear, side-effect-free failure on Node 22.22.</li>
+<li>The required <code>setup-wizard-e2e</code> check executes the final compiled npm tarball across the complete scenario manifest and required OS/package-manager environments with no skipped, quarantined, retried, or allowed-failure scenario.</li>
+<li>The E2E completion report proves exact event/property contracts, privacy canary exclusion, baseline behavioral equivalence, telemetry-failure isolation, real Docker identity continuity, non-production PostHog ingestion, and complete resource cleanup for the final feature commit.</li>
+<li>The official <code>posthog-node</code> SDK is configured with immediate flush, SDK-maintained transport defaults, a bounded shutdown timeout, GeoIP disabled, and CLI runtime attribution.</li>
+<li>PostHog uses default Person profiles keyed by random <code>setupSessionId</code> values, with GeoIP disabled and no <code>identify</code>, <code>$set</code>, or <code>$set_once</code> calls.</li>
+<li>Documentation explains collection categories, ephemeral setup identity, new-deployment ID handoff, always-on setup-wizard PostHog telemetry, Reo’s independent variable, and the deployed product’s separate telemetry setting.</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://posthog.com/docs/libraries/node">PostHog Node.js SDK</a>: short-lived process shutdown/flush behavior and current Node runtime guidance.</li>
+<li><a href="https://posthog.com/docs/references/posthog-node">PostHog Node SDK reference</a>: <code>shutdown(timeoutMs)</code> behavior and its default timeout.</li>
+<li><a href="https://posthog.com/docs/data/anonymous-vs-identified-events">PostHog anonymous vs. identified events</a>: default identified-event profile processing and the distinction between event correlation and person properties.</li>
+<li><a href="https://posthog.com/docs/api/capture">PostHog capture API</a>: raw event ingestion envelope and endpoint.</li>
+<li><a href="https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/about-github-enterprise-cloud-with-data-residency">GitHub Enterprise Cloud with data residency</a>: managed GitHub Enterprise Cloud instances use dedicated <code>ghe.com</code> subdomains.</li>
+<li><a href="https://docs.gitlab.com/subscriptions/gitlab_dedicated/">GitLab Dedicated</a>: default managed-instance domains and support for arbitrary custom domains, which makes some URL-only classifications ambiguous.</li>
+<li><a href="https://nodejs.org/en/about/previous-releases">Node.js release schedule</a>: Node 24 LTS status and the production recommendation to use an Active or Maintenance LTS release.</li>
+<li><a href="https://nodejs.org/api/crypto.html#cryptorandomuuidoptions">Node.js <code>crypto.randomUUID()</code></a>: generates a cryptographically random version-4 UUID and returns it as a string.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9562.html">RFC 9562</a>: the current UUID standard, including the canonical hex-and-dash text representation, IETF variant bits, and UUIDv4 version bits; it obsoletes RFC 4122.</li>
+<li><a href="https://pkgs.alpinelinux.org/package/v3.23/main/aarch64/uuidgen">Alpine Linux 3.23 <code>uuidgen</code> package</a>: confirms the Sourcebot image uses the <code>uuidgen</code> implementation from <code>util-linux</code>.</li>
+<li><a href="https://github.com/util-linux/util-linux/blob/master/misc-utils/uuidgen.c"><code>util-linux</code> <code>uuidgen</code> source</a> and <a href="https://github.com/util-linux/util-linux/blob/master/libuuid/src/unparse.c">UUID formatting source</a>: the random generator emits a standard UUID and the default formatter uses lowercase hexadecimal with canonical hyphens.</li>
+<li>Existing Sourcebot identity flow: <code>entrypoint.sh</code>, <code>docker-compose.yml</code>, <code>packages/backend/src/posthog.ts</code>, <code>packages/web/src/lib/posthog.ts</code>, <code>packages/shared/src/env.server.ts</code>, and <code>docs/docs/misc/telemetry.mdx</code>.</li>
+</ul>
+<h2>Reviewer checklist</h2>
+<ul>
+<li>[ ] Approve <code>started -&gt; completed</code> as the canonical and only Sourcebot PostHog setup funnel.</li>
+<li>[ ] Approve <code>setupSessionId</code> as the in-memory setup <code>distinctId</code> and, for new deployments, the resulting <code>SOURCEBOT_INSTALL_ID</code>.</li>
+<li>[ ] Approve the exact canonical lowercase UUIDv4 regex under RFC 9562, its compatibility with Node’s RFC 4122 terminology, and byte-for-byte reuse across all setup and deployment identity fields.</li>
+<li>[ ] Approve each event name, checkpoint timing, property type, and fixed enum in <strong>PostHog event schema</strong>.</li>
+<li>[ ] Approve no telemetry-only persistence and the explicit existing-deployment behavior.</li>
+<li>[ ] Approve exact selected-repository counts and bucketed local-discovery totals.</li>
+<li>[ ] Approve Node <code>&gt;=24.0.0</code>, Node 24 CI/release execution, and the explicit Node 22.22 rejection test.</li>
+<li>[ ] Approve the official <code>posthog-node</code> transport defaults, privacy wrapper, immediate-flush configuration, and bounded shutdown timing.</li>
+<li>[ ] Approve PostHog’s default Person profile keyed only by the random <code>setupSessionId</code>, with no <code>identify</code>, aliases, custom person properties, PII, or sensitive data.</li>
+<li>[ ] Approve retaining <code>reo-census</code> and leaving <code>PACKAGE_TRACKER_ANALYTICS</code> exclusively under Reo’s control.</li>
+<li>[ ] Approve no package-level opt-out for setup-wizard PostHog telemetry, subject to privacy/legal review and clear release documentation.</li>
+<li>[ ] Approve completion as successful handoff/manual guidance rather than application readiness.</li>
+<li>[ ] Confirm that a separate readiness event is out of scope for v1.</li>
+<li>[ ] Approve the mandatory compiled-artifact E2E matrix, scenario-manifest coverage, platform/package-manager jobs, PostHog contract oracle, behavioral differential checks, Docker identity suite, cleanup audit, and no-deferral completion gate.</li>
+</ul>
+</article>
+    </main>
+  </div>
+  <script>
+    const article = document.querySelector("#proposal");
+
+    const slugify = (value) => value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const usedIds = new Set();
+    article.querySelectorAll("h2, h3, h4").forEach((heading) => {
+      const base = slugify(heading.textContent) || "section";
+      let id = base;
+      let suffix = 2;
+      while (usedIds.has(id)) id = base + "-" + suffix++;
+      usedIds.add(id);
+      heading.id = id;
+    });
+
+    article.querySelectorAll("table").forEach((table) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-wrap";
+      wrapper.tabIndex = 0;
+      wrapper.setAttribute("role", "region");
+      wrapper.setAttribute("aria-label", "Scrollable table");
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    });
+
+    const wrapSection = (heading, className, open = false) => {
+      const level = Number(heading.tagName.slice(1));
+      const details = document.createElement("details");
+      details.className = "disclosure " + className;
+      details.open = open;
+      details.id = heading.id;
+
+      const summary = document.createElement("summary");
+      summary.innerHTML = heading.innerHTML;
+      const body = document.createElement("div");
+      body.className = "disclosure-body";
+
+      heading.parentNode.insertBefore(details, heading);
+      details.append(summary, body);
+      let sibling = heading.nextSibling;
+      heading.remove();
+
+      while (sibling) {
+        if (sibling.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(sibling.tagName)) {
+          const siblingLevel = Number(sibling.tagName.slice(1));
+          if (siblingLevel <= level) break;
+        }
+        const next = sibling.nextSibling;
+        body.appendChild(sibling);
+        sibling = next;
+      }
+    };
+
+    [...article.querySelectorAll("h4")]
+      .filter((heading) => heading.textContent.trim().startsWith("setup_sourcebot_"))
+      .forEach((heading) => wrapSection(heading, "event"));
+
+    const collapsibleParents = new Set(["implementation-proposal", "testing-plan"]);
+    [...article.querySelectorAll("h3")]
+      .filter((heading) => {
+        const parentH2 = [...article.querySelectorAll("h2")]
+          .filter((candidate) => candidate.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING)
+          .at(-1);
+        return parentH2 && collapsibleParents.has(parentH2.id);
+      })
+      .forEach((heading) => wrapSection(heading, "chunk"));
+
+    const toc = document.querySelector(".toc");
+    article.querySelectorAll("h2").forEach((heading) => {
+      const link = document.createElement("a");
+      link.href = "#" + heading.id;
+      link.textContent = heading.textContent;
+      toc.appendChild(link);
+    });
+
+    document.querySelector('[data-action="expand"]').addEventListener("click", () => {
+      document.querySelectorAll("details.disclosure").forEach((details) => { details.open = true; });
+    });
+    document.querySelector('[data-action="collapse"]').addEventListener("click", () => {
+      document.querySelectorAll("details.disclosure").forEach((details) => { details.open = false; });
+    });
+  </script>
+</body>
+</html>

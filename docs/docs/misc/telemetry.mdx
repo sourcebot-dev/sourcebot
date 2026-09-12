@@ -6,7 +6,7 @@ By default, Sourcebot collects anonymized usage data through [PostHog](https://p
 
 The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
 
-If you'd like to disable all telemetry, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
+If you'd like to disable telemetry from the deployed Sourcebot application, you can do so by setting the environment variable `SOURCEBOT_TELEMETRY_DISABLED` to `true`:
 
 ```bash
 docker run \
@@ -20,3 +20,25 @@ If you disabled telemetry correctly, you'll see the following log when starting 
 ```sh
 Disabling telemetry since SOURCEBOT_TELEMETRY_DISABLED was set.
 ```
+
+## Setup wizard
+
+The `setup-sourcebot` npm wizard separately sends high-level progress events to
+PostHog. These include selected code-host and AI-provider types, configuration
+counts, coarse OS/architecture/Node information, and completion, cancellation,
+or failure categories. The wizard does not send credentials, emails, repository
+or model names, URLs, hostnames, local paths, configuration contents, or raw errors.
+GeoIP enrichment is disabled.
+
+Each invocation generates a random UUID in memory, used as its PostHog identity.
+For a new deployment, the same ID is saved as `SOURCEBOT_INSTALL_ID` in the existing
+`.env` file, allowing setup and deployment events to be associated. Valid existing
+deployment IDs are preserved without sending them in the new setup session.
+PostHog's default Person processing is retained, but no real-world identity or
+custom person properties are attached. No telemetry-only file or disk queue is created.
+
+Setup-wizard PostHog analytics has no opt-out and is independent of the deployed
+application's `SOURCEBOT_TELEMETRY_DISABLED` setting. Delivery is best-effort;
+telemetry failures do not prevent setup or keep the CLI running indefinitely.
+The npm package's existing Reo installation tracking remains independent and
+continues to use its own `PACKAGE_TRACKER_ANALYTICS` control.

@@ -8,31 +8,43 @@
         "url": "git+https://github.com/sourcebot-dev/sourcebot.git",
         "directory": "packages/setupWizard"
     },
-    "bin": "./dist/index.js",
+    "bin": "./bin.cjs",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
         "dev": "tsx src/index.ts",
-        "prepublishOnly": "yarn build"
+        "prepublishOnly": "yarn build",
+        "test": "node --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
+        "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+        "test:platform": "node --test tests/e2e/platform.test.mjs",
+        "test:linux": "node tests/e2e/linux.mjs",
+        "test:runtime": "node --test tests/e2e/runtime.test.mjs",
+        "test:node22": "node tests/e2e/unsupportedNode.mjs",
+        "test:baseline": "node tests/e2e/baseline.mjs",
+        "test:live": "node tests/e2e/liveSmoke.mjs"
     },
     "dependencies": {
         "@inquirer/prompts": "^8.4.3",
         "chalk": "^5.6.2",
         "inquirer-select-pro": "^1.0.0-alpha.9",
         "ora": "^9.4.0",
+        "posthog-node": "5.52.1",
         "reo-census": "^1.2.10"
     },
     "devDependencies": {
         "@sourcebot/schemas": "workspace:^",
-        "@types/node": "^22.7.5",
+        "@types/node": "^24.0.0",
+        "node-pty": "^1.1.0",
         "tsx": "^4.21.0",
-        "typescript": "^5.6.2"
+        "typescript": "^5.6.2",
+        "undici": "^7"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=24.0.0"
     },
     "files": [
         "dist",
+        "bin.cjs",
         "README.md"
     ]
 }

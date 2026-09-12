@@ -1,5 +1,6 @@
-import { confirm, input, password, select } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { sourceSummary } from './telemetrySummary.js';
+import { confirm, input, password, select } from './prompts.js';
+import { checkbox } from './prompts.js';
 import type { AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/azuredevops.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { multiInput, note, toEnvKey } from './utils.js';
@@ -60,7 +61,7 @@ export async function collectAzureDevOpsConfig(connectionName: string): Promise<
     const token = await password({
         message: `Azure DevOps Personal Access Token (stored locally in .env as ${envKey})`,
         mask: true,
-        validate: (v) => !v?.trim() ? 'Token is required' : true,
+        validate: (v) => (!v?.trim() ? 'Token is required' : true),
     });
     env[envKey] = token;
     config.token = { env: envKey };
@@ -96,5 +97,20 @@ export async function collectAzureDevOpsConfig(connectionName: string): Promise<
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('azure_devops', {
+            deploymentType: deploymentType === 'cloud' ? 'cloud' : 'self_hosted',
+            credentialMode: 'personal_access_token',
+            scopeTypes: [
+                ...(targets.includes('orgs') ? ['organizations' as const] : []),
+                ...(targets.includes('projects') ? ['projects' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+            ],
+            organizationCount: config.orgs?.length ?? 0,
+            projectCount: config.projects?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+        }),
+    };
 }

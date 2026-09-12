@@ -1,5 +1,7 @@
-import { input } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { lifecycle } from './lifecycle.js';
+import { sourceSummary, discoveredBucket } from './telemetrySummary.js';
+import { input } from './prompts.js';
+import { checkbox } from './prompts.js';
 import { existsSync, statSync } from 'fs';
 import { readdir } from 'fs/promises';
 import { homedir } from 'os';
@@ -11,16 +13,7 @@ import { note } from './utils.js';
 
 const MAX_DEPTH = 5;
 
-const SKIP_DIRS = new Set([
-    'node_modules',
-    'dist',
-    'build',
-    'out',
-    'target',
-    'vendor',
-    'coverage',
-    '__pycache__',
-]);
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'out', 'target', 'vendor', 'coverage', '__pycache__']);
 
 function expandHostPath(p: string): string {
     const trimmed = p.trim();
@@ -34,6 +27,7 @@ async function findGitRepos(root: string, maxDepth: number): Promise<string[]> {
     const repos: string[] = [];
 
     async function walk(dir: string, depth: number): Promise<void> {
+        lifecycle.check();
         if (existsSync(join(dir, '.git'))) {
             repos.push(dir);
             return;
@@ -65,9 +59,7 @@ async function findGitRepos(root: string, maxDepth: number): Promise<string[]> {
     return repos.sort();
 }
 
-export async function collectLocalReposConfig(
-    localRepoIndex: Map<string, number>,
-): Promise<CollectResult> {
+export async function collectLocalReposConfig(localRepoIndex: Map<string, number>): Promise<CollectResult> {
     note(
         [
             'Point at a directory on your machine that contains git repositories.',
@@ -102,7 +94,14 @@ export async function collectLocalReposConfig(
         hostPath = expandHostPath(rawPath);
 
         const spinner = ora(`Scanning ${hostPath} for git repositories...`).start();
-        repos = await findGitRepos(hostPath, MAX_DEPTH);
+        const releaseSpinner = lifecycle.own(() => spinner.stop());
+        try {
+            repos = await findGitRepos(hostPath, MAX_DEPTH);
+            lifecycle.check();
+        } finally {
+            spinner.stop();
+            releaseSpinner();
+        }
         if (repos.length === 0) {
             spinner.fail(`No git repositories found under ${hostPath}`);
             continue;
@@ -121,15 +120,23 @@ export async function collectLocalReposConfig(
     const hostPathIsRepo = repos.length === 1 && repos[0] === hostPath;
     if (hostPathIsRepo) {
         return {
-            connections: [{
-                name: basename(hostPath),
-                config: {
-                    type: 'git',
-                    url: `file://${containerRoot}`,
-                } satisfies GenericGitHostConnectionConfig,
-            }],
+            connections: [
+                {
+                    name: basename(hostPath),
+                    config: {
+                        type: 'git',
+                        url: `file://${containerRoot}`,
+                    } satisfies GenericGitHostConnectionConfig,
+                },
+            ],
             env: {},
             localRepoHostPath: hostPath,
+            telemetry: sourceSummary('local_git', {
+                deploymentType: 'local',
+                scopeTypes: ['repositories'],
+                repositoryCount: 1,
+                localDiscoveredRepoCountBucket: '1',
+            }),
         };
     }
 
@@ -152,20 +159,34 @@ export async function collectLocalReposConfig(
     const allSelected = selected.length === repos.length;
     const allAtDepthOne = repos.every((p) => !posixRel(p).includes('/'));
 
-    const connections = allSelected && allAtDepthOne
-        ? [{
-            config: {
-                type: 'git',
-                url: `file://${containerRoot}/*`,
-            } satisfies GenericGitHostConnectionConfig,
-        }]
-        : selected.map((repoPath) => {
-            const config: GenericGitHostConnectionConfig = {
-                type: 'git',
-                url: `file://${containerRoot}/${posixRel(repoPath)}`,
-            };
-            return { name: basename(repoPath), config };
-        });
+    const connections =
+        allSelected && allAtDepthOne
+            ? [
+                  {
+                      config: {
+                          type: 'git',
+                          url: `file://${containerRoot}/*`,
+                      } satisfies GenericGitHostConnectionConfig,
+                  },
+              ]
+            : selected.map((repoPath) => {
+                  const config: GenericGitHostConnectionConfig = {
+                      type: 'git',
+                      url: `file://${containerRoot}/${posixRel(repoPath)}`,
+                  };
+                  return { name: basename(repoPath), config };
+              });
 
-    return { connections, env: {}, localRepoHostPath: hostPath };
+    return {
+        connections,
+        env: {},
+        localRepoHostPath: hostPath,
+        telemetry: sourceSummary('local_git', {
+            deploymentType: 'local',
+            scopeTypes: ['repositories'],
+            repositoryCount: selected.length,
+            generatedConnectionCount: connections.length,
+            localDiscoveredRepoCountBucket: discoveredBucket(repos.length),
+        }),
+    };
 }

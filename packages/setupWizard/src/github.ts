@@ -1,6 +1,9 @@
-import { input, password } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
-import { select as searchSelect, Separator } from 'inquirer-select-pro';
+import { sourceSummary, deployment } from './telemetrySummary.js';
+import { wizardFetch, lifecycle } from './lifecycle.js';
+import { input, password } from './prompts.js';
+import { checkbox } from './prompts.js';
+import { searchSelect } from './prompts.js';
+import { Separator } from 'inquirer-select-pro';
 import type { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { createSearchSelectContext, INPUT_THEME, note, toEnvKey } from './utils.js';
@@ -38,35 +41,53 @@ async function searchGitHub(
         'User-Agent': 'setup-sourcebot',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-    const url = type === 'repo'
-        ? `${apiBase}/search/repositories?q=${encodeURIComponent(query)}&per_page=8`
-        : `${apiBase}/search/users?q=${encodeURIComponent(query)}+type:${type}&per_page=8`;
-    const res = await fetch(url, { headers });
-    const data = await res.json() as { items?: Array<{ login?: string; full_name?: string }> };
+    const url =
+        type === 'repo'
+            ? `${apiBase}/search/repositories?q=${encodeURIComponent(query)}&per_page=8`
+            : `${apiBase}/search/users?q=${encodeURIComponent(query)}+type:${type}&per_page=8`;
+    try {
+        const res = await wizardFetch(url, { headers, signal: AbortSignal.timeout(8000) });
+        const data = (await res.json()) as { items?: Array<{ login?: string; full_name?: string }> };
 
-    const literalFallback = (): SearchOption | null => {
-        return { name: query, value: query };
-    };
+        const literalFallback = (): SearchOption | null => {
+            return { name: query, value: query };
+        };
 
-    if (!res.ok) {
-        const warning =
-            (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')
-                ? '⚠ Autocomplete disabled — GitHub rate limit exceeded.'
-                : '⚠ Autocomplete disabled — authentication failed, check your PAT.';
-        const fallback = literalFallback();
-        return fallback ? [fallback, new Separator(warning)] : [new Separator(warning)];
+        if (!res.ok) {
+            lifecycle.fail('network', true);
+            const warning =
+                res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0'
+                    ? '⚠ Autocomplete disabled — GitHub rate limit exceeded.'
+                    : '⚠ Autocomplete disabled — authentication failed, check your PAT.';
+            const fallback = literalFallback();
+            return fallback ? [fallback, new Separator(warning)] : [new Separator(warning)];
+        }
+
+        if (
+            !data ||
+            (data.items !== undefined &&
+                (!Array.isArray(data.items) ||
+                    data.items.some((item) => typeof (type === 'repo' ? item?.full_name : item?.login) !== 'string')))
+        ) {
+            throw new Error('Invalid search response');
+        }
+        const results: SearchOption[] = (data.items ?? []).map((item) => {
+            const value = type === 'repo' ? item.full_name! : item.login!;
+            return { name: value, value };
+        });
+        if (results.length === 0) {
+            const fallback = literalFallback();
+            return fallback ? [fallback] : [];
+        }
+        githubSearchCache.set(cacheKey, results);
+        return results;
+    } catch {
+        lifecycle.check();
+        lifecycle.fail('network', true);
+        const fallback = true;
+        const warning = new Separator('⚠ Autocomplete unavailable — enter a value manually.');
+        return fallback ? [{ name: query, value: query }, warning] : [warning];
     }
-
-    const results: SearchOption[] = (data.items ?? []).map((item) => {
-        const value = type === 'repo' ? item.full_name! : item.login!;
-        return { name: value, value };
-    });
-    if (results.length === 0) {
-        const fallback = literalFallback();
-        return fallback ? [fallback] : [];
-    }
-    githubSearchCache.set(cacheKey, results);
-    return results;
 }
 
 export async function collectGitHubConfig(connectionName: string): Promise<CollectResult> {
@@ -218,5 +239,20 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
         config.users = users;
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('github', {
+            deploymentType: deployment('github', url),
+            credentialMode: token.trim() ? 'personal_access_token' : 'none',
+            scopeTypes: [
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+                ...(targets.includes('orgs') ? ['organizations' as const] : []),
+                ...(targets.includes('users') ? ['users' as const] : []),
+            ],
+            repositoryCount: config.repos?.length ?? 0,
+            organizationCount: config.orgs?.length ?? 0,
+            userCount: config.users?.length ?? 0,
+        }),
+    };
 }

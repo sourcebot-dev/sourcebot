@@ -17,8 +17,43 @@ The wizard walks you through:
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 24+
 - Docker and Docker Compose
+
+## Setup analytics
+
+The wizard sends high-level setup progress to Sourcebot's PostHog project: selected
+code-host/provider types, counts, coarse system properties, and setup outcomes.
+It does not send access tokens, repository/model names, email addresses, URLs,
+hostnames, local paths, or raw errors. GeoIP enrichment is disabled.
+
+Each invocation creates a random UUID in memory. New deployments receive that
+same UUID as `SOURCEBOT_INSTALL_ID` in the existing `.env` file; a valid existing
+ID is preserved. No telemetry state, identifier file, or disk queue is created.
+Analytics failures do not prevent setup. The package's existing Reo installation
+tracking remains separate; its `PACKAGE_TRACKER_ANALYTICS` setting and the
+deployment's `SOURCEBOT_TELEMETRY_DISABLED` setting do not control wizard analytics.
+
+Ctrl+C exits with status 130. Once foreground Docker has spawned, setup is recorded
+as completed; interrupting it cleans up the CLI without changing that setup outcome.
+Completion means configuration handoff, not that Sourcebot is healthy or ready.
+
+## Development tests
+
+From the repository root, under Node 24:
+
+```bash
+yarn workspace @sourcebot/schemas build
+yarn workspace setup-sourcebot build
+yarn workspace setup-sourcebot test
+yarn workspace setup-sourcebot test:e2e
+```
+
+The E2E tests compile and pack the package, install it outside the repository,
+drive its published binary in a PTY, inspect real SDK requests through a local TLS
+collector, and clean up temporary installations. OpenSSL and Docker are required.
+The runtime suite uses `docker.sourcebot.dev/sourcebot-dev/sourcebot:latest`
+(override only the test image with `SETUP_TEST_SOURCEBOT_IMAGE`).
 
 ## Docs
 

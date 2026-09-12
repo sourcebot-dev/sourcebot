@@ -1,0 +1,57 @@
+name: Setup wizard verification
+
+on:
+  pull_request:
+    paths:
+      - 'packages/setupWizard/**'
+      - 'packages/schemas/**'
+      - 'entrypoint.sh'
+      - 'yarn.lock'
+      - '.github/workflows/setup-wizard-e2e.yml'
+      - '.github/workflows/release-setup-sourcebot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PACKAGE_TRACKER_ANALYTICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+      - run: corepack enable
+      - run: yarn install --immutable --mode=skip-build
+      - run: yarn rebuild node-pty
+      - run: yarn workspace @sourcebot/schemas build
+      - run: yarn workspace setup-sourcebot build
+      - run: yarn workspace setup-sourcebot test
+      - run: yarn workspace setup-sourcebot test:platform
+      - name: Linux packed-artifact and runtime checks
+        if: runner.os == 'Linux'
+        run: |
+          docker pull docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
+          yarn workspace setup-sourcebot test:e2e
+          yarn workspace setup-sourcebot test:node22
+          yarn workspace setup-sourcebot test:baseline
+          node packages/setupWizard/tests/e2e/packageManagers.mjs
+
+  setup-wizard-e2e:
+    if: always()
+    needs: [platform]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every platform job
+        env:
+          RESULT: ${{ needs.platform.result }}
+        run: test "$RESULT" = success

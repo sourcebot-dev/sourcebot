@@ -4849,6 +4849,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@posthog/core@npm:^1.53.1":
+  version: 1.53.2
+  resolution: "@posthog/core@npm:1.53.2"
+  dependencies:
+    "@posthog/types": "npm:^1.411.1"
+  checksum: 10c0/63248d839b140887dd7d4af81096909f9920a566f09bec945806c3ece7a8d047c3644569cee8962f100decf6b60a42188016319dd11ec87458eddbf7bcb5fd3a
+  languageName: node
+  linkType: hard
+
 "@posthog/types@npm:1.369.0":
   version: 1.369.0
   resolution: "@posthog/types@npm:1.369.0"
@@ -4867,6 +4876,13 @@ __metadata:
   version: 1.406.1
   resolution: "@posthog/types@npm:1.406.1"
   checksum: 10c0/f0a1a7a3b3cd9f97ace07356137accb43e7a71f0a8b4a6f15b203975e2238d79a6d1e6aa251cdba867c45b4124c4a84a231ee5d3a7e4b87df874e869ffde6f36
+  languageName: node
+  linkType: hard
+
+"@posthog/types@npm:^1.411.1":
+  version: 1.411.1
+  resolution: "@posthog/types@npm:1.411.1"
+  checksum: 10c0/fd4cf6bd38abea89ff37fc2af8f329373ba6da8bfc99a1743f69f665428d43bcf6be5c3ef01196292e7b14f928df0b0de64ec3e401576ca15632c21b3b1b1703
   languageName: node
   linkType: hard
 
@@ -10017,6 +10033,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.21.0"
   checksum: 10c0/8420353aee776ae5c1e9720058949909a0e908fa2af85501e9db2645bb9f9acd7d767890f8aaee34d375e6f8b5f550a9a169e908d2d8cf7d5daf63dce64092a0
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^24.0.0":
+  version: 24.13.4
+  resolution: "@types/node@npm:24.13.4"
+  dependencies:
+    undici-types: "npm:~7.18.0"
+  checksum: 10c0/a12196e984cb09ead549651217b4b395961ea011f3a3791a9f78311d70b5f3be343c6fc935376553c06a34c14d963d4f637ad7829837b0c88cf441919f422893
   languageName: node
   linkType: hard
 
@@ -18473,6 +18498,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:^7.1.0":
+  version: 7.1.1
+  resolution: "node-addon-api@npm:7.1.1"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10c0/fb32a206276d608037fa1bcd7e9921e177fe992fc610d098aa3128baca3c0050fc1e014fa007e9b3874cf865ddb4f5bd9f43ccb7cbbbe4efaff6a83e920b17e9
+  languageName: node
+  linkType: hard
+
 "node-cleanup@npm:^2.1.2":
   version: 2.1.2
   resolution: "node-cleanup@npm:2.1.2"
@@ -18542,6 +18576,16 @@ __metadata:
   bin:
     node-gyp: bin/node-gyp.js
   checksum: 10c0/c38977ce502f1ea41ba2b8721bd5b49bc3d5b3f813eabfac8414082faf0620ccb5211e15c4daecc23ed9f5e3e9cc4da00e575a0bcfc2a95a069294f2afa1e0cd
+  languageName: node
+  linkType: hard
+
+"node-pty@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "node-pty@npm:1.1.0"
+  dependencies:
+    node-addon-api: "npm:^7.1.0"
+    node-gyp: "npm:latest"
+  checksum: 10c0/e527305263da36d554b7d2116aee6430b898675fc50e7bd82fbd762f14cb6b948fb8d997736af1f70d76bf9ffd4f5179bc1ed1d8002567dfcf3b29f039291798
   languageName: node
   linkType: hard
 
@@ -19513,6 +19557,20 @@ __metadata:
     query-selector-shadow-dom: "npm:^1.0.1"
     web-vitals: "npm:^5.1.0"
   checksum: 10c0/e0133e0fa4813f881078b545a2dd9b0beddacb64e7ca3cfd7edb85bae858e26850cfe35f39377d5db075e475076c795e7e2d8869890b0febbd4217c11f363003
+  languageName: node
+  linkType: hard
+
+"posthog-node@npm:5.52.1":
+  version: 5.52.1
+  resolution: "posthog-node@npm:5.52.1"
+  dependencies:
+    "@posthog/core": "npm:^1.53.1"
+  peerDependencies:
+    rxjs: ^7.0.0
+  peerDependenciesMeta:
+    rxjs:
+      optional: true
+  checksum: 10c0/dfb7f71792156a817aaddf478e844f6d91f3f53c1f91f8aa496a1a4f30b414dfee40baec3cad35570ca383ef6e0a5ec316e59f687fa303960dedd2aeb2d09218
   languageName: node
   linkType: hard
 
@@ -21240,15 +21298,18 @@ __metadata:
   dependencies:
     "@inquirer/prompts": "npm:^8.4.3"
     "@sourcebot/schemas": "workspace:^"
-    "@types/node": "npm:^22.7.5"
+    "@types/node": "npm:^24.0.0"
     chalk: "npm:^5.6.2"
     inquirer-select-pro: "npm:^1.0.0-alpha.9"
+    node-pty: "npm:^1.1.0"
     ora: "npm:^9.4.0"
+    posthog-node: "npm:5.52.1"
     reo-census: "npm:^1.2.10"
     tsx: "npm:^4.21.0"
     typescript: "npm:^5.6.2"
+    undici: "npm:^7"
   bin:
-    setup-sourcebot: ./dist/index.js
+    setup-sourcebot: ./bin.cjs
   languageName: unknown
   linkType: soft
 
@@ -22968,6 +23029,20 @@ __metadata:
   version: 7.16.0
   resolution: "undici-types@npm:7.16.0"
   checksum: 10c0/3033e2f2b5c9f1504bdc5934646cb54e37ecaca0f9249c983f7b1fc2e87c6d18399ebb05dc7fd5419e02b2e915f734d872a65da2e3eeed1813951c427d33cc9a
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.18.0":
+  version: 7.18.2
+  resolution: "undici-types@npm:7.18.2"
+  checksum: 10c0/85a79189113a238959d7a647368e4f7c5559c3a404ebdb8fc4488145ce9426fcd82252a844a302798dfc0e37e6fb178ff481ed03bc4caf634c5757d9ef43521d
+  languageName: node
+  linkType: hard
+
+"undici@npm:^7":
+  version: 7.29.1
+  resolution: "undici@npm:7.29.1"
+  checksum: 10c0/5a419b1364531071ebdfd93748f7f2392d4eb6d68dd99814e1020f8fc6a517e3298129004c871516ee204bac68aba93541f587200b04a7449b8d45683a7d86f6
   languageName: node
   linkType: hard
 

@@ -1,5 +1,6 @@
-import { confirm, input, password, select } from '@inquirer/prompts';
-import { tabCheckbox as checkbox } from './tabCheckbox.js';
+import { sourceSummary } from './telemetrySummary.js';
+import { confirm, input, password, select } from './prompts.js';
+import { checkbox } from './prompts.js';
 import type { BitbucketConnectionConfig } from '@sourcebot/schemas/v3/bitbucket.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { multiInput, note, toEnvKey } from './utils.js';
@@ -41,14 +42,11 @@ async function collectBitbucketCloud(
     });
 
     if (authMethod === 'api-token') {
-        note(
-            'The email you use to sign in to Atlassian (e.g. you@example.com).',
-            'Atlassian account email',
-        );
+        note('The email you use to sign in to Atlassian (e.g. you@example.com).', 'Atlassian account email');
 
         const email = await input({
             message: 'Atlassian account email',
-            validate: (v) => !v?.trim() ? 'Email is required' : true,
+            validate: (v) => (!v?.trim() ? 'Email is required' : true),
         });
         config.user = email;
 
@@ -62,7 +60,7 @@ async function collectBitbucketCloud(
 
         const gitUser = await input({
             message: 'Bitbucket username',
-            validate: (v) => !v?.trim() ? 'Username is required' : true,
+            validate: (v) => (!v?.trim() ? 'Username is required' : true),
         });
         config.gitUser = gitUser;
 
@@ -81,7 +79,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `API Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => !v?.trim() ? 'Token is required' : true,
+            validate: (v) => (!v?.trim() ? 'Token is required' : true),
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -98,7 +96,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `Access Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => !v?.trim() ? 'Token is required' : true,
+            validate: (v) => (!v?.trim() ? 'Token is required' : true),
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -116,7 +114,7 @@ async function collectBitbucketCloud(
 
         const username = await input({
             message: 'Bitbucket username',
-            validate: (v) => !v?.trim() ? 'Username is required' : true,
+            validate: (v) => (!v?.trim() ? 'Username is required' : true),
         });
         config.user = username;
 
@@ -124,7 +122,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `Bitbucket App Password (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => !v?.trim() ? 'App Password is required' : true,
+            validate: (v) => (!v?.trim() ? 'App Password is required' : true),
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -151,7 +149,25 @@ async function collectBitbucketCloud(
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('bitbucket', {
+            deploymentType: 'cloud',
+            credentialMode:
+                authMethod === 'api-token'
+                    ? 'api_token'
+                    : authMethod === 'access-token'
+                      ? 'access_token'
+                      : 'app_password',
+            scopeTypes: [
+                ...(targets.includes('workspaces') ? ['workspaces' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+            ],
+            workspaceCount: config.workspaces?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+        }),
+    };
 }
 
 async function collectBitbucketServer(
@@ -196,7 +212,7 @@ async function collectBitbucketServer(
     const token = await password({
         message: `Bitbucket HTTP Access Token (stored locally in .env as ${tokenEnvKey})`,
         mask: true,
-        validate: (v) => !v?.trim() ? 'Token is required' : true,
+        validate: (v) => (!v?.trim() ? 'Token is required' : true),
     });
     env[tokenEnvKey] = token;
     config.token = { env: tokenEnvKey };
@@ -208,7 +224,16 @@ async function collectBitbucketServer(
 
     if (indexAll) {
         config.all = true;
-        return { connections: [{ config }], env };
+        return {
+            connections: [{ config }],
+            env,
+            telemetry: sourceSummary('bitbucket', {
+                deploymentType: 'self_hosted',
+                credentialMode: 'http_access_token',
+                indexAll: true,
+                scopeTypes: ['all'],
+            }),
+        };
     }
 
     const targets = await checkbox<string>({
@@ -232,5 +257,18 @@ async function collectBitbucketServer(
         });
     }
 
-    return { connections: [{ config }], env };
+    return {
+        connections: [{ config }],
+        env,
+        telemetry: sourceSummary('bitbucket', {
+            deploymentType: 'self_hosted',
+            credentialMode: 'http_access_token',
+            scopeTypes: [
+                ...(targets.includes('projects') ? ['projects' as const] : []),
+                ...(targets.includes('repos') ? ['repositories' as const] : []),
+            ],
+            projectCount: config.projects?.length ?? 0,
+            repositoryCount: config.repos?.length ?? 0,
+        }),
+    };
 }

@@ -1,0 +1,599 @@
+{
+  "started": {
+    "invocationMethod": {
+      "enum": [
+        "npx",
+        "global_binary",
+        "local_binary",
+        "workspace",
+        "unknown"
+      ]
+    },
+    "isInteractive": {
+      "type": "boolean"
+    }
+  },
+  "chose_setup_directory": {
+    "usedDefaultDirectory": {
+      "type": "boolean"
+    },
+    "directoryExisted": {
+      "type": "boolean"
+    },
+    "directoryAction": {
+      "enum": [
+        "created",
+        "existing_directory_accepted"
+      ]
+    }
+  },
+  "configured_code_source": {
+    "configurationIndex": {
+      "type": "number"
+    },
+    "codeHost": {
+      "enum": [
+        "github",
+        "gitlab",
+        "bitbucket",
+        "gitea",
+        "azure_devops",
+        "gerrit",
+        "local_git",
+        "remote_git"
+      ]
+    },
+    "deploymentType": {
+      "enum": [
+        "cloud",
+        "self_hosted",
+        "local",
+        "remote",
+        "unknown"
+      ]
+    },
+    "credentialMode": {
+      "enum": [
+        "none",
+        "personal_access_token",
+        "api_token",
+        "access_token",
+        "app_password",
+        "http_access_token"
+      ]
+    },
+    "scopeTypes": {
+      "array": {
+        "enum": [
+          "all",
+          "repositories",
+          "organizations",
+          "users",
+          "groups",
+          "projects",
+          "workspaces"
+        ]
+      }
+    },
+    "indexAll": {
+      "type": "boolean"
+    },
+    "repositoryCount": {
+      "type": "number"
+    },
+    "organizationCount": {
+      "type": "number"
+    },
+    "userCount": {
+      "type": "number"
+    },
+    "groupCount": {
+      "type": "number"
+    },
+    "projectCount": {
+      "type": "number"
+    },
+    "workspaceCount": {
+      "type": "number"
+    },
+    "generatedConnectionCount": {
+      "type": "number"
+    },
+    "localDiscoveredRepoCountBucket": {
+      "nullable": {
+        "enum": [
+          "1",
+          "2-5",
+          "6-20",
+          "21-100",
+          "101+"
+        ]
+      }
+    }
+  },
+  "configured_code_sources": {
+    "codeSourceConfigurationCount": {
+      "type": "number"
+    },
+    "generatedConnectionCount": {
+      "type": "number"
+    },
+    "uniqueCodeHostCount": {
+      "type": "number"
+    },
+    "codeHostTypes": {
+      "array": {
+        "enum": [
+          "github",
+          "gitlab",
+          "bitbucket",
+          "gitea",
+          "azure_devops",
+          "gerrit",
+          "local_git",
+          "remote_git"
+        ]
+      }
+    },
+    "credentialedCodeSourceCount": {
+      "type": "number"
+    },
+    "cloudCodeSourceCount": {
+      "type": "number"
+    },
+    "selfHostedCodeSourceCount": {
+      "type": "number"
+    },
+    "localCodeSourceCount": {
+      "type": "number"
+    },
+    "indexAllCodeSourceCount": {
+      "type": "number"
+    },
+    "repositoryCount": {
+      "type": "number"
+    },
+    "organizationCount": {
+      "type": "number"
+    },
+    "userCount": {
+      "type": "number"
+    },
+    "groupCount": {
+      "type": "number"
+    },
+    "projectCount": {
+      "type": "number"
+    },
+    "workspaceCount": {
+      "type": "number"
+    }
+  },
+  "configured_ai_provider": {
+    "configurationIndex": {
+      "type": "number"
+    },
+    "provider": {
+      "enum": [
+        "anthropic",
+        "openai",
+        "openai-compatible",
+        "amazon-bedrock",
+        "google-generative-ai",
+        "google-vertex",
+        "google-vertex-anthropic",
+        "azure",
+        "deepseek",
+        "mistral",
+        "openrouter",
+        "xai"
+      ]
+    },
+    "modelSelectionMethod": {
+      "enum": [
+        "catalog",
+        "custom_entry",
+        "manual_fallback"
+      ]
+    },
+    "credentialMode": {
+      "enum": [
+        "api_key",
+        "aws_default_chain",
+        "aws_explicit_keys",
+        "google_application_default_credentials",
+        "google_credentials_file"
+      ]
+    },
+    "usesCustomEndpoint": {
+      "type": "boolean"
+    },
+    "hasDisplayName": {
+      "type": "boolean"
+    }
+  },
+  "ai_setup_completed": {
+    "aiConfigured": {
+      "type": "boolean"
+    },
+    "aiConfigurationCount": {
+      "type": "number"
+    },
+    "uniqueProviderCount": {
+      "type": "number"
+    },
+    "providerTypes": {
+      "array": {
+        "enum": [
+          "anthropic",
+          "openai",
+          "openai-compatible",
+          "amazon-bedrock",
+          "google-generative-ai",
+          "google-vertex",
+          "google-vertex-anthropic",
+          "azure",
+          "deepseek",
+          "mistral",
+          "openrouter",
+          "xai"
+        ]
+      }
+    },
+    "usesCustomEndpoint": {
+      "type": "boolean"
+    },
+    "credentialModes": {
+      "array": {
+        "enum": [
+          "api_key",
+          "aws_default_chain",
+          "aws_explicit_keys",
+          "google_application_default_credentials",
+          "google_credentials_file"
+        ]
+      }
+    },
+    "modelSelectionMethods": {
+      "array": {
+        "enum": [
+          "catalog",
+          "custom_entry",
+          "manual_fallback"
+        ]
+      }
+    }
+  },
+  "configured_hosted_url": {
+    "usedDefaultUrl": {
+      "type": "boolean"
+    },
+    "protocol": {
+      "enum": [
+        "http",
+        "https"
+      ]
+    },
+    "hostCategory": {
+      "enum": [
+        "localhost",
+        "address",
+        "unknown"
+      ]
+    }
+  },
+  "generated_configs": {
+    "filesWritten": {
+      "array": {
+        "enum": [
+          "config_json",
+          "env",
+          "compose_override"
+        ]
+      }
+    },
+    "overwroteExistingFiles": {
+      "array": {
+        "enum": [
+          "config_json",
+          "env",
+          "compose_override"
+        ]
+      }
+    },
+    "wroteComposeOverride": {
+      "type": "boolean"
+    },
+    "localMountCount": {
+      "type": "number"
+    },
+    "generatedConnectionCount": {
+      "type": "number"
+    },
+    "aiConfigurationCount": {
+      "type": "number"
+    },
+    "credentialVariableCount": {
+      "type": "number"
+    },
+    "deploymentIdentityAction": {
+      "enum": [
+        "created_from_setup_session",
+        "preserved_existing"
+      ]
+    }
+  },
+  "resolved_compose_file": {
+    "outcome": {
+      "enum": [
+        "downloaded",
+        "already_present",
+        "declined",
+        "download_failed"
+      ]
+    },
+    "composeAvailable": {
+      "type": "boolean"
+    },
+    "downloadPromptShown": {
+      "type": "boolean"
+    },
+    "downloadAttempted": {
+      "type": "boolean"
+    },
+    "failureCategory": {
+      "nullable": {
+        "enum": [
+          "network",
+          "http_4xx",
+          "http_5xx",
+          "filesystem",
+          "timeout",
+          "unknown"
+        ]
+      }
+    }
+  },
+  "validated_docker_state": {
+    "outcome": {
+      "enum": [
+        "passed",
+        "passed_after_cleanup",
+        "unresolved_conflicts",
+        "skipped_no_compose",
+        "skipped_existing_deployment_running",
+        "validation_failed"
+      ]
+    },
+    "dockerStatus": {
+      "enum": [
+        "available",
+        "unavailable",
+        "error",
+        "not_checked"
+      ]
+    },
+    "composeContainerState": {
+      "enum": [
+        "none",
+        "running",
+        "stopped",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "runningComposeContainerCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "stoppedComposeContainerCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "existingVolumeCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "initialPortConflictCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "remainingPortConflictCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "portConflictSource": {
+      "enum": [
+        "none",
+        "docker",
+        "non_docker",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "existingDeploymentAction": {
+      "enum": [
+        "none",
+        "stopped",
+        "left_running",
+        "stop_failed"
+      ]
+    },
+    "stoppedContainerAction": {
+      "enum": [
+        "none",
+        "removed",
+        "kept",
+        "remove_failed"
+      ]
+    },
+    "volumeAction": {
+      "enum": [
+        "none",
+        "removed",
+        "kept",
+        "remove_failed"
+      ]
+    },
+    "portConflictAction": {
+      "enum": [
+        "none",
+        "containers_stopped",
+        "kept",
+        "stop_failed"
+      ]
+    },
+    "leftExistingDeploymentRunning": {
+      "type": "boolean"
+    }
+  },
+  "completed": {
+    "completionMode": {
+      "enum": [
+        "sourcebot_start_spawned",
+        "sourcebot_start_failed",
+        "existing_deployment_left_running",
+        "manual_start_required"
+      ]
+    },
+    "sourcebotStartOffered": {
+      "type": "boolean"
+    },
+    "sourcebotStartRequested": {
+      "type": "boolean"
+    },
+    "sourcebotStartOutcome": {
+      "enum": [
+        "spawned",
+        "declined",
+        "not_offered",
+        "spawn_failed"
+      ]
+    },
+    "composeAvailable": {
+      "type": "boolean"
+    },
+    "dockerValidationOutcome": {
+      "enum": [
+        "passed",
+        "passed_after_cleanup",
+        "unresolved_conflicts",
+        "skipped_no_compose",
+        "skipped_existing_deployment_running",
+        "validation_failed"
+      ]
+    },
+    "remainingPortConflictCount": {
+      "nullable": {
+        "type": "number"
+      }
+    },
+    "generatedConnectionCount": {
+      "type": "number"
+    },
+    "codeHostTypes": {
+      "array": {
+        "enum": [
+          "github",
+          "gitlab",
+          "bitbucket",
+          "gitea",
+          "azure_devops",
+          "gerrit",
+          "local_git",
+          "remote_git"
+        ]
+      }
+    },
+    "repositoryCount": {
+      "type": "number"
+    },
+    "aiConfigured": {
+      "type": "boolean"
+    },
+    "aiConfigurationCount": {
+      "type": "number"
+    },
+    "providerTypes": {
+      "array": {
+        "enum": [
+          "anthropic",
+          "openai",
+          "openai-compatible",
+          "amazon-bedrock",
+          "google-generative-ai",
+          "google-vertex",
+          "google-vertex-anthropic",
+          "azure",
+          "deepseek",
+          "mistral",
+          "openrouter",
+          "xai"
+        ]
+      }
+    },
+    "deploymentIdentityAction": {
+      "enum": [
+        "created_from_setup_session",
+        "preserved_existing"
+      ]
+    },
+    "totalDurationMs": {
+      "type": "number"
+    }
+  },
+  "cancelled": {
+    "stage": {
+      "enum": [
+        "setup_directory",
+        "code_sources",
+        "ai_setup",
+        "hosted_url",
+        "config_overwrite",
+        "compose_file",
+        "docker_validation",
+        "start"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "keyboard_interrupt",
+        "existing_directory_declined",
+        "config_overwrite_declined"
+      ]
+    }
+  },
+  "failed": {
+    "stage": {
+      "enum": [
+        "setup_directory",
+        "code_sources",
+        "ai_setup",
+        "hosted_url",
+        "config_overwrite",
+        "compose_file",
+        "docker_validation",
+        "start"
+      ]
+    },
+    "failureCategory": {
+      "enum": [
+        "validation",
+        "network",
+        "filesystem",
+        "docker_unavailable",
+        "docker_command",
+        "process_spawn",
+        "unknown"
+      ]
+    },
+    "recoverable": {
+      "type": "boolean"
+    }
+  }
+}
