@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added privacy-scoped setup wizard funnel telemetry with deployment identity handoff and Node 24 support. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
+
 ## [5.1.13] - 2026-09-12
 
 ### Fixed
