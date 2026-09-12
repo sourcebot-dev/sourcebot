@@ -142,3 +142,4 @@ jobs:
           git tag -a "setup-sourcebot-v$VERSION" -m "setup-sourcebot v$VERSION"
           git push origin HEAD:main
           git push origin "setup-sourcebot-v$VERSION"
+

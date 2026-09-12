@@ -15,15 +15,15 @@ import { INPUT_THEME, note, type EnvVars } from './utils.js';
 type Provider = LanguageModel['provider'];
 
 export const PROVIDER_ENV_KEYS: Record<string, string> = {
-    anthropic: 'ANTHROPIC_API_KEY',
-    openai: 'OPENAI_API_KEY',
+    'anthropic': 'ANTHROPIC_API_KEY',
+    'openai': 'OPENAI_API_KEY',
     'google-generative-ai': 'GOOGLE_GENERATIVE_AI_API_KEY',
-    deepseek: 'DEEPSEEK_API_KEY',
-    mistral: 'MISTRAL_API_KEY',
-    xai: 'XAI_API_KEY',
-    openrouter: 'OPENROUTER_API_KEY',
+    'deepseek': 'DEEPSEEK_API_KEY',
+    'mistral': 'MISTRAL_API_KEY',
+    'xai': 'XAI_API_KEY',
+    'openrouter': 'OPENROUTER_API_KEY',
     'openai-compatible': 'OPENAI_COMPATIBLE_API_KEY',
-    azure: 'AZURE_OPENAI_API_KEY',
+    'azure': 'AZURE_OPENAI_API_KEY',
 };
 
 // ─── models.dev catalog ────────────────────────────────────────────────────
@@ -132,7 +132,10 @@ async function getModelOptionsForProvider(providerKey: string): Promise<ModelOpt
 
 // ─── prompts ───────────────────────────────────────────────────────────────
 
-async function searchModel(options: { message: string; models: ModelOption[] }): Promise<string> {
+async function searchModel(options: {
+    message: string;
+    models: ModelOption[];
+}): Promise<string> {
     const choices = options.models.map((m) => ({
         name: m.name === m.id ? m.id : `${m.id}  ·  ${m.name}`,
         value: m.id,
@@ -150,8 +153,8 @@ async function searchModel(options: { message: string; models: ModelOption[] }):
                 return choices;
             }
             const lowered = trimmed.toLowerCase();
-            const filtered = choices.filter(
-                (c) => c.value.toLowerCase().includes(lowered) || c.name.toLowerCase().includes(lowered),
+            const filtered = choices.filter((c) =>
+                c.value.toLowerCase().includes(lowered) || c.name.toLowerCase().includes(lowered),
             );
             const hasExact = choices.some((c) => c.value === trimmed);
             if (!hasExact) {
@@ -172,7 +175,7 @@ async function ensureApiKey(provider: Provider, env: EnvVars): Promise<string> {
         const apiKey = await password({
             message: `API key (stored locally in .env as ${envKey})`,
             mask: true,
-            validate: (v) => (!v?.trim() ? 'API key is required' : true),
+            validate: (v) => !v?.trim() ? 'API key is required' : true,
         });
         env[envKey] = apiKey;
     }
@@ -221,13 +224,13 @@ async function collectModelConfig(
         case 'azure': {
             const resourceName = await input({
                 message: 'Azure resource name',
-                validate: (v) => (!v?.trim() ? 'Resource name is required' : true),
+                validate: (v) => !v?.trim() ? 'Resource name is required' : true,
             });
             const apiVersion = await input({
                 message: 'API version',
                 default: '2024-08-01-preview',
                 theme: INPUT_THEME,
-                validate: (v) => (!v?.trim() ? 'API version is required' : true),
+                validate: (v) => !v?.trim() ? 'API version is required' : true,
             });
             const envKey = await ensureApiKey(provider, env);
             const config: AzureLanguageModel = {
@@ -252,7 +255,7 @@ async function collectModelConfig(
                 if (!env['AWS_ACCESS_KEY_ID']) {
                     env['AWS_ACCESS_KEY_ID'] = await input({
                         message: 'AWS Access Key ID (stored locally in .env as AWS_ACCESS_KEY_ID)',
-                        validate: (v) => (!v?.trim() ? 'Access Key ID is required' : true),
+                        validate: (v) => !v?.trim() ? 'Access Key ID is required' : true,
                     });
                 }
                 config.accessKeyId = { env: 'AWS_ACCESS_KEY_ID' };
@@ -261,7 +264,7 @@ async function collectModelConfig(
                     env['AWS_SECRET_ACCESS_KEY'] = await password({
                         message: 'AWS Secret Access Key (stored locally in .env as AWS_SECRET_ACCESS_KEY)',
                         mask: true,
-                        validate: (v) => (!v?.trim() ? 'Secret Access Key is required' : true),
+                        validate: (v) => !v?.trim() ? 'Secret Access Key is required' : true,
                     });
                 }
                 config.accessKeySecret = { env: 'AWS_SECRET_ACCESS_KEY' };
@@ -271,7 +274,7 @@ async function collectModelConfig(
                 message: 'AWS region',
                 default: 'us-east-1',
                 theme: INPUT_THEME,
-                validate: (v) => (!v?.trim() ? 'Region is required' : true),
+                validate: (v) => !v?.trim() ? 'Region is required' : true,
             });
             return config;
         }
@@ -280,7 +283,7 @@ async function collectModelConfig(
             if (!env['GOOGLE_VERTEX_PROJECT']) {
                 env['GOOGLE_VERTEX_PROJECT'] = await input({
                     message: 'Google Cloud project ID (stored locally in .env as GOOGLE_VERTEX_PROJECT)',
-                    validate: (v) => (!v?.trim() ? 'Project ID is required' : true),
+                    validate: (v) => !v?.trim() ? 'Project ID is required' : true,
                 });
             }
             if (!env['GOOGLE_VERTEX_REGION']) {
@@ -288,7 +291,7 @@ async function collectModelConfig(
                     message: 'Google Cloud region (stored locally in .env as GOOGLE_VERTEX_REGION)',
                     default: 'us-central1',
                     theme: INPUT_THEME,
-                    validate: (v) => (!v?.trim() ? 'Region is required' : true),
+                    validate: (v) => !v?.trim() ? 'Region is required' : true,
                 });
             }
 
@@ -306,9 +309,8 @@ async function collectModelConfig(
             if (!useAppDefault) {
                 if (!env['GOOGLE_APPLICATION_CREDENTIALS']) {
                     env['GOOGLE_APPLICATION_CREDENTIALS'] = await input({
-                        message:
-                            'Path to service account credentials JSON (stored locally in .env as GOOGLE_APPLICATION_CREDENTIALS)',
-                        validate: (v) => (!v?.trim() ? 'Credentials path is required' : true),
+                        message: 'Path to service account credentials JSON (stored locally in .env as GOOGLE_APPLICATION_CREDENTIALS)',
+                        validate: (v) => !v?.trim() ? 'Credentials path is required' : true,
                     });
                 }
                 config.credentials = { env: 'GOOGLE_APPLICATION_CREDENTIALS' };
@@ -331,7 +333,7 @@ export async function collectModels(
             'in natural language and get answers grounded in your indexed code.',
             '  https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot',
             '',
-            "You'll need an API key from at least one supported provider",
+            'You\'ll need an API key from at least one supported provider',
             '(Anthropic, OpenAI, Google, etc.) to enable these features.',
         ].join('\n'),
         'AI features',
@@ -358,11 +360,7 @@ export async function collectModels(
                 { value: 'amazon-bedrock', name: 'Amazon Bedrock' },
                 { value: 'google-generative-ai', name: 'Google Gemini' },
                 { value: 'google-vertex', name: 'Google Vertex AI', description: 'Gemini via Vertex' },
-                {
-                    value: 'google-vertex-anthropic',
-                    name: 'Google Vertex AI (Anthropic)',
-                    description: 'Claude via Vertex',
-                },
+                { value: 'google-vertex-anthropic', name: 'Google Vertex AI (Anthropic)', description: 'Claude via Vertex' },
                 { value: 'azure', name: 'Azure OpenAI' },
                 { value: 'deepseek', name: 'DeepSeek' },
                 { value: 'mistral', name: 'Mistral' },
@@ -371,28 +369,27 @@ export async function collectModels(
             ],
         });
 
-        const modelOptions = provider === 'openai-compatible' ? null : await getModelOptionsForProvider(provider);
-        const model =
-            modelOptions && modelOptions.length > 0
-                ? await searchModel({
-                      message: 'Model name',
-                      models: modelOptions,
-                  })
-                : await input({
-                      message: 'Model name',
-                      validate: (v) => (!v?.trim() ? 'Model name is required' : true),
-                  });
+        const modelOptions = provider === 'openai-compatible'
+            ? null
+            : await getModelOptionsForProvider(provider);
+        const model = modelOptions && modelOptions.length > 0
+            ? await searchModel({
+                message: 'Model name',
+                models: modelOptions,
+            })
+            : await input({
+                message: 'Model name',
+                validate: (v) => !v?.trim() ? 'Model name is required' : true,
+            });
 
         let credentialMode: AiSummary['credentialMode'] = 'api_key';
         const config = await collectModelConfig(provider, model, env, (mode) => {
             credentialMode = mode;
         });
 
-        const displayName = (
-            await input({
-                message: 'Display name (optional, press enter to skip)',
-            })
-        ).trim();
+        const displayName = (await input({
+            message: 'Display name (optional, press enter to skip)',
+        })).trim();
         if (displayName) {
             config.displayName = displayName;
         }

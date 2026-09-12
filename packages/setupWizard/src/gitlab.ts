@@ -54,15 +54,14 @@ async function searchGitLab(
 
         if (!res.ok) {
             lifecycle.fail('network', true);
-            const warning =
-                res.status === 401
-                    ? '⚠ Autocomplete disabled — authentication failed, check your PAT.'
-                    : `⚠ Autocomplete disabled — GitLab API error (${res.status}).`;
+            const warning = res.status === 401
+                ? '⚠ Autocomplete disabled — authentication failed, check your PAT.'
+                : `⚠ Autocomplete disabled — GitLab API error (${res.status}).`;
             const fallback = literalFallback();
             return fallback ? [fallback, new Separator(warning)] : [new Separator(warning)];
         }
 
-        const data = (await res.json()) as Array<{
+        const data = await res.json() as Array<{
             full_path?: string;
             path_with_namespace?: string;
             username?: string;
@@ -132,7 +131,11 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     }
 
     note(
-        ['Create a PAT:', `  ${url}/-/user_settings/personal_access_tokens`, '  Required scope: read_api'].join('\n'),
+        [
+            'Create a PAT:',
+            `  ${url}/-/user_settings/personal_access_tokens`,
+            '  Required scope: read_api',
+        ].join('\n'),
         'Create a GitLab Personal Access Token',
     );
 
@@ -153,13 +156,7 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
         message: 'What do you want to index?',
         choices: [
             ...(isSelfHosted
-                ? [
-                      {
-                          value: 'all',
-                          name: 'Everything',
-                          description: 'Index every project visible to the token on this self-hosted instance',
-                      },
-                  ]
+                ? [{ value: 'all', name: 'Everything', description: 'Index every project visible to the token on this self-hosted instance' }]
                 : []),
             { value: 'groups', name: 'Groups', description: 'Index every project each chosen group owns' },
             { value: 'projects', name: 'Specific projects', description: 'Hand-pick individual projects to index' },

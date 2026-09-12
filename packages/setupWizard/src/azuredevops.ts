@@ -61,7 +61,7 @@ export async function collectAzureDevOpsConfig(connectionName: string): Promise<
     const token = await password({
         message: `Azure DevOps Personal Access Token (stored locally in .env as ${envKey})`,
         mask: true,
-        validate: (v) => (!v?.trim() ? 'Token is required' : true),
+        validate: (v) => !v?.trim() ? 'Token is required' : true,
     });
     env[envKey] = token;
     config.token = { env: envKey };

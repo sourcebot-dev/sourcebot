@@ -42,11 +42,14 @@ async function collectBitbucketCloud(
     });
 
     if (authMethod === 'api-token') {
-        note('The email you use to sign in to Atlassian (e.g. you@example.com).', 'Atlassian account email');
+        note(
+            'The email you use to sign in to Atlassian (e.g. you@example.com).',
+            'Atlassian account email',
+        );
 
         const email = await input({
             message: 'Atlassian account email',
-            validate: (v) => (!v?.trim() ? 'Email is required' : true),
+            validate: (v) => !v?.trim() ? 'Email is required' : true,
         });
         config.user = email;
 
@@ -60,7 +63,7 @@ async function collectBitbucketCloud(
 
         const gitUser = await input({
             message: 'Bitbucket username',
-            validate: (v) => (!v?.trim() ? 'Username is required' : true),
+            validate: (v) => !v?.trim() ? 'Username is required' : true,
         });
         config.gitUser = gitUser;
 
@@ -79,7 +82,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `API Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => (!v?.trim() ? 'Token is required' : true),
+            validate: (v) => !v?.trim() ? 'Token is required' : true,
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -96,7 +99,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `Access Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => (!v?.trim() ? 'Token is required' : true),
+            validate: (v) => !v?.trim() ? 'Token is required' : true,
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -114,7 +117,7 @@ async function collectBitbucketCloud(
 
         const username = await input({
             message: 'Bitbucket username',
-            validate: (v) => (!v?.trim() ? 'Username is required' : true),
+            validate: (v) => !v?.trim() ? 'Username is required' : true,
         });
         config.user = username;
 
@@ -122,7 +125,7 @@ async function collectBitbucketCloud(
         const token = await password({
             message: `Bitbucket App Password (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
-            validate: (v) => (!v?.trim() ? 'App Password is required' : true),
+            validate: (v) => !v?.trim() ? 'App Password is required' : true,
         });
         env[tokenEnvKey] = token;
         config.token = { env: tokenEnvKey };
@@ -212,7 +215,7 @@ async function collectBitbucketServer(
     const token = await password({
         message: `Bitbucket HTTP Access Token (stored locally in .env as ${tokenEnvKey})`,
         mask: true,
-        validate: (v) => (!v?.trim() ? 'Token is required' : true),
+        validate: (v) => !v?.trim() ? 'Token is required' : true,
     });
     env[tokenEnvKey] = token;
     config.token = { env: tokenEnvKey };

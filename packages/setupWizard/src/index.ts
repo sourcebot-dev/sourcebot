@@ -58,7 +58,7 @@ function wrapText(text: string, indent: string, width: number): string[] {
     const lines: string[] = [];
     let current = '';
     for (const word of words) {
-        if (current.length > 0 && current.length + 1 + word.length > width) {
+        if (current.length > 0 && (current.length + 1 + word.length) > width) {
             lines.push(indent + current);
             current = word;
         } else {
@@ -72,7 +72,9 @@ function wrapText(text: string, indent: string, width: number): string[] {
 }
 
 function openBrowser(url: string): void {
-    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
+    const cmd = process.platform === 'darwin' ? 'open'
+        : process.platform === 'win32' ? 'cmd'
+            : 'xdg-open';
     const args = process.platform === 'win32' ? ['/c', 'start', '""', url] : [url];
     lifecycle.check();
     const browser = spawn(cmd, args, { stdio: 'ignore', detached: true });
@@ -134,9 +136,9 @@ type PublishedPort = { host: string; port: number };
 // undefined for specs with no fixed host port (container-only, ranges, ${VAR}).
 function parseHostPortSpec(spec: string): PublishedPort | undefined {
     let s = spec.trim();
-    s = s.replace(/\s+#.*$/, '').trim(); // strip inline comment
-    s = s.replace(/^["']|["']$/g, '').trim(); // strip surrounding quotes
-    s = s.replace(/\/(tcp|udp|sctp)$/i, ''); // strip protocol suffix
+    s = s.replace(/\s+#.*$/, '').trim();        // strip inline comment
+    s = s.replace(/^["']|["']$/g, '').trim();   // strip surrounding quotes
+    s = s.replace(/\/(tcp|udp|sctp)$/i, '');    // strip protocol suffix
     const parts = s.split(':');
     let host = '0.0.0.0';
     let hostPort: string;
@@ -209,9 +211,7 @@ function isPortInUse({ host, port }: PublishedPort): Promise<boolean> {
         const release = lifecycle.own(() => server.close());
         server.once('close', release);
         server.once('error', (err: NodeJS.ErrnoException) => {
-            server.close(() => {
-                /* noop */
-            });
+            server.close(() => { /* noop */ });
             // EADDRINUSE = taken. Other errors (e.g. EACCES on privileged ports) aren't
             // a "someone else has it" conflict we can meaningfully report, so treat as free.
             if (err.code !== 'EADDRINUSE') {
@@ -234,6 +234,9 @@ function isPortInUse({ host, port }: PublishedPort): Promise<boolean> {
 
 const docker = new Docker((category) => lifecycle.fail(category, true));
 let portInspectionFailed = false;
+
+// Mirrors Docker Compose's project-name normalization for the default case
+// where the project name is derived from the working directory basename.
 function dockerComposeProjectName(): string {
     return basename(process.cwd())
         .toLowerCase()
@@ -307,7 +310,9 @@ async function main() {
     const allEnv: EnvVars = {};
     const localRepoIndex = new Map<string, number>();
 
-    note('Code is cloned and indexed locally on this machine. No code is ever transmitted to Sourcebot.');
+    note(
+        'Code is cloned and indexed locally on this machine. No code is ever transmitted to Sourcebot.',
+    );
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -315,21 +320,9 @@ async function main() {
             message: 'Which code host do you want to connect?',
             loop: false,
             choices: [
-                {
-                    value: 'github',
-                    name: 'GitHub',
-                    description: 'github.com, GitHub Enterprise Server, or GitHub Enterprise Cloud',
-                },
-                {
-                    value: 'gitlab',
-                    name: 'GitLab',
-                    description: 'gitlab.com, GitLab Self Managed, or GitLab Dedicated',
-                },
-                {
-                    value: 'local',
-                    name: 'Local git repositories',
-                    description: 'git repositories in a local directory',
-                },
+                { value: 'github', name: 'GitHub', description: 'github.com, GitHub Enterprise Server, or GitHub Enterprise Cloud' },
+                { value: 'gitlab', name: 'GitLab', description: 'gitlab.com, GitLab Self Managed, or GitLab Dedicated' },
+                { value: 'local', name: 'Local git repositories', description: 'git repositories in a local directory' },
                 { value: 'git', name: 'Remote git repository', description: 'Arbitrary git URL' },
                 { value: 'azuredevops', name: 'Azure DevOps', description: 'dev.azure.com or Azure Devops Server' },
                 { value: 'bitbucket', name: 'Bitbucket', description: 'Bitbucket Cloud or Bitbucket Data Center' },
@@ -380,7 +373,9 @@ async function main() {
             ...result.telemetry,
         });
         for (const { name, config } of result.connections) {
-            const finalName = name ? generateConnectionName(name, connections) : connectionName;
+            const finalName = name
+                ? generateConnectionName(name, connections)
+                : connectionName;
             connections[finalName] = config;
         }
         Object.assign(allEnv, result.env);
@@ -496,19 +491,10 @@ async function main() {
 
     const TOP_LEVEL_ENV_KEYS = ['AUTH_URL'];
     const connectionEnv = Object.fromEntries(
-        Object.entries(allEnv).filter(
-            ([k]) =>
-                !Object.values(PROVIDER_ENV_KEYS).includes(k) &&
-                !['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k) &&
-                !TOP_LEVEL_ENV_KEYS.includes(k),
-        ),
+        Object.entries(allEnv).filter(([k]) => !Object.values(PROVIDER_ENV_KEYS).includes(k) && !['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k) && !TOP_LEVEL_ENV_KEYS.includes(k))
     );
     const aiEnv = Object.fromEntries(
-        Object.entries(allEnv).filter(
-            ([k]) =>
-                Object.values(PROVIDER_ENV_KEYS).includes(k) ||
-                ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k),
-        ),
+        Object.entries(allEnv).filter(([k]) => Object.values(PROVIDER_ENV_KEYS).includes(k) || ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k))
     );
 
     const envLines: string[] = [
@@ -578,20 +564,17 @@ async function main() {
     releaseWriter();
     const fileInfo: Record<string, { description: string; docsLabel?: string; docsUrl?: string }> = {
         'config.json': {
-            description:
-                'The Sourcebot configuration file. This controls which repos Sourcebot indexes and which language models it connects to.',
+            description: 'The Sourcebot configuration file. This controls which repos Sourcebot indexes and which language models it connects to.',
             docsLabel: 'Configuration file docs',
             docsUrl: 'https://docs.sourcebot.dev/docs/configuration/config-file',
         },
         '.env': {
-            description:
-                'The environment file your Sourcebot deployment will load. This includes any of the access tokens you provided here, as well as generated secrets required to run Sourcebot.',
+            description: 'The environment file your Sourcebot deployment will load. This includes any of the access tokens you provided here, as well as generated secrets required to run Sourcebot.',
             docsLabel: 'Environment variables docs',
             docsUrl: 'https://docs.sourcebot.dev/docs/configuration/environment-variables',
         },
         'docker-compose.override.yml': {
-            description:
-                'Mounts your local repositories into the Sourcebot container so they can be indexed. Merged with docker-compose.yml at `docker compose up` time.',
+            description: 'Mounts your local repositories into the Sourcebot container so they can be indexed. Merged with docker-compose.yml at `docker compose up` time.',
         },
     };
 
@@ -695,8 +678,7 @@ async function main() {
                 console.log('  ' + chalk.dim('- ') + `${c.Name} ${chalk.dim(`(${c.Service})`)}`);
             }
             const stop = await confirm({
-                message:
-                    'Stop and remove the running deployment? (required before any volume changes or restart can apply)',
+                message: 'Stop and remove the running deployment? (required before any volume changes or restart can apply)',
                 default: true,
             });
             if (stop) {
@@ -715,9 +697,7 @@ async function main() {
             }
         } else if (stopped.length > 0) {
             console.log();
-            console.log(
-                chalk.yellow('⚠ ') + 'Stopped containers from a previous run exist and will conflict on next start:',
-            );
+            console.log(chalk.yellow('⚠ ') + 'Stopped containers from a previous run exist and will conflict on next start:');
             for (const c of stopped) {
                 console.log('  ' + chalk.dim('- ') + `${c.Name} ${chalk.dim(`(${c.Service})`)}`);
             }
@@ -799,7 +779,7 @@ async function main() {
             const inUse: PublishedPort[] = [];
             for (const p of publishedPorts) {
                 const ownedByContainer = (owners.get(p.port)?.length ?? 0) > 0;
-                if (ownedByContainer || (await isPortInUse(p))) {
+                if (ownedByContainer || await isPortInUse(p)) {
                     inUse.push(p);
                 }
             }
@@ -825,13 +805,16 @@ async function main() {
                 for (const p of inUse) {
                     const display = p.host === '0.0.0.0' ? `${p.port}` : `${p.host}:${p.port}`;
                     const by = owners.get(p.port);
-                    const suffix =
-                        by && by.length > 0 ? chalk.dim(` (in use by Docker container ${by.join(', ')})`) : '';
+                    const suffix = by && by.length > 0
+                        ? chalk.dim(` (in use by Docker container ${by.join(', ')})`)
+                        : '';
                     console.log('  ' + chalk.dim('- ') + display + suffix);
                 }
 
                 // Containers we can stop ourselves; ports held by non-Docker processes we can't.
-                const conflictingContainers = [...new Set(inUse.flatMap((p) => owners.get(p.port) ?? []))];
+                const conflictingContainers = [...new Set(
+                    inUse.flatMap((p) => owners.get(p.port) ?? []),
+                )];
 
                 if (conflictingContainers.length > 0) {
                     console.log();
@@ -856,7 +839,7 @@ async function main() {
                         const freshOwners = freshResult.ok ? freshResult.value : new Map<number, string[]>();
                         for (const p of inUse) {
                             const ownedByContainer = (freshOwners.get(p.port)?.length ?? 0) > 0;
-                            if (ownedByContainer || (await isPortInUse(p))) {
+                            if (ownedByContainer || await isPortInUse(p)) {
                                 stillInUse.push(p);
                             }
                         }
@@ -867,9 +850,7 @@ async function main() {
                             console.log(chalk.green('✓ ') + 'All required ports are now free');
                         } else {
                             console.log();
-                            console.log(
-                                chalk.yellow('⚠ ') + 'These ports are still in use (likely a non-Docker process):',
-                            );
+                            console.log(chalk.yellow('⚠ ') + 'These ports are still in use (likely a non-Docker process):');
                             for (const p of stillInUse) {
                                 const display = p.host === '0.0.0.0' ? `${p.port}` : `${p.host}:${p.port}`;
                                 console.log('  ' + chalk.dim('- ') + display);
@@ -880,9 +861,7 @@ async function main() {
 
                 if (hasPortConflicts) {
                     console.log();
-                    console.log(
-                        chalk.dim('  Free these ports (stop the process or container using them), or change the host'),
-                    );
+                    console.log(chalk.dim('  Free these ports (stop the process or container using them), or change the host'));
                     console.log(chalk.dim('  port mappings in docker-compose.yml, before starting Sourcebot.'));
                 }
             }
@@ -1001,9 +980,7 @@ async function main() {
     }
 
     if (hasPortConflicts) {
-        nextSteps.push(
-            `${step++}. Free the host ports listed above (or change the host port mappings in docker-compose.yml).`,
-        );
+        nextSteps.push(`${step++}. Free the host ports listed above (or change the host port mappings in docker-compose.yml).`);
         nextSteps.push('');
     }
 

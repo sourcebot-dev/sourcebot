@@ -41,13 +41,12 @@ async function searchGitHub(
         'User-Agent': 'setup-sourcebot',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-    const url =
-        type === 'repo'
-            ? `${apiBase}/search/repositories?q=${encodeURIComponent(query)}&per_page=8`
-            : `${apiBase}/search/users?q=${encodeURIComponent(query)}+type:${type}&per_page=8`;
+    const url = type === 'repo'
+        ? `${apiBase}/search/repositories?q=${encodeURIComponent(query)}&per_page=8`
+        : `${apiBase}/search/users?q=${encodeURIComponent(query)}+type:${type}&per_page=8`;
     try {
         const res = await wizardFetch(url, { headers, signal: AbortSignal.timeout(8000) });
-        const data = (await res.json()) as { items?: Array<{ login?: string; full_name?: string }> };
+        const data = await res.json() as { items?: Array<{ login?: string; full_name?: string }> };
 
         const literalFallback = (): SearchOption | null => {
             return { name: query, value: query };
@@ -56,7 +55,7 @@ async function searchGitHub(
         if (!res.ok) {
             lifecycle.fail('network', true);
             const warning =
-                res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0'
+                (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')
                     ? '⚠ Autocomplete disabled — GitHub rate limit exceeded.'
                     : '⚠ Autocomplete disabled — authentication failed, check your PAT.';
             const fallback = literalFallback();
