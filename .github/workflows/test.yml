@@ -43,4 +43,4 @@ jobs:
       - name: Test
         # The CLI requires Node 24 and is built/tested by setup-wizard-e2e.
         # Keep the application workspaces on their existing runtime here.
-        run: yarn workspaces foreach --all --topological --exclude setup-sourcebot run test
+        run: yarn workspaces foreach --all --topological --exclude setup-sourcebot --exclude 'root-workspace-*' run test
