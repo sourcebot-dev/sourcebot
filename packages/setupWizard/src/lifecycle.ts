@@ -18,6 +18,7 @@ export class Lifecycle {
     terminal?: 'completed' | 'cancelled' | 'failed';
     interrupted = false;
     private installed = false;
+    private startFailureCaptured = false;
     constructor(readonly telemetry = new Telemetry()) {}
     get signal(): AbortSignal {
         return this.controller.signal;
@@ -89,13 +90,22 @@ export class Lifecycle {
             recoverable,
         });
     }
-    async complete(properties: Events['completed']): Promise<void> {
+    startFailed(properties: Events['start_failed']): void {
+        if (this.interrupted || this.startFailureCaptured || (this.terminal && this.terminal !== 'completed')) {
+            return;
+        }
+        this.startFailureCaptured = true;
+        this.telemetry.capture('start_failed', properties);
+    }
+    async complete(properties: Events['completed'], keepTelemetryOpen = false): Promise<void> {
         if (this.terminal || this.interrupted) {
             return;
         }
         this.terminal = 'completed';
         this.telemetry.capture('completed', properties);
-        await this.telemetry.shutdown();
+        if (!keepTelemetryOpen) {
+            await this.telemetry.shutdown();
+        }
     }
     async decline(reason: Events['cancelled']['reason']): Promise<void> {
         if (!this.terminal) {

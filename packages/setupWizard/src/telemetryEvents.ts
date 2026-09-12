@@ -310,6 +310,19 @@ export const eventSchemas = {
         ),
     },
     failed: { stage, failureCategory: category, recoverable: boolean },
+    start_failed: {
+        failurePhase: choice('spawn', 'compose_exit'),
+        failureCategory: choice('docker_unavailable', 'process_spawn', 'docker_command'),
+        failureReason: choice(
+            'container_name_conflict',
+            'port_conflict',
+            'image_pull_failed',
+            'mount_failed',
+            'compose_configuration',
+            'docker_unavailable',
+            'unknown',
+        ),
+    },
 };
 export type EventName = keyof typeof eventSchemas;
 export type Events = { [K in EventName]: Fields<(typeof eventSchemas)[K]> };

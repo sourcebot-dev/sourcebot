@@ -568,6 +568,21 @@
       ]
     }
   },
+  "start_failed": {
+    "failurePhase": { "enum": ["spawn", "compose_exit"] },
+    "failureCategory": { "enum": ["docker_unavailable", "process_spawn", "docker_command"] },
+    "failureReason": {
+      "enum": [
+        "container_name_conflict",
+        "port_conflict",
+        "image_pull_failed",
+        "mount_failed",
+        "compose_configuration",
+        "docker_unavailable",
+        "unknown"
+      ]
+    }
+  },
   "failed": {
     "stage": {
       "enum": [

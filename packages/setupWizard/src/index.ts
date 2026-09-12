@@ -15,6 +15,7 @@ import {
     dockerOutcome,
 } from './telemetrySummary.js';
 import { Docker } from './docker.js';
+import { DockerStartFailure } from './dockerStartFailure.js';
 import type { CodeSourceSummary, Events } from './telemetryEvents.js';
 import net from 'node:net';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
@@ -891,7 +892,9 @@ async function main() {
         deploymentIdentityAction: deploymentIdentity.action,
         totalDurationMs: 0,
     };
-    const complete = () => lifecycle.complete({ ...completion, totalDurationMs: lifecycle.telemetry.elapsed() });
+    const complete = (keepTelemetryOpen = false) => lifecycle.complete(
+        { ...completion, totalDurationMs: lifecycle.telemetry.elapsed() }, keepTelemetryOpen,
+    );
     if (downloadedCompose && !leftDeploymentRunning) {
         const startNow = await confirm({
             message: hasPortConflicts
@@ -910,10 +913,13 @@ async function main() {
             const readiness = new AbortController();
             const releaseReadiness = lifecycle.own(() => readiness.abort());
             let spawned = false;
+            const startFailure = new DockerStartFailure();
             await new Promise<void>((resolve) => {
                 const child = lifecycle.child(
-                    spawn('docker', ['compose', 'up'], { stdio: 'inherit', detached: process.platform !== 'win32' }),
+                    spawn('docker', ['compose', 'up'], { stdio: ['inherit', 'inherit', 'pipe'], detached: process.platform !== 'win32' }),
                 );
+                child.stderr?.pipe(process.stderr, { end: false });
+                child.stderr?.on('data', (chunk: Buffer) => startFailure.write(chunk));
                 child.once('spawn', () => {
                     if (lifecycle.interrupted) {
                         child.kill();
@@ -922,19 +928,34 @@ async function main() {
                     spawned = true;
                     completion.sourcebotStartOutcome = 'spawned';
                     completion.completionMode = 'sourcebot_start_spawned';
-                    void complete();
+                    // Complete the setup handoff now, but keep diagnostics available
+                    // until Compose exits or the user interrupts it.
+                    void complete(true);
                     void openBrowserWhenReady(
                         SOURCEBOT_URL,
                         AbortSignal.any([lifecycle.signal, readiness.signal]),
                     ).catch(() => {});
                 });
-                child.once('close', () => {
+                child.once('close', (code, signal) => {
                     readiness.abort();
+                    if (spawned && code !== 0 && signal !== 'SIGINT' && signal !== 'SIGTERM') {
+                        const reason = startFailure.reason();
+                        lifecycle.startFailed({
+                            failurePhase: 'compose_exit',
+                            failureCategory: reason === 'docker_unavailable' ? 'docker_unavailable' : 'docker_command',
+                            failureReason: reason,
+                        });
+                    }
                     resolve();
                 });
                 child.once('error', (error: NodeJS.ErrnoException) => {
                     readiness.abort();
                     if (!lifecycle.interrupted) {
+                        lifecycle.startFailed({
+                            failurePhase: 'spawn',
+                            failureCategory: error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'process_spawn',
+                            failureReason: error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'unknown',
+                        });
                         lifecycle.fail(
                             error.code === 'ENOENT' || error.code === 'EACCES' ? 'docker_unavailable' : 'process_spawn',
                             true,

@@ -93,7 +93,64 @@ test('failed spawn offers manual steps and completes after recoverable failures'
     });
     assert.equal(p(result, 'completed').sourcebotStartOutcome, 'spawn_failed');
     assert.equal(p(result, 'completed').completionMode, 'sourcebot_start_failed');
+    assert.equal(result.events.filter(e => e.event === 'setup_sourcebot_start_failed').length, 1);
+    assert.deepEqual(
+        ['failurePhase', 'failureCategory', 'failureReason'].map(key => p(result, 'start_failed')[key]),
+        ['spawn', 'docker_unavailable', 'docker_unavailable'],
+    );
     assert.ok(result.events.filter(e => e.event === 'setup_sourcebot_failed').every(e => e.properties.recoverable));
+});
+
+for (const [reason, diagnostic] of [
+    ['container_name_conflict', 'Error response from daemon: Conflict. The container name "/canary-sensitive-container" is already in use by container "canary-sensitive-id".'],
+    ['port_conflict', 'Error response from daemon: driver failed programming external connectivity: Bind for canary-sensitive-address failed: port is already allocated'],
+    ['image_pull_failed', 'Error response from daemon: pull access denied for canary-sensitive-image, repository does not exist or may require docker login'],
+    ['mount_failed', 'Error response from daemon: invalid mount config for type "bind": bind source path does not exist: canary-sensitive-path'],
+    ['compose_configuration', 'validating canary-sensitive-path: services.sourcebot Additional property canary-sensitive is not allowed'],
+    ['docker_unavailable', 'Cannot connect to the Docker daemon at canary-sensitive-socket. Is the docker daemon running?'],
+    ['unknown', 'canary-sensitive-unrecognized-error'],
+    ['unknown', 'canary-sensitive-app | Error response from daemon: pull access denied for canary-sensitive-image'],
+]) {
+    test(`post-handoff start failure: ${reason} (${diagnostic.slice(0, 24)})`, async () => {
+        const result = await scenario(packed, { docker: { start: { stderrChunks: [diagnostic.slice(0, 17), diagnostic.slice(17)], delayMs: 1100 } } }, async d => {
+            await initial(d);
+            await d.answer('Start Sourcebot now?', 'y');
+            await d.wait(diagnostic);
+        });
+        const failures = result.events.filter(e => e.event === 'setup_sourcebot_start_failed');
+        assert.equal(failures.length, 1);
+        assert.equal(failures[0].properties.failurePhase, 'compose_exit');
+        assert.equal(failures[0].properties.failureReason, reason);
+        assert.equal(failures[0].properties.failureCategory, reason === 'docker_unavailable' ? 'docker_unavailable' : 'docker_command');
+        const completed = result.events.find(e => e.event === 'setup_sourcebot_completed');
+        assert.ok(result.events.indexOf(completed) < result.events.indexOf(failures[0]));
+        assert.equal(failures[0].distinct_id, completed.distinct_id);
+        assert.equal(result.events.filter(e => e.event === 'setup_sourcebot_completed').length, 1);
+        assert.equal(result.events.some(e => e.event === 'setup_sourcebot_cancelled'), false);
+        assert.equal(result.exitCode, 0, 'Telemetry must not change existing CLI exit behavior');
+    });
+}
+
+for (const termination of [{ exitCode: 0 }, { signal: 'SIGINT' }, { signal: 'SIGTERM' }]) {
+    test(`normal Compose termination is not a start failure: ${JSON.stringify(termination)}`, { skip: process.platform === 'win32' && !!termination.signal }, async () => {
+        const result = await scenario(packed, { docker: { start: { ...termination, stderrChunks: ['Error response from daemon: pull access denied for canary-sensitive-image\n'] } } }, async d => {
+            await initial(d);
+            await d.answer('Start Sourcebot now?', 'y');
+        });
+        assert.equal(result.events.some(e => e.event === 'setup_sourcebot_start_failed'), false);
+        assert.equal(p(result, 'completed').sourcebotStartOutcome, 'spawned');
+    });
+}
+
+test('start failure with unavailable PostHog still exits and retains generated files', async () => {
+    const began = Date.now();
+    const result = await scenario(packed, { telemetry: 'stall', docker: { start: { stderrChunks: ['canary-sensitive-error'] } } }, async d => {
+        await initial(d);
+        await d.answer('Start Sourcebot now?', 'y');
+    });
+    assert.equal(result.exitCode, 0);
+    assert.ok(Date.now() - began < 7000);
+    assert.deepEqual(Object.keys(result.files).sort(), ['.env', 'config.json', 'docker-compose.yml']);
 });
 
 for (const stage of ['fetch', 'docker', 'after_failures']) {

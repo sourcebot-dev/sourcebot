@@ -1,12 +1,61 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
+import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { artifact, scenario, minimal } from './harness.mjs';
 import { INSTALL_ID_PATTERN } from '../../dist/telemetry.js';
+
+test('real Docker name conflict emits a private diagnostic after setup completion', async () => {
+    const packed = artifact();
+    const docker = execFileSync('which', ['docker'], { encoding: 'utf8' }).trim();
+    const image = process.env.SETUP_TEST_SOURCEBOT_IMAGE ?? 'docker.sourcebot.dev/sourcebot-dev/sourcebot:latest';
+    const name = `setup-start-conflict-${randomUUID()}`;
+    const project = `setup-start-${randomUUID()}`;
+    let created = false;
+    try {
+        execFileSync(docker, ['create', '--name', name, '--label', `setup-start-test=${project}`, image], { stdio: 'pipe', timeout: 45000 });
+        created = true;
+        const host = execFileSync(docker, ['context', 'inspect', '--format', '{{.Endpoints.docker.Host}}'], { encoding: 'utf8' }).trim();
+        const result = await scenario(packed, {
+            realDocker: docker,
+            compose: `services:\n  sourcebot:\n    image: ${image}\n    container_name: ${name}\n    pull_policy: never\n`,
+            sensitiveValues: [name, project],
+            assertLauncherHome(paths) {
+                // Docker Desktop creates these empty parent directories itself.
+                // Still reject files or any wizard-owned per-user state.
+                const dockerDirectories = process.platform === 'darwin'
+                    ? ['Library', 'Library/Containers', 'Library/Containers/com.docker.docker', 'Library/Containers/com.docker.docker/Data']
+                    : [];
+                assert.deepEqual(paths.filter(path => !dockerDirectories.includes(path)), []);
+            },
+            environment: { COMPOSE_PROJECT_NAME: project, DOCKER_HOST: host, DOCKER_CONFIG: process.env.DOCKER_CONFIG ?? join(homedir(), '.docker') },
+            async cleanupDeployment({ setup }) {
+                execFileSync(docker, ['compose', '-p', project, 'down'], { cwd: setup, stdio: 'pipe', timeout: 45000 });
+            },
+        }, async d => {
+            await minimal(d);
+            await d.answer('Download docker-compose.yml?', 'y');
+            await d.answer('Start Sourcebot now?', 'y');
+            await d.wait('is already in use by container');
+        });
+        const failure = result.events.filter(e => e.event === 'setup_sourcebot_start_failed');
+        assert.equal(failure.length, 1);
+        assert.equal(failure[0].properties.failureReason, 'container_name_conflict');
+        assert.equal(failure[0].properties.failurePhase, 'compose_exit');
+        assert.equal(result.events.at(-1).event, 'setup_sourcebot_start_failed');
+        assert.ok(result.events.some(e => e.event === 'setup_sourcebot_completed'));
+    } finally {
+        try {
+            if (created) execFileSync(docker, ['rm', '-v', name], { stdio: 'pipe', timeout: 45000 });
+        } finally {
+            packed.cleanup();
+        }
+    }
+});
 
 test('real Sourcebot containers: packed wizard identity survives first boot, restart, upgrade and opt-out', async () => {
     const packed = artifact();
