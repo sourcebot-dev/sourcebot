@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   platform:
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:

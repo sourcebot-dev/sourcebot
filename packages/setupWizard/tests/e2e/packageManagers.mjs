@@ -39,7 +39,9 @@ try {
                 writeFileSync(join(cwd, 'yarn.lock'), '');
                 writeFileSync(join(cwd, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
                 if (name === 'yarn') {
-                    execFileSync(process.execPath, [binary, 'install', '--mode=skip-build'], { cwd, env: { ...process.env, ...managerEnv }, timeout: 30000 });
+                    // This new disposable project intentionally has no lockfile
+                    // yet; CI's immutable-install default cannot apply to it.
+                    execFileSync(process.execPath, [binary, 'install', '--mode=skip-build'], { cwd, env: { ...process.env, ...managerEnv, YARN_ENABLE_IMMUTABLE_INSTALLS: 'false' }, timeout: 30000 });
                 }
                 if (name === 'bun') {
                     symlinkSync(dirname(packed.installed), join(cwd, 'node_modules'), 'junction');

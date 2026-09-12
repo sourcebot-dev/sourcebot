@@ -115,7 +115,7 @@ export async function scenario(artifact, options, drive) {
     const requests = [];
     const forwarding = [];
     const cwd = join(root, 'work');
-    const setup = join(cwd, 'sourcebot');
+    const setup = join(cwd, options.setupName ?? 'sourcebot');
     const fakeBin = join(root, 'bin');
     const home = join(root, 'home');
     for (const dir of [cwd, fakeBin, home]) {
@@ -129,7 +129,14 @@ export async function scenario(artifact, options, drive) {
     }
     options.prepare?.({ cwd, setup, root });
     writeFileSync(join(root, 'docker-state.json'), JSON.stringify(options.docker ?? {}));
-    if (!options.dockerMissing) {
+    if (options.realDocker) {
+        writeFileSync(join(fakeBin, 'docker'), `#!${process.execPath}\n` +
+            `const {spawn}=require('node:child_process'); const args=process.argv.slice(2);\n` +
+            `if(!['compose','volume','ps','info'].includes(args[0])){throw Error('Live test Docker command not permitted');}\n` +
+            `if(args[0]==='volume' && args[1]!=='ls'){throw Error('Live test volume mutation not permitted');}\n` +
+            `const p=spawn(${JSON.stringify(options.realDocker)},args,{stdio:'inherit'});\n` +
+            `process.on('SIGINT',()=>{});p.on('error',()=>process.exit(1));p.on('close',c=>process.exit(c??130));\n`, { mode: 0o755 });
+    } else if (!options.dockerMissing) {
         if (process.platform === 'win32') {
             // A real executable is needed: Windows spawn(shell:false) cannot
             // execute Unix shebangs or .cmd wrappers. The external preload
@@ -155,7 +162,8 @@ export async function scenario(artifact, options, drive) {
                 assert.ok(process.env.SETUP_TEST_DEV_TOKEN, 'Dev project token required');
                 const forwarded = { ...body, api_key: process.env.SETUP_TEST_DEV_TOKEN };
                 assert.deepEqual({ ...forwarded, api_key: body.api_key }, body);
-                const request = fetch(`https://us.i.posthog.com${req.url}`, {
+                assert.equal(req.url, '/batch/', 'Unexpected PostHog ingestion path');
+                const request = fetch('https://us.i.posthog.com/batch/', {
                     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(forwarded), signal: AbortSignal.timeout(15000),
                 }).then(async response => {
                     assert.ok(response.ok, `Dev ingestion rejected: ${response.status}`);
@@ -212,7 +220,7 @@ export async function scenario(artifact, options, drive) {
         HOME: home, USERPROFILE: home, TMPDIR: root, TEMP: root, TMP: root,
         XDG_STATE_HOME: join(home, 'state'), XDG_CONFIG_HOME: join(home, 'config'), XDG_CACHE_HOME: join(home, 'cache'),
         SYSTEMROOT: process.env.SYSTEMROOT ?? '', LANG: 'en_US.UTF-8', TERM: 'xterm-256color',
-        NODE_OPTIONS: `--import=${new URL('./network.mjs', import.meta.url).href}`,
+        NODE_OPTIONS: `--import=${new URL(options.networkModule ?? './network.mjs', import.meta.url).href}`,
         NODE_EXTRA_CA_CERTS: artifact.cert, TEST_CAPTURE_PORT: String(server.address().port),
         TEST_DOCKER_STATE: join(root, 'docker-state.json'), TEST_DOCKER_LOG: join(root, 'docker.log'),
         TEST_DOCKER_PIDS: join(root, 'docker-pids'),
@@ -287,6 +295,9 @@ export async function scenario(artifact, options, drive) {
             contract(events);
         }
         assert.equal(JSON.stringify(requests).includes(canary), false);
+        for (const sensitive of options.sensitiveValues ?? []) {
+            assert.equal(JSON.stringify(requests).includes(sensitive), false, 'Live credential reached telemetry');
+        }
         if (options.assertLauncherHome) {
             options.assertLauncherHome(readdirSync(home, { recursive: true }));
         } else {
@@ -299,15 +310,25 @@ export async function scenario(artifact, options, drive) {
                 assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' }, 'Owned Docker fixture process survived CLI exit');
             }
         }
-        return { events, files, dockerCalls, requests, exitCode: ended.exitCode };
+        const result = { events, files, dockerCalls, requests, exitCode: ended.exitCode };
+        await options.verifyDeployment?.({ ...result, setup, root });
+        return result;
     } finally {
-        if (child && !ended) {
+        if (child && process.platform === 'win32') {
+            // node-pty's ConPTY worker survives a natural child exit unless
+            // the terminal is disposed; Windows kill() accepts no signal.
+            child.kill();
+        } else if (child && !ended) {
             child.kill('SIGKILL');
         }
-        server.closeAllConnections();
-        await new Promise(resolve => server.close(resolve));
-        rmSync(root, { recursive: true, force: true });
-        assert.equal(existsSync(root), false);
+        try {
+            await options.cleanupDeployment?.({ setup, root });
+        } finally {
+            server.closeAllConnections();
+            await new Promise(resolve => server.close(resolve));
+            rmSync(root, { recursive: true, force: true });
+            assert.equal(existsSync(root), false);
+        }
     }
 }
 
