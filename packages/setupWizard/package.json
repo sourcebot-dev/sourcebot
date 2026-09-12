@@ -19,7 +19,7 @@
         "test:platform": "node --test tests/e2e/platform.test.mjs",
         "test:linux": "node tests/e2e/linux.mjs",
         "test:runtime": "node --test tests/e2e/runtime.test.mjs",
-        "test:node22": "node tests/e2e/unsupportedNode.mjs",
+        "test:node-compatibility": "node tests/e2e/nodeCompatibility.mjs",
         "test:baseline": "node tests/e2e/baseline.mjs",
         "test:live": "node tests/e2e/liveSmoke.mjs"
     },
@@ -33,14 +33,14 @@
     },
     "devDependencies": {
         "@sourcebot/schemas": "workspace:^",
-        "@types/node": "^24.0.0",
+        "@types/node": "^20.19.43",
         "node-pty": "^1.1.0",
         "tsx": "^4.21.0",
         "typescript": "^5.6.2",
         "undici": "^7"
     },
     "engines": {
-        "node": ">=24.0.0"
+        "node": "^20.20.0 || ^22.22.0 || >=23.5.0"
     },
     "files": [
         "dist",

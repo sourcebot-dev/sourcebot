@@ -17,7 +17,7 @@ The wizard walks you through:
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 20.20+ (20.x), 22.22+ (22.x), or 23.5+ (including 24+). Node 24 LTS is recommended; Node 20 is supported for compatibility but is end-of-life.
 - Docker and Docker Compose
 
 ## Development tests
@@ -29,11 +29,15 @@ yarn workspace @sourcebot/schemas build
 yarn workspace setup-sourcebot build
 yarn workspace setup-sourcebot test
 yarn workspace setup-sourcebot test:e2e
+yarn workspace setup-sourcebot test:node-compatibility
 ```
 
 The E2E tests compile and pack the package, install it outside the repository,
 drive its published binary in a PTY, inspect real SDK requests through a local TLS
 collector, and clean up temporary installations. OpenSSL and Docker are required.
+The compatibility suite tests the same tarball under Node 20.20.0 and 22.22.0,
+and checks early rejection on Node 18, 20.19, and 22.21. Build/release tooling
+continues to use Node 24; that is not the end-user minimum.
 The runtime suite uses `docker.sourcebot.dev/sourcebot-dev/sourcebot:latest`
 (override only the test image with `SETUP_TEST_SOURCEBOT_IMAGE`).
 

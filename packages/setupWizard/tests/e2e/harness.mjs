@@ -44,7 +44,7 @@ export function contract(events, requireTerminal = true) {
         assert.equal(event.properties.$lib_version, '5.52.1');
         assert.equal(event.properties.$geoip_disable, true);
         assert.equal(event.properties.$ignore_sent_at, true);
-        assert.equal(event.properties.nodeMajorVersion, 24);
+        assert.equal(event.properties.nodeMajorVersion, Number(process.versions.node.split('.')[0]));
         assert.equal(event.properties.source, 'setup-sourcebot-cli');
         assert.equal(event.properties.schemaVersion, 1);
         assert.ok(event.properties.elapsedMs >= elapsed);
@@ -63,7 +63,7 @@ export function contract(events, requireTerminal = true) {
 }
 
 export function artifact() {
-    assert.equal(Number(process.versions.node.split('.')[0]), 24, 'Run packed-artifact tests using Node 24');
+    assert.ok(Number(process.versions.node.split('.')[0]) >= 20, 'Run packed-artifact tests on Node 20 or newer');
     // node-pty 1.1.0 ships its macOS helper without its executable bit in the npm tarball.
     if (process.platform === 'darwin') {
         const helper = join(dirname(require.resolve('node-pty/package.json')), 'prebuilds', `darwin-${process.arch}`, 'spawn-helper');
