@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [EE] Fixed MCP activity using the canonical source label being omitted from analytics. [#1651](https://github.com/sourcebot-dev/sourcebot/pull/1651)
+- Preserved a supplied `SOURCEBOT_INSTALL_ID` on first boot. [#1648](https://github.com/sourcebot-dev/sourcebot/pull/1648)
+
 ## [5.1.12] - 2026-09-10
 
 ### Changed
@@ -17,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `smol-toml` to `1.8.0`. [#1644](https://github.com/sourcebot-dev/sourcebot/pull/1644)
 - Upgraded `hono` to `4.13.7`. [#1643](https://github.com/sourcebot-dev/sourcebot/pull/1643)
 - Upgraded `nodemailer` to `9.1.1`. [#1642](https://github.com/sourcebot-dev/sourcebot/pull/1642)
-- [EE] Fixed MCP activity using the canonical source label being omitted from analytics. [#1651](https://github.com/sourcebot-dev/sourcebot/pull/1651)
 
 ## [5.1.11] - 2026-09-10
 
