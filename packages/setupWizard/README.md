@@ -29,14 +29,20 @@ yarn workspace @sourcebot/schemas build
 yarn workspace setup-sourcebot build
 yarn workspace setup-sourcebot test
 yarn workspace setup-sourcebot test:e2e
+yarn workspace setup-sourcebot test:node-compatibility
 ```
 
 The E2E tests compile and pack the package, install it outside the repository,
 drive its published binary in a PTY, inspect real SDK requests through a local TLS
 collector, and clean up temporary installations. OpenSSL and Docker are required.
-PR and release verification run on Node 24 only; that is not the end-user minimum.
-The optional `yarn workspace setup-sourcebot test:node-compatibility` command remains
-available for targeted compatibility investigations, but is not part of CI or release verification.
+PR verification runs nine parallel OS/Node jobs (Linux, macOS, Windows × Node
+20.20.0, 22.22.0, 24). Each job builds and packs on Node 24 before selecting its
+test runtime. Linux runs the full CLI regression suite on each version; macOS and
+Windows run unit/integration and platform smoke tests. Docker identity, baseline,
+and package-manager checks run only in the Node 24 Linux job.
+Release verification also runs `test:node-compatibility` against the exact publish
+tarball; that command checks the older runtimes sequentially, including early
+rejection on Node 18, 20.19, and 22.21. Node 24 is not the end-user minimum.
 The runtime suite uses `docker.sourcebot.dev/sourcebot-dev/sourcebot:latest`
 (override only the test image with `SETUP_TEST_SOURCEBOT_IMAGE`).
 

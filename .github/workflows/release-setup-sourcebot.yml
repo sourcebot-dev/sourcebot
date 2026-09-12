@@ -112,6 +112,7 @@ jobs:
           docker pull docker.sourcebot.dev/sourcebot-dev/sourcebot:latest
           yarn workspace setup-sourcebot test
           yarn workspace setup-sourcebot test:e2e
+          yarn workspace setup-sourcebot test:node-compatibility
 
       - name: Upgrade npm for Trusted Publishing
         working-directory: .
