@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added privacy-scoped setup wizard funnel telemetry with deployment identity handoff, supporting Node.js from 20.20.0. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
-- Added isolated live setup CLI deployment tests covering public code hosts, local clones, AI configuration, search, and restart identity; repaired cross-platform test-runner cleanup. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
+- Added privacy-scoped setup wizard funnel telemetry with deployment identity handoff, Node.js 20.20.0 support, and cross-platform end-to-end test coverage. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
 
 ## [5.1.13] - 2026-09-12
 
