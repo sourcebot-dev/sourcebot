@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.13] - 2026-09-12
+
 ### Fixed
 - [EE] Fixed MCP activity using the canonical source label being omitted from analytics. [#1651](https://github.com/sourcebot-dev/sourcebot/pull/1651)
 - Preserved a supplied `SOURCEBOT_INSTALL_ID` on first boot. [#1648](https://github.com/sourcebot-dev/sourcebot/pull/1648)
