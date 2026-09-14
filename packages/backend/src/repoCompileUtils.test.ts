@@ -1,5 +1,23 @@
 import { expect, test, vi, describe, beforeEach, afterEach } from 'vitest';
-import { compileGenericGitHostConfig_file, compileGenericGitHostConfig_url } from './repoCompileUtils';
+import { compileAzureDevOpsConfig, compileGenericGitHostConfig_file, compileGenericGitHostConfig_url } from './repoCompileUtils';
+import { getAzureDevOpsReposFromConfig } from './azuredevops.js';
+
+vi.mock('./azuredevops.js', () => ({
+    getAzureDevOpsReposFromConfig: vi.fn(),
+}));
+
+test('preserves the ADO organization in repository URLs when webUrl is absent', async () => {
+    vi.mocked(getAzureDevOpsReposFromConfig).mockResolvedValue([{
+        id: '278d5cd2-584d-4b63-824a-2ba458937249', name: 'repo',
+        project: { name: 'My Project' },
+        remoteUrl: 'https://dev.azure.com/acme/My%20Project/_git/repo',
+    }]);
+    const [repo] = await compileAzureDevOpsConfig({
+        type: 'azuredevops', deploymentType: 'cloud', token: { env: 'ADO_TOKEN' },
+    }, 1);
+    expect(repo.cloneUrl).toBe('https://dev.azure.com/acme/My%20Project/_git/repo');
+    expect(repo.webUrl).toBe(repo.cloneUrl);
+});
 
 // Mock the git module
 vi.mock('./git.js', () => ({

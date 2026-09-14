@@ -38,6 +38,8 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     maxRepoPermissionSyncJobConcurrency: 8,
 }
 
+// Hosts supporting repo-driven sync. Azure DevOps Cloud supports account-driven
+// sync only and must not be scheduled on the repo permission queue.
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
     'github',
     'gitlab',
@@ -46,6 +48,7 @@ export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
 ];
 
 export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS = [
+    'azuredevops',
     'github',
     'gitlab',
     'bitbucket-cloud',
@@ -54,3 +57,7 @@ export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS = [
 
 export const doesIdpSupportPermissionSyncing = (providerType: string): providerType is (typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS)[number] =>
     PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(providerType as (typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS)[number]);
+
+// Request only the Azure DevOps resource, not Microsoft Graph's User.Read.
+// The app registration must grant Azure DevOps delegated vso.code permission.
+export const AZURE_DEVOPS_OAUTH_SCOPE = 'openid profile email offline_access 499b84ac-1321-427f-aa17-267ca6975798/.default';

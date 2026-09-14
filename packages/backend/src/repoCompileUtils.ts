@@ -794,8 +794,9 @@ export const compileAzureDevOpsConfig = async (
             throw new Error(`No id found for repository ${repoDisplayName}`);
         }
 
-        // Construct web URL for the repository
-        const webUrl = repo.webUrl || `${hostUrl}/${repo.project.name}/_git/${repo.name}`;
+        // Preserve the organization (and any Server collection path) when ADO
+        // omits webUrl. Permission checks also need this organization identity.
+        const webUrl = repo.webUrl || repo.remoteUrl;
 
         logger.debug(`Found Azure DevOps repo ${repoDisplayName} with webUrl: ${webUrl}`);
 

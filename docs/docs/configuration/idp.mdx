@@ -445,6 +445,38 @@ A Keycloak connection can be used for [authentication](/docs/configuration/auth)
 </Steps>
 </Accordion>
 
+### Azure DevOps Cloud
+
+Use the `azuredevops` provider to sign in or link an Azure DevOps Cloud account through Microsoft Entra ID. This provider requests an Azure DevOps access token for [user-driven permission syncing](/docs/features/permission-syncing#azure-devops-cloud).
+
+1. Register a web application in the Microsoft Entra tenant connected to your Azure DevOps organizations. Select **Accounts in this organizational directory only**.
+2. Add the redirect URI `<sourcebot_url>/api/auth/callback/azuredevops`. If you use a custom provider ID, replace `azuredevops` in the callback with that ID.
+3. Create a client secret. Under **API permissions**, add the **Azure DevOps** delegated permission **Code (Read)** (`vso.code`). Grant consent according to your tenant's policies. The provider requests the app's configured Azure DevOps permissions through the `.default` scope, so only configure the permissions you need.
+4. Set `ADO_CLIENT_ID` and `ADO_CLIENT_SECRET` in your environment, then add the provider to your config:
+
+```json
+{
+    "identityProviders": {
+        "azuredevops": {
+            "provider": "azuredevops",
+            "purpose": "account_linking",
+            "tenantId": "YOUR_ENTRA_TENANT_GUID",
+            "clientId": { "env": "ADO_CLIENT_ID" },
+            "clientSecret": { "env": "ADO_CLIENT_SECRET" },
+            "accountLinkingRequired": true
+        }
+    }
+}
+```
+
+Use `purpose: "account_linking"` to keep your existing sign-in provider and let users connect Azure DevOps through **Settings → Linked Accounts**. Use `purpose: "sso"` to sign in and authorize Azure DevOps access in one flow.
+
+Your users authorize access through Entra. Sourcebot stores encrypted access and refresh tokens so it can refresh permissions in the background. Guest users must sign in to the tenant connected to Azure DevOps.
+
+This provider supports Azure DevOps Cloud with organizational Entra accounts. Azure DevOps Server and standalone personal Microsoft accounts are not supported. Your repository connection continues to use its configured PAT for indexing.
+
+An existing `microsoft-entra-id` provider handles sign-in only. Configure the `azuredevops` provider to authorize Azure DevOps API access. For protocol details, see [Microsoft's Entra OAuth guide](https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/entra-oauth?view=azure-devops).
+
 ### Microsoft Entra ID (Azure AD)
 
 [Auth.js Microsoft Entra ID Provider Docs](https://authjs.dev/getting-started/providers/microsoft-entra-id)

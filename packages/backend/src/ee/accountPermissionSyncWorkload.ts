@@ -32,6 +32,7 @@ import {
     withPermissionSyncUpstreamError,
 } from "./permissionSyncError.js";
 import { ensureFreshAccountToken, TokenRefreshError } from "./tokenRefresh.js";
+import { getAzureDevOpsReadableRepoIds } from "./azureDevOpsPermissionSync.js";
 import { Settings, Workload } from "../types.js";
 import { IdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 
@@ -188,6 +189,7 @@ export const createAccountPermissionSyncWorkload = ({
                     account,
                     accessToken,
                     config: idpConfig,
+                    signal,
                 });
 
                 signal.throwIfAborted();
@@ -319,13 +321,28 @@ const getAccessibleRepoIds = async ({
     account,
     accessToken,
     config,
+    signal,
 }: {
     db: PrismaClient;
     account: AccountWithUser;
     accessToken: string;
     config: IdentityProviderConfig;
+    signal: AbortSignal;
 }): Promise<number[]> => {
     switch (config.provider) {
+        case "azuredevops": {
+            const repos = await db.repo.findMany({
+                where: {
+                    external_codeHostType: "azuredevops",
+                    external_codeHostUrl: "https://dev.azure.com",
+                    isPublic: false,
+                    connections: { some: { connection: { enforcePermissions: true } } },
+                },
+                select: { id: true, external_id: true, cloneUrl: true },
+            });
+            signal.throwIfAborted();
+            return getAzureDevOpsReadableRepoIds(repos, accessToken, signal);
+        }
         case "github":
             return getGitHubAccessibleRepoIds({
                 db,
