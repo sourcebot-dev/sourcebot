@@ -16,9 +16,16 @@ const JSON_SCHEMA_DIALECT = {
 
 type JsonSchemaDialect = typeof JSON_SCHEMA_DIALECT[keyof typeof JSON_SCHEMA_DIALECT];
 
-const draft07Ajv = new Ajv(AJV_OPTIONS);
-const draft2019Ajv = new Ajv2019(AJV_OPTIONS);
-const draft2020Ajv = new Ajv2020(AJV_OPTIONS);
+const MCP_JSON_SCHEMA_VALIDATOR_CACHE_MAX_ENTRIES = 100;
+const MCP_JSON_SCHEMA_VALIDATOR_CACHE_MAX_KEY_LENGTH = 64 * 1024;
+
+// Ajv caches every schema object it compiles for the lifetime of the Ajv
+// instance. MCP tool definitions are deserialized from Redis on each request,
+// so even unchanged schemas have a new object identity and would grow that
+// internal cache indefinitely. Keep a bounded, content-keyed cache instead and
+// compile cache misses with a short-lived Ajv instance.
+const validatorCache = new Map<string, ValidateFunction>();
+const errorFormatterAjv = new Ajv2020(AJV_OPTIONS);
 
 const DIALECT_BY_META_SCHEMA_URI = new Map<string, JsonSchemaDialect>([
     ['http://json-schema.org/draft-07/schema', JSON_SCHEMA_DIALECT.DRAFT_07],
@@ -52,31 +59,63 @@ export class UnsupportedMcpJsonSchemaFeatureError extends Error {
 export function compileMcpJsonSchemaValidator(schema: unknown): ValidateFunction {
     rejectAsyncSchema(schema);
     const dialect = getJsonSchemaDialect(schema);
-
-    switch (dialect) {
-        case JSON_SCHEMA_DIALECT.DRAFT_07:
-            return compileWithAjv(draft07Ajv, schema);
-        case JSON_SCHEMA_DIALECT.DRAFT_2019_09:
-            return compileWithAjv(draft2019Ajv, schema);
-        case JSON_SCHEMA_DIALECT.DRAFT_2020_12:
-            return compileWithAjv(draft2020Ajv, schema);
+    const cacheKey = getValidatorCacheKey(schema);
+    if (cacheKey !== undefined) {
+        const cachedValidator = validatorCache.get(cacheKey);
+        if (cachedValidator) {
+            // Refresh insertion order so the map acts as an LRU cache.
+            validatorCache.delete(cacheKey);
+            validatorCache.set(cacheKey, cachedValidator);
+            return cachedValidator;
+        }
     }
+
+    const validator = createAjv(dialect).compile(schema as AnySchema);
+    if (cacheKey !== undefined) {
+        validatorCache.set(cacheKey, validator);
+        if (validatorCache.size > MCP_JSON_SCHEMA_VALIDATOR_CACHE_MAX_ENTRIES) {
+            const oldestCacheKey = validatorCache.keys().next().value;
+            if (oldestCacheKey !== undefined) {
+                validatorCache.delete(oldestCacheKey);
+            }
+        }
+    }
+
+    return validator;
 }
 
 export function formatMcpJsonSchemaValidationErrors(
     errors: ErrorObject[] | null | undefined,
 ): string {
     // Ajv's error representation and formatter are shared across dialects.
-    return draft2020Ajv.errorsText(errors);
+    return errorFormatterAjv.errorsText(errors);
 }
 
-function compileWithAjv(
-    ajv: Ajv | Ajv2019 | Ajv2020,
-    schema: unknown,
-): ValidateFunction {
-    // addUsedSchema: false prevents remote root $id values from entering Ajv's
-    // shared schema registry or conflicting across MCP servers.
-    return ajv.compile(schema as AnySchema);
+function createAjv(dialect: JsonSchemaDialect): Ajv | Ajv2019 | Ajv2020 {
+    switch (dialect) {
+        case JSON_SCHEMA_DIALECT.DRAFT_07:
+            return new Ajv(AJV_OPTIONS);
+        case JSON_SCHEMA_DIALECT.DRAFT_2019_09:
+            return new Ajv2019(AJV_OPTIONS);
+        case JSON_SCHEMA_DIALECT.DRAFT_2020_12:
+            return new Ajv2020(AJV_OPTIONS);
+    }
+}
+
+function getValidatorCacheKey(schema: unknown): string | undefined {
+    try {
+        const serializedSchema = JSON.stringify(schema);
+        if (
+            serializedSchema === undefined
+            || serializedSchema.length > MCP_JSON_SCHEMA_VALIDATOR_CACHE_MAX_KEY_LENGTH
+        ) {
+            return undefined;
+        }
+        return serializedSchema;
+    } catch {
+        // Ajv will report the useful compilation error for non-JSON inputs.
+        return undefined;
+    }
 }
 
 function rejectAsyncSchema(schema: unknown): void {
