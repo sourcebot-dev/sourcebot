@@ -78,6 +78,27 @@
             },
             "required": ["provider", "purpose", "clientId", "clientSecret"]
         },
+        "AzureDevOpsIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": { "const": "azuredevops" },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional label for the Microsoft Entra-backed Azure DevOps Cloud provider. Defaults to 'Azure DevOps'."
+                },
+                "purpose": { "enum": ["sso", "account_linking"] },
+                "clientId": { "$ref": "./shared.json#/definitions/Token" },
+                "clientSecret": { "$ref": "./shared.json#/definitions/Token" },
+                "tenantId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                    "description": "Microsoft Entra directory tenant ID. Register the application in the tenant connected to your Azure DevOps organizations."
+                },
+                "accountLinkingRequired": { "type": "boolean", "default": false }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "tenantId"]
+        },
         "GoogleIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -339,6 +360,9 @@
         }
     },
     "oneOf": [
+        {
+            "$ref": "#/definitions/AzureDevOpsIdentityProviderConfig"
+        },
         {
             "$ref": "#/definitions/GitHubIdentityProviderConfig"
         },

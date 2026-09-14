@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     createBitbucketServerClient: vi.fn(),
     ensureFreshAccountToken: vi.fn(),
     getIdentityProviderConfig: vi.fn(),
+    getAzureDevOpsReadableRepoIds: vi.fn(),
     getReposForAuthenticatedBitbucketCloudUser: vi.fn(),
     getReposForAuthenticatedBitbucketServerUser: vi.fn(),
     hasEntitlement: vi.fn(),
@@ -42,6 +43,10 @@ vi.mock("@sourcebot/shared", async (importOriginal) => ({
 
 vi.mock("../entitlements.js", () => ({
     hasEntitlement: mocks.hasEntitlement,
+}));
+
+vi.mock("./azureDevOpsPermissionSync.js", () => ({
+    getAzureDevOpsReadableRepoIds: mocks.getAzureDevOpsReadableRepoIds,
 }));
 
 vi.mock("../bitbucket.js", () => ({
@@ -180,6 +185,52 @@ beforeEach(() => {
     permissionCreateMany.mockResolvedValue({ count: 0 });
     permissionDeleteMany.mockResolvedValue({ count: 95 });
     accountUpdateMany.mockResolvedValue({ count: 1 });
+});
+
+describe("Azure DevOps account permission syncing", () => {
+    beforeEach(() => {
+        mocks.getIdentityProviderConfig.mockResolvedValue({ provider: 'azuredevops' });
+        mocks.getAzureDevOpsReadableRepoIds.mockReset().mockResolvedValue([11]);
+    });
+
+    test('publishes only verified Cloud repo grants and replaces previous access', async () => {
+        const repos = [{ id: 11, external_id: 'repo-id', cloneUrl: 'https://dev.azure.com/acme/project/_git/repo' }];
+        repoFindMany.mockResolvedValue(repos);
+        await createWorkload().process(processContext);
+        expect(repoFindMany).toHaveBeenCalledWith({
+            where: {
+                external_codeHostType: 'azuredevops', external_codeHostUrl: 'https://dev.azure.com',
+                isPublic: false, connections: { some: { connection: { enforcePermissions: true } } },
+            },
+            select: { id: true, external_id: true, cloneUrl: true },
+        });
+        expect(mocks.getAzureDevOpsReadableRepoIds).toHaveBeenCalledWith(repos, 'access-token', processContext.signal);
+        expect(accountUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: { accessibleRepos: { deleteMany: {} } },
+        }));
+        expect(permissionCreateMany).toHaveBeenCalledWith({
+            data: [{ accountId: 'account_1', repoId: 11, source: 'ACCOUNT_DRIVEN' }], skipDuplicates: true,
+        });
+    });
+
+    test('preserves the previous permission set if any ADO read check fails transiently', async () => {
+        mocks.getAzureDevOpsReadableRepoIds.mockRejectedValue(upstreamError('upstream_unavailable'));
+        await expect(createWorkload().process(processContext)).rejects.toThrow();
+        expect(permissionCreateMany).not.toHaveBeenCalled();
+        expect(permissionDeleteMany).not.toHaveBeenCalled();
+        expect(accountUpdate).not.toHaveBeenCalled();
+    });
+
+    test('clears cached grants when ADO rejects the user token', async () => {
+        mocks.getAzureDevOpsReadableRepoIds.mockRejectedValue(new PermissionSyncUpstreamError('Unauthorized', {
+            provider: 'azuredevops', operation: 'list_accessible_repositories', kind: 'credential_rejected', status: 401,
+        }));
+        await expect(createWorkload().process(processContext)).rejects.toThrow();
+        expect(permissionDeleteMany).toHaveBeenCalledWith({ where: { accountId: 'account_1' } });
+        expect(accountUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: { permissionSyncIssue: 'REAUTHENTICATION_REQUIRED', permissionSyncIssueAt: expect.any(Date) },
+        }));
+    });
 });
 
 describe("classifyPermissionSyncFailure", () => {

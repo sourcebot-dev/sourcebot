@@ -46,6 +46,8 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
     // Helper function to get the correct analytics event name based on provider type.
     const getLoginEventName = (providerType: string) => {
         switch (providerType) {
+            case "azuredevops":
+                return "wa_login_with_azuredevops" as const;
             case "github":
                 return "wa_login_with_github" as const;
             case "google":

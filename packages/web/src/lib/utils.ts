@@ -82,6 +82,13 @@ type AuthProviderInfo = {
 
 export const getAuthProviderInfo = (providerType: string): AuthProviderInfo => {
     switch (providerType) {
+        case "azuredevops":
+            return {
+                id: "azuredevops",
+                name: "Azure DevOps",
+                displayName: "Azure DevOps",
+                icon: { src: azuredevopsLogo },
+            };
         case "github":
             return {
                 id: "github",

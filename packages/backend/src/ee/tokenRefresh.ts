@@ -1,11 +1,13 @@
 import { Account, PrismaClient } from '@sourcebot/db';
 import {
+    AzureDevOpsIdentityProviderConfig,
     BitbucketCloudIdentityProviderConfig,
     BitbucketServerIdentityProviderConfig,
     GitHubIdentityProviderConfig,
     GitLabIdentityProviderConfig,
 } from '@sourcebot/schemas/v3/index.type';
 import {
+    AZURE_DEVOPS_OAUTH_SCOPE,
     createLogger,
     decryptOAuthToken,
     encryptOAuthToken,
@@ -19,6 +21,7 @@ import { z } from 'zod';
 const logger = createLogger('backend-ee-token-refresh');
 
 const SUPPORTED_PROVIDERS = [
+    'azuredevops',
     'github',
     'gitlab',
     'bitbucket-cloud',
@@ -86,6 +89,7 @@ type ProviderCredentials = {
     clientId: string;
     clientSecret: string;
     baseUrl?: string;
+    tenantId?: string;
 };
 
 const EXPIRY_BUFFER_S = 5 * 60; // 5 minutes
@@ -219,6 +223,7 @@ const refreshOAuthToken = async (
         }
 
         const linkedAccountProviderConfig = idpConfig as
+            AzureDevOpsIdentityProviderConfig |
             GitHubIdentityProviderConfig |
             GitLabIdentityProviderConfig |
             BitbucketCloudIdentityProviderConfig |
@@ -231,7 +236,10 @@ const refreshOAuthToken = async (
             ? linkedAccountProviderConfig.baseUrl
             : undefined;
 
-        credentials = { clientId, clientSecret, baseUrl };
+        credentials = {
+            clientId, clientSecret, baseUrl,
+            ...('tenantId' in linkedAccountProviderConfig ? { tenantId: linkedAccountProviderConfig.tenantId } : {}),
+        };
     } catch (error) {
         if (error instanceof TokenRefreshError) {
             throw error;
@@ -256,10 +264,15 @@ export const exchangeRefreshToken = async (
     refreshToken: string,
     credentials: ProviderCredentials,
 ): Promise<OAuthTokenResponse> => {
-    const { clientId, clientSecret, baseUrl } = credentials;
+    const { clientId, clientSecret, baseUrl, tenantId } = credentials;
 
     let url: string;
-    if (baseUrl) {
+    if (providerType === 'azuredevops') {
+        if (!tenantId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
+            throw new TokenRefreshError('Azure DevOps requires a valid Microsoft Entra tenant ID.', { kind: 'configuration' });
+        }
+        url = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+    } else if (baseUrl) {
         // Use a trailing-slash-normalized base so relative paths append correctly,
         // preserving any context path (e.g. https://example.com/bitbucket/).
         const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
@@ -292,6 +305,10 @@ export const exchangeRefreshToken = async (
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
     };
+
+    if (providerType === 'azuredevops') {
+        bodyParams.scope = AZURE_DEVOPS_OAUTH_SCOPE;
+    }
 
     if (!useBasicAuth) {
         // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1 (client authentication)

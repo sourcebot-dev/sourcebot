@@ -1,7 +1,7 @@
 import type { IdentityProvider } from "@/auth";
 import { __unsafePrisma } from "@/prisma";
 import { hasEntitlement } from "@/lib/entitlements";
-import { createLogger, env, getIdentityProviderConfigs, getTokenFromConfig } from "@sourcebot/shared";
+import { AZURE_DEVOPS_OAUTH_SCOPE, createLogger, env, getIdentityProviderConfigs, getTokenFromConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
@@ -25,6 +25,40 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     const identityProviders = await getIdentityProviderConfigs();
 
     for (const [id, idpConfig] of Object.entries(identityProviders)) {
+        if (idpConfig.provider === "azuredevops") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            providers.push({
+                __provider: {
+                    id,
+                    name: "Azure DevOps",
+                    type: "oidc",
+                    issuer: `https://login.microsoftonline.com/${idpConfig.tenantId.toLowerCase()}/v2.0`,
+                    clientId,
+                    clientSecret,
+                    checks: ["pkce", "state", "nonce"],
+                    authorization: { params: { scope: AZURE_DEVOPS_OAUTH_SCOPE } },
+                    // Use the validated ID token. The access token is for ADO
+                    // and cannot be used for the Microsoft Graph profile API.
+                    profile(profile) {
+                        return {
+                            id: profile.sub,
+                            name: profile.name,
+                            email: profile.email ?? null,
+                            image: null,
+                        };
+                    },
+                    allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+                },
+                id,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                required: idpConfig.accountLinkingRequired ?? false,
+                issuerUrl: 'https://dev.azure.com',
+            });
+        }
+
         if (idpConfig.provider === "github") {
             const clientId = await getTokenFromConfig(idpConfig.clientId);
             const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);

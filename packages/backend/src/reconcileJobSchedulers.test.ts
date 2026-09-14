@@ -97,6 +97,7 @@ describe("reconcileJobSchedulers", () => {
             where: {
                 providerType: {
                     in: [
+                        "azuredevops",
                         "github",
                         "gitlab",
                         "bitbucket-cloud",

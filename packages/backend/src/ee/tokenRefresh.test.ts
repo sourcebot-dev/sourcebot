@@ -43,6 +43,53 @@ const tokenResponse = () => new Response(JSON.stringify({
 });
 
 describe('exchangeRefreshToken', () => {
+    test('refreshes Azure DevOps tokens at the configured Entra tenant', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(tokenResponse());
+        vi.stubGlobal('fetch', fetchMock);
+        await exchangeRefreshToken('azuredevops', 'old-refresh-token', {
+            clientId: 'client-id', clientSecret: 'client-secret',
+            tenantId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        });
+        const [url, options] = fetchMock.mock.calls[0];
+        expect(url).toBe('https://login.microsoftonline.com/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/oauth2/v2.0/token');
+        expect(Object.fromEntries(options.body)).toMatchObject({
+            grant_type: 'refresh_token', refresh_token: 'old-refresh-token',
+            client_id: 'client-id', client_secret: 'client-secret',
+            scope: 'openid profile email offline_access 499b84ac-1321-427f-aa17-267ca6975798/.default',
+        });
+    });
+
+    test('rejects an invalid Azure DevOps tenant before sending credentials', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        await expect(exchangeRefreshToken('azuredevops', 'refresh-token', {
+            clientId: 'client-id', clientSecret: 'client-secret', tenantId: '../common',
+        })).rejects.toMatchObject({ kind: 'configuration' });
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    test('refreshes and encrypts tokens for a custom Azure DevOps provider instance', async () => {
+        sharedMocks.getIdentityProviderConfig.mockResolvedValue({
+            provider: 'azuredevops', clientId: 'client-id', clientSecret: 'client-secret',
+            tenantId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        });
+        const fetchMock = vi.fn().mockResolvedValue(tokenResponse());
+        vi.stubGlobal('fetch', fetchMock);
+        const update = vi.fn();
+        expect(await ensureFreshAccountToken({
+            id: 'account-1', providerId: 'ado-corp', providerType: 'azuredevops',
+            access_token: 'old-access-token', refresh_token: 'old-refresh-token', expires_at: 1,
+        } as Account, { account: { update } } as unknown as PrismaClient)).toBe('new-access-token');
+        expect(sharedMocks.getIdentityProviderConfig).toHaveBeenCalledWith('ado-corp');
+        expect(fetchMock.mock.calls[0][0]).toContain('/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/oauth2/v2.0/token');
+        expect(update).toHaveBeenCalledWith({
+            where: { id: 'account-1' },
+            data: {
+                access_token: 'encrypted:new-access-token', refresh_token: 'encrypted:new-refresh-token',
+                expires_at: expect.any(Number), tokenRefreshErrorMessage: null,
+            },
+        });
+    });
     beforeEach(() => {
         vi.useFakeTimers();
         sharedMocks.decryptOAuthToken.mockReset().mockImplementation(token => token);

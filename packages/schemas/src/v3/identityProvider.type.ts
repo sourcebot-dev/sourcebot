@@ -1,6 +1,7 @@
 // THIS IS A AUTO-GENERATED FILE. DO NOT MODIFY MANUALLY!
 
 export type IdentityProviderConfig =
+  | AzureDevOpsIdentityProviderConfig
   | GitHubIdentityProviderConfig
   | GitLabIdentityProviderConfig
   | GoogleIdentityProviderConfig
@@ -14,6 +15,45 @@ export type IdentityProviderConfig =
   | IdiraIdentityProviderConfig
   | BitbucketServerIdentityProviderConfig;
 
+export interface AzureDevOpsIdentityProviderConfig {
+  provider: "azuredevops";
+  /**
+   * Optional label for the Microsoft Entra-backed Azure DevOps Cloud provider. Defaults to 'Azure DevOps'.
+   */
+  displayName?: string;
+  purpose: "sso" | "account_linking";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * Microsoft Entra directory tenant ID. Register the application in the tenant connected to your Azure DevOps organizations.
+   */
+  tenantId: string;
+  accountLinkingRequired?: boolean;
+}
 export interface GitHubIdentityProviderConfig {
   provider: "github";
   /**

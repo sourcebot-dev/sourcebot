@@ -15,6 +15,7 @@ vi.mock('@/features/membership/onCreateUser', () => ({
     onCreateUser: vi.fn(),
 }));
 vi.mock('@sourcebot/shared', () => ({
+    AZURE_DEVOPS_OAUTH_SCOPE: 'openid profile email offline_access 499b84ac-1321-427f-aa17-267ca6975798/.default',
     createLogger: () => ({ warn: vi.fn() }),
     env: { AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING: 'false' },
     getIdentityProviderConfigs: mocks.getIdentityProviderConfigs,
@@ -28,6 +29,35 @@ beforeEach(() => {
 });
 
 describe('getEEIdentityProviders', () => {
+    test.each(['sso', 'account_linking'])('supports Azure DevOps %s through tenant-scoped Entra OAuth', async (purpose) => {
+        mocks.getIdentityProviderConfigs.mockResolvedValue({
+            'ado-corp': {
+                provider: 'azuredevops', purpose, tenantId: 'AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE',
+                clientId: { env: 'ADO_CLIENT_ID' }, clientSecret: { env: 'ADO_CLIENT_SECRET' },
+                accountLinkingRequired: true,
+            },
+        });
+        mocks.getTokenFromConfig.mockImplementation(async ({ env }) => env);
+        const [provider] = await getEEIdentityProviders();
+        expect(provider).toMatchObject({
+            id: 'ado-corp', type: 'azuredevops', purpose, required: true,
+            issuerUrl: 'https://dev.azure.com',
+            __provider: {
+                id: 'ado-corp', type: 'oidc',
+                issuer: 'https://login.microsoftonline.com/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/v2.0',
+                checks: ['pkce', 'state', 'nonce'],
+                authorization: { params: { scope: 'openid profile email offline_access 499b84ac-1321-427f-aa17-267ca6975798/.default' } },
+                allowDangerousEmailAccountLinking: false,
+            },
+        });
+        const oauth = provider.__provider;
+        if (typeof oauth === 'function' || oauth.type !== 'oidc') {
+            throw new Error('Expected OIDC provider');
+        }
+        expect(await oauth.profile!({ sub: 'subject', name: 'Alice', email: 'alice@example.com' }, {})).toEqual({
+            id: 'subject', name: 'Alice', email: 'alice@example.com', image: null,
+        });
+    });
     test('preserves the configured Idira issuer trailing slash', async () => {
         const clientId = { env: 'IDIRA_CLIENT_ID' };
         const clientSecret = { env: 'IDIRA_CLIENT_SECRET' };

@@ -41,7 +41,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 | [GitLab (Self-managed & Cloud)](/docs/features/permission-syncing#gitlab) | ✅ |
 | [Bitbucket Cloud](/docs/features/permission-syncing#bitbucket-cloud) | 🟠 Partial |
 | [Bitbucket Data Center](/docs/features/permission-syncing#bitbucket-data-center) | 🟠 Partial |
-| Azure DevOps Cloud | 🛑 |
+| [Azure DevOps Cloud](/docs/features/permission-syncing#azure-devops-cloud) | 🟠 User-driven only |
 | Azure DevOps Server | 🛑 |
 | Gitea | 🛑 |
 | Gerrit | 🛑 |
@@ -131,6 +131,22 @@ If your instance relies heavily on project or group-level permissions, we recomm
 - A Bitbucket Data Center [external identity provider](/docs/configuration/idp#bitbucket-server) must be configured to (1) correlate a Sourcebot user with a Bitbucket Data Center user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - The connection token must have **Repository Read** permissions so Sourcebot can read repository-level user permissions for [Repo driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `REPO_READ` scope to list accessible repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
+
+### Azure DevOps Cloud
+
+Prerequisites:
+
+- Configure an [Azure DevOps Cloud connection](/docs/connections/ado-cloud) with `url: "https://dev.azure.com"` and permission enforcement enabled.
+- Configure the [Azure DevOps Cloud identity provider](/docs/configuration/idp#azure-devops-cloud) through Microsoft Entra OAuth.
+- Sign in with that provider or link your Azure DevOps account through **Settings → Linked Accounts**.
+
+Azure DevOps Cloud supports **user-driven syncing only**. Sourcebot checks whether your delegated token can read root Git item metadata for each indexed private repository. Azure DevOps evaluates your access, including group membership and explicit denies. Sourcebot grants access only after a successful read check.
+
+Your permissions sync after you first sign in or link your account, on the `userDrivenPermissionSyncIntervalMs` schedule (24 hours by default), and when you manually refresh them. Newly indexed repositories become visible after your next account sync. Repository-driven syncing through a service credential is not supported.
+
+Empty repositories and repositories whose default revision cannot be read do not receive a grant. They are checked again on the next sync. If Azure DevOps rejects your token, Sourcebot clears your cached grants and asks you to reconnect. Temporary API failures preserve your last successful permission set and retry through the background queue.
+
+Public repositories follow the connection's public-repository enforcement settings. Azure DevOps Server is not supported.
 
 # Manually refreshing permissions
 

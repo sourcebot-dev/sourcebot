@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added privacy-scoped setup wizard funnel and Docker startup-failure telemetry with deployment identity handoff, Node.js 20.20.0 support, and cross-platform end-to-end test coverage. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
+- [EE] Added user-driven permission syncing for Azure DevOps Cloud through Microsoft Entra OAuth. [#1655](https://github.com/sourcebot-dev/sourcebot/pull/1655)
 
 ## [5.1.13] - 2026-09-12
 
