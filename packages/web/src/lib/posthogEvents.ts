@@ -542,9 +542,7 @@ export type PosthogEventMap = {
         owner: string,
         repo: string,
         repoName: string,
-        isAnonymous: boolean,
-        anonymousCreatorId?: string,
-        repoId?: number,
+        repoId: number,
     },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
