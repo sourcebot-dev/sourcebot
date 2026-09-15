@@ -23,12 +23,14 @@ Sourcebot MCP uses a [Streamable HTTP](https://modelcontextprotocol.io/specifica
 
 You can read more about the options in the [authorization](#authorization) section.
 
-<Note>
-    If [anonymous access](https://docs.sourcebot.dev/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
-</Note>
+<Tip>
+    **Fastest setup:** Open **Settings → MCP** in your Sourcebot deployment to copy the Server URL and use one-click install cards for supported clients.
+</Tip>
 
 <Note>
-    The examples below add the MCP server and connect it to Sourcebot's public deployment at [app.sourcebot.dev](https://app.sourcebot.dev). Replace the URL with your own Sourcebot deployment as needed.
+    Note the following about these examples:
+    - The examples add the MCP server and connect it to Sourcebot's public deployment at [app.sourcebot.dev](https://app.sourcebot.dev). Replace the URL with your own Sourcebot deployment as needed.
+    - If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
 </Note>
 
 <AccordionGroup>
@@ -145,30 +147,29 @@ You can read more about the options in the [authorization](#authorization) secti
     </Accordion>
 
     <Accordion title="Codex">
-        [Codex MCP docs](https://developers.openai.com/codex/mcp)
-
-        Add the following to your `~/.codex/config.toml` file:
+        [Codex MCP docs](https://learn.chatgpt.com/docs/extend/mcp)
 
         <Tabs>
             <Tab title="OAuth">
                 <LicenseKeyRequired feature="OAuth" />
 
-                ```toml
-                [mcp_servers.sourcebot]
-                url = "https://app.sourcebot.dev/api/mcp"
-                ```
-
-                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Then run the following to authenticate:
+                Run the following command:
 
                 ```sh
-                codex mcp login sourcebot
+                codex mcp add sourcebot --url https://app.sourcebot.dev/api/mcp
                 ```
+
+                Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted. Codex will automatically detect OAuth support and prompt you to authorize in your browser when you first connect.
+
+                <Tip>
+                    Open **Settings → MCP** in your Sourcebot deployment and click **Copy command** on the Codex card for a ready-to-run command with the correct Server URL.
+                </Tip>
             </Tab>
             <Tab title="API Key">
-                ```toml
-                [mcp_servers.sourcebot]
-                url = "https://app.sourcebot.dev/api/mcp"
-                bearer_token_env_var = "SOURCEBOT_API_KEY"
+                Run the following command:
+
+                ```sh
+                codex mcp add sourcebot --url https://app.sourcebot.dev/api/mcp --bearer-token-env-var SOURCEBOT_API_KEY
                 ```
 
                 Replace `https://app.sourcebot.dev` with wherever your Sourcebot instance is hosted, then set your API key as an environment variable:
@@ -276,7 +277,7 @@ You can read more about the options in the [authorization](#authorization) secti
 
 ## Authorization
 
-The Sourcebot MCP server supports two authorization methods, OAuth and API keys. If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your instance, no authorization is required.
+The Sourcebot MCP server supports two authorization methods: OAuth and API keys. If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your instance, no authorization is required.
 
 Regardless of which method you use, all MCP requests are scoped to the associated Sourcebot user and inherit the [user's role and permissions](/docs/configuration/auth/roles-and-permissions). When [permission syncing](/docs/features/permission-syncing) is configured, this includes repository permissions - the MCP server will only surface results from repositories the user has access to.
 
