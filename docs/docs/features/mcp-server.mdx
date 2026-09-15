@@ -24,11 +24,13 @@ Sourcebot MCP uses a [Streamable HTTP](https://modelcontextprotocol.io/specifica
 You can read more about the options in the [authorization](#authorization) section.
 
 <Tip>
-    **Fastest setup:** Open **Settings → MCP** in your Sourcebot deployment to copy the Server URL and use one-click install cards for supported clients. The examples below are useful when you need to customize the URL for self-hosted deployments or use API key authentication.
+    **Fastest setup:** Open **Settings → MCP** in your Sourcebot deployment to copy the Server URL and use one-click install cards for supported clients.
 </Tip>
 
 <Note>
-    The examples below add the MCP server and connect it to Sourcebot's public deployment at [app.sourcebot.dev](https://app.sourcebot.dev). Replace the URL with your own Sourcebot deployment as needed.
+    Note the following about these examples:
+    - The examples add the MCP server and connect it to Sourcebot's public deployment at [app.sourcebot.dev](https://app.sourcebot.dev). Replace the URL with your own Sourcebot deployment as needed.
+    - If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
 </Note>
 
 <AccordionGroup>
@@ -275,7 +277,7 @@ You can read more about the options in the [authorization](#authorization) secti
 
 ## Authorization
 
-The Sourcebot MCP server supports two authorization methods: OAuth and API keys.
+The Sourcebot MCP server supports two authorization methods: OAuth and API keys. If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your instance, no authorization is required.
 
 Regardless of which method you use, all MCP requests are scoped to the associated Sourcebot user and inherit the [user's role and permissions](/docs/configuration/auth/roles-and-permissions). When [permission syncing](/docs/features/permission-syncing) is configured, this includes repository permissions - the MCP server will only surface results from repositories the user has access to.
 
