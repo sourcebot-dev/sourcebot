@@ -1,6 +1,7 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
+import { captureEvent } from "@/lib/posthog";
 import { githubRateLimited, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { env } from "@sourcebot/shared";
@@ -33,6 +34,15 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
             jobId: z.string(),
             repoId: z.number(),
         });
-        return schema.parse(data);
+        const result = schema.parse(data);
+
+        await captureEvent('askgh_repo_index_requested', {
+            owner,
+            repo,
+            repoName: `${owner}/${repo}`,
+            repoId: result.repoId,
+        });
+
+        return result;
     })
 );
