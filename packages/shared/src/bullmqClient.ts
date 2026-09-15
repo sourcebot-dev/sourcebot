@@ -137,6 +137,19 @@ export class BullMQClient {
         return jobs.flatMap((job) => job.id ? [job.id] : []);
     }
 
+    async getSyncingJobIds<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+    ): Promise<string[]> {
+        const jobs = await this.getQueue(spec).getJobs(
+            ["waiting", "waiting-children", "delayed", "prioritized", "paused", "active"],
+            0,
+            -1,
+            true,
+        );
+
+        return jobs.flatMap((job) => job.id ? [job.id] : []);
+    }
+
     async getJobLogs<TName extends QueueName>(
         spec: QueueSpec<TName>,
         jobId: string,

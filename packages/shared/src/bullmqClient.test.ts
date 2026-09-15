@@ -178,6 +178,24 @@ describe("BullMQClient", () => {
         );
     });
 
+    test("lists syncing job ids", async () => {
+        mocks.listJobs.mockResolvedValue([
+            { id: "syncing-1" },
+            { id: "syncing-2" },
+        ]);
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getSyncingJobIds(CONNECTION_QUEUE),
+        ).resolves.toEqual(["syncing-1", "syncing-2"]);
+        expect(mocks.listJobs).toHaveBeenCalledWith(
+            ["waiting", "waiting-children", "delayed", "prioritized", "paused", "active"],
+            0,
+            -1,
+            true,
+        );
+    });
+
     test("includes workload data in scheduled jobs", async () => {
         const client = new BullMQClient({} as Redis);
         const data = { connectionId: 42 };

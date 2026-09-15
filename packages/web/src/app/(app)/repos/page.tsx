@@ -17,7 +17,7 @@ const DEFAULT_PAGE_SIZE = 20;
 const pageSchema = z.coerce.number().int().positive();
 const sortBySchema = z.enum(["name", "indexedAt"]);
 const sortOrderSchema = z.enum(["asc", "desc"]);
-const statusSchema = z.enum(["failed", "warning"]);
+const statusSchema = z.enum(["syncing", "failed", "warning"]);
 
 type ReposPageProps = {
     searchParams: Promise<{
@@ -44,9 +44,13 @@ export default authenticatedPage<
     const orderBy = sortBy === "indexedAt"
         ? [{ indexedAt: sortOrder }, { id: "asc" as const }]
         : [{ displayName: sortOrder }, { id: "asc" as const }];
-    const failedJobIds = status === "all"
-        ? []
-        : await getBullMQClient().getFailedJobIds(REPO_INDEX_QUEUE);
+    const bullMQClient = getBullMQClient();
+    const syncingJobIds = status === "syncing"
+        ? await bullMQClient.getSyncingJobIds(REPO_INDEX_QUEUE)
+        : [];
+    const failedJobIds = status === "failed" || status === "warning"
+        ? await bullMQClient.getFailedJobIds(REPO_INDEX_QUEUE)
+        : [];
     const repositorySyncCounts = canRetry
         ? await getRepositorySyncCounts()
         : null;
@@ -54,6 +58,29 @@ export default authenticatedPage<
         && !isServiceError(repositorySyncCounts)
         ? repositorySyncCounts.failedCount + repositorySyncCounts.warningCount
         : 0;
+    const getStatusWhereClause = (): Prisma.RepoWhereInput => {
+        switch (status) {
+            case "syncing":
+                return {
+                    OR: [
+                        { latestIndexingJobId: { in: syncingJobIds } },
+                        { indexedAt: null },
+                    ],
+                };
+            case "failed":
+                return {
+                    latestIndexingJobId: { in: failedJobIds },
+                    indexedAt: null,
+                };
+            case "warning":
+                return {
+                    latestIndexingJobId: { in: failedJobIds },
+                    indexedAt: { not: null },
+                };
+            default:
+                return {};
+        }
+    };
     const where: Prisma.RepoWhereInput = {
         orgId: org.id,
         ...(search
@@ -64,12 +91,7 @@ export default authenticatedPage<
                   },
               }
             : {}),
-        ...(status === "all"
-            ? {}
-            : {
-                  latestIndexingJobId: { in: failedJobIds },
-                  indexedAt: status === "failed" ? null : { not: null },
-        }),
+        ...getStatusWhereClause(),
     };
 
     const [repos, totalCount] = await Promise.all([
