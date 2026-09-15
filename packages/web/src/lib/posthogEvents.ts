@@ -538,6 +538,15 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_askgh_login_wall_prompted: {},
     //////////////////////////////////////////////////////////////////
+    askgh_repo_index_requested: {
+        owner: string,
+        repo: string,
+        repoName: string,
+        isAnonymous: boolean,
+        anonymousCreatorId?: string,
+        repoId?: number,
+    },
+    //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_search_assist_opened: {},
     wa_search_assist_query_generated: {},
