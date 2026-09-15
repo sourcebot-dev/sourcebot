@@ -75,11 +75,11 @@ type DisplayedRepo = Repo & {
 
 type SortOrder = "asc" | "desc";
 type SortBy = "name" | "indexedAt";
-type StatusFilter = "all" | "failed" | "warning";
+type StatusFilter = "all" | "syncing" | "failed" | "warning";
 type SyncAnnotation = "SYNCING" | "WARNING" | "FAILED" | null;
 
 const getStatusFilter = (value: string | null): StatusFilter => {
-    if (value === "failed" || value === "warning") {
+    if (value === "syncing" || value === "failed" || value === "warning") {
         return value;
     }
 
@@ -873,11 +873,13 @@ export const ReposTable = ({
         });
     };
 
-    const emptyMessage = statusFilter === "failed"
-        ? "No failed repositories."
-        : statusFilter === "warning"
-            ? "No repositories with warnings."
-            : "No repositories found.";
+    const emptyMessage = statusFilter === "syncing"
+        ? "No repositories are currently syncing."
+        : statusFilter === "failed"
+            ? "No failed repositories."
+            : statusFilter === "warning"
+                ? "No repositories with warnings."
+                : "No repositories found.";
 
     return (
         <div>
@@ -914,6 +916,7 @@ export const ReposTable = ({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Filter by status</SelectItem>
+                        <SelectItem value="syncing">Syncing</SelectItem>
                         <SelectItem value="failed">Failed</SelectItem>
                         <SelectItem value="warning">Warning</SelectItem>
                     </SelectContent>

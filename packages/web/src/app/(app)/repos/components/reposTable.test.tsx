@@ -138,6 +138,20 @@ describe("ReposTable", () => {
         ).toContain("Failed");
     });
 
+    test("reflects the syncing status filter from the URL", () => {
+        navigation.searchParams = "status=syncing";
+
+        renderTable([repos[0]]);
+
+        expect(
+            screen
+                .getByRole("combobox", {
+                    name: "Filter repositories by status",
+                })
+                .textContent,
+        ).toContain("Syncing");
+    });
+
     test("centers the empty state across the table and hides pagination", () => {
         navigation.searchParams = "status=warning";
 
@@ -148,6 +162,14 @@ describe("ReposTable", () => {
         expect(screen.queryByText("Page 1 of 1")).toBeNull();
         expect(screen.queryByRole("button", { name: "Previous" })).toBeNull();
         expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+    });
+
+    test("shows empty state message for syncing filter", () => {
+        navigation.searchParams = "status=syncing";
+
+        renderTable([]);
+
+        expect(screen.getByText("No repositories are currently syncing.")).toBeTruthy();
     });
 
     test("clears search and status filters from the empty state", () => {
@@ -167,7 +189,7 @@ describe("ReposTable", () => {
         );
     });
 
-    test.each(["search=first", "status=warning"])(
+    test.each(["search=first", "status=syncing", "status=warning"])(
         "shows clear filters in the toolbar for %s",
         (searchParams) => {
             navigation.searchParams = searchParams;
