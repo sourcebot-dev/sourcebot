@@ -141,13 +141,29 @@ export class BullMQClient {
         spec: QueueSpec<TName>,
     ): Promise<string[]> {
         const jobs = await this.getQueue(spec).getJobs(
-            ["waiting", "waiting-children", "delayed", "prioritized", "paused", "active"],
+            ["waiting", "waiting-children", "prioritized", "active"],
             0,
             -1,
             true,
         );
 
         return jobs.flatMap((job) => job.id ? [job.id] : []);
+    }
+
+    async getSyncingRepoIds(
+        spec: QueueSpec<"repo-index">,
+    ): Promise<number[]> {
+        const jobs = await this.getQueue(spec).getJobs(
+            ["waiting", "waiting-children", "prioritized", "active"],
+            0,
+            -1,
+            true,
+        );
+
+        return jobs.flatMap((job) => {
+            const repoId = (job.data as { repoId?: number })?.repoId;
+            return typeof repoId === "number" ? [repoId] : [];
+        });
     }
 
     async getJobLogs<TName extends QueueName>(

@@ -45,9 +45,12 @@ export default authenticatedPage<
         ? [{ indexedAt: sortOrder }, { id: "asc" as const }]
         : [{ displayName: sortOrder }, { id: "asc" as const }];
     const bullMQClient = getBullMQClient();
-    const syncingJobIds = status === "syncing"
-        ? await bullMQClient.getSyncingJobIds(REPO_INDEX_QUEUE)
-        : [];
+    const [syncingJobIds, syncingRepoIds] = status === "syncing"
+        ? await Promise.all([
+              bullMQClient.getSyncingJobIds(REPO_INDEX_QUEUE),
+              bullMQClient.getSyncingRepoIds(REPO_INDEX_QUEUE),
+          ])
+        : [[], []];
     const failedJobIds = status === "failed" || status === "warning"
         ? await bullMQClient.getFailedJobIds(REPO_INDEX_QUEUE)
         : [];
@@ -64,7 +67,11 @@ export default authenticatedPage<
                 return {
                     OR: [
                         { latestIndexingJobId: { in: syncingJobIds } },
-                        { indexedAt: null },
+                        { id: { in: syncingRepoIds } },
+                        {
+                            indexedAt: null,
+                            firstIndexingJobFinishedAt: null,
+                        },
                     ],
                 };
             case "failed":
