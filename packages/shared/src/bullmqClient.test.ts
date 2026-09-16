@@ -32,7 +32,7 @@ vi.mock("./jobLogger.js", () => ({
 }));
 
 import { BullMQClient } from "./bullmqClient.js";
-import { CONNECTION_QUEUE, type QueueSpec } from "./queue.js";
+import { CONNECTION_QUEUE, REPO_INDEX_QUEUE, type QueueSpec } from "./queue.js";
 
 describe("BullMQClient", () => {
     beforeEach(() => {
@@ -172,6 +172,43 @@ describe("BullMQClient", () => {
         ).resolves.toEqual(["failed-1", "failed-2"]);
         expect(mocks.listJobs).toHaveBeenCalledWith(
             ["failed"],
+            0,
+            -1,
+            true,
+        );
+    });
+
+    test("lists syncing job ids", async () => {
+        mocks.listJobs.mockResolvedValue([
+            { id: "syncing-1" },
+            { id: "syncing-2" },
+        ]);
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getSyncingJobIds(CONNECTION_QUEUE),
+        ).resolves.toEqual(["syncing-1", "syncing-2"]);
+        expect(mocks.listJobs).toHaveBeenCalledWith(
+            ["waiting", "waiting-children", "prioritized", "active"],
+            0,
+            -1,
+            true,
+        );
+    });
+
+    test("lists syncing repo ids from job data", async () => {
+        mocks.listJobs.mockResolvedValue([
+            { id: "job-1", data: { repoId: 1 } },
+            { id: "job-2", data: { repoId: 2 } },
+            { id: "job-3", data: {} },
+        ]);
+        const client = new BullMQClient({} as Redis);
+
+        await expect(
+            client.getSyncingRepoIds(REPO_INDEX_QUEUE),
+        ).resolves.toEqual([1, 2]);
+        expect(mocks.listJobs).toHaveBeenCalledWith(
+            ["waiting", "waiting-children", "prioritized", "active"],
             0,
             -1,
             true,
