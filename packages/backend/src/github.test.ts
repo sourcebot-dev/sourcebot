@@ -64,6 +64,8 @@ import {
     detectGitHubTokenType,
     supportsOAuthScopeIntrospection,
     getGitHubReposFromConfig,
+    supportsUserIntrospection,
+    verifyCredential,
 } from './github';
 
 describe("GitHub repository discovery", () => {
@@ -373,4 +375,65 @@ test('shouldExcludeRepo handles exclude.repos correctly', () => {
             repos: ['repo-does-not-exist']
         }
     })).toBe(false);
+});
+
+describe('supportsUserIntrospection', () => {
+    test('user-context tokens can call GET /user', () => {
+        expect(supportsUserIntrospection('classic_pat')).toBe(true);
+        expect(supportsUserIntrospection('oauth_user')).toBe(true);
+        expect(supportsUserIntrospection('app_user')).toBe(true);
+        expect(supportsUserIntrospection('fine_grained_pat')).toBe(true);
+    });
+
+    test('installation tokens cannot call GET /user', () => {
+        expect(supportsUserIntrospection('app_installation')).toBe(false);
+    });
+
+    test('unknown token types are not assumed to be user-context', () => {
+        expect(supportsUserIntrospection('unknown')).toBe(false);
+    });
+});
+
+describe('verifyCredential', () => {
+    const httpError = (status: number) =>
+        Object.assign(new Error(`HTTP ${status}`), { status, name: 'HttpError' });
+
+    const makeOctokit = () => ({
+        rest: { users: { getAuthenticated: vi.fn() } },
+        request: vi.fn(),
+    });
+
+    test('validates a personal access token via GET /user', async () => {
+        const octokit = makeOctokit();
+        await verifyCredential(octokit as never, 'ghp_abc123');
+        expect(octokit.rest.users.getAuthenticated).toHaveBeenCalledOnce();
+        expect(octokit.request).not.toHaveBeenCalled();
+    });
+
+    test('validates an installation token via the installation endpoint', async () => {
+        const octokit = makeOctokit();
+        await verifyCredential(octokit as never, 'ghs_abc123');
+        expect(octokit.rest.users.getAuthenticated).not.toHaveBeenCalled();
+        expect(octokit.request).toHaveBeenCalledWith('GET /installation/repositories', { per_page: 1 });
+    });
+
+    test('falls back to the installation endpoint when an unknown token is 403ed', async () => {
+        const octokit = makeOctokit();
+        octokit.rest.users.getAuthenticated.mockRejectedValueOnce(httpError(403));
+        await verifyCredential(octokit as never, 'weird_prefix_abc123');
+        expect(octokit.request).toHaveBeenCalledWith('GET /installation/repositories', { per_page: 1 });
+    });
+
+    test('a genuinely invalid credential still throws', async () => {
+        const octokit = makeOctokit();
+        octokit.rest.users.getAuthenticated.mockRejectedValueOnce(httpError(401));
+        await expect(verifyCredential(octokit as never, 'ghp_bad')).rejects.toThrow();
+        expect(octokit.request).not.toHaveBeenCalled();
+    });
+
+    test('an installation token with no accessible installation still throws', async () => {
+        const octokit = makeOctokit();
+        octokit.request.mockRejectedValueOnce(httpError(401));
+        await expect(verifyCredential(octokit as never, 'ghs_bad')).rejects.toThrow();
+    });
 });
