@@ -35,6 +35,7 @@ export default async function Login(props: LoginProps) {
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
                     context="login"
+                    loginMessage={org.loginMessage}
                     isAnonymousAccessEnabled={anonymousAccessEnabled}
                     hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />

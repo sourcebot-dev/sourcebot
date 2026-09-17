@@ -4,13 +4,38 @@ import { getProviders } from "@/auth";
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { isAnonymousAccessAvailable } from "@/lib/entitlements";
 import { ErrorCode } from "@/lib/errorCodes";
-import { ServiceError } from "@/lib/serviceError";
+import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
+import { z } from "zod";
+import { LOGIN_MESSAGE_MAX_LENGTH } from "@/features/auth/constants";
+
+const loginMessageSchema = z.string()
+    .max(LOGIN_MESSAGE_MAX_LENGTH, "Login message must be 5,000 characters or fewer.")
+    .nullable()
+    .transform(message => message?.trim() ? message : null);
+
+export const setLoginMessage = async (message: string | null): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const parsed = loginMessageSchema.safeParse(message);
+            if (!parsed.success) {
+                return requestBodySchemaValidationError(parsed.error);
+            }
+
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { loginMessage: parsed.data },
+            });
+
+            return { success: true };
+        })
+    )
+);
 
 export const setMemberApprovalRequired = async (required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async ({ org, role, prisma }) =>

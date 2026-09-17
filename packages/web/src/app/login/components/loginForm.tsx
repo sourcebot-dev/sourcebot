@@ -7,6 +7,7 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import Link from "next/link";
+import { LoginMessage } from "@/features/auth/components/loginMessage";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -14,9 +15,10 @@ interface LoginFormProps {
     context: "login" | "signup";
     isAnonymousAccessEnabled?: boolean;
     hideSecurityNotice?: boolean;
+    loginMessage?: string | null;
 }
 
-export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false, loginMessage }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
     const providers = useIdentityProviders();
 
@@ -83,12 +85,8 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
                     {context === "login" ? "Sign in to your account" : "Create a new account"}
                 </h2>
             </div>
-            <Card className="flex flex-col items-center border p-6 sm:p-12 rounded-lg gap-4 sm:gap-6 w-full sm:w-[500px] max-w-[500px] bg-background">
-                {error && (
-                    <div className="text-sm text-destructive text-center text-wrap border p-2 rounded-md border-destructive">
-                        {errorMessage}
-                    </div>
-                )}
+            <Card className="flex flex-col items-center border p-6 sm:p-8 rounded-lg gap-4 w-full sm:w-[500px] max-w-[500px] bg-background">
+                <LoginMessage message={loginMessage} />
                 <AuthMethodSelector
                     callbackUrl={callbackUrl}
                     context={context}
@@ -96,7 +94,12 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
                     securityNoticeClosable={true}
                     hideSecurityNotice={hideSecurityNotice}
                 />
-                <p className="text-sm text-muted-foreground mt-8">
+                {error && (
+                    <div role="alert" className="w-full rounded-md bg-red-50 dark:bg-red-950 p-3 text-left text-sm text-destructive text-wrap">
+                        {errorMessage}
+                    </div>
+                )}
+                <p className="text-sm text-muted-foreground mt-2">
                     {context === "login" ?
                         <>
                             Don&apos;t have an account? <Link className="underline" href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"}>Sign up</Link>
