@@ -273,9 +273,10 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     logger.error(error);
                     Sentry.captureException(error);
 
-                    // Report the provider's details (model, status code,
-                    // response body) instead of a generic failure so the
-                    // failure is debuggable from the client.
+                    // Report the failure with the model and provider status
+                    // code instead of a generic failure so it is debuggable
+                    // from the client. The provider response body stays in
+                    // the server logs.
                     if (error == null) {
                         return `[${languageModelConfig.provider}/${languageModelConfig.model}] unknown error`;
                     }

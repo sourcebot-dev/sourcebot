@@ -6,7 +6,7 @@ import { resolveContextWindow } from "@/features/chat/modelContextWindow.server"
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
-import { describeLanguageModel, executeWithInferenceFallback, formatInferenceError, formatInferenceErrorForLog, resolveInferenceRetryConfig, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
+import { describeLanguageModel, executeWithInferenceFallback, formatInferenceError, formatInferenceErrorForLog } from "@/features/chat/inferenceRetry.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -170,8 +170,9 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             // inference failures fall back; deterministic request errors (bad
             // repo names, entitlement errors, ...) are rethrown immediately.
             // Chat-name generation runs concurrently and is best-effort: a
-            // naming failure must not fail the whole answer.
-            const primaryRetryConfig = resolveInferenceRetryConfig(languageModelConfig);
+            // single attempt with no retries, so naming never delays the
+            // answer. A naming failure falls back to the query and must not
+            // fail the whole answer.
             const [agentOutcome, chatNameOutcome] = await Promise.allSettled([
                 executeWithInferenceFallback({
                     primaryModel: languageModelConfig,
@@ -231,17 +232,13 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                         return { messages: attemptMessages, inputModalities, supportedDocumentTypes };
                     },
                 }),
-                withInferenceRetries(
-                    () => generateChatNameFromMessage({
-                        message: query,
-                        languageModelConfig,
-                        // Retries are handled by the wrapper (uniform backoff);
-                        // disable the SDK's built-in retries to avoid compounding.
-                        maxRetries: 0,
-                    }),
-                    primaryRetryConfig,
+                generateChatNameFromMessage({
+                    message: query,
                     languageModelConfig,
-                ),
+                    // No retries: naming is best-effort and must not hold up
+                    // the answer behind a retry/backoff budget.
+                    maxRetries: 0,
+                }),
             ]);
 
             if (agentOutcome.status === 'rejected') {
