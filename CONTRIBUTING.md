@@ -51,6 +51,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
     ```sh
     sudo apt update
     sudo apt install \
+        curl \
         gcc make \
         pkg-config autoconf automake \
         python3-docutils \
@@ -63,6 +64,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
     **Fedora / RHEL / CentOS:**
     ```sh
     sudo dnf install \
+        curl \
         gcc make \
         pkgconfig autoconf automake \
         python3-docutils \
