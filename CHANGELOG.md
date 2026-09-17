@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Prevented browser performance instrumentation from breaking code views when `performance.measure()` returns no value. [#1665](https://github.com/sourcebot-dev/sourcebot/pull/1665)
-- - Added missing Linux build dependencies for universal-ctags in the contributing guide. [#1667](https://github.com/sourcebot-dev/sourcebot/pull/1667)
 
 ## [5.1.13] - 2026-09-12
 
