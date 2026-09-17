@@ -1,4 +1,5 @@
 import { BlobAttachment, InputModality, SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { DEFAULT_INFERENCE_MAX_RETRIES } from "@/features/chat/inferenceRetry.server";
 import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
 import { getStorageBackend } from "@sourcebot/shared";
 import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
@@ -228,6 +229,10 @@ interface CreateMessageStreamResponseProps {
     onError: (error: unknown) => string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     modelTemperature?: number;
+    // Passed through to the AI SDK as `maxRetries`. Blocking callers that run
+    // their own retry/fallback loop (see `executeWithInferenceFallback`) pass
+    // 0 to avoid compounding retries with the SDK's built-in ones.
+    modelMaxRetries?: number;
     metadata?: Partial<SBChatMessageMetadata>;
     userId?: string;
     orgId?: number;
@@ -251,6 +256,7 @@ export const createMessageStream = async ({
     promptCacheStrategy,
     modelProviderOptions,
     modelTemperature,
+    modelMaxRetries,
     onFinish,
     onError,
     userId,
@@ -372,6 +378,7 @@ export const createMessageStream = async ({
                 promptCacheStrategy,
                 providerOptions: modelProviderOptions,
                 temperature: modelTemperature,
+                maxRetries: modelMaxRetries,
                 inputMessages: messageHistory,
                 inputSources: sources,
                 selectedRepos,
@@ -530,6 +537,9 @@ interface AgentOptions {
     promptCacheStrategy: PromptCacheStrategy;
     providerOptions?: ProviderOptions;
     temperature?: number;
+    // When undefined, the shared default (`DEFAULT_INFERENCE_MAX_RETRIES`)
+    // applies. Blocking callers pass 0 since they retry outside the SDK.
+    maxRetries?: number;
     selectedRepos: string[];
     disabledMcpServerIds?: string[];
     inputMessages: ModelMessage[];
@@ -557,6 +567,7 @@ const createAgentStream = async ({
     promptCacheStrategy,
     providerOptions,
     temperature,
+    maxRetries,
     inputMessages,
     inputSources,
     selectedRepos,
@@ -779,6 +790,7 @@ const createAgentStream = async ({
         const stream = streamText({
             model,
             providerOptions,
+            maxRetries: maxRetries ?? DEFAULT_INFERENCE_MAX_RETRIES,
             messages: inputMessages,
             system: systemMessages,
             tools: allTools,
@@ -883,7 +895,7 @@ const createAgentStream = async ({
                 isEnabled: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
             },
             onError: (error) => {
-                logger.error(error);
+                logger.error(`Inference error (model ${typeof model === 'string' ? model : model.modelId}):`, error);
             },
         });
 

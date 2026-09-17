@@ -3,8 +3,9 @@
 import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels } from "../chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { resolveInferenceRetryConfig, toInferenceServiceError, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
 import { ErrorCode } from "@/lib/errorCodes";
-import { ServiceError } from "@/lib/serviceError";
+import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { SEARCH_SYNTAX_DESCRIPTION } from "@sourcebot/query-language";
 import { generateObject } from "ai";
@@ -38,16 +39,31 @@ export const translateSearchQuery = async ({ prompt }: { prompt: string }) => se
         }
 
         const { model } = await getAISDKLanguageModelAndOptions(models[0]);
+        const retryConfig = resolveInferenceRetryConfig(models[0]);
 
-        const { object } = await generateObject({
-            model,
-            system: SYSTEM_PROMPT,
-            prompt,
-            schema: z.object({
-                query: z.string().describe("The Sourcebot search query."),
-            }),
-        });
+        try {
+            const { object } = await withInferenceRetries(
+                () => generateObject({
+                    model,
+                    system: SYSTEM_PROMPT,
+                    prompt,
+                    schema: z.object({
+                        query: z.string().describe("The Sourcebot search query."),
+                    }),
+                    // Retries are handled by the wrapper so the per-model
+                    // backoff policy applies; disable the SDK's built-in
+                    // retries to avoid compounding them.
+                    maxRetries: 0,
+                }),
+                retryConfig,
+                models[0],
+            );
 
-        return { query: object.query };
+            return { query: object.query };
+        } catch (error) {
+            // Surface the provider's details instead of the generic
+            // `sew` fallback so translation failures are debuggable.
+            throw new ServiceErrorException(toInferenceServiceError(error, models[0]));
+        }
     })
 );

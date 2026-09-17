@@ -390,6 +390,57 @@ You can pass custom headers to the language model provider by using the `headers
 ```
 
 
+# Retry and fallbacks
+
+If an inference request fails with a transient error (a network error, or a `408`, `429`, or `5xx` response), Sourcebot retries the request with exponential backoff. You can tune this behavior per model with the `retry` field. If a model keeps failing, Sourcebot tries the models you list in `fallbackModels` in order. Fallbacks apply to programmatic Ask requests (the MCP `ask_codebase` tool and the blocking chat API). Interactive chat streams retry but stay on the selected model.
+
+```json wrap icon="code" Example config with retry and fallbacks
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "openai",
+            "model": "YOUR_MODEL_HERE",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "OPENAI_API_KEY"
+            },
+            // Retry failed requests up to 5 times, waiting 1s before the first retry.
+            "retry": {
+                "maxRetries": 5,
+                "initialBackoffMs": 1000,
+                "maxBackoffMs": 10000
+            },
+            // Fall back to these models (in order) when this model keeps failing.
+            // Each entry must reference another model in this `models` array.
+            "fallbackModels": [
+                {
+                    "provider": "anthropic",
+                    "model": "YOUR_FALLBACK_MODEL_HERE"
+                }
+            ]
+        },
+        {
+            "provider": "anthropic",
+            "model": "YOUR_FALLBACK_MODEL_HERE",
+            "token": {
+                "env": "ANTHROPIC_API_KEY"
+            }
+        }
+    ]
+}
+```
+
+When every model fails, the API returns the details for each model tried (model, error message, and status code) so you can debug the underlying issue. A truncated provider response snippet is kept in the server logs for debugging. Full response bodies are never sent to clients.
+
+| Field | Description |
+| ----- | ----------- |
+| `retry.maxRetries` | Maximum retries after the initial request, per model. Only transient failures are retried. Set to `0` to disable retries. Defaults to `3`, max `10`. |
+| `retry.initialBackoffMs` | Delay before the first retry. Doubles after each attempt. Defaults to `500`. |
+| `retry.maxBackoffMs` | Maximum delay between retries. Defaults to `8000`. |
+| `fallbackModels` | Ordered list of fallback models (max `5`). Each entry needs a `provider` and `model`, plus an optional `displayName` to disambiguate models that share a provider and model id. |
+
+
 # Schema reference
 
 <Accordion title="Reference">

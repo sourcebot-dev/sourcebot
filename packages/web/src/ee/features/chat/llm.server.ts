@@ -3,8 +3,9 @@ import 'server-only';
 import { LanguageModel } from '@sourcebot/schemas/v3/languageModel.type';
 import { generateText } from "ai";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { DEFAULT_INFERENCE_MAX_RETRIES } from "@/features/chat/inferenceRetry.server";
 
-export const generateChatNameFromMessage = async ({ message, languageModelConfig }: { message: string, languageModelConfig: LanguageModel }) => {
+export const generateChatNameFromMessage = async ({ message, languageModelConfig, maxRetries = DEFAULT_INFERENCE_MAX_RETRIES }: { message: string, languageModelConfig: LanguageModel, maxRetries?: number }) => {
     const { model } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
     const prompt = `Convert this question into a short topic title (max 50 characters).
@@ -26,6 +27,7 @@ User question: ${message}`;
     const result = await generateText({
         model,
         prompt,
+        maxRetries,
     });
 
     return result.text;
