@@ -6,7 +6,9 @@ import { skipOptionalProvidersLink } from "@/ee/features/sso/actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LinkedAccountProviderCard } from "./linkedAccountProviderCard";
-import { LinkedAccount } from "@/ee/features/sso/actions";
+import { hasRequiredUnlinkedProviders } from "@/ee/features/sso/utils";
+import type { LinkedAccount } from "@/ee/features/sso/types";
+import { isServiceError } from "@/lib/utils";
 
 interface ConnectAccountsCardProps {
     linkedAccounts: LinkedAccount[]
@@ -20,7 +22,13 @@ export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAcco
     const handleSkip = async () => {
         setIsSkipping(true);
         try {
-            await skipOptionalProvidersLink();
+            const providerIds = accountLinkingProviders
+                .filter(account => !account.required && !account.isLinked)
+                .map(account => account.providerId);
+            const result = await skipOptionalProvidersLink(providerIds);
+            if (isServiceError(result)) {
+                throw new Error(result.message);
+            }
             router.refresh();
         } catch (error) {
             console.error("Failed to skip optional providers:", error);
@@ -30,7 +38,7 @@ export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAcco
 
     // Only show account_linking providers in this flow
     const accountLinkingProviders = linkedAccounts.filter(a => a.isAccountLinkingProvider);
-    const canSkip = !accountLinkingProviders.some(a => a.required && !a.isLinked);
+    const canSkip = !hasRequiredUnlinkedProviders(accountLinkingProviders);
 
     return (
         <Card>

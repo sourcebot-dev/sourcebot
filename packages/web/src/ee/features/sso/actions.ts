@@ -4,33 +4,17 @@ import { sew } from "@/middleware/sew";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole, type AccountPermissionSyncIssue } from "@sourcebot/db";
+import { OrgRole } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
 import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfig, getIdentityProviderConfigs } from "@sourcebot/shared";
 import { cookies } from "next/headers";
 import { removeAccountPermissionSyncScheduler, scheduleAndTriggerAccountPermissionSync } from "@/ee/features/permissionSync/accountPermissionSyncQueue.server";
+import type { LinkedAccount } from "./types";
+import { parseSkippedOptionalProviderIds } from "./utils";
+import { z } from "zod";
 import { unexpectedError } from "@/lib/serviceError";
 
 const logger = createLogger('web-ee-sso-actions');
-
-export type LinkedAccount = {
-    /** Provider instance id (e.g., 'github', 'gitlab-corp') — used for `signIn(provider)`. */
-    providerId: string;
-    /** Provider type (e.g., 'github', 'gitlab') — used to pick icon / display defaults. */
-    providerType: string;
-    /** Optional admin-supplied display name from config; overrides type-derived defaults in the UI. */
-    displayName?: string;
-    isLinked: boolean;
-    // Present when isLinked = true
-    accountId?: string;
-    providerAccountId?: string;
-    permissionSyncIssue?: AccountPermissionSyncIssue;
-    // From config (only meaningful for account_linking providers)
-    isAccountLinkingProvider: boolean;
-    required: boolean;
-    // Permission sync
-    supportsPermissionSync: boolean;
-};
 
 export const getLinkedAccounts = async () => sew(() =>
     withAuth(async ({ prisma, role, user }) =>
@@ -71,7 +55,7 @@ export const getLinkedAccounts = async () => sew(() =>
                 });
             }
 
-            // Unlinked account_linking providers from config (not yet connected)
+            // Configured providers that the user has not linked yet.
             const identityProviders = await getIdentityProviderConfigs();
             for (const [id, providerConfig] of Object.entries(identityProviders)) {
                 const account = accounts.find((account) => account.providerId === id);
@@ -160,11 +144,15 @@ export const unlinkLinkedAccountProvider = async (providerId: string) => sew(() 
 );
 
 // eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
-export const skipOptionalProvidersLink = async () => sew(async () => {
+export const skipOptionalProvidersLink = async (providerIds: string[]) => sew(async () => {
+    const ids = z.array(z.string()).parse(providerIds);
     const cookieStore = await cookies();
-    cookieStore.set(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME, 'true', {
+    const previouslySkipped = parseSkippedOptionalProviderIds(cookieStore.get(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME)?.value);
+    const skippedProviderIds = [...new Set([...previouslySkipped, ...ids])];
+    cookieStore.set(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME, JSON.stringify(skippedProviderIds), {
         httpOnly: false, // Allow client-side access
         maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
+        path: '/',
     });
     return true;
 });
