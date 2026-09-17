@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.14] - 2026-09-17
+
 ### Added
 - Added privacy-scoped setup wizard funnel and Docker startup-failure telemetry with deployment identity handoff, Node.js 20.20.0 support, and cross-platform end-to-end test coverage. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
 - Added an admin-configurable Markdown message with access instructions and links on sign-in and sign-up pages. [#1668](https://github.com/sourcebot-dev/sourcebot/pull/1668)
