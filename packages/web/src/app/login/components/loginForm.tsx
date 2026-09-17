@@ -8,6 +8,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import Link from "next/link";
 import { LoginMessage } from "@/features/auth/components/loginMessage";
+import { getAuthErrorContent } from "@/features/auth/errorMessages";
 
 interface LoginFormProps {
     callbackUrl?: string;
@@ -31,19 +32,7 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
         return "/";
     }, [callbackUrl]);
 
-    const errorMessage = useMemo(() => {
-        if (!error) {
-            return "";
-        }
-        switch (error) {
-            case "CredentialsSignin":
-                return "Invalid email or password. Please try again.";
-            case "OAuthAccountNotLinked":
-                return "This email is already associated with a different sign-in method.";
-            default:
-                return "An error occurred during authentication. Please try again.";
-        }
-    }, [error]);
+    const errorMessage = getAuthErrorContent(error).description;
 
     // Helper function to get the correct analytics event name based on provider type.
     const getLoginEventName = (providerType: string) => {

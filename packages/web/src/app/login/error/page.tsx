@@ -9,35 +9,11 @@ import Link from "next/link"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { Footer } from "@/app/components/footer"
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
-
-// @see https://authjs.dev/guides/pages/error
-const ERROR_CONTENT: Record<string, { title: string; description: string }> = {
-    Configuration: {
-        title: "Server configuration error",
-        description: "There is a problem with the server's authentication configuration. Please contact your administrator.",
-    },
-    AccessDenied: {
-        title: "Access denied",
-        description: "You do not have permission to sign in.",
-    },
-    EmailRequired: {
-        title: "No email on your account",
-        description: "Your identity provider didn't share an email address, which Sourcebot requires to sign you in. Add or verify an email on your upstream account, then try again.",
-    },
-    Verification: {
-        title: "This sign-in link has expired",
-        description: "The code or link you used is no longer valid - it may have expired or already been used. Request a new one and try again.",
-    },
-    Default: {
-        title: "Unable to sign in",
-        description: "Something went wrong while signing you in. Please try again.",
-    },
-}
+import { getAuthErrorContent } from "@/features/auth/errorMessages"
 
 function ErrorPageContent() {
     const searchParams = useSearchParams()
-    const error = searchParams.get("error") ?? "Default"
-    const { title, description } = ERROR_CONTENT[error] ?? ERROR_CONTENT.Default
+    const { title, description } = getAuthErrorContent(searchParams.get("error"))
 
     return (
         <div className="flex flex-col min-h-screen">
