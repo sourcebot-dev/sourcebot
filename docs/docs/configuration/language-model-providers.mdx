@@ -431,7 +431,7 @@ If an inference request fails with a transient error (a network error, or a `408
 }
 ```
 
-When every model fails, the API returns the details of each attempt (model, error message, and status code) so you can debug the underlying issue. Full provider responses stay in the server logs and are never sent to clients.
+When every model fails, the API returns the details of each attempt (model, error message, and status code) so you can debug the underlying issue. A truncated provider response snippet is kept in the server logs for debugging. Full response bodies are never sent to clients.
 
 | Field | Description |
 | ----- | ----------- |
