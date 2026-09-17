@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation';
 import { getOAuthAuthorizeUrl, resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
 import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 import { AccountLinkingGuard } from '@/ee/features/sso/components/accountLinkingGuard';
+import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
+import { activeOrPendingMembershipWhere } from '@/features/membership/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +79,21 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     const session = await auth();
     if (!session) {
         redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
+
+    const membership = await __unsafePrisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: SINGLE_TENANT_ORG_ID,
+                userId: session.user.id,
+            },
+            ...activeOrPendingMembershipWhere(),
+        },
+        select: { userId: true },
+    });
+    if (!membership) {
+        // Let the app handle approval, provisioning, and joining before OAuth is retried.
+        redirect('/');
     }
 
     return (
