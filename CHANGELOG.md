@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Prevented browser performance instrumentation from breaking code views when `performance.measure()` returns no value. [#1665](https://github.com/sourcebot-dev/sourcebot/pull/1665)
+- Decoded percent-encoded characters in repo names derived from direct generic git URLs. [#1666](https://github.com/sourcebot-dev/sourcebot/pull/1666)
 
 ## [5.1.13] - 2026-09-12
 
