@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added privacy-scoped setup wizard funnel and Docker startup-failure telemetry with deployment identity handoff, Node.js 20.20.0 support, and cross-platform end-to-end test coverage. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
 - [EE] Added per-model retry and fallback configuration for Ask inference requests, with detailed provider error reporting surfaced through Ask, the MCP `ask_codebase` tool, and the blocking chat API. [#1657](https://github.com/sourcebot-dev/sourcebot/pull/1657)
 
+### Fixed
+- Prevented browser performance instrumentation from breaking code views when `performance.measure()` returns no value. [#1665](https://github.com/sourcebot-dev/sourcebot/pull/1665)
+
 ## [5.1.13] - 2026-09-12
 
 ### Fixed
