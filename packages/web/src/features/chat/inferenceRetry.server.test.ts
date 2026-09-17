@@ -49,6 +49,7 @@ import {
     describeLanguageModel,
     executeWithInferenceFallback,
     formatInferenceError,
+    formatInferenceErrorForLog,
     isRetryableInferenceError,
     resolveFallbackChain,
     resolveInferenceRetryConfig,
@@ -154,12 +155,21 @@ describe('isRetryableInferenceError', () => {
 });
 
 describe('formatInferenceError', () => {
-    test('includes the model, message, status code, and provider response', () => {
+    test('includes the model, message, and status code', () => {
         const formatted = formatInferenceError(
             apiError({ message: 'Resource exhausted', statusCode: 429, responseBody: '{"error":{"code":429}}' }),
             { provider: 'openai', model: 'gpt-4o' },
         );
-        expect(formatted).toBe('[openai/gpt-4o] Resource exhausted (status 429) | provider response: {"error":{"code":429}}');
+        expect(formatted).toBe('[openai/gpt-4o] Resource exhausted (status 429)');
+    });
+
+    test('omits the provider response body from client-facing messages', () => {
+        const formatted = formatInferenceError(
+            apiError({ message: 'bad', statusCode: 500, responseBody: '{"error":{"secret":"provider-secret"}}' }),
+            { provider: 'openai', model: 'gpt-4o' },
+        );
+        expect(formatted).not.toContain('provider response');
+        expect(formatted).not.toContain('provider-secret');
     });
 
     test('never leaks request bodies', () => {
@@ -168,27 +178,39 @@ describe('formatInferenceError', () => {
         const formatted = formatInferenceError(error, { provider: 'openai', model: 'gpt-4o' });
         expect(formatted).not.toContain('super-secret-prompt');
     });
+});
 
-    test('truncates long provider responses', () => {
-        const formatted = formatInferenceError(
+describe('formatInferenceErrorForLog', () => {
+    test('includes a truncated provider response for server logs', () => {
+        const formatted = formatInferenceErrorForLog(
             apiError({ message: 'bad', statusCode: 500, responseBody: `{"data":"${'x'.repeat(1000)}"}` }),
             { provider: 'openai', model: 'gpt-4o' },
         );
-        expect(formatted.length).toBeLessThan(700);
+        expect(formatted).toContain('[openai/gpt-4o] bad (status 500) | provider response: ');
+        expect(formatted.length).toBeLessThan(900);
         expect(formatted).toContain('…');
+    });
+
+    test('never leaks request bodies', () => {
+        const error = apiError({ message: 'bad', statusCode: 500 });
+        (error as unknown as Record<string, unknown>)['requestBodyValues'] = { secret: 'super-secret-prompt' };
+        const formatted = formatInferenceErrorForLog(error, { provider: 'openai', model: 'gpt-4o' });
+        expect(formatted).not.toContain('super-secret-prompt');
     });
 });
 
 describe('toInferenceServiceError', () => {
-    test('passes the provider status code through', () => {
+    test('passes the provider status code through without the response body', () => {
         const serviceError = toInferenceServiceError(
-            apiError({ message: 'slow down', statusCode: 429 }),
+            apiError({ message: 'slow down', statusCode: 429, responseBody: '{"error":{"secret":"provider-secret"}}' }),
             { provider: 'openai', model: 'gpt-4o' },
         );
         expect(serviceError.statusCode).toBe(429);
         expect(serviceError.errorCode).toBe(ErrorCode.INFERENCE_ERROR);
         expect(serviceError.message).toContain('[openai/gpt-4o]');
         expect(serviceError.message).toContain('slow down');
+        expect(serviceError.message).not.toContain('provider response');
+        expect(serviceError.message).not.toContain('provider-secret');
     });
 
     test('falls back to 500 without a provider status code', () => {

@@ -235,10 +235,13 @@ const responseBodySnippet = (responseBody: unknown): string | undefined => {
 };
 
 /**
- * Detailed, single-line description of an inference failure. Includes the
- * model, the provider's message, its status code, and a truncated provider
- * response body when available. Never includes request bodies (they may
- * contain prompt content).
+ * Client-safe, single-line description of an inference failure. Includes the
+ * model, the provider's message, and its status code. Never includes the
+ * provider response body: it is untrusted third-party content that can echo
+ * request data, and these messages reach client-facing surfaces (interactive
+ * chat error chunks, the blocking chat API, and MCP tool responses), including
+ * for anonymous requests. Never includes request bodies either (they may
+ * contain prompt content). Use `formatInferenceErrorForLog` for server logs.
  */
 export const formatInferenceError = (error: unknown, model: Pick<LanguageModel, 'provider' | 'model'>): string => {
     const label = describeLanguageModel(model);
@@ -250,9 +253,19 @@ export const formatInferenceError = (error: unknown, model: Pick<LanguageModel, 
         formatted += ` (status ${details.statusCode})`;
     }
 
-    const snippet = responseBodySnippet(details.responseBody);
+    return formatted;
+};
+
+/**
+ * Log-only description of an inference failure. Same as
+ * `formatInferenceError` plus a truncated provider response body for
+ * debugging. Must only be written to server logs, never returned to clients.
+ */
+export const formatInferenceErrorForLog = (error: unknown, model: Pick<LanguageModel, 'provider' | 'model'>): string => {
+    const formatted = formatInferenceError(error, model);
+    const snippet = responseBodySnippet(extractApiErrorDetails(error).responseBody);
     if (snippet) {
-        formatted += ` | provider response: ${snippet}`;
+        return `${formatted} | provider response: ${snippet}`;
     }
 
     return formatted;
@@ -308,7 +321,7 @@ export const withInferenceRetries = async <T>(
             }
 
             const delayMs = computeRetryDelayMs(config, attempt);
-            logger.warn(`Inference request with model ${label} failed (attempt ${attempt + 1}/${config.maxRetries + 1}). Retrying in ${delayMs}ms. Details: ${formatInferenceError(error, model)}`);
+            logger.warn(`Inference request with model ${label} failed (attempt ${attempt + 1}/${config.maxRetries + 1}). Retrying in ${delayMs}ms. Details: ${formatInferenceErrorForLog(error, model)}`);
             await sleep(delayMs);
             attempt += 1;
         }
@@ -427,7 +440,7 @@ export const executeWithInferenceFallback = async <T>({
                 throw new ServiceErrorException(buildFallbackExhaustedError(candidates, attemptErrors));
             }
 
-            logger.warn(`Inference with model ${label} failed. Trying the next fallback model. Details: ${formatInferenceError(error, candidate)}`);
+            logger.warn(`Inference with model ${label} failed. Trying the next fallback model. Details: ${formatInferenceErrorForLog(error, candidate)}`);
         }
     }
 

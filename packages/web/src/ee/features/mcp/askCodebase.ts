@@ -6,7 +6,7 @@ import { resolveContextWindow } from "@/features/chat/modelContextWindow.server"
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
-import { describeLanguageModel, executeWithInferenceFallback, formatInferenceError, resolveInferenceRetryConfig, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
+import { describeLanguageModel, executeWithInferenceFallback, formatInferenceError, formatInferenceErrorForLog, resolveInferenceRetryConfig, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -255,7 +255,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             if (chatNameOutcome.status === 'fulfilled' && chatNameOutcome.value) {
                 name = chatNameOutcome.value;
             } else {
-                logger.warn(`Failed to generate a chat name for chat ${chat.id}. Using the query as the name. Details: ${chatNameOutcome.status === 'rejected' ? formatInferenceError(chatNameOutcome.reason, languageModelConfig) : 'empty response'}`);
+                logger.warn(`Failed to generate a chat name for chat ${chat.id}. Using the query as the name. Details: ${chatNameOutcome.status === 'rejected' ? formatInferenceErrorForLog(chatNameOutcome.reason, languageModelConfig) : 'empty response'}`);
                 name = query.substring(0, 50);
             }
 
