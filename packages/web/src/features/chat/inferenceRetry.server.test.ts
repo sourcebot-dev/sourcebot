@@ -272,6 +272,27 @@ describe('resolveFallbackChain', () => {
         const match = anthropicModel({ model: 'claude', displayName: 'Work Claude' });
         expect(resolveFallbackChain(primary, [primary, other, match])).toEqual([primary, match]);
     });
+
+    test('tries a same-id backup instead of silently reusing the primary', () => {
+        const primary = openaiModel({
+            displayName: 'Primary key',
+            fallbackModels: [{ provider: 'openai', model: 'gpt-4o' }],
+        });
+        const backup = openaiModel({ displayName: 'Backup key' });
+        // The backup shares the primary's provider and model id; the
+        // reference must resolve to it rather than no-op on the primary.
+        expect(resolveFallbackChain(primary, [primary, backup])).toEqual([primary, backup]);
+    });
+
+    test('warns when a reference resolves only to models already in the chain', () => {
+        const primary = openaiModel({
+            fallbackModels: [{ provider: 'openai', model: 'gpt-4o' }],
+        });
+        expect(resolveFallbackChain(primary, [primary])).toEqual([primary]);
+        expect(mocks.logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('resolves only to models already in the chain'),
+        );
+    });
 });
 
 describe('withInferenceRetries', () => {

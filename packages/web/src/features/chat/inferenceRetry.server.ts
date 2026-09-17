@@ -331,8 +331,11 @@ export const withInferenceRetries = async <T>(
 /**
  * Resolves the ordered candidate chain for a request: the requested model
  * first, then its configured `fallbackModels` in order. References to models
- * that are not configured are skipped with a warning; duplicates and
- * self-references are dropped.
+ * that are not configured are skipped with a warning. A reference matches the
+ * first configured model with the same provider and model (and display name,
+ * when set) that is not already in the chain, so a same-id backup entry is
+ * tried instead of silently reusing the primary; references that resolve only
+ * to models already in the chain are skipped with a warning.
  */
 export const resolveFallbackChain = (primaryModel: LanguageModel, allModels: LanguageModel[]): LanguageModel[] => {
     const chain: LanguageModel[] = [primaryModel];
@@ -343,23 +346,24 @@ export const resolveFallbackChain = (primaryModel: LanguageModel, allModels: Lan
             break;
         }
 
-        const match = allModels.find((candidate) =>
+        const matches = allModels.filter((candidate) =>
             candidate.provider === ref.provider &&
             candidate.model === ref.model &&
             (ref.displayName === undefined || candidate.displayName === ref.displayName)
         );
 
-        if (!match) {
+        if (matches.length === 0) {
             logger.warn(`Fallback model ${describeLanguageModel(ref)} for ${describeLanguageModel(primaryModel)} is not configured. Skipping.`);
             continue;
         }
 
-        const key = getLanguageModelKey(match);
-        if (seen.has(key)) {
+        const match = matches.find((candidate) => !seen.has(getLanguageModelKey(candidate)));
+        if (!match) {
+            logger.warn(`Fallback model ${describeLanguageModel(ref)} for ${describeLanguageModel(primaryModel)} resolves only to models already in the chain. Skipping.`);
             continue;
         }
 
-        seen.add(key);
+        seen.add(getLanguageModelKey(match));
         chain.push(match);
     }
 
