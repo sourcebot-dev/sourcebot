@@ -421,7 +421,15 @@ describe('verifyCredential', () => {
         const octokit = makeOctokit();
         octokit.rest.users.getAuthenticated.mockRejectedValueOnce(httpError(403));
         await verifyCredential(octokit as never, 'weird_prefix_abc123');
+        expect(octokit.rest.users.getAuthenticated).toHaveBeenCalledOnce();
         expect(octokit.request).toHaveBeenCalledWith('GET /installation/repositories', { per_page: 1 });
+    });
+
+    test('does not fall back for an unknown token after a non-403 response', async () => {
+        const octokit = makeOctokit();
+        octokit.rest.users.getAuthenticated.mockRejectedValueOnce(httpError(401));
+        await expect(verifyCredential(octokit as never, 'weird_prefix_bad')).rejects.toThrow();
+        expect(octokit.request).not.toHaveBeenCalled();
     });
 
     test('a genuinely invalid credential still throws', async () => {
