@@ -68,4 +68,21 @@ describe('performance measurement utilities', () => {
             durationMs: 5,
         });
     });
+
+    test('measure ignores performance timeline instrumentation failures', async () => {
+        vi.spyOn(performance, 'now')
+            .mockReturnValueOnce(20)
+            .mockReturnValueOnce(27.5);
+        vi.spyOn(performance, 'mark').mockImplementation(() => {
+            throw new Error('Performance timeline unavailable');
+        });
+        vi.spyOn(performance, 'measure').mockImplementation(() => {
+            throw new Error('Performance timeline unavailable');
+        });
+
+        await expect(measure(async () => 'async result', 'async-operation', false)).resolves.toEqual({
+            data: 'async result',
+            durationMs: 7.5,
+        });
+    });
 });
