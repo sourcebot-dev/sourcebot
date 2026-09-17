@@ -3,7 +3,7 @@
 import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels } from "../chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
-import { resolveInferenceRetryConfig, toInferenceServiceError } from "@/features/chat/inferenceRetry.server";
+import { resolveInferenceRetryConfig, toInferenceServiceError, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -39,17 +39,25 @@ export const translateSearchQuery = async ({ prompt }: { prompt: string }) => se
         }
 
         const { model } = await getAISDKLanguageModelAndOptions(models[0]);
+        const retryConfig = resolveInferenceRetryConfig(models[0]);
 
         try {
-            const { object } = await generateObject({
-                model,
-                system: SYSTEM_PROMPT,
-                prompt,
-                schema: z.object({
-                    query: z.string().describe("The Sourcebot search query."),
+            const { object } = await withInferenceRetries(
+                () => generateObject({
+                    model,
+                    system: SYSTEM_PROMPT,
+                    prompt,
+                    schema: z.object({
+                        query: z.string().describe("The Sourcebot search query."),
+                    }),
+                    // Retries are handled by the wrapper so the per-model
+                    // backoff policy applies; disable the SDK's built-in
+                    // retries to avoid compounding them.
+                    maxRetries: 0,
                 }),
-                maxRetries: resolveInferenceRetryConfig(models[0]).maxRetries,
-            });
+                retryConfig,
+                models[0],
+            );
 
             return { query: object.query };
         } catch (error) {

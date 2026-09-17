@@ -56,7 +56,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -110,7 +110,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -188,7 +188,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -238,7 +238,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -302,7 +302,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -368,7 +368,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -450,7 +450,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -500,7 +500,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -576,7 +576,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -642,7 +642,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -693,7 +693,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },
@@ -747,7 +747,7 @@
                 },
                 "fallbackModels": {
                     "type": "array",
-                    "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                    "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                     "items": {
                         "$ref": "./shared.json#/definitions/LanguageModelFallbackReference"
                     },

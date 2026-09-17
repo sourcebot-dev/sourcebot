@@ -367,6 +367,49 @@ describe('executeWithInferenceFallback', () => {
         expect(serviceError.message).toContain('fallback limited');
     });
 
+    test('fails fast on deterministic provider errors without falling back', async () => {
+        const primary = openaiModel({
+            retry: { maxRetries: 3, initialBackoffMs: 1, maxBackoffMs: 1 },
+            fallbackModels: [{ provider: 'anthropic', model: 'claude-sonnet-4-5' }],
+        });
+        const fallback = anthropicModel();
+        const run = vi.fn().mockRejectedValue(apiError({ message: 'bad key', statusCode: 401 }));
+
+        const failure = await executeWithInferenceFallback({
+            primaryModel: primary,
+            allModels: [primary, fallback],
+            run,
+        }).catch((error: unknown) => error);
+
+        expect(run).toHaveBeenCalledTimes(1);
+        expect(failure).toBeInstanceOf(ServiceErrorException);
+        const serviceError = (failure as ServiceErrorException).serviceError;
+        expect(serviceError.errorCode).toBe(ErrorCode.INFERENCE_ERROR);
+        expect(serviceError.statusCode).toBe(401);
+        expect(serviceError.message).toContain('[openai/gpt-4o]');
+        expect(serviceError.message).toContain('bad key');
+        expect(serviceError.message).not.toContain('All 2 models failed');
+    });
+
+    test('fails fast on internal errors without misreporting fallback exhaustion', async () => {
+        const primary = openaiModel({
+            fallbackModels: [{ provider: 'anthropic', model: 'claude-sonnet-4-5' }],
+        });
+        const fallback = anthropicModel();
+        const run = vi.fn().mockRejectedValue(new Error('entitlement backstop'));
+
+        const failure = await executeWithInferenceFallback({
+            primaryModel: primary,
+            allModels: [primary, fallback],
+            run,
+        }).catch((error: unknown) => error);
+
+        expect(run).toHaveBeenCalledTimes(1);
+        expect(failure).toBeInstanceOf(ServiceErrorException);
+        expect((failure as ServiceErrorException).serviceError.statusCode).toBe(StatusCodes.INTERNAL_SERVER_ERROR);
+        expect((failure as ServiceErrorException).serviceError.message).not.toContain('fallback');
+    });
+
     test('rethrows deterministic request errors without falling back', async () => {
         const primary = openaiModel({
             fallbackModels: [{ provider: 'anthropic', model: 'claude-sonnet-4-5' }],

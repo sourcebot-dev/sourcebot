@@ -400,9 +400,11 @@ const buildFallbackExhaustedError = (
 
 /**
  * Runs `run` against the primary model (with retries), falling back through
- * the primary model's configured `fallbackModels` when inference keeps
- * failing. Non-inference `ServiceErrorException`s (bad request params,
- * entitlement errors, ...) are rethrown immediately without fallback.
+ * the primary model's configured `fallbackModels` when inference fails
+ * transiently. Only retryable inference failures advance to the next model;
+ * deterministic failures (e.g. 401/403 provider responses) and non-inference
+ * `ServiceErrorException`s (bad request params, entitlement errors, ...) are
+ * surfaced immediately without burning fallback attempts.
  */
 export const executeWithInferenceFallback = async <T>({
     primaryModel,
@@ -433,6 +435,15 @@ export const executeWithInferenceFallback = async <T>({
         } catch (error) {
             if (error instanceof ServiceErrorException && error.serviceError.errorCode !== ErrorCode.INFERENCE_ERROR) {
                 throw error;
+            }
+
+            // Fall back only on transient inference failures. Deterministic
+            // failures (e.g. 401/403) and internal errors surface immediately
+            // so they are neither retried pointlessly nor misreported as
+            // exhausted inference retries.
+            const isFallbackEligible = error instanceof ServiceErrorException || isRetryableInferenceError(error);
+            if (!isFallbackEligible) {
+                throw new ServiceErrorException(toInferenceServiceError(error, candidate));
             }
 
             attemptErrors.push({ model: candidate, error });

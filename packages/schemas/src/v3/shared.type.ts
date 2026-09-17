@@ -64,7 +64,7 @@ export interface LanguageModelQueryParams {
   [k: string]: string | Token;
 }
 /**
- * Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).
+ * Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).
  *
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "LanguageModelRetry".
@@ -84,7 +84,7 @@ export interface LanguageModelRetry {
   maxBackoffMs?: number;
 }
 /**
- * Reference to another configured language model to fall back to when inference requests with this model fail.
+ * Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.
  *
  * This interface was referenced by `Shared`'s JSON-Schema
  * via the `definition` "LanguageModelFallbackReference".

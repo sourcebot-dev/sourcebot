@@ -90,7 +90,7 @@ export interface AmazonBedrockLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -122,7 +122,7 @@ export interface LanguageModelHeaders {
       );
 }
 /**
- * Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).
+ * Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).
  */
 export interface LanguageModelRetry {
   /**
@@ -139,7 +139,7 @@ export interface LanguageModelRetry {
   maxBackoffMs?: number;
 }
 /**
- * Reference to another configured language model to fall back to when inference requests with this model fail.
+ * Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.
  */
 export interface LanguageModelFallbackReference {
   /**
@@ -223,7 +223,7 @@ export interface AnthropicLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -285,7 +285,7 @@ export interface AzureLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -331,7 +331,7 @@ export interface DeepSeekLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -385,7 +385,7 @@ export interface GoogleGenerativeAILanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -439,7 +439,7 @@ export interface GoogleVertexAnthropicLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -501,7 +501,7 @@ export interface GoogleVertexLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -547,7 +547,7 @@ export interface MistralLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -601,7 +601,7 @@ export interface OpenAILanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -652,7 +652,7 @@ export interface OpenAICompatibleLanguageModel {
   temperature?: number;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -723,7 +723,7 @@ export interface OpenRouterLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */
@@ -769,7 +769,7 @@ export interface XaiLanguageModel {
   headers?: LanguageModelHeaders;
   retry?: LanguageModelRetry;
   /**
-   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   * Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
    *
    * @maxItems 5
    */

@@ -1877,7 +1877,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -1890,7 +1890,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -1905,10 +1905,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -2085,7 +2085,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -2098,7 +2098,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -2113,10 +2113,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -2290,7 +2290,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -2303,7 +2303,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -2318,10 +2318,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -2467,7 +2467,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -2480,7 +2480,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -2495,10 +2495,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -2658,7 +2658,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -2671,7 +2671,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -2686,10 +2686,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -2851,7 +2851,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -2864,7 +2864,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -2879,10 +2879,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -3060,7 +3060,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -3073,7 +3073,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -3088,10 +3088,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -3237,7 +3237,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -3250,7 +3250,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -3265,10 +3265,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -3440,7 +3440,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -3453,7 +3453,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -3468,10 +3468,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -3674,7 +3674,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -3687,7 +3687,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -3702,10 +3702,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -3852,7 +3852,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -3865,7 +3865,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -3880,10 +3880,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -4033,7 +4033,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -4046,7 +4046,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -4061,10 +4061,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -4283,7 +4283,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -4296,7 +4296,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -4311,10 +4311,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -4491,7 +4491,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -4504,7 +4504,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -4519,10 +4519,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -4696,7 +4696,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -4709,7 +4709,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -4724,10 +4724,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -4873,7 +4873,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -4886,7 +4886,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -4901,10 +4901,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -5064,7 +5064,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -5077,7 +5077,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -5092,10 +5092,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -5257,7 +5257,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -5270,7 +5270,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -5285,10 +5285,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -5466,7 +5466,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -5479,7 +5479,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -5494,10 +5494,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -5643,7 +5643,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -5656,7 +5656,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -5671,10 +5671,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -5846,7 +5846,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -5859,7 +5859,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -5874,10 +5874,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -6080,7 +6080,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -6093,7 +6093,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -6108,10 +6108,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -6258,7 +6258,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -6271,7 +6271,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -6286,10 +6286,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
@@ -6439,7 +6439,7 @@ const schema = {
               },
               "retry": {
                 "type": "object",
-                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).",
+                "description": "Optional retry policy for inference requests made with this model. When unset, defaults apply (3 retries with exponential backoff starting at 500ms).",
                 "properties": {
                   "maxRetries": {
                     "type": "integer",
@@ -6452,7 +6452,7 @@ const schema = {
                     "type": "integer",
                     "description": "Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.",
                     "minimum": 0,
-                    "maximum": 60000,
+                    "maximum": 120000,
                     "default": 500
                   },
                   "maxBackoffMs": {
@@ -6467,10 +6467,10 @@ const schema = {
               },
               "fallbackModels": {
                 "type": "array",
-                "description": "Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
+                "description": "Optional ordered list of fallback models to try when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.",
                 "items": {
                   "type": "object",
-                  "description": "Reference to another configured language model to fall back to when inference requests with this model fail.",
+                  "description": "Reference to another configured language model to use as a fallback when blocking Ask requests (the MCP ask_codebase tool and the blocking chat API) with this model keep failing after retries.",
                   "properties": {
                     "provider": {
                       "type": "string",
