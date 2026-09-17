@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added privacy-scoped setup wizard funnel and Docker startup-failure telemetry with deployment identity handoff, Node.js 20.20.0 support, and cross-platform end-to-end test coverage. [#1653](https://github.com/sourcebot-dev/sourcebot/pull/1653)
 
+### Fixed
+- Fixed GitHub App installation tokens (`ghs_`) being rejected by the GitHub connector's credential preflight. [#1662](https://github.com/sourcebot-dev/sourcebot/pull/1662)
+
 ## [5.1.13] - 2026-09-12
 
 ### Fixed
