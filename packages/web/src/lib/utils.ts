@@ -543,16 +543,34 @@ export const formatCurrency = (
     return formatter.format(amountSmallestUnit / Math.pow(10, fractionDigits));
 }
 
+const recordPerformanceMark = (markName: string) => {
+    try {
+        performance.mark(markName);
+    } catch {
+        // Performance timeline instrumentation must not break the measured operation.
+    }
+}
+
+const recordPerformanceMeasure = (measureName: string, startMark: string, endMark: string) => {
+    try {
+        performance.measure(measureName, startMark, endMark);
+    } catch {
+        // Performance timeline instrumentation must not break the measured operation.
+    }
+}
+
 export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
-    performance.mark(startMark);
+    recordPerformanceMark(startMark);
+    const startTime = performance.now();
     const data = cb();
-    performance.mark(endMark);
+    const endTime = performance.now();
+    recordPerformanceMark(endMark);
 
-    const measure = performance.measure(measureName, startMark, endMark);
-    const durationMs = measure.duration;
+    recordPerformanceMeasure(measureName, startMark, endMark);
+    const durationMs = endTime - startTime;
     if (outputLog) {
         console.debug(`[${measureName}] took ${durationMs}ms`);
     }
@@ -567,12 +585,14 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string, outp
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
 
-    performance.mark(startMark);
+    recordPerformanceMark(startMark);
+    const startTime = performance.now();
     const data = await cb();
-    performance.mark(endMark);
+    const endTime = performance.now();
+    recordPerformanceMark(endMark);
 
-    const measure = performance.measure(measureName, startMark, endMark);
-    const durationMs = measure.duration;
+    recordPerformanceMeasure(measureName, startMark, endMark);
+    const durationMs = endTime - startTime;
     if (outputLog) {
         console.debug(`[${measureName}] took ${durationMs}ms`);
     }
