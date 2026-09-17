@@ -38,6 +38,7 @@ export default async function Signup(props: LoginProps) {
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
                     context="signup"
+                    loginMessage={org.loginMessage}
                     isAnonymousAccessEnabled={anonymousAccessEnabled}
                     hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />

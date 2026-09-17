@@ -8,6 +8,7 @@ import { IdentityProviderUpsellCard } from "./components/identityProviderUpsellC
 import { ScimProvisioningSettings } from "./components/scimProvisioningSettings";
 import { ScimEnabledSettingsCard } from "./components/scimEnabledSettingsCard";
 import { ScimUpsellCard } from "./components/scimUpsellCard";
+import { LoginMessageSettingsCard } from "./components/loginMessageSettingsCard";
 import { getScimTokens } from "@/ee/features/scim/actions";
 import { UpgradeBadge } from "@/app/(app)/@sidebar/components/upgradeBadge";
 import { getProviders, IdentityProvider } from "@/auth";
@@ -154,6 +155,14 @@ export default authenticatedPage(async ({ org }) => {
                         )}
                     </>
                 )}
+
+                <section aria-labelledby="login-message-heading" className="space-y-4">
+                    <div>
+                        <h3 id="login-message-heading" className="text-md font-medium">Login message</h3>
+                        <p className="text-sm text-muted-foreground">Show access instructions or a registration link on your sign-in and sign-up pages.</p>
+                    </div>
+                    <LoginMessageSettingsCard loginMessage={org.loginMessage} />
+                </section>
             </div>
         </div>
     )

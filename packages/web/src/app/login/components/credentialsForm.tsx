@@ -69,7 +69,7 @@ export const CredentialsForm = ({ callbackUrl, context }: CredentialsFormProps) 
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                        <FormItem className="mb-8">
+                        <FormItem className="mb-4">
                             <FormLabel>Password</FormLabel>
                             <FormControl>
                                 <Input
@@ -93,4 +93,4 @@ export const CredentialsForm = ({ callbackUrl, context }: CredentialsFormProps) 
             </form>
         </Form>
     );
-} 
+}
