@@ -43,7 +43,38 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
     ./install-ctags-macos.sh
     ```
 
-    **Linux and other platforms:** Build from source:
+    **Linux and other platforms:** Build from source.
+
+    First install the required build dependencies:
+
+    **Debian / Ubuntu:**
+    ```sh
+    sudo apt update
+    sudo apt install \
+        curl \
+        gcc make \
+        pkg-config autoconf automake \
+        python3-docutils \
+        libseccomp-dev \
+        libjansson-dev \
+        libyaml-dev \
+        libxml2-dev
+    ```
+
+    **Fedora / RHEL / CentOS:**
+    ```sh
+    sudo dnf install \
+        curl \
+        gcc make \
+        pkgconfig autoconf automake \
+        python3-docutils \
+        libseccomp-devel \
+        jansson-devel \
+        libyaml-devel \
+        libxml2-devel
+    ```
+
+    Then build and install:
     ```sh
     curl https://codeload.github.com/universal-ctags/ctags/tar.gz/v6.1.0 | tar xz -C /tmp
     cd /tmp/ctags-6.1.0
@@ -55,6 +86,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
     After installing, set `CTAGS_COMMAND` in your `.env.development.local` to the path of the installed binary (e.g. `/usr/local/bin/universal-ctags`).
 
+
 3. Install and enable Corepack so the repository uses the Yarn version pinned in `package.json`:
     ```sh
     npm install -g corepack
@@ -62,11 +94,11 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
     yarn --version
     ```
 
-3. Clone the repository with submodules:
+4. Clone the repository with submodules:
     ```sh
     git clone --recurse-submodules https://github.com/sourcebot-dev/sourcebot.git
     ```
-4. Run `make` to build zoekt and install dependencies:
+5. Run `make` to build zoekt and install dependencies:
     ```sh
     cd sourcebot
     make
@@ -76,29 +108,29 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
     **Note**: `make` should also be run whenever switching between branches to ensure all dependencies are upto date.
 
-5. Start the development Docker containers for PostgreSQL and Redis.
+6. Start the development Docker containers for PostgreSQL and Redis.
 
     ```sh
     docker compose -f docker-compose-dev.yml up -d
     ```
 
-6. Generate the database schema.
+7. Generate the database schema.
     ```sh
     yarn dev:prisma:migrate:dev
     ```
 
-7. Create a copy of `.env.development` and name it `.env.development.local`. Update the required environment variables.
+8. Create a copy of `.env.development` and name it `.env.development.local`. Update the required environment variables.
 
-8. If you're using a declarative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
+9. If you're using a declarative configuration file, create a configuration file and update the `CONFIG_PATH` environment variable in your `.env.development.local` file.
 
-9. Start Sourcebot with the command:
+10. Start Sourcebot with the command:
     ```sh
     yarn dev
     ```
 
     A `.sourcebot` directory will be created and zoekt will begin to index the repositories found in the `config.json` file.
 
-10. Start searching at `http://localhost:3000`.
+11. Start searching at `http://localhost:3000`.
 
 ## Debugging
 
