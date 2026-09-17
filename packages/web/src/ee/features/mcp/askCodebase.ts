@@ -6,6 +6,7 @@ import { resolveContextWindow } from "@/features/chat/modelContextWindow.server"
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
+import { describeLanguageModel, executeWithInferenceFallback, formatInferenceError, resolveInferenceRetryConfig, withInferenceRetries } from "@/features/chat/inferenceRetry.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -84,17 +85,6 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 languageModelConfig = matchingModel;
             }
 
-            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
-            const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
-            const contextWindow = await resolveContextWindow(languageModelConfig);
-            const { inputModalities, supportedDocumentTypes } = await resolveModelCapabilities(languageModelConfig);
-
-            // No-op for non-Anthropic providers / when caching is disabled.
-            const promptCacheStrategy = getPromptCacheStrategy(
-                languageModelConfig.provider,
-                env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',
-            );
-
             const chatVisibility = (requestedVisibility && user)
                 ? requestedVisibility
                 : (user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC);
@@ -127,7 +117,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
                 chatId: chat.id,
                 query: query.substring(0, 100),
-                model: modelName,
+                model: describeLanguageModel(languageModelConfig),
             });
 
             const userMessage: SBChatMessage = {
@@ -158,8 +148,6 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 } satisfies SearchScope;
             })));
 
-            let finalMessages: SBChatMessage[] = [];
-
             await captureEvent('ask_message_sent', {
                 chatId: chat.id,
                 messageCount: 1,
@@ -176,43 +164,100 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 } : {}),
             });
 
-            const stream = await createMessageStream({
-                chatId: chat.id,
-                messages: [userMessage],
-                metadata: {
-                    selectedSearchScopes: selectedRepos,
-                },
-                selectedRepos: selectedRepos.map(r => r.value),
-                prisma,
-                model,
-                modelName,
-                contextWindow,
-                promptCacheStrategy,
-                modelProviderOptions: providerOptions,
-                modelTemperature: temperature,
-                onFinish: async ({ messages }) => {
-                    finalMessages = messages;
-                },
-                onError: (error) => {
-                    if (error instanceof ServiceErrorException) {
-                        throw error;
-                    }
-                    const message = error instanceof Error ? error.message : String(error);
-                    throw new ServiceErrorException({
-                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                        errorCode: ErrorCode.UNEXPECTED_ERROR,
-                        message,
-                    });
-                },
-            });
+            // Inference runs through the shared retry/fallback executor: the
+            // primary model is retried on transient failures, then the models
+            // listed in its `fallbackModels` config are tried in order. Only
+            // inference failures fall back; deterministic request errors (bad
+            // repo names, entitlement errors, ...) are rethrown immediately.
+            // Chat-name generation runs concurrently and is best-effort: a
+            // naming failure must not fail the whole answer.
+            const primaryRetryConfig = resolveInferenceRetryConfig(languageModelConfig);
+            const [agentOutcome, chatNameOutcome] = await Promise.allSettled([
+                executeWithInferenceFallback({
+                    primaryModel: languageModelConfig,
+                    allModels: configuredModels,
+                    run: async (candidate) => {
+                        const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(candidate);
+                        const modelName = candidate.displayName ?? candidate.model;
+                        const contextWindow = await resolveContextWindow(candidate);
+                        const { inputModalities, supportedDocumentTypes } = await resolveModelCapabilities(candidate);
 
-            const [, name] = await Promise.all([
-                blockStreamUntilFinish(stream),
-                generateChatNameFromMessage({
-                    message: query,
+                        // No-op for non-Anthropic providers / when caching is disabled.
+                        const promptCacheStrategy = getPromptCacheStrategy(
+                            candidate.provider,
+                            env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',
+                        );
+
+                        // The UI-message stream reports failures through `onError`,
+                        // which by contract returns a message string. Capture the
+                        // raw error and rethrow it after draining so the
+                        // retry/fallback loop can classify it (mapping it here
+                        // would discard the provider status code and retryability).
+                        let streamError: unknown;
+                        let attemptMessages: SBChatMessage[] = [];
+
+                        const stream = await createMessageStream({
+                            chatId: chat.id,
+                            messages: [userMessage],
+                            metadata: {
+                                selectedSearchScopes: selectedRepos,
+                            },
+                            selectedRepos: selectedRepos.map(r => r.value),
+                            prisma,
+                            model,
+                            modelName,
+                            contextWindow,
+                            promptCacheStrategy,
+                            modelProviderOptions: providerOptions,
+                            modelTemperature: temperature,
+                            // Retries are handled by the loop around `run`
+                            // (uniform backoff + fallback); disable the SDK's
+                            // built-in retries to avoid compounding them.
+                            modelMaxRetries: 0,
+                            onFinish: async ({ messages }) => {
+                                attemptMessages = messages;
+                            },
+                            onError: (error) => {
+                                streamError = error;
+                                return formatInferenceError(error, candidate);
+                            },
+                        });
+
+                        await blockStreamUntilFinish(stream);
+                        if (streamError !== undefined) {
+                            throw streamError;
+                        }
+
+                        return { messages: attemptMessages, inputModalities, supportedDocumentTypes };
+                    },
+                }),
+                withInferenceRetries(
+                    () => generateChatNameFromMessage({
+                        message: query,
+                        languageModelConfig,
+                        // Retries are handled by the wrapper (uniform backoff);
+                        // disable the SDK's built-in retries to avoid compounding.
+                        maxRetries: 0,
+                    }),
+                    primaryRetryConfig,
                     languageModelConfig,
-                })
+                ),
             ]);
+
+            if (agentOutcome.status === 'rejected') {
+                throw agentOutcome.reason;
+            }
+
+            const { modelConfig: servedModelConfig, result: agentResult } = agentOutcome.value;
+            const finalMessages = agentResult.messages;
+
+            let name: string;
+            if (chatNameOutcome.status === 'fulfilled' && chatNameOutcome.value) {
+                name = chatNameOutcome.value;
+            } else {
+                logger.warn(`Failed to generate a chat name for chat ${chat.id}. Using the query as the name. Details: ${chatNameOutcome.status === 'rejected' ? formatInferenceError(chatNameOutcome.reason, languageModelConfig) : 'empty response'}`);
+                name = query.substring(0, 50);
+            }
 
             await updateChatMessages({ chatId: chat.id, messages: finalMessages, prisma });
 
@@ -238,18 +283,22 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl, fileSources);
             const chatUrl = `${baseUrl}/chat/${chat.id}`;
 
-            logger.debug(`Completed blocking agent for chat ${chat.id}`, { chatId: chat.id });
+            logger.debug(`Completed blocking agent for chat ${chat.id}`, {
+                chatId: chat.id,
+                model: describeLanguageModel(servedModelConfig),
+                usedFallback: servedModelConfig !== languageModelConfig,
+            });
 
             return {
                 answer: portableAnswer,
                 chatId: chat.id,
                 chatUrl,
                 languageModel: {
-                    provider: languageModelConfig.provider,
-                    model: languageModelConfig.model,
-                    displayName: languageModelConfig.displayName,
-                    inputModalities,
-                    supportedDocumentTypes,
+                    provider: servedModelConfig.provider,
+                    model: servedModelConfig.model,
+                    displayName: servedModelConfig.displayName,
+                    inputModalities: agentResult.inputModalities,
+                    supportedDocumentTypes: agentResult.supportedDocumentTypes,
                 },
             } satisfies AskCodebaseResult;
         })

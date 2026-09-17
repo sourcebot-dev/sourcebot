@@ -1,6 +1,7 @@
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { describeLanguageModel, formatInferenceError, resolveInferenceRetryConfig } from "@/features/chat/inferenceRetry.server";
 import { env } from "@sourcebot/shared";
 import { generateText } from "ai";
 import fs from "fs";
@@ -53,6 +54,7 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
             prompt,
             providerOptions,
             temperature,
+            maxRetries: resolveInferenceRetryConfig(selectedModel).maxRetries,
         });
 
         const responseText = result.text;
@@ -71,7 +73,7 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
         logger.debug("Completed invoke_diff_review_llm");
         return diffReview.data;
     } catch (error) {
-        logger.error('Error invoking language model:', error);
+        logger.error(`Error invoking language model ${describeLanguageModel(selectedModel)}: ${formatInferenceError(error, selectedModel)}`, error);
         throw error;
     }
 }

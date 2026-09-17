@@ -142,8 +142,12 @@ export async function createMcpServer({ canManageSkills }: { canManageSkills: bo
                         source: MCP_SERVER_SOURCE,
                         success: false,
                     });
+                    // `askCodebase` reports detailed inference failures
+                    // (model, provider status code, response snippet) after
+                    // exhausting per-model retries and fallbacks; surface them
+                    // verbatim so MCP clients can debug provider issues.
                     return {
-                        content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
+                        content: [{ type: "text", text: `Failed to ask codebase (status ${result.statusCode}): ${result.message}` }],
                     };
                 }
 

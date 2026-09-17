@@ -9,6 +9,7 @@ import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attach
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { formatInferenceError, resolveInferenceRetryConfig } from "@/features/chat/inferenceRetry.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
 import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
@@ -235,6 +236,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 promptCacheStrategy,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
+                // Surface the per-model retry policy to the SDK. Model
+                // fallback is intentionally not attempted here: an
+                // interactive stream cannot switch models mid-response
+                // (fallbacks apply to the blocking ask/MCP path instead).
+                modelMaxRetries: resolveInferenceRetryConfig(languageModelConfig).maxRetries,
                 userId: user?.id,
                 orgId: org.id,
                 acceptedModalities,
@@ -267,19 +273,14 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     logger.error(error);
                     Sentry.captureException(error);
 
+                    // Report the provider's details (model, status code,
+                    // response body) instead of a generic failure so the
+                    // failure is debuggable from the client.
                     if (error == null) {
-                        return 'unknown error';
+                        return `[${languageModelConfig.provider}/${languageModelConfig.model}] unknown error`;
                     }
 
-                    if (typeof error === 'string') {
-                        return error;
-                    }
-
-                    if (error instanceof Error) {
-                        return error.message;
-                    }
-
-                    return JSON.stringify(error);
+                    return formatInferenceError(error, languageModelConfig);
                 }
             });
 

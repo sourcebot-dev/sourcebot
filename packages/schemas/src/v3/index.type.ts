@@ -770,6 +770,13 @@ export interface AmazonBedrockLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 /**
  * Optional headers to use with the model.
@@ -795,6 +802,52 @@ export interface LanguageModelHeaders {
             googleCloudSecret: string;
           }
       );
+}
+/**
+ * Optional retry policy for inference requests made with this model. When unset, defaults apply (up to 3 attempts with exponential backoff starting at 500ms).
+ */
+export interface LanguageModelRetry {
+  /**
+   * Maximum number of retry attempts for a failed inference request. Only transient failures (network errors, 408/429/5xx responses) are retried. Set to 0 to disable retries. Defaults to 3.
+   */
+  maxRetries?: number;
+  /**
+   * Delay in milliseconds before the first retry. Doubles after each attempt, up to maxBackoffMs. Defaults to 500.
+   */
+  initialBackoffMs?: number;
+  /**
+   * Maximum delay in milliseconds between retries. Defaults to 8000.
+   */
+  maxBackoffMs?: number;
+}
+/**
+ * Reference to another configured language model to fall back to when inference requests with this model fail.
+ */
+export interface LanguageModelFallbackReference {
+  /**
+   * The provider of the fallback language model. Must match the provider of another entry in `models`.
+   */
+  provider:
+    | "amazon-bedrock"
+    | "anthropic"
+    | "azure"
+    | "deepseek"
+    | "google-generative-ai"
+    | "google-vertex-anthropic"
+    | "google-vertex"
+    | "mistral"
+    | "openai"
+    | "openai-compatible"
+    | "openrouter"
+    | "xai";
+  /**
+   * The name of the fallback language model. Must match the `model` of another entry in `models` with the same provider.
+   */
+  model: string;
+  /**
+   * Optional display name. When set, the fallback matches the configured model with the same provider, model and display name.
+   */
+  displayName?: string;
 }
 export interface AnthropicLanguageModel {
   /**
@@ -850,6 +903,13 @@ export interface AnthropicLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface AzureLanguageModel {
   /**
@@ -905,6 +965,13 @@ export interface AzureLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface DeepSeekLanguageModel {
   /**
@@ -944,6 +1011,13 @@ export interface DeepSeekLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface GoogleGenerativeAILanguageModel {
   /**
@@ -991,6 +1065,13 @@ export interface GoogleGenerativeAILanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface GoogleVertexAnthropicLanguageModel {
   /**
@@ -1038,6 +1119,13 @@ export interface GoogleVertexAnthropicLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface GoogleVertexLanguageModel {
   /**
@@ -1093,6 +1181,13 @@ export interface GoogleVertexLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface MistralLanguageModel {
   /**
@@ -1132,6 +1227,13 @@ export interface MistralLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface OpenAILanguageModel {
   /**
@@ -1179,6 +1281,13 @@ export interface OpenAILanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface OpenAICompatibleLanguageModel {
   /**
@@ -1223,6 +1332,13 @@ export interface OpenAICompatibleLanguageModel {
    * Optional temperature setting to use with the model.
    */
   temperature?: number;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 /**
  * Optional query parameters to include in the request url.
@@ -1287,6 +1403,13 @@ export interface OpenRouterLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface XaiLanguageModel {
   /**
@@ -1326,6 +1449,13 @@ export interface XaiLanguageModel {
    */
   temperature?: number;
   headers?: LanguageModelHeaders;
+  retry?: LanguageModelRetry;
+  /**
+   * Optional ordered list of fallback models to try when inference requests with this model keep failing after retries. Each entry must reference another model in the `models` array. Fallbacks are attempted in order.
+   *
+   * @maxItems 5
+   */
+  fallbackModels?: LanguageModelFallbackReference[];
 }
 export interface GitHubAppConfig {
   /**
