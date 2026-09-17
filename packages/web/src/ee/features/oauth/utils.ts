@@ -4,6 +4,19 @@ import {
 
 const OAUTH_SCOPE_TOKEN_REGEX = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
 
+export function getOAuthAuthorizeUrl(params: Record<string, string | string[] | undefined>): string {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value === undefined) {
+            continue;
+        }
+        for (const entry of Array.isArray(value) ? value : [value]) {
+            searchParams.append(key, entry);
+        }
+    }
+    return `/oauth/authorize?${searchParams.toString()}`;
+}
+
 export function parseOAuthScopeString(scope: string | null | undefined): string[] {
     if (!scope) {
         return [];

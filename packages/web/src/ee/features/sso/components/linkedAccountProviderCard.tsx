@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { cn, getAuthProviderInfo, unwrapServiceError } from "@/lib/utils";
 import { AlertCircle, ArrowUpRight, ChevronDown, RefreshCw, Unlink } from "lucide-react";
 import { ProviderIcon } from "./providerIcon";
-import { LinkedAccount, triggerAccountPermissionSync, unlinkLinkedAccountProvider } from "@/ee/features/sso/actions";
+import { triggerAccountPermissionSync, unlinkLinkedAccountProvider } from "@/ee/features/sso/actions";
+import type { LinkedAccount } from "@/ee/features/sso/types";
 
 import { LoadingButton } from "@/components/ui/loading-button";
 import {

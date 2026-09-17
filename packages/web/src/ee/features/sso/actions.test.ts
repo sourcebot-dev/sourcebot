@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from '@/lib/constants';
 
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
     hasEntitlement: vi.fn(),
     removeAccountPermissionSyncScheduler: vi.fn(),
     scheduleAndTriggerAccountPermissionSync: vi.fn(),
+    cookieGet: vi.fn(),
+    cookieSet: vi.fn(),
 }));
 
 vi.mock('@/middleware/sew', () => ({
@@ -41,20 +44,44 @@ vi.mock('@sourcebot/shared', () => ({
     getIdentityProviderConfigs: vi.fn(),
 }));
 vi.mock('next/headers', () => ({
-    cookies: vi.fn(),
+    cookies: async () => ({ get: mocks.cookieGet, set: mocks.cookieSet }),
 }));
 
 const {
+    skipOptionalProvidersLink,
     triggerAccountPermissionSync,
     unlinkLinkedAccountProvider,
 } = await import('./actions');
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mocks.cookieGet.mockReturnValue(undefined);
     mocks.hasEntitlement.mockResolvedValue(true);
     mocks.removeAccountPermissionSyncScheduler.mockResolvedValue(true);
     mocks.scheduleAndTriggerAccountPermissionSync.mockResolvedValue({
         jobId: 'job-1',
+    });
+});
+
+describe('skipOptionalProvidersLink', () => {
+    test('stores the offered provider IDs and retains previous dismissals without duplicates', async () => {
+        mocks.cookieGet.mockReturnValue({ value: JSON.stringify(['github-personal']) });
+        await expect(skipOptionalProvidersLink(['github-personal', 'github-work'])).resolves.toBe(true);
+        expect(mocks.cookieSet).toHaveBeenCalledWith(
+            OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME,
+            JSON.stringify(['github-personal', 'github-work']),
+            expect.objectContaining({ path: '/', maxAge: 365 * 24 * 60 * 60 }),
+        );
+    });
+
+    test('replaces the legacy blanket dismissal with just the offered IDs', async () => {
+        mocks.cookieGet.mockReturnValue({ value: 'true' });
+        await skipOptionalProvidersLink(['github-personal']);
+        expect(mocks.cookieSet).toHaveBeenCalledWith(
+            OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME,
+            JSON.stringify(['github-personal']),
+            expect.any(Object),
+        );
     });
 });
 

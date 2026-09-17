@@ -4,8 +4,9 @@ import { ConsentScreen } from './components/consentScreen';
 import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
-import { resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
+import { getOAuthAuthorizeUrl, resolveGrantedOAuthScopes } from '@/ee/features/oauth/utils';
 import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
+import { AccountLinkingGuard } from '@/ee/features/sso/components/accountLinkingGuard';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,28 +73,30 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     }
 
     // If the user is not logged in, redirect to login with this page as the callback.
+    const callbackUrl = getOAuthAuthorizeUrl(params);
     const session = await auth();
     if (!session) {
-        const callbackUrl = `/oauth/authorize?${new URLSearchParams(params as Record<string, string>).toString()}`;
         redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center bg-background">
-            <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-            <ConsentScreen
-                clientId={client_id!}
-                clientName={client.name}
-                clientLogoUri={client.logoUri}
-                redirectUri={redirect_uri!}
-                codeChallenge={code_challenge!}
-                requestedScope={scope}
-                resource={resource ?? null}
-                dpopJkt={dpopJkt ?? null}
-                state={state}
-                userEmail={session!.user.email!}
-            />
-        </div>
+        <AccountLinkingGuard callbackUrl={callbackUrl}>
+            <div className="relative min-h-screen flex items-center justify-center bg-background">
+                <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                <ConsentScreen
+                    clientId={client_id!}
+                    clientName={client.name}
+                    clientLogoUri={client.logoUri}
+                    redirectUri={redirect_uri!}
+                    codeChallenge={code_challenge!}
+                    requestedScope={scope}
+                    resource={resource ?? null}
+                    dpopJkt={dpopJkt ?? null}
+                    state={state}
+                    userEmail={session!.user.email!}
+                />
+            </div>
+        </AccountLinkingGuard>
     );
 }
 
