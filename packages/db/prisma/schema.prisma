@@ -246,6 +246,9 @@ model Org {
   /// in shared/src/utils.ts
   isEmailCodeLoginEnabled Boolean @default(false)
 
+  /// Markdown message displayed before sign-in; null means no message.
+  loginMessage String?
+
   /// @deprecated This property can be overriden by the environment
   /// variable `FORCE_ENABLE_ANONYMOUS_ACCESS`, as well as the org's
   /// available entitlements. Use the helper function `isAnonymousAccessEnabled`

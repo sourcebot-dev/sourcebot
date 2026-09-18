@@ -21,6 +21,7 @@ export const MOCK_ORG: Org = {
     memberApprovalRequired: false,
     isCredentialsLoginEnabled: true,
     isEmailCodeLoginEnabled: false,
+    loginMessage: null,
     isAnonymousAccessEnabled: false,
     inviteLinkEnabled: false,
     inviteLinkId: null,
