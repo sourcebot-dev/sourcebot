@@ -33,6 +33,14 @@ export type GitHubTokenType =
 export const SCOPE_INTROSPECTABLE_TOKEN_TYPES: GitHubTokenType[] = ['classic_pat', 'oauth_user'];
 
 /**
+ * Token types that authenticate as a *user* and can therefore call `GET /user`.
+ * A GitHub App installation token (`ghs_`) authenticates as an installation and has no
+ * associated user, so `GET /user` returns 403 "Resource not accessible by integration".
+ */
+export const USER_INTROSPECTABLE_TOKEN_TYPES: GitHubTokenType[] =
+    ['classic_pat', 'oauth_user', 'app_user', 'fine_grained_pat'];
+
+/**
  * Detects the GitHub token type based on its prefix.
  * @see https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
  */
@@ -50,6 +58,14 @@ export const detectGitHubTokenType = (token: string): GitHubTokenType => {
  */
 export const supportsOAuthScopeIntrospection = (tokenType: GitHubTokenType): boolean => {
     return SCOPE_INTROSPECTABLE_TOKEN_TYPES.includes(tokenType);
+};
+
+/**
+ * Checks if a token type can be validated via `GET /user`. Installation tokens cannot;
+ * they are validated against `GET /installation/repositories` instead.
+ */
+export const supportsUserIntrospection = (tokenType: GitHubTokenType): boolean => {
+    return USER_INTROSPECTABLE_TOKEN_TYPES.includes(tokenType);
 };
 
 /**
@@ -100,6 +116,38 @@ const isHttpError = (error: unknown, status: number): boolean => {
         && 'status' in error
         && error.status === status;
 }
+
+/**
+ * Verifies that a credential is usable, against whichever endpoint suits its type.
+ *
+ * `GET /user` is only meaningful for tokens that authenticate as a user. A GitHub App
+ * installation token has no user, so the same call returns 403 and a valid credential
+ * looks like an authentication failure. Such tokens are verified against the installation
+ * instead. Tokens whose prefix we do not recognise - enterprise proxies, future formats -
+ * are tried both ways before being rejected.
+ */
+export const verifyCredential = async (octokit: Octokit, token?: string): Promise<void> => {
+    const tokenType = token ? detectGitHubTokenType(token) : 'unknown';
+
+    if (supportsUserIntrospection(tokenType)) {
+        await octokit.rest.users.getAuthenticated();
+        return;
+    }
+
+    if (tokenType === 'app_installation') {
+        await octokit.request('GET /installation/repositories', { per_page: 1 });
+        return;
+    }
+
+    try {
+        await octokit.rest.users.getAuthenticated();
+    } catch (error) {
+        if (!isHttpError(error, 403)) {
+            throw error;
+        }
+        await octokit.request('GET /installation/repositories', { per_page: 1 });
+    }
+};
 
 export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
     const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : true;
@@ -182,7 +230,7 @@ export const getGitHubReposFromConfig = async (config: GithubConnectionConfig, s
 
     if (isAuthenticated) {
         try {
-            await octokit.rest.users.getAuthenticated();
+            await verifyCredential(octokit, token);
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Failed to authenticate with GitHub`, error);
