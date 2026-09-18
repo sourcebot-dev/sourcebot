@@ -8,7 +8,7 @@ export const GET = apiHandler(async () => {
         installId: env.SOURCEBOT_INSTALL_ID,
     });
 
-    return new Response(JSON.stringify(offers), {
+    return Response.json(offers, {
         headers: {
             'Cache-Control': 'public, max-age=300'
         }
