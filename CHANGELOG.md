@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed the public offers endpoint returning a JSON body with a `text/plain` content type. [#1670](https://github.com/sourcebot-dev/sourcebot/pull/1670)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
