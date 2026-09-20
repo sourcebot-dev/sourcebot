@@ -725,7 +725,28 @@ export const compileGenericGitHostConfig_url = async (
 
     // @note: matches the naming here:
     // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-    const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+    // Decode URL-encoded characters (e.g., %20 -> space) to ensure consistent repo names
+    let decodedPathname: string;
+    try {
+        decodedPathname = decodeURIComponent(remoteUrl.pathname);
+    } catch (e) {
+        if (e instanceof URIError) {
+            const warning = `Skipping ${remoteUrl.toString()} - malformed URL encoding.`;
+            logger.warn(warning);
+            reportRepositoryDiscoveryIssue({
+                code: "INVALID_REPOSITORY_SOURCE",
+                effect: "TARGET_SKIPPED",
+                subject: {
+                    kind: "url",
+                    value: remoteUrl.toString(),
+                },
+                message: warning,
+            });
+            return [];
+        }
+        throw e;
+    }
+    const repoName = path.join(remoteUrl.host, decodedPathname.replace(/\.git$/, ''));
 
     const repo: RepoData = {
         external_codeHostType: 'genericGitHost',
