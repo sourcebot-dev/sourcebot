@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Cursor Cloud Agents environment configuration with install/start scripts and cloud agent development skill. [#1671](https://github.com/sourcebot-dev/sourcebot/pull/1671)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
