@@ -51,11 +51,8 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 Cursor Cloud Agents own the full E2E testing workflow on the cloud VM:
 
 - **Visible UI E2E testing**: Cloud agents perform UI testing using the computerUse subagent
-- **No coordinator re-testing**: Once a cloud agent has proven E2E tests working, the coordinator should NOT re-run UI E2E on a Grok Bot computer
 - **Merge policy**: Never auto-merge; wait for Michael's explicit approval before merging any Sourcebot PR
 - **No manual Vercel deploys**: Merge to `origin/main` only after approval for Git-connected deploy
-
-See `.agents/skills/sourcebot-local-development/SKILL.md` for detailed testing workflow.
 
 ### Pull Request Workflow
 
