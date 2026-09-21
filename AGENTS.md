@@ -51,7 +51,7 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 Cursor Cloud Agents own the full E2E testing workflow on the cloud VM:
 
 - **Visible UI E2E testing**: Cloud agents perform UI testing using the computerUse subagent
-- **Merge policy**: Never auto-merge; wait for Michael's explicit approval before merging any Sourcebot PR
+- **Merge policy**: Never auto-merge; wait for explicit maintainer approval before merging any Sourcebot PR
 - **No manual Vercel deploys**: Merge to `origin/main` only after approval for Git-connected deploy
 
 ### Pull Request Workflow
