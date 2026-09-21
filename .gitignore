@@ -172,3 +172,7 @@ __pycache__/
 oss-licenses.json
 oss-license-summary.json
 license-audit-result.json
+
+# Auto-generated Next.js agent files
+packages/web/AGENTS.md
+packages/web/CLAUDE.md
