@@ -46,14 +46,6 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 - **Environment variables:** `.env.development` has sensible defaults for local dev. Create `.env.development.local` for overrides (it's gitignored).
 - The backend worker does not expose a health-check endpoint. Verify it's running by checking its logs or that BullMQ jobs are processing.
 
-### Cloud Agent E2E Testing
-
-Cursor Cloud Agents own the full E2E testing workflow on the cloud VM:
-
-- **Visible UI E2E testing**: Cloud agents perform UI testing using the computerUse subagent
-- **Merge policy**: Never auto-merge; wait for explicit maintainer approval before merging any Sourcebot PR
-- **No manual Vercel deploys**: Merge to `origin/main` only after approval for Git-connected deploy
-
 ### Pull Request Workflow
 
 - **CHANGELOG entry required:** Every PR must include a follow-up commit adding an entry to `CHANGELOG.md` under `[Unreleased]`. The entry must be a single sentence describing the change, followed by a link to the PR in the format `[#<id>](https://github.com/sourcebot-dev/sourcebot/pull/<id>)`. Place new entries at the bottom of the appropriate section (`Added`, `Changed`, `Fixed`, etc.). See `CLAUDE.md` and existing entries in `CHANGELOG.md` for the exact conventions.
