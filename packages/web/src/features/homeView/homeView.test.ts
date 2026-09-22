@@ -14,7 +14,11 @@ describe("resolveHomeView", () => {
         expect(resolveHomeView({ orgDefault: undefined })).toBe("search");
     });
 
-    test("uses the org default for anonymous users without a personal preference", () => {
-        expect(resolveHomeView({ personalPreference: undefined, orgDefault: "ASK" })).toBe("ask");
+    test("uses the org default for anonymous users even with a stale personal cookie", () => {
+        expect(resolveHomeView({
+            personalPreference: "search",
+            orgDefault: "ASK",
+            isAuthenticated: false,
+        })).toBe("ask");
     });
 });

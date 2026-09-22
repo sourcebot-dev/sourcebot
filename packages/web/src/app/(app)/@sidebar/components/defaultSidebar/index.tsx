@@ -25,6 +25,7 @@ export async function DefaultSidebar() {
     const homeView = resolveHomeView({
         personalPreference: cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value,
         orgDefault: isServiceError(authContext) ? undefined : authContext.org.defaultHomeView,
+        isAuthenticated: !isServiceError(authContext) && !!authContext.user,
     });
 
     // Chat history is part of the Ask experience; hide it when the deployment

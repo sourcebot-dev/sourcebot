@@ -9,11 +9,12 @@ interface Props extends Record<string, unknown> {
     searchParams: Promise<{ query?: string }>;
 }
 
-export default authenticatedPage<Props, OptionalAuthOptions>(async ({ org }, props) => {
+export default authenticatedPage<Props, OptionalAuthOptions>(async ({ org, user }, props) => {
     const cookieStore = await cookies();
     const homeView = resolveHomeView({
         personalPreference: cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value,
         orgDefault: org.defaultHomeView,
+        isAuthenticated: !!user,
     });
 
     if (homeView === "ask") {

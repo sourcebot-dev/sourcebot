@@ -19,11 +19,13 @@ export function parseHomeView(value: unknown): HomeView | undefined {
 export function resolveHomeView({
     personalPreference,
     orgDefault,
+    isAuthenticated = true,
 }: {
     personalPreference?: unknown;
     orgDefault?: unknown;
+    isAuthenticated?: boolean;
 }): HomeView {
-    return parseHomeView(personalPreference)
+    return parseHomeView(isAuthenticated ? personalPreference : undefined)
         ?? parseHomeView(orgDefault)
         ?? DEFAULT_HOME_VIEW;
 }
