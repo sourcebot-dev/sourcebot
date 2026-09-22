@@ -2,9 +2,10 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/ee/features/mcp/server';
 import { MCP_PAID_PLAN_REQUIRED_MESSAGE } from '@/ee/features/mcp/constants';
+import { checkAskAuthentication } from '@/features/chat/askAuth';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { isServiceError } from '@/lib/utils';
-import { notAuthenticated, serviceErrorResponse, ServiceError } from '@/lib/serviceError';
+import { serviceErrorResponse, ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
@@ -85,8 +86,9 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ user, principal }) => {
-            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
-                return notAuthenticated();
+            const authError = checkAskAuthentication(user);
+            if (authError) {
+                return authError;
             }
             const ownerId = user?.id ?? null;
             const sessionId = request.headers.get(MCP_SESSION_ID_HEADER);
@@ -151,8 +153,9 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
 
     const result = await sew(() =>
         withOptionalAuth(async ({ user }) => {
-            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
-                return notAuthenticated();
+            const authError = checkAskAuthentication(user);
+            if (authError) {
+                return authError;
             }
             const ownerId = user?.id ?? null;
             const sessionId = request.headers.get(MCP_SESSION_ID_HEADER);
