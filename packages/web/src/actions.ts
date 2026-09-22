@@ -12,7 +12,7 @@ import { createLogger, env, generateApiKey, getTokenFromConfig } from "@sourcebo
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
+import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME } from "./lib/constants";
 import { RepositoryQuery } from "./lib/types";
 import { withAuth, withOptionalAuth } from "./middleware/withAuth";
 
@@ -365,16 +365,6 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
             return notFound();
         }
     })
-});
-
-// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
-export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean) => sew(async () => {
-    const cookieStore = await cookies();
-    cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
-        httpOnly: false, // Allow client-side access
-        maxAge: 365 * 24 * 60 * 60, // 1 year in seconds
-    });
-    return true;
 });
 
 // eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
