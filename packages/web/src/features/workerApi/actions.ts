@@ -29,19 +29,17 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
             return unexpectedError('Failed to add GitHub repo');
         }
 
-        const data = await response.json();
-        const schema = z.object({
-            jobId: z.string(),
-            repoId: z.number(),
-        });
-        const result = schema.parse(data);
-
         await captureEvent('askgh_repo_index_requested', {
             owner,
             repo,
             repoName: `${owner}/${repo}`,
         });
 
-        return result;
+        const data = await response.json();
+        const schema = z.object({
+            jobId: z.string(),
+            repoId: z.number(),
+        });
+        return schema.parse(data);
     })
 );
