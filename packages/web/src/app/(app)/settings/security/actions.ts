@@ -8,16 +8,19 @@ import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceErr
 import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole } from "@sourcebot/db";
+import { HomeView as PrismaHomeView, OrgRole } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import { LOGIN_MESSAGE_MAX_LENGTH } from "@/features/auth/constants";
+import { HOME_VIEW_VALUES } from "@/features/homeView/homeView";
 
 const loginMessageSchema = z.string()
     .max(LOGIN_MESSAGE_MAX_LENGTH, "Login message must be 5,000 characters or fewer.")
     .nullable()
     .transform(message => message?.trim() ? message : null);
+
+const defaultHomeViewSchema = z.enum(HOME_VIEW_VALUES);
 
 export const setLoginMessage = async (message: string | null): Promise<{ success: boolean } | ServiceError> => sew(async () =>
     withAuth(async ({ org, role, prisma }) =>
@@ -30,6 +33,28 @@ export const setLoginMessage = async (message: string | null): Promise<{ success
             await prisma.org.update({
                 where: { id: org.id },
                 data: { loginMessage: parsed.data },
+            });
+
+            return { success: true };
+        })
+    )
+);
+
+export const setDefaultHomeView = async (homeView: unknown): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const parsed = defaultHomeViewSchema.safeParse(homeView);
+            if (!parsed.success) {
+                return requestBodySchemaValidationError(parsed.error);
+            }
+
+            await prisma.org.update({
+                where: { id: org.id },
+                data: {
+                    defaultHomeView: parsed.data === "ask"
+                        ? PrismaHomeView.ASK
+                        : PrismaHomeView.SEARCH,
+                },
             });
 
             return { success: true };

@@ -1,4 +1,5 @@
 import { AnonymousAccessEnabledSettingsCard } from "./components/anonymousAccessEnabledSettingsCard";
+import { DefaultHomeViewSettingsCard } from "./components/defaultHomeViewSettingsCard";
 import { InviteLinkEnabledSettingsCard } from "./components/inviteLinkEnabledSettingsCard";
 import { MemberApprovalRequiredSettingsCard } from "./components/memberApprovalRequiredSettingsCard";
 import { CredentialsLoginEnabledSettingsCard } from "./components/credentialsLoginEnabledSettingsCard";
@@ -22,6 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { isScimEnabled } from "@/features/scim/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { parseHomeView } from "@/features/homeView/homeView";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
@@ -43,6 +45,17 @@ export default authenticatedPage(async ({ org }) => {
         <div className="flex flex-col gap-6">
             <h2 className="text-lg font-medium">Security</h2>
             <div className="space-y-6">
+                <div>
+                    <p className="text-md font-medium">Deployment defaults</p>
+                    <p className="text-sm text-muted-foreground">Set the default home view for users who have not chosen a personal preference.</p>
+                </div>
+
+                <SettingsCardGroup>
+                    <DefaultHomeViewSettingsCard
+                        defaultHomeView={parseHomeView(org.defaultHomeView) ?? "search"}
+                    />
+                </SettingsCardGroup>
+
                 <div>
                     <p className="text-md font-medium">Organization access</p>
                     <p className="text-sm text-muted-foreground">Configure how users can access your Sourcebot deployment.{" "}

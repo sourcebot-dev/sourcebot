@@ -24,7 +24,7 @@ vi.mock('@/middleware/withAuth', () => ({
     },
 }));
 
-const { setLoginMessage } = await import('./actions');
+const { setDefaultHomeView, setLoginMessage } = await import('./actions');
 
 beforeEach(() => {
     vi.resetAllMocks();
@@ -89,5 +89,32 @@ describe('setLoginMessage', () => {
             statusCode: 500, errorCode: ErrorCode.UNEXPECTED_ERROR,
         });
         expect(mocks.captureException).toHaveBeenCalledWith(error);
+    });
+});
+
+describe('setDefaultHomeView', () => {
+    test('stores the deployment default on the authenticated organization', async () => {
+        await expect(setDefaultHomeView('ask')).resolves.toEqual({ success: true });
+        expect(mocks.update).toHaveBeenCalledWith({
+            where: { id: 42 },
+            data: { defaultHomeView: 'ASK' },
+        });
+    });
+
+    test('rejects invalid values without writing', async () => {
+        await expect(setDefaultHomeView('invalid')).resolves.toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+        });
+        expect(mocks.update).not.toHaveBeenCalled();
+    });
+
+    test('denies organization members through the owner role check', async () => {
+        mocks.role = 'MEMBER';
+        await expect(setDefaultHomeView('ask')).resolves.toMatchObject({
+            statusCode: 403,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.update).not.toHaveBeenCalled();
     });
 });

@@ -2,7 +2,8 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserAvatar } from "@/components/userAvatar";
-import { HomeView, useHomeView } from "@/hooks/useHomeView";
+import { useHomeView } from "@/hooks/useHomeView";
+import { type HomeView } from "@/features/homeView/homeView";
 import { useKeymapType } from "@/hooks/useKeymapType";
 import { KeymapType } from "@/lib/types";
 import { useTheme } from "next-themes";
@@ -29,11 +30,12 @@ interface GeneralPageProps {
     userName?: string;
     userEmail?: string;
     userImage?: string;
+    orgDefaultHomeView: HomeView;
 }
 
-export function GeneralPage({ userName, userEmail, userImage }: GeneralPageProps) {
+export function GeneralPage({ userName, userEmail, userImage, orgDefaultHomeView }: GeneralPageProps) {
     const { theme: _theme, setTheme } = useTheme();
-    const [homeView, setHomeView] = useHomeView();
+    const [homeView, setHomeView] = useHomeView(orgDefaultHomeView);
     const [keymapType, setKeymapType] = useKeymapType();
 
     const theme = useMemo(() => {

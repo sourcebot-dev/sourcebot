@@ -2,22 +2,18 @@
 
 import { useCallback, useState } from "react";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-
-export type HomeView = "search" | "ask";
+import { DEFAULT_HOME_VIEW, HomeView, resolveHomeView } from "@/features/homeView/homeView";
 
 const COOKIE_NAME = HOME_VIEW_COOKIE_NAME;
 
-function getHomeViewFromCookie(): HomeView {
+function getHomeViewFromCookie(orgDefaultHomeView: HomeView): HomeView {
     if (typeof document === "undefined") {
-        return "search";
+        return orgDefaultHomeView;
     }
     const cookies = document.cookie.split(';').map(c => c.trim());
     const cookie = cookies.find(c => c.startsWith(`${COOKIE_NAME}=`));
-    if (!cookie) {
-        return "search";
-    }
-    const value = cookie.substring(`${COOKIE_NAME}=`.length);
-    return value === "ask" ? "ask" : "search";
+    const personalPreference = cookie?.substring(`${COOKIE_NAME}=`.length);
+    return resolveHomeView({ personalPreference, orgDefault: orgDefaultHomeView });
 }
 
 function setHomeViewCookie(value: HomeView) {
@@ -29,8 +25,8 @@ function setHomeViewCookie(value: HomeView) {
     document.cookie = `${COOKIE_NAME}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
 }
 
-export const useHomeView = (): [HomeView, (value: HomeView) => void] => {
-    const [homeView, setHomeViewState] = useState<HomeView>(getHomeViewFromCookie);
+export const useHomeView = (orgDefaultHomeView: HomeView = DEFAULT_HOME_VIEW): [HomeView, (value: HomeView) => void] => {
+    const [homeView, setHomeViewState] = useState<HomeView>(() => getHomeViewFromCookie(orgDefaultHomeView));
 
     const setHomeView = useCallback((value: HomeView) => {
         setHomeViewState(value);

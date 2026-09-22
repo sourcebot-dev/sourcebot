@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { BookMarkedIcon, type LucideIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { HomeView } from "@/hooks/useHomeView";
+import { HomeView } from "@/features/homeView/homeView";
 import { NotificationDot } from "../../../components/notificationDot";
 import { useMemo } from "react";
 import Link from "next/link";

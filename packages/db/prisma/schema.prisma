@@ -24,6 +24,11 @@ enum ChatVisibility {
   PUBLIC
 }
 
+enum HomeView {
+  SEARCH
+  ASK
+}
+
 /// Lifecycle status of an uploaded attachment blob.
 /// PENDING: uploaded but not yet linked to a chat (orphan until a message
 /// referencing it is sent). COMMITTED: linked to at least one chat.
@@ -225,6 +230,7 @@ model Org {
   attachments Attachment[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
+  defaultHomeView HomeView?
 
   isScimEnabled Boolean    @default(false)
 
