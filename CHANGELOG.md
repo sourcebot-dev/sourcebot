@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Ask GH code search submissions to prompt anonymous users to sign in while preserving access to existing results and repository browsing. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
