@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
