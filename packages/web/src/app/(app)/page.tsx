@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { ChatLandingPage } from "./chat/chatLandingPage";
 import SearchPage from "./search/page";
 
-interface Props {
+interface Props extends Record<string, unknown> {
     searchParams: Promise<{ query?: string }>;
 }
 
