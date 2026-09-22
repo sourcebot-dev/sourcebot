@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [EE] Required authentication for streaming and blocking Ask API requests when AskGH is enabled. [#1678](https://github.com/sourcebot-dev/sourcebot/pull/1678)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
