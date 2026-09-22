@@ -15,7 +15,7 @@ import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } f
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
-import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { notAuthenticated, notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import * as Sentry from "@sentry/nextjs";
@@ -50,6 +50,10 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
+                return notAuthenticated();
+            }
+
             // Gate the generative path behind the `ask` entitlement. The client
             // also gates this, but server-side enforcement can't be bypassed.
             const askError = await checkAskEntitlement();
