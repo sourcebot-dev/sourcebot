@@ -14,6 +14,7 @@ import { RepoVisitHistory } from "./repoVisitHistory";
 import { getAuthContext, withAuth } from "@/middleware/withAuth";
 import { sew } from "@/middleware/sew";
 import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
+import { env } from "@sourcebot/shared";
 
 const SIDEBAR_CHAT_LIMIT = 30;
 export const SIDEBAR_REPO_VISITS_LIMIT = 10;
