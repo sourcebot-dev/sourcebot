@@ -47,6 +47,7 @@ import Link from "next/link";
 import { CaseSensitiveIcon, RegexIcon, Wand2Icon } from "lucide-react";
 import { SearchAssistBox } from "./searchAssistBox";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { LoginDialog } from "@/features/chat/components/chatBox/loginDialog";
 
 const LANGUAGE_MODEL_DOCS_URL = "https://docs.sourcebot.dev/docs/configuration/language-model-providers"; 
 
@@ -60,6 +61,8 @@ interface SearchBarProps {
     }
     autoFocus?: boolean;
     isSearchAssistSupported: boolean;
+    isAuthenticated: boolean;
+    isLoginWallEnabled: boolean;
 }
 
 const searchBarKeymap: readonly KeyBinding[] = ([
@@ -107,6 +110,8 @@ export const SearchBar = ({
         query: defaultQuery = "",
     } = {},
     isSearchAssistSupported,
+    isAuthenticated,
+    isLoginWallEnabled,
 }: SearchBarProps) => {
     const router = useRouter();
     const captureEvent = useCaptureEvent();
@@ -120,6 +125,7 @@ export const SearchBar = ({
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
     const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
+    const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
@@ -225,16 +231,28 @@ export const SearchBar = ({
         setActivePanel(undefined);
         setIsHistorySearchEnabled(false);
 
+        if (isLoginWallEnabled && !isAuthenticated) {
+            setIsLoginDialogOpen(true);
+            return;
+        }
+
         const url = createPathWithQueryParams(`/search`,
             [SearchQueryParams.query, query],
             [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
         router.push(url);
-    }, [router, isRegexEnabled, isCaseSensitivityEnabled]);
+    }, [
+        isAuthenticated,
+        isCaseSensitivityEnabled,
+        isLoginWallEnabled,
+        isRegexEnabled,
+        router,
+    ]);
 
     return (
-        <div
+        <>
+            <div
             className={cn(searchBarContainerVariants({ size, className }))}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -401,7 +419,12 @@ export const SearchBar = ({
                 cursorPosition={cursorPosition}
                 {...suggestionData}
             />
-        </div>
+            </div>
+            <LoginDialog
+                isOpen={isLoginDialogOpen}
+                onOpenChange={setIsLoginDialogOpen}
+            />
+        </>
     )
 }
 
