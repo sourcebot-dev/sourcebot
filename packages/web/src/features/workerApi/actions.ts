@@ -40,7 +40,6 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
             owner,
             repo,
             repoName: `${owner}/${repo}`,
-            repoId: result.repoId,
         });
 
         return result;

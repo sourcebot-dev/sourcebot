@@ -542,7 +542,6 @@ export type PosthogEventMap = {
         owner: string,
         repo: string,
         repoName: string,
-        repoId: number,
     },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
