@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import { HomeView } from "@/hooks/useHomeView";
+import { getDefaultHomeView, resolveHomeView } from "@/lib/homeView";
 import { getOrgAccountRequests } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -21,7 +21,11 @@ export const SIDEBAR_REPO_VISITS_LIMIT = 10;
 export async function DefaultSidebar() {
     const session = await auth();
     const cookieStore = await cookies();
-    const homeView = (cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value ?? "search") as HomeView;
+    const defaultHomeView = getDefaultHomeView(env.EXPERIMENT_ASK_GH_ENABLED === "true");
+    const homeView = resolveHomeView(
+        cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value,
+        defaultHomeView,
+    );
 
     // Chat history is part of the Ask experience; hide it when the deployment
     // is not on a plan that includes Ask.
