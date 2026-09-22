@@ -126,6 +126,7 @@ export const SearchBar = ({
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
     const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+    const [loginCallbackUrl, setLoginCallbackUrl] = useState<string>();
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
@@ -231,16 +232,18 @@ export const SearchBar = ({
         setActivePanel(undefined);
         setIsHistorySearchEnabled(false);
 
-        if (isLoginWallEnabled && !isAuthenticated) {
-            setIsLoginDialogOpen(true);
-            return;
-        }
-
         const url = createPathWithQueryParams(`/search`,
             [SearchQueryParams.query, query],
             [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
+
+        if (isLoginWallEnabled && !isAuthenticated) {
+            setLoginCallbackUrl(url);
+            setIsLoginDialogOpen(true);
+            return;
+        }
+
         router.push(url);
     }, [
         isAuthenticated,
@@ -423,6 +426,7 @@ export const SearchBar = ({
             <LoginDialog
                 isOpen={isLoginDialogOpen}
                 onOpenChange={setIsLoginDialogOpen}
+                callbackUrl={loginCallbackUrl}
             />
         </>
     )
