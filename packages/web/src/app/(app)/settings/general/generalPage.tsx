@@ -29,11 +29,17 @@ interface GeneralPageProps {
     userName?: string;
     userEmail?: string;
     userImage?: string;
+    defaultHomeView: HomeView;
 }
 
-export function GeneralPage({ userName, userEmail, userImage }: GeneralPageProps) {
+export function GeneralPage({
+    userName,
+    userEmail,
+    userImage,
+    defaultHomeView,
+}: GeneralPageProps) {
     const { theme: _theme, setTheme } = useTheme();
-    const [homeView, setHomeView] = useHomeView();
+    const [homeView, setHomeView] = useHomeView(defaultHomeView);
     const [keymapType, setKeymapType] = useKeymapType();
 
     const theme = useMemo(() => {
