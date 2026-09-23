@@ -14,12 +14,17 @@ import { getAuthContext, withAuth } from "@/middleware/withAuth";
 import { sew } from "@/middleware/sew";
 import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
 import { env } from "@sourcebot/shared";
+import { appendFileSync } from "node:fs";
 
 const SIDEBAR_CHAT_LIMIT = 30;
 export const SIDEBAR_REPO_VISITS_LIMIT = 10;
 
 export async function DefaultSidebar() {
     const session = await auth();
+    // #region agent log
+    // eslint-disable-next-line react-hooks/purity -- temporary runtime instrumentation
+    appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ hypothesisId: "A,E", location: "defaultSidebar/index.tsx:session", message: "Server resolved sidebar session", data: { hasSession: !!session, hasUser: !!session?.user, processId: process.pid }, timestamp: Date.now() }) + "\n");
+    // #endregion
     const cookieStore = await cookies();
     const cookieValue = cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined;
     const homeView = cookieValue ?? env.DEFAULT_HOME_VIEW_PAGE;
