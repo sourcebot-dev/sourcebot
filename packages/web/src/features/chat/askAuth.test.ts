@@ -10,30 +10,23 @@ vi.mock("@sourcebot/shared", () => ({
     env: mocks.env,
 }));
 
-const { checkAuthenticationRequiredOverride } = await import("./askAuth");
-
-beforeEach(() => {
-    mocks.env.EXPERIMENT_ASK_GH_ENABLED = "false";
-});
-
-describe("checkAuthenticationRequiredOverride", () => {
-    test("rejects anonymous Ask requests when Public SaaS is enabled", () => {
-        mocks.env.EXPERIMENT_ASK_GH_ENABLED = "true";
-
-        expect(checkAuthenticationRequiredOverride(undefined)).toEqual({
-            statusCode: 401,
-            errorCode: "NOT_AUTHENTICATED",
-            message: "Not authenticated",
-        });
+describe("isAuthRequiredOverrideEnabled", () => {
+    beforeEach(() => {
+        vi.resetModules();
+        mocks.env.EXPERIMENT_ASK_GH_ENABLED = "false";
     });
 
-    test("allows authenticated Ask requests when Public SaaS is enabled", () => {
+    test("is enabled for Public SaaS deployments", async () => {
         mocks.env.EXPERIMENT_ASK_GH_ENABLED = "true";
 
-        expect(checkAuthenticationRequiredOverride({ id: "user-1" })).toBeNull();
+        const { isAuthRequiredOverrideEnabled } = await import("./askAuth");
+
+        expect(isAuthRequiredOverrideEnabled).toBe(true);
     });
 
-    test("allows anonymous Ask requests when Public SaaS is disabled", () => {
-        expect(checkAuthenticationRequiredOverride(undefined)).toBeNull();
+    test("is disabled for self-hosted deployments", async () => {
+        const { isAuthRequiredOverrideEnabled } = await import("./askAuth");
+
+        expect(isAuthRequiredOverrideEnabled).toBe(false);
     });
 });

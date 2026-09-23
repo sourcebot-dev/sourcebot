@@ -12,11 +12,11 @@ import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
 import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
-import { checkAuthenticationRequiredOverride } from "@/features/chat/askAuth";
+import { isAuthRequiredOverrideEnabled } from "@/features/chat/askAuth";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
-import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { notAuthenticated, notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import * as Sentry from "@sentry/nextjs";
@@ -51,9 +51,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            const authError = checkAuthenticationRequiredOverride(user);
-            if (authError) {
-                return authError;
+            if (isAuthRequiredOverrideEnabled && !user) {
+                return notAuthenticated();
             }
 
             // Gate the generative path behind the `ask` entitlement. The client

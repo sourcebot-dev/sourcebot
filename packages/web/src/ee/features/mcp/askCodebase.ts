@@ -4,11 +4,11 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { checkAuthenticationRequiredOverride } from "@/features/chat/askAuth";
+import { isAuthRequiredOverrideEnabled } from "@/features/chat/askAuth";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
-import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
+import { notAuthenticated, ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
@@ -50,9 +50,8 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            const authError = checkAuthenticationRequiredOverride(user);
-            if (authError) {
-                return authError;
+            if (isAuthRequiredOverrideEnabled && !user) {
+                return notAuthenticated();
             }
 
             // Ask Sourcebot is a paid feature. askCodebase() is the single choke point
