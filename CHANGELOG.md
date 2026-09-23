@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
-
-### Fixed
 - Removed suggested example queries from the Ask landing page. [#1674](https://github.com/sourcebot-dev/sourcebot/pull/1674)
+  
+### Fixed
 - Require authentication for the streaming and blocking Ask APIs in Public SaaS deployments. [#1679](https://github.com/sourcebot-dev/sourcebot/pull/1679)
 
 ## [5.1.14] - 2026-09-17
