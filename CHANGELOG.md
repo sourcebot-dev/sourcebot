@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added login wall for code search for Ask GitHub. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
+
 ### Removed
 - Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
 
 ### Fixed
 - Removed suggested example queries from the Ask landing page. [#1674](https://github.com/sourcebot-dev/sourcebot/pull/1674)
-- Fixed Ask GH code search submissions to prompt anonymous users to sign in while preserving access to existing results and repository browsing. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
 
 ## [5.1.14] - 2026-09-17
 
