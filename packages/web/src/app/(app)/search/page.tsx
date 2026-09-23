@@ -21,6 +21,7 @@ export default async function SearchPage(props: SearchPageProps) {
     const session = await auth();
     const showLoginWall = env.EXPERIMENT_ASK_GH_ENABLED === "true" && !session?.user;
     // #region agent log
+    // eslint-disable-next-line react-hooks/purity -- temporary runtime instrumentation
     appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ hypothesisId: "A,B", location: "search/page.tsx:showLoginWall", message: "Server computed search login wall", data: { envEnabled: env.EXPERIMENT_ASK_GH_ENABLED, hasSession: !!session, hasUser: !!session?.user, showLoginWall, processId: process.pid }, timestamp: Date.now() }) + "\n");
     // #endregion
 
