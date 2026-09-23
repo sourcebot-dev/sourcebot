@@ -12,7 +12,6 @@ import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
 import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
-import { isAuthRequiredOverrideEnabled } from "@/features/chat/askAuth";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -51,7 +50,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            if (isAuthRequiredOverrideEnabled && !user) {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
 

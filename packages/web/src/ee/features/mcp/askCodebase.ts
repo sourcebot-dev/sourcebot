@@ -4,7 +4,6 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { isAuthRequiredOverrideEnabled } from "@/features/chat/askAuth";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -50,7 +49,7 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            if (isAuthRequiredOverrideEnabled && !user) {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
 

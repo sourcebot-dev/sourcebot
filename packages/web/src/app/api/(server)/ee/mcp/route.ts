@@ -2,7 +2,6 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/ee/features/mcp/server';
 import { MCP_PAID_PLAN_REQUIRED_MESSAGE } from '@/ee/features/mcp/constants';
-import { isAuthRequiredOverrideEnabled } from '@/features/chat/askAuth';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { isServiceError } from '@/lib/utils';
 import { notAuthenticated, serviceErrorResponse, ServiceError } from '@/lib/serviceError';
@@ -86,7 +85,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ user, principal }) => {
-            if (isAuthRequiredOverrideEnabled && !user) {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
             const ownerId = user?.id ?? null;
@@ -152,7 +151,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
 
     const result = await sew(() =>
         withOptionalAuth(async ({ user }) => {
-            if (isAuthRequiredOverrideEnabled && !user) {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
             const ownerId = user?.id ?? null;
