@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Defaulted the home page to Ask when `EXPERIMENT_ASK_GH_ENABLED` is enabled and no preference is set. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
+- Made the default home page configurable with `DEFAULT_HOME_VIEW_PAGE`, defaulting to Code Search and supporting Ask. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
 
 ## [5.1.14] - 2026-09-17
 

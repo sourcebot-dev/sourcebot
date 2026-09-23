@@ -27,7 +27,7 @@ function setHomeViewCookie(value: HomeView) {
     document.cookie = `${COOKIE_NAME}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
 }
 
-export const useHomeView = (defaultHomeView: HomeView = "search"): [HomeView, (value: HomeView) => void] => {
+export const useHomeView = (defaultHomeView: HomeView): [HomeView, (value: HomeView) => void] => {
     const [homeView, setHomeViewState] = useState<HomeView>(() => getHomeViewFromCookie(defaultHomeView));
 
     const setHomeView = useCallback((value: HomeView) => {
