@@ -362,7 +362,7 @@ const options = {
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
         PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
-        DEFAULT_HOME_VIEW_PAGE: z.enum(["search", "ask"]).optional(),
+        DEFAULT_HOME_VIEW_PAGE: z.enum(["search", "ask"]).default("search"),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
         EXPERIMENT_ASK_GH_GITHUB_TOKEN: z.string().optional(),
 

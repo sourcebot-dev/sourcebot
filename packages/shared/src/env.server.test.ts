@@ -82,3 +82,25 @@ describe('SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS', () => {
         await expect(import('./env.server.js')).rejects.toThrow();
     });
 });
+
+describe('DEFAULT_HOME_VIEW_PAGE', () => {
+    beforeEach(() => {
+        vi.resetModules();
+        delete process.env.DEFAULT_HOME_VIEW_PAGE;
+    });
+
+    afterEach(() => {
+        delete process.env.DEFAULT_HOME_VIEW_PAGE;
+    });
+
+    test('defaults to search when not set', async () => {
+        const { env } = await import('./env.server.js');
+        expect(env.DEFAULT_HOME_VIEW_PAGE).toBe('search');
+    });
+
+    test('accepts ask', async () => {
+        process.env.DEFAULT_HOME_VIEW_PAGE = 'ask';
+        const { env } = await import('./env.server.js');
+        expect(env.DEFAULT_HOME_VIEW_PAGE).toBe('ask');
+    });
+});
