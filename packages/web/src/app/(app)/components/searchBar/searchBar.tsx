@@ -238,6 +238,9 @@ export const SearchBar = ({
         );
 
         if (isLoginWallEnabled && !isAuthenticated) {
+            if (query.trim().length === 0) {
+                return;
+            }
             captureEvent('wa_askgh_login_wall_prompted', {});
             setLoginCallbackUrl(url);
             return;
