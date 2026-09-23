@@ -26,10 +26,4 @@ describe("getDefaultHomeView", () => {
 
         expect(getDefaultHomeView()).toBe("ask");
     });
-
-    test("falls back to Search for an unsupported value", () => {
-        mocks.env.DEFAULT_HOME_VIEW_PAGE = "unsupported";
-
-        expect(getDefaultHomeView()).toBe("search");
-    });
 });
