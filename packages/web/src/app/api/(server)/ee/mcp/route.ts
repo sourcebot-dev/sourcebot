@@ -2,7 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/ee/features/mcp/server';
 import { MCP_PAID_PLAN_REQUIRED_MESSAGE } from '@/ee/features/mcp/constants';
-import { checkAskAuthentication } from '@/features/chat/askAuth';
+import { checkAuthenticationRequiredOverride } from '@/features/chat/askAuth';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { isServiceError } from '@/lib/utils';
 import { serviceErrorResponse, ServiceError } from '@/lib/serviceError';
@@ -86,7 +86,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ user, principal }) => {
-            const authError = checkAskAuthentication(user);
+            const authError = checkAuthenticationRequiredOverride(user);
             if (authError) {
                 return authError;
             }
@@ -153,7 +153,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
 
     const result = await sew(() =>
         withOptionalAuth(async ({ user }) => {
-            const authError = checkAskAuthentication(user);
+            const authError = checkAuthenticationRequiredOverride(user);
             if (authError) {
                 return authError;
             }

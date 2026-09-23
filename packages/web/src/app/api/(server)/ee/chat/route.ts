@@ -12,7 +12,7 @@ import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
 import { getAskSkillAvailabilityAnalytics, getAskSkillTurnCompletedAnalytics } from "@/ee/features/chat/skills/skillAnalytics.server";
-import { checkAskAuthentication } from "@/features/chat/askAuth";
+import { checkAuthenticationRequiredOverride } from "@/features/chat/askAuth";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -51,7 +51,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     const response = await sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            const authError = checkAskAuthentication(user);
+            const authError = checkAuthenticationRequiredOverride(user);
             if (authError) {
                 return authError;
             }

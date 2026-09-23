@@ -4,7 +4,7 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { checkAskAuthentication } from "@/features/chat/askAuth";
+import { checkAuthenticationRequiredOverride } from "@/features/chat/askAuth";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -50,7 +50,7 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
         withOptionalAuth(async ({ org, user, prisma }) => {
-            const authError = checkAskAuthentication(user);
+            const authError = checkAuthenticationRequiredOverride(user);
             if (authError) {
                 return authError;
             }
