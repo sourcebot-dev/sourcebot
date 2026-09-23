@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import { resolveHomeView, type HomeView } from "@/lib/homeView";
+import type { HomeView } from "@/lib/homeView";
 
 export type { HomeView } from "@/lib/homeView";
 
@@ -15,7 +15,7 @@ function getHomeViewFromCookie(defaultHomeView: HomeView): HomeView {
     const cookies = document.cookie.split(';').map(c => c.trim());
     const cookie = cookies.find(c => c.startsWith(`${COOKIE_NAME}=`));
     const value = cookie?.substring(`${COOKIE_NAME}=`.length) as HomeView | undefined;
-    return resolveHomeView(value, defaultHomeView);
+    return value ?? defaultHomeView;
 }
 
 function setHomeViewCookie(value: HomeView) {

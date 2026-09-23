@@ -1,9 +1,9 @@
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import { resolveHomeView, type HomeView } from "@/lib/homeView";
-import { getDefaultHomeView } from "@/lib/homeView.server";
+import type { HomeView } from "@/lib/homeView";
 import { cookies } from "next/headers";
 import { ChatLandingPage } from "./chat/chatLandingPage";
 import SearchPage from "./search/page";
+import { env } from "@sourcebot/shared";
 
 interface Props {
     searchParams: Promise<{ query?: string }>;
@@ -11,11 +11,9 @@ interface Props {
 
 export default async function Home(props: Props) {
     const cookieStore = await cookies();
-    const defaultHomeView = getDefaultHomeView();
-    const homeView = resolveHomeView(
-        cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined,
-        defaultHomeView,
-    );
+    const defaultHomeView = env.DEFAULT_HOME_VIEW_PAGE;
+    const cookieValue = cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined;
+    const homeView = cookieValue ?? defaultHomeView;
     if (homeView === "ask") {
         return <ChatLandingPage />;
     }
