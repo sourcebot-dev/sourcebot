@@ -9,15 +9,13 @@ import { ServiceErrorException } from "@/lib/serviceError"
 import { isServiceError } from "@/lib/utils"
 
 export interface SearchLandingPageProps {
-    isAuthenticated: boolean;
-    isLoginWallEnabled: boolean;
     isSearchAssistSupported: boolean;
+    showLoginWall: boolean;
 }
 
 export const SearchLandingPage = async ({
-    isAuthenticated,
-    isLoginWallEnabled,
     isSearchAssistSupported,
+    showLoginWall,
 }: SearchLandingPageProps) => {
     const carouselRepos = await getRepos({
         where: {
@@ -42,9 +40,8 @@ export const SearchLandingPage = async ({
                     <SearchBar
                         autoFocus={true}
                         className="border-none pt-0.5 pb-0"
-                        isAuthenticated={isAuthenticated}
-                        isLoginWallEnabled={isLoginWallEnabled}
                         isSearchAssistSupported={isSearchAssistSupported}
+                        showLoginWall={showLoginWall}
                     />
                     <Separator />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">

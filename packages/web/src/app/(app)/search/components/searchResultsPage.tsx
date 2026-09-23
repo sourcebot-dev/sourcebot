@@ -34,23 +34,21 @@ import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
 
 interface SearchResultsPageProps {
-    isAuthenticated: boolean;
     searchQuery: string;
     defaultMaxMatchCount: number;
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
-    isLoginWallEnabled: boolean;
     isSearchAssistSupported: boolean;
+    showLoginWall: boolean;
 }
 
 export const SearchResultsPage = ({
-    isAuthenticated,
     searchQuery,
     defaultMaxMatchCount,
     isRegexEnabled,
     isCaseSensitivityEnabled,
-    isLoginWallEnabled,
     isSearchAssistSupported,
+    showLoginWall,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -182,9 +180,8 @@ export const SearchResultsPage = ({
                             query: searchQuery,
                         }}
                         className="w-full"
-                        isAuthenticated={isAuthenticated}
-                        isLoginWallEnabled={isLoginWallEnabled}
                         isSearchAssistSupported={isSearchAssistSupported}
+                        showLoginWall={showLoginWall}
                     />
                 </div>
                 <Separator />

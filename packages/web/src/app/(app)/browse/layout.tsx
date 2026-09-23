@@ -16,9 +16,8 @@ export default async function Layout({
     ]);
     return (
         <LayoutClient
-            isAuthenticated={!!session?.user}
-            isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === "true"}
             isSearchAssistSupported={languageModels.length > 0}
+            showLoginWall={env.EXPERIMENT_ASK_GH_ENABLED === "true" && !session?.user}
         >
             {children}
         </LayoutClient>

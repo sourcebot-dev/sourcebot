@@ -61,8 +61,7 @@ interface SearchBarProps {
     }
     autoFocus?: boolean;
     isSearchAssistSupported: boolean;
-    isAuthenticated: boolean;
-    isLoginWallEnabled: boolean;
+    showLoginWall: boolean;
 }
 
 const searchBarKeymap: readonly KeyBinding[] = ([
@@ -110,8 +109,7 @@ export const SearchBar = ({
         query: defaultQuery = "",
     } = {},
     isSearchAssistSupported,
-    isAuthenticated,
-    isLoginWallEnabled,
+    showLoginWall,
 }: SearchBarProps) => {
     const router = useRouter();
     const captureEvent = useCaptureEvent();
@@ -237,7 +235,7 @@ export const SearchBar = ({
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
 
-        if (isLoginWallEnabled && !isAuthenticated) {
+        if (showLoginWall) {
             if (query.trim().length === 0) {
                 return;
             }
@@ -249,11 +247,10 @@ export const SearchBar = ({
         router.push(url);
     }, [
         captureEvent,
-        isAuthenticated,
         isCaseSensitivityEnabled,
-        isLoginWallEnabled,
         isRegexEnabled,
         router,
+        showLoginWall,
     ]);
 
     return (

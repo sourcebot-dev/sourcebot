@@ -13,16 +13,14 @@ import { Separator } from "@/components/ui/separator";
 
 interface LayoutProps {
     children: React.ReactNode;
-    isAuthenticated: boolean;
-    isLoginWallEnabled: boolean;
     isSearchAssistSupported: boolean;
+    showLoginWall: boolean;
 }
 
 export function LayoutClient({
     children,
-    isAuthenticated,
-    isLoginWallEnabled,
     isSearchAssistSupported,
+    showLoginWall,
 }: LayoutProps) {
     const { repoName, revisionName, pathType } = useBrowseParams();
     return (
@@ -36,9 +34,8 @@ export function LayoutClient({
                                 query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
                             }}
                             className="w-full"
-                            isAuthenticated={isAuthenticated}
-                            isLoginWallEnabled={isLoginWallEnabled}
                             isSearchAssistSupported={isSearchAssistSupported}
+                            showLoginWall={showLoginWall}
                         />
                     </div>
                     <Separator />
