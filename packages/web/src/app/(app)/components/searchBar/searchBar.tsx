@@ -125,7 +125,6 @@ export const SearchBar = ({
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
     const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
-    const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
     const [loginCallbackUrl, setLoginCallbackUrl] = useState<string>();
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
@@ -239,13 +238,14 @@ export const SearchBar = ({
         );
 
         if (isLoginWallEnabled && !isAuthenticated) {
+            captureEvent('wa_askgh_login_wall_prompted', {});
             setLoginCallbackUrl(url);
-            setIsLoginDialogOpen(true);
             return;
         }
 
         router.push(url);
     }, [
+        captureEvent,
         isAuthenticated,
         isCaseSensitivityEnabled,
         isLoginWallEnabled,
@@ -254,8 +254,7 @@ export const SearchBar = ({
     ]);
 
     return (
-        <>
-            <div
+        <div
             className={cn(searchBarContainerVariants({ size, className }))}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -422,13 +421,16 @@ export const SearchBar = ({
                 cursorPosition={cursorPosition}
                 {...suggestionData}
             />
-            </div>
             <LoginDialog
-                isOpen={isLoginDialogOpen}
-                onOpenChange={setIsLoginDialogOpen}
+                isOpen={loginCallbackUrl !== undefined}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setLoginCallbackUrl(undefined);
+                    }
+                }}
                 callbackUrl={loginCallbackUrl}
             />
-        </>
+        </div>
     )
 }
 
