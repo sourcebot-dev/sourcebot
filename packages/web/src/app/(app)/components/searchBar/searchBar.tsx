@@ -47,7 +47,7 @@ import Link from "next/link";
 import { CaseSensitiveIcon, RegexIcon, Wand2Icon } from "lucide-react";
 import { SearchAssistBox } from "./searchAssistBox";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { LoginDialog } from "@/features/chat/components/chatBox/loginDialog";
+import { LoginDialog } from "@/app/components/loginDialog";
 
 const LANGUAGE_MODEL_DOCS_URL = "https://docs.sourcebot.dev/docs/configuration/language-model-providers"; 
 
