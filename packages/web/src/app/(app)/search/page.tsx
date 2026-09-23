@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { SearchLandingPage } from "./components/searchLandingPage";
 import { SearchResultsPage } from "./components/searchResultsPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
-import { appendFileSync } from "node:fs";
 
 interface SearchPageProps {
     searchParams: Promise<{
@@ -20,10 +19,6 @@ export default async function SearchPage(props: SearchPageProps) {
     const isCaseSensitivityEnabled = searchParams?.isCaseSensitivityEnabled === "true";
     const session = await auth();
     const showLoginWall = env.EXPERIMENT_ASK_GH_ENABLED === "true" && !session?.user;
-    // #region agent log
-    // eslint-disable-next-line react-hooks/purity -- temporary runtime instrumentation
-    appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ hypothesisId: "A,B", location: "search/page.tsx:showLoginWall", message: "Server computed search login wall", data: { envEnabled: env.EXPERIMENT_ASK_GH_ENABLED, hasSession: !!session, hasUser: !!session?.user, showLoginWall, processId: process.pid }, timestamp: Date.now() }) + "\n");
-    // #endregion
 
     const languageModels = await getConfiguredLanguageModelsInfo();
     const isSearchAssistSupported = languageModels.length > 0;

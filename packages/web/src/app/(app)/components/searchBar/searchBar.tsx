@@ -64,29 +64,6 @@ interface SearchBarProps {
     showLoginWall: boolean;
 }
 
-const writeAgentLog = (payload: {
-    hypothesisId: string;
-    location: string;
-    message: string;
-    data: {
-        showLoginWall?: boolean;
-        queryLength?: number;
-        loginDialogOpen?: boolean;
-        pathname?: string;
-        navigationType?: string;
-    };
-}) => {
-    const body = JSON.stringify(payload);
-    if (!navigator.sendBeacon("/api/debugSearchLoginWall", new Blob([body], { type: "application/json" }))) {
-        void fetch("/api/debugSearchLoginWall", {
-            method: "POST",
-            body,
-            headers: { "Content-Type": "application/json" },
-            keepalive: true,
-        });
-    }
-};
-
 const searchBarKeymap: readonly KeyBinding[] = ([
     { key: "ArrowLeft", run: cursorCharLeft, shift: selectCharLeft, preventDefault: true },
     { key: "ArrowRight", run: cursorCharRight, shift: selectCharRight, preventDefault: true },
@@ -157,19 +134,6 @@ export const SearchBar = ({
         // copy & pasting text with newlines.
         return _query.replaceAll(/\n/g, " ");
     }, [_query]);
-
-    useEffect(() => {
-        const navigationEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-        // #region agent log
-        writeAgentLog({ hypothesisId: "B,C", location: "searchBar.tsx:propEffect", message: "SearchBar received login wall prop", data: { showLoginWall, queryLength: defaultQuery.length, pathname: window.location.pathname, navigationType: navigationEntry?.type } });
-        // #endregion
-    }, [defaultQuery.length, showLoginWall]);
-
-    useEffect(() => {
-        // #region agent log
-        writeAgentLog({ hypothesisId: "C,D", location: "searchBar.tsx:dialogEffect", message: "SearchBar login dialog state observed", data: { showLoginWall, loginDialogOpen: loginCallbackUrl !== undefined, pathname: window.location.pathname } });
-        // #endregion
-    }, [loginCallbackUrl, showLoginWall]);
 
     // When the user navigates backwards/forwards while on the
     // search page (causing the `query` search param to change),
@@ -271,24 +235,15 @@ export const SearchBar = ({
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
 
-        // #region agent log
-        writeAgentLog({ hypothesisId: "B,C,D", location: "searchBar.tsx:onSubmit", message: "SearchBar submit entered", data: { showLoginWall, queryLength: query.length, pathname: window.location.pathname } });
-        // #endregion
         if (showLoginWall) {
             if (query.trim().length === 0) {
                 return;
             }
             captureEvent('wa_publicsaas_cs_login_wall_prompted', {});
             setLoginCallbackUrl(url);
-            // #region agent log
-            writeAgentLog({ hypothesisId: "C,D", location: "searchBar.tsx:loginBranch", message: "SearchBar selected login dialog branch", data: { showLoginWall, queryLength: query.length, loginDialogOpen: true, pathname: window.location.pathname } });
-            // #endregion
             return;
         }
 
-        // #region agent log
-        writeAgentLog({ hypothesisId: "A,B,C,D", location: "searchBar.tsx:navigationBranch", message: "SearchBar selected router navigation branch", data: { showLoginWall, queryLength: query.length, loginDialogOpen: false, pathname: window.location.pathname } });
-        // #endregion
         router.push(url);
     }, [
         captureEvent,
