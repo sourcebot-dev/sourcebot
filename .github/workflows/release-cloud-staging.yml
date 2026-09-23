@@ -1,0 +1,25 @@
+name: Release Sourcebot (Cloud - Staging)
+
+permissions:
+  contents: read
+  id-token: write
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-cloud-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build-cloud.yml
+    with:
+      environment: staging
+      git_ref: ${{ github.ref }}
+      docker_tags: |
+        type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+        type=sha,format=long,enable=${{ github.ref == 'refs/heads/main' }}
+    secrets: inherit
