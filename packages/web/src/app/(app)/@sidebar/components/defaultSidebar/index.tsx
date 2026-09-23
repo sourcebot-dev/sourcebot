@@ -21,9 +21,8 @@ export const SIDEBAR_REPO_VISITS_LIMIT = 10;
 export async function DefaultSidebar() {
     const session = await auth();
     const cookieStore = await cookies();
-    const defaultHomeView = env.DEFAULT_HOME_VIEW_PAGE;
     const cookieValue = cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined;
-    const homeView = cookieValue ?? defaultHomeView;
+    const homeView = cookieValue ?? env.DEFAULT_HOME_VIEW_PAGE;
 
     // Chat history is part of the Ask experience; hide it when the deployment
     // is not on a plan that includes Ask.
