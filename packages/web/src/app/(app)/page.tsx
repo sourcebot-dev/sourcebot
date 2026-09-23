@@ -1,5 +1,5 @@
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import type { HomeView } from "@/lib/homeView";
+import type { HomeView } from "@/hooks/useHomeView";
 import { cookies } from "next/headers";
 import { ChatLandingPage } from "./chat/chatLandingPage";
 import SearchPage from "./search/page";
