@@ -2,9 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import type { HomeView } from "@/lib/homeView";
 
-export type { HomeView } from "@/lib/homeView";
+export type HomeView = "search" | "ask";
 
 const COOKIE_NAME = HOME_VIEW_COOKIE_NAME;
 
