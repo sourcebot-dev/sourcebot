@@ -10,9 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added login wall for code search for Ask GitHub. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
 
-### Changed
-- Formalized public SaaS cloud image releases so production publishes from version tags and staging publishes from `main`. [#1683](https://github.com/sourcebot-dev/sourcebot/pull/1683)
-
 ### Removed
 - Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
 - Removed suggested example queries from the Ask landing page. [#1674](https://github.com/sourcebot-dev/sourcebot/pull/1674)
