@@ -241,7 +241,7 @@ export const SearchBar = ({
             if (query.trim().length === 0) {
                 return;
             }
-            captureEvent('wa_askgh_login_wall_prompted', {});
+            captureEvent('wa_publicsaas_cs_login_wall_prompted', {});
             setLoginCallbackUrl(url);
             return;
         }
