@@ -11,9 +11,8 @@ interface Props {
 
 export default async function Home(props: Props) {
     const cookieStore = await cookies();
-    const defaultHomeView = env.DEFAULT_HOME_VIEW_PAGE;
     const cookieValue = cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined;
-    const homeView = cookieValue ?? defaultHomeView;
+    const homeView = cookieValue ?? env.DEFAULT_HOME_VIEW_PAGE;
     if (homeView === "ask") {
         return <ChatLandingPage />;
     }
