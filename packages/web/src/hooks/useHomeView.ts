@@ -14,7 +14,7 @@ function getHomeViewFromCookie(defaultHomeView: HomeView): HomeView {
     }
     const cookies = document.cookie.split(';').map(c => c.trim());
     const cookie = cookies.find(c => c.startsWith(`${COOKIE_NAME}=`));
-    const value = cookie?.substring(`${COOKIE_NAME}=`.length);
+    const value = cookie?.substring(`${COOKIE_NAME}=`.length) as HomeView | undefined;
     return resolveHomeView(value, defaultHomeView);
 }
 
