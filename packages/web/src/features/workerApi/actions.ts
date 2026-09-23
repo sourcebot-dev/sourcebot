@@ -1,6 +1,7 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
+import { captureEvent } from "@/lib/posthog";
 import { githubRateLimited, repositoryNotFound, unexpectedError } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { env } from "@sourcebot/shared";
@@ -27,6 +28,12 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
             }
             return unexpectedError('Failed to add GitHub repo');
         }
+
+        await captureEvent('askgh_repo_index_requested', {
+            owner,
+            repo,
+            repoName: `${owner}/${repo}`,
+        });
 
         const data = await response.json();
         const schema = z.object({
