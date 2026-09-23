@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Defaulted the home page to Ask when `EXPERIMENT_ASK_GH_ENABLED` is enabled and no preference is set. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
+
 ## [5.1.14] - 2026-09-17
 
 ### Added
@@ -17,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed missing account-linking prompts during OAuth authorization and restored prompts when new optional providers are configured. [#1663](https://github.com/sourcebot-dev/sourcebot/pull/1663)
 - Prevented browser performance instrumentation from breaking code views when `performance.measure()` returns no value. [#1665](https://github.com/sourcebot-dev/sourcebot/pull/1665)
 - Added specific authentication error messages and recovery guidance shared by the login form and error page. [#1669](https://github.com/sourcebot-dev/sourcebot/pull/1669)
-- Defaulted the home page to Ask when `EXPERIMENT_ASK_GH_ENABLED` is enabled and no preference is set. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
 
 ## [5.1.13] - 2026-09-12
 
