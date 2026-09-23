@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
-import { resolveHomeView } from "@/lib/homeView";
+import { resolveHomeView, type HomeView } from "@/lib/homeView";
 import { getDefaultHomeView } from "@/lib/homeView.server";
 import { getOrgAccountRequests } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
@@ -24,7 +24,7 @@ export async function DefaultSidebar() {
     const cookieStore = await cookies();
     const defaultHomeView = getDefaultHomeView();
     const homeView = resolveHomeView(
-        cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value,
+        cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value as HomeView | undefined,
         defaultHomeView,
     );
 
