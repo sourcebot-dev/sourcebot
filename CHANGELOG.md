@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Clarified cloud-agent CHANGELOG placement rules to require entries under `[Unreleased]`. [#1682](https://github.com/sourcebot-dev/sourcebot/pull/1682)
-
 ## [5.1.14] - 2026-09-17
 
 ### Added
