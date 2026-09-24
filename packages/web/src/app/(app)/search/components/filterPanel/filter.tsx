@@ -31,13 +31,14 @@ export const Filter = ({
             return entries;
         }
 
-        const fuse = new Fuse(entries, {
+        const selectedEntries = entries.filter(entry => entry.isSelected);
+        const fuse = new Fuse(entries.filter(entry => !entry.isSelected), {
             keys: ["displayName"],
             threshold: 0.3,
         });
 
         const result = fuse.search(searchFilter);
-        return result.map((result) => result.item);
+        return [...selectedEntries, ...result.map((result) => result.item)];
     }, [entries, searchFilter]);
 
     return (
@@ -61,7 +62,7 @@ export const Filter = ({
                     <div
                         className="flex flex-col gap-0.5 text-sm overflow-scroll no-scrollbar"
                     >
-                        {filteredEntries
+                        {[...filteredEntries]
                             .sort((entryA, entryB) => compareEntries(entryB, entryA))
                             .map((entry) => (
                                 <Entry
