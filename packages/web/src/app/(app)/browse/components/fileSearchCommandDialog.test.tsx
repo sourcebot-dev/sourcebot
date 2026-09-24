@@ -52,7 +52,7 @@ afterEach(() => {
 
 const selectFile = (name: string) => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: name } });
-    fireEvent.click(screen.getByText(name));
+    fireEvent.click(screen.getByRole('option'));
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
 };
 
