@@ -341,9 +341,8 @@ const encodeSSEREsponseChunk = (response: object | string) => {
 // chunk. The mapping allows us to efficiently lookup repository metadata.
 const createReposMapForChunk = async (chunk: ZoektGrpcSearchResponse, reposMapCache: Map<string | number, Repo>, prisma: PrismaClient): Promise<Map<string | number, Repo>> => {
     const reposMap = new Map<string | number, Repo>();
-    await Promise.all(chunk.files.map(async (file) => {
-        const id = getRepoIdForFile(file);
-
+    const repoIds = [...new Set(chunk.files.map(getRepoIdForFile))];
+    await Promise.all(repoIds.map(async (id) => {
         const repo = await (async () => {
             // If it's in the cache, return the cached value.
             if (reposMapCache.has(id)) {
