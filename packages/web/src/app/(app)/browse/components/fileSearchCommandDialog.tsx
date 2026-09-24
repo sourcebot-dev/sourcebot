@@ -35,7 +35,10 @@ export const FileSearchCommandDialog = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
 
-    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
+    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(
+        `recentlyOpenedFiles-${JSON.stringify([repoName, revisionName ?? 'HEAD'])}`,
+        [],
+    );
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
