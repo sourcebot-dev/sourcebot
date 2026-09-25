@@ -72,6 +72,15 @@ const findLinguistLanguage = (value: string): string => {
 }
 
 /**
+ * Quoted strings may contain backslash escapes (e.g. `\"`). Keyword search
+ * matches patterns literally, so the escapes are resolved here. In regex mode
+ * they are left in place for the regex engine to interpret.
+ */
+const unescapeQuotedString = (value: string): string => {
+    return value.replace(/\\(.)/g, '$1');
+}
+
+/**
  * Given a query string, parses it into the query intermediate representation.
  */
 export const parseQuerySyntaxIntoIR = async ({
@@ -221,7 +230,7 @@ const transformTreeToIR = async ({
                     query: "regexp"
                 } : {
                     substring: {
-                        pattern: termText,
+                        pattern: node.type.id === QuotedTerm ? unescapeQuotedString(termText) : termText,
                         case_sensitive: isCaseSensitivityEnabled,
                         file_name: false,
                         content: true
@@ -252,7 +261,9 @@ const transformTreeToIR = async ({
         }
 
         // Get the value part after the colon and remove quotes if present
-        const value = fullText.substring(colonIndex + 1).replace(/^"|"$/g, '');
+        const rawValue = fullText.substring(colonIndex + 1);
+        const isQuoted = rawValue.length >= 2 && rawValue.startsWith('"') && rawValue.endsWith('"');
+        const value = rawValue.replace(/^"|"$/g, '');
 
         switch (prefixTypeId) {
             case FileExpr:
@@ -296,7 +307,7 @@ const transformTreeToIR = async ({
                     query: "regexp"
                 } : {
                     substring: {
-                        pattern: value,
+                        pattern: isQuoted ? unescapeQuotedString(value) : value,
                         case_sensitive: isCaseSensitivityEnabled,
                         file_name: false,
                         content: true
