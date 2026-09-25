@@ -1,7 +1,8 @@
 import { readFile } from 'fs/promises';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
-import { getConfigSettings, resolveConfigSettings } from './utils.js';
+import type { Repo } from '@sourcebot/db';
+import { getConfigSettings, getRepoPath, resolveConfigSettings } from './utils.js';
 
 // Mock fs/promises so loadConfig doesn't hit the filesystem.
 // The config schema has no required fields, so '{}' is valid.
@@ -108,5 +109,34 @@ describe('resolveConfigSettings', () => {
         expect(result.reindexIntervalMs).toBe(
             DEFAULT_CONFIG_SETTINGS.reindexIntervalMs,
         );
+    });
+});
+
+describe('getRepoPath', () => {
+    const localRepo = (cloneUrl: string) => ({
+        id: 1,
+        external_codeHostType: 'genericGitHost',
+        cloneUrl,
+    }) as unknown as Repo;
+
+    test('returns the on-disk path of a local repository', () => {
+        expect(getRepoPath(localRepo('file:///repos/project'))).toEqual({
+            path: '/repos/project',
+            isReadOnly: true,
+        });
+    });
+
+    test('returns the on-disk path of a local repository whose path contains spaces', () => {
+        expect(getRepoPath(localRepo('file:///Users/me/Code Projects/my repo'))).toEqual({
+            path: '/Users/me/Code Projects/my repo',
+            isReadOnly: true,
+        });
+    });
+
+    test('returns the on-disk path of a local repository whose path contains percent-encodable characters', () => {
+        expect(getRepoPath(localRepo('file:///repos/caf\u00e9/[legacy]'))).toEqual({
+            path: '/repos/caf\u00e9/[legacy]',
+            isReadOnly: true,
+        });
     });
 });

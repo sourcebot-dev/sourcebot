@@ -6,6 +6,7 @@ import { ConfigSettings } from "./types.js";
 import { Org, Repo } from "@sourcebot/db";
 import type { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import path from "path";
+import { fileURLToPath } from "url";
 import { env, isRemotePath, loadConfig } from "./env.server.js";
 
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
@@ -109,7 +110,9 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
     const cloneUrl = new URL(repo.cloneUrl);
     if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
         return {
-            path: cloneUrl.pathname,
+            // @note: URL.pathname is percent-encoded (e.g., spaces become %20),
+            // so decode it back into the on-disk path.
+            path: fileURLToPath(cloneUrl),
             isReadOnly: true,
         }
     }
