@@ -13,7 +13,7 @@ import { prisma } from "./prisma.js";
 import { PromClient } from './promClient.js';
 import { redis } from "./redis.js";
 import { createConnectionSyncWorkload } from "./connectionSyncWorkload.js";
-import { cleanupOrphanedRepoResources, createRepoCleanupWorkload } from "./repoCleanupWorkload.js";
+import { cleanupOrphanedRepoResources, createRepoCleanupWorkload, reindexReposWithMissingShards } from "./repoCleanupWorkload.js";
 import { createRepoIndexWorkload } from "./repoIndexWorkload.js";
 import { Api } from "./api.js";
 import { createAccountPermissionSyncWorkload } from "./ee/accountPermissionSyncWorkload.js";
@@ -96,6 +96,14 @@ await cleanupOrphanedRepoResources(prisma);
 
 const configManager = new ConfigManager(jobManager, env.CONFIG_PATH);
 await configManager.syncConfig();
+
+// Runs after config sync so a repo whose connection this sync just removed
+// (handled synchronously in syncConfig) isn't wrongly re-queued right before
+// it's orphaned. Connections added or changed by this sync are applied
+// asynchronously by their own connection-sync job, which can't run until
+// jobManager.start() below, so that side of eligibility is unaffected by
+// this ordering either way.
+await reindexReposWithMissingShards(prisma, jobManager);
 
 await reconcileJobSchedulers({
     db: prisma,
