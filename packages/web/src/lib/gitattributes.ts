@@ -63,11 +63,12 @@ export function parseGitAttributes(content: string): GitAttributes {
 // is matched against the full path from the repository root.
 // @see https://git-scm.com/docs/gitattributes#_description
 function matchesGitAttributesPattern(filePath: string, pattern: string): boolean {
+    const normalizedFilePath = filePath.replace(/^(?:\.\/)+/, '');
     if (!pattern.includes('/')) {
-        const fileName = filePath.slice(filePath.lastIndexOf('/') + 1);
+        const fileName = normalizedFilePath.slice(normalizedFilePath.lastIndexOf('/') + 1);
         return micromatch.isMatch(fileName, pattern, { dot: true });
     }
-    return micromatch.isMatch(filePath, pattern.replace(/^\//, ''), { dot: true });
+    return micromatch.isMatch(normalizedFilePath, pattern.replace(/^\//, ''), { dot: true });
 }
 
 // resolveLanguageFromGitAttributes returns the linguist-language override for

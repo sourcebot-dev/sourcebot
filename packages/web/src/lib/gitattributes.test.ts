@@ -20,6 +20,7 @@ describe('resolveLanguageFromGitAttributes', () => {
         const attrs = parseGitAttributes('docs/*.txt linguist-language=Markdown\n');
 
         expect(resolveLanguageFromGitAttributes('docs/intro.txt', attrs)).toBe('Markdown');
+        expect(resolveLanguageFromGitAttributes('./docs/intro.txt', attrs)).toBe('Markdown');
         expect(resolveLanguageFromGitAttributes('other/docs/intro.txt', attrs)).toBeUndefined();
     });
 
