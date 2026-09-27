@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Made the default home page configurable with `DEFAULT_HOME_VIEW_PAGE`, defaulting to Code Search and supporting Ask. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
 - Require authentication for the streaming and blocking Ask APIs in Public SaaS deployments. [#1679](https://github.com/sourcebot-dev/sourcebot/pull/1679)
+- Fixed keyword search treating backslash escapes in quoted terms (e.g. `"foo \"bar\""`) as literal characters. [#1688](https://github.com/sourcebot-dev/sourcebot/pull/1688)
 
 ## [5.1.14] - 2026-09-17
 
