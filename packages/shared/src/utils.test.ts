@@ -1,4 +1,7 @@
 import { readFile } from 'fs/promises';
+import { existsSync, mkdtempSync, mkdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
@@ -156,4 +159,21 @@ describe('getRepoPath', () => {
             });
         },
     );
+
+    test('preserves a legacy local path containing a valid percent escape when that path exists', () => {
+        const tempRoot = mkdtempSync(path.join(tmpdir(), 'sourcebot-local-repo-'));
+        const repoPath = path.join(tempRoot, '100%20Free');
+        mkdirSync(repoPath);
+
+        try {
+            // Older records stored `file://` plus the raw path, so `%20` here
+            // is a literal part of the directory name rather than an escape.
+            expect(getRepoPath(localRepo(`file://${repoPath}`))).toEqual({
+                path: repoPath,
+                isReadOnly: true,
+            });
+        } finally {
+            rmSync(tempRoot, { recursive: true, force: true });
+        }
+    });
 });

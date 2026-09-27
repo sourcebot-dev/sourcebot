@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
 import { z } from "zod";
 import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
@@ -112,6 +113,13 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
         let localPath: string;
         try {
             localPath = fileURLToPath(cloneUrl);
+            // Older records were written as `file://` plus the raw filesystem
+            // path. If a literal-percent path exists but its decoded spelling
+            // does not, keep the original path instead of treating `%20` as a
+            // space (or another percent escape as URL syntax).
+            if (!existsSync(localPath) && existsSync(cloneUrl.pathname)) {
+                localPath = cloneUrl.pathname;
+            }
         } catch {
             // Older records may contain raw paths with invalid escapes such as
             // `%2F`; retain the previous pathname behavior for those records.
