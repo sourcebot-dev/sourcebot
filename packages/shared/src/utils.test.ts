@@ -134,9 +134,15 @@ describe('getRepoPath', () => {
     test(
         'normalizes legacy Windows file URL pathnames before checking the filesystem',
         () => {
+            const cloneUrl = new URL('file://C:\\Users\\me\\100%20Free');
+            const nativePath = 'C:\\Users\\me\\100%20Free';
+            const legacyPathname = cloneUrl.pathname;
+
+            expect(legacyPathname).toBe('/C:/Users/me/100%20Free');
+            expect(path.win32.normalize(legacyPathname)).not.toBe(nativePath);
             expect(
-                normalizeLegacyFileURLPathname('/C:/Users/me/100%20Free', 'win32'),
-            ).toBe('C:\\Users\\me\\100%20Free');
+                normalizeLegacyFileURLPathname(legacyPathname, 'win32'),
+            ).toBe(nativePath);
             expect(
                 normalizeLegacyFileURLPathname('/repos/100%20Free', 'win32'),
             ).toBe('/repos/100%20Free');
