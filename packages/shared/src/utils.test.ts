@@ -6,7 +6,12 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
 import type { Repo } from '@sourcebot/db';
-import { getConfigSettings, getRepoPath, resolveConfigSettings } from './utils.js';
+import {
+    getConfigSettings,
+    getRepoPath,
+    normalizeLegacyFileURLPathname,
+    resolveConfigSettings,
+} from './utils.js';
 
 // Mock fs/promises so loadConfig doesn't hit the filesystem.
 // The config schema has no required fields, so '{}' is valid.
@@ -125,6 +130,18 @@ describe('getRepoPath', () => {
 
     const localPath = (...parts: string[]) =>
         `${process.platform === 'win32' ? 'C:\\' : '/'}${parts.join('/')}`;
+
+    test(
+        'normalizes legacy Windows file URL pathnames before checking the filesystem',
+        () => {
+            expect(
+                normalizeLegacyFileURLPathname('/C:/Users/me/100%20Free', 'win32'),
+            ).toBe('C:\\Users\\me\\100%20Free');
+            expect(
+                normalizeLegacyFileURLPathname('/repos/100%20Free', 'win32'),
+            ).toBe('/repos/100%20Free');
+        },
+    );
 
     test('returns the on-disk path of a local repository', () => {
         const repoPath = localPath('repos', 'project');

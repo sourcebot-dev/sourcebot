@@ -105,6 +105,16 @@ export const getRepoIdFromPath = (repoPath: string): number | undefined => {
     return isNaN(id) ? undefined : id;
 }
 
+export const normalizeLegacyFileURLPathname = (
+    pathname: string,
+    platform = process.platform,
+): string => {
+    if (platform === 'win32' && /^\/[A-Za-z]:\//.test(pathname)) {
+        return path.win32.normalize(pathname.slice(1));
+    }
+    return pathname;
+}
+
 export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
@@ -117,13 +127,14 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
             // path. If a literal-percent path exists but its decoded spelling
             // does not, keep the original path instead of treating `%20` as a
             // space (or another percent escape as URL syntax).
-            if (!existsSync(localPath) && existsSync(cloneUrl.pathname)) {
-                localPath = cloneUrl.pathname;
+            const legacyPath = normalizeLegacyFileURLPathname(cloneUrl.pathname);
+            if (!existsSync(localPath) && existsSync(legacyPath)) {
+                localPath = legacyPath;
             }
         } catch {
             // Older records may contain raw paths with invalid escapes such as
             // `%2F`; retain the previous pathname behavior for those records.
-            localPath = cloneUrl.pathname;
+            localPath = normalizeLegacyFileURLPathname(cloneUrl.pathname);
         }
         return {
             // New clone URLs are filesystem-encoded; decode them to the path.
