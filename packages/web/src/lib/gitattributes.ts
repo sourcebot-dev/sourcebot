@@ -76,8 +76,9 @@ function matchesGitAttributesPattern(filePath: string, pattern: string): boolean
 export function resolveLanguageFromGitAttributes(filePath: string, gitAttributes: GitAttributes): string | undefined {
     let language: string | undefined;
     for (const rule of gitAttributes.rules) {
-        if (matchesGitAttributesPattern(filePath, rule.pattern) && rule.attrs['linguist-language']) {
-            language = rule.attrs['linguist-language'];
+        const languageAttribute = rule.attrs['linguist-language'];
+        if (matchesGitAttributesPattern(filePath, rule.pattern) && languageAttribute !== undefined) {
+            language = languageAttribute === 'false' || languageAttribute === 'unspecified' ? undefined : languageAttribute;
         }
     }
     return language;
