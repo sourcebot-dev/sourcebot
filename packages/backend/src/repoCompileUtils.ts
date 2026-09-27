@@ -14,6 +14,7 @@ import { createLogger } from '@sourcebot/shared';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import path from 'path';
+import { pathToFileURL } from 'url';
 import fs from 'fs/promises';
 import { glob } from 'glob';
 import { getLocalDefaultBranch, getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
@@ -658,7 +659,7 @@ export const compileGenericGitHostConfig_file = async (
             external_codeHostType: 'genericGitHost',
             external_codeHostUrl: remoteUrl.resource,
             external_id: remoteUrl.toString(),
-            cloneUrl: `file://${repoPath}`,
+            cloneUrl: pathToFileURL(repoPath).href,
             name: repoName,
             displayName: repoName,
             defaultBranch,

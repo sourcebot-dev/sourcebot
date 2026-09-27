@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
 import type { Repo } from '@sourcebot/db';
@@ -119,24 +120,40 @@ describe('getRepoPath', () => {
         cloneUrl,
     }) as unknown as Repo;
 
+    const localPath = (...parts: string[]) =>
+        `${process.platform === 'win32' ? 'C:\\' : '/'}${parts.join('/')}`;
+
     test('returns the on-disk path of a local repository', () => {
-        expect(getRepoPath(localRepo('file:///repos/project'))).toEqual({
-            path: '/repos/project',
+        const repoPath = localPath('repos', 'project');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
             isReadOnly: true,
         });
     });
 
     test('returns the on-disk path of a local repository whose path contains spaces', () => {
-        expect(getRepoPath(localRepo('file:///Users/me/Code Projects/my repo'))).toEqual({
-            path: '/Users/me/Code Projects/my repo',
+        const repoPath = localPath('Users', 'me', 'Code Projects', 'my repo');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
             isReadOnly: true,
         });
     });
 
     test('returns the on-disk path of a local repository whose path contains percent-encodable characters', () => {
-        expect(getRepoPath(localRepo('file:///repos/caf\u00e9/[legacy]'))).toEqual({
-            path: '/repos/caf\u00e9/[legacy]',
+        const repoPath = localPath('repos', 'caf\u00e9', '[legacy]');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
             isReadOnly: true,
         });
     });
+
+    test.each(['file:///repos/100%Free', 'file:///repos/report%2F2024'])(
+        'preserves a legacy raw file URL pathname containing %s', (cloneUrl) => {
+            const url = new URL(cloneUrl);
+            expect(getRepoPath(localRepo(cloneUrl))).toEqual({
+                path: url.pathname,
+                isReadOnly: true,
+            });
+        },
+    );
 });

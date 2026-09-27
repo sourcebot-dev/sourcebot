@@ -109,10 +109,17 @@ export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } =
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
     if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
+        let localPath: string;
+        try {
+            localPath = fileURLToPath(cloneUrl);
+        } catch {
+            // Older records may contain raw paths with invalid escapes such as
+            // `%2F`; retain the previous pathname behavior for those records.
+            localPath = cloneUrl.pathname;
+        }
         return {
-            // @note: URL.pathname is percent-encoded (e.g., spaces become %20),
-            // so decode it back into the on-disk path.
-            path: fileURLToPath(cloneUrl),
+            // New clone URLs are filesystem-encoded; decode them to the path.
+            path: localPath,
             isReadOnly: true,
         }
     }
