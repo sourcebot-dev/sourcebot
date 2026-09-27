@@ -63,7 +63,10 @@ export function parseGitAttributes(content: string): GitAttributes {
 // is matched against the full path from the repository root.
 // @see https://git-scm.com/docs/gitattributes#_description
 function matchesGitAttributesPattern(filePath: string, pattern: string): boolean {
-    const normalizedFilePath = filePath.replace(/^(?:\.\/)+/, '');
+    const normalizedFilePath = filePath
+        .split('/')
+        .filter((pathSegment) => pathSegment !== '.')
+        .join('/');
     if (!pattern.includes('/')) {
         const fileName = normalizedFilePath.slice(normalizedFilePath.lastIndexOf('/') + 1);
         return micromatch.isMatch(fileName, pattern, { dot: true });
