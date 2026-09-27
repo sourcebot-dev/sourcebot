@@ -72,12 +72,13 @@ const findLinguistLanguage = (value: string): string => {
 }
 
 /**
- * Quoted strings may contain backslash escapes (e.g. `\"`). Keyword search
- * matches patterns literally, so the escapes are resolved here. In regex mode
- * they are left in place for the regex engine to interpret.
+ * Quoted strings may escape quotes, backslashes, and line terminators. Keyword
+ * search matches patterns literally, so those escapes are resolved here. Other
+ * backslashes remain literal (e.g. in Windows paths). In regex mode escapes
+ * are left in place for the regex engine to interpret.
  */
 const unescapeQuotedString = (value: string): string => {
-    return value.replace(/\\(.)/g, '$1');
+    return value.replace(/\\(["\\\r\n])/g, '$1');
 }
 
 /**

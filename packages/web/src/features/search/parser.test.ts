@@ -72,6 +72,32 @@ describe('parseQuerySyntaxIntoIR', () => {
             });
         });
 
+        it('unescapes a backslash-escaped newline', async () => {
+            const ir = await parseQuerySyntaxIntoIR({
+                query: '"line1\\\nline2"',
+                options: {},
+                prisma,
+            });
+
+            expect(ir).toMatchObject({
+                query: 'substring',
+                substring: { pattern: 'line1\nline2' },
+            });
+        });
+
+        it('preserves backslashes before other characters', async () => {
+            const ir = await parseQuerySyntaxIntoIR({
+                query: '"C:\\temp"',
+                options: {},
+                prisma,
+            });
+
+            expect(ir).toMatchObject({
+                query: 'substring',
+                substring: { pattern: 'C:\\temp' },
+            });
+        });
+
         it('unescapes a quoted content: value', async () => {
             const ir = await parseQuerySyntaxIntoIR({
                 query: 'content:"say \\"hi\\""',
