@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
 import { z } from "zod";
 import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
@@ -6,6 +7,7 @@ import { ConfigSettings } from "./types.js";
 import { Org, Repo } from "@sourcebot/db";
 import type { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import path from "path";
+import { fileURLToPath } from "url";
 import { env, isRemotePath, loadConfig } from "./env.server.js";
 
 // From https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
@@ -103,13 +105,40 @@ export const getRepoIdFromPath = (repoPath: string): number | undefined => {
     return isNaN(id) ? undefined : id;
 }
 
+export const normalizeLegacyFileURLPathname = (
+    pathname: string,
+    platform = process.platform,
+): string => {
+    if (platform === 'win32' && /^\/[A-Za-z]:\//.test(pathname)) {
+        return path.win32.normalize(pathname.slice(1));
+    }
+    return pathname;
+}
+
 export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
     if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
+        let localPath: string;
+        try {
+            localPath = fileURLToPath(cloneUrl);
+            // Older records were written as `file://` plus the raw filesystem
+            // path. If a literal-percent path exists but its decoded spelling
+            // does not, keep the original path instead of treating `%20` as a
+            // space (or another percent escape as URL syntax).
+            const legacyPath = normalizeLegacyFileURLPathname(cloneUrl.pathname);
+            if (!existsSync(localPath) && existsSync(legacyPath)) {
+                localPath = legacyPath;
+            }
+        } catch {
+            // Older records may contain raw paths with invalid escapes such as
+            // `%2F`; retain the previous pathname behavior for those records.
+            localPath = normalizeLegacyFileURLPathname(cloneUrl.pathname);
+        }
         return {
-            path: cloneUrl.pathname,
+            // New clone URLs are filesystem-encoded; decode them to the path.
+            path: localPath,
             isReadOnly: true,
         }
     }

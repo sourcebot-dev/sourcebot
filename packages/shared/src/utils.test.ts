@@ -1,7 +1,17 @@
 import { readFile } from 'fs/promises';
+import { existsSync, mkdtempSync, mkdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { DEFAULT_CONFIG_SETTINGS } from './constants.js';
-import { getConfigSettings, resolveConfigSettings } from './utils.js';
+import type { Repo } from '@sourcebot/db';
+import {
+    getConfigSettings,
+    getRepoPath,
+    normalizeLegacyFileURLPathname,
+    resolveConfigSettings,
+} from './utils.js';
 
 // Mock fs/promises so loadConfig doesn't hit the filesystem.
 // The config schema has no required fields, so '{}' is valid.
@@ -108,5 +118,85 @@ describe('resolveConfigSettings', () => {
         expect(result.reindexIntervalMs).toBe(
             DEFAULT_CONFIG_SETTINGS.reindexIntervalMs,
         );
+    });
+});
+
+describe('getRepoPath', () => {
+    const localRepo = (cloneUrl: string) => ({
+        id: 1,
+        external_codeHostType: 'genericGitHost',
+        cloneUrl,
+    }) as unknown as Repo;
+
+    const localPath = (...parts: string[]) =>
+        `${process.platform === 'win32' ? 'C:\\' : '/'}${parts.join('/')}`;
+
+    test(
+        'normalizes legacy Windows file URL pathnames before checking the filesystem',
+        () => {
+            const cloneUrl = new URL('file://C:\\Users\\me\\100%20Free');
+            const nativePath = 'C:\\Users\\me\\100%20Free';
+            const legacyPathname = cloneUrl.pathname;
+
+            expect(legacyPathname).toBe('/C:/Users/me/100%20Free');
+            expect(path.win32.normalize(legacyPathname)).not.toBe(nativePath);
+            expect(
+                normalizeLegacyFileURLPathname(legacyPathname, 'win32'),
+            ).toBe(nativePath);
+            expect(
+                normalizeLegacyFileURLPathname('/repos/100%20Free', 'win32'),
+            ).toBe('/repos/100%20Free');
+        },
+    );
+
+    test('returns the on-disk path of a local repository', () => {
+        const repoPath = localPath('repos', 'project');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
+            isReadOnly: true,
+        });
+    });
+
+    test('returns the on-disk path of a local repository whose path contains spaces', () => {
+        const repoPath = localPath('Users', 'me', 'Code Projects', 'my repo');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
+            isReadOnly: true,
+        });
+    });
+
+    test('returns the on-disk path of a local repository whose path contains percent-encodable characters', () => {
+        const repoPath = localPath('repos', 'caf\u00e9', '[legacy]');
+        expect(getRepoPath(localRepo(pathToFileURL(repoPath).href))).toEqual({
+            path: fileURLToPath(pathToFileURL(repoPath)),
+            isReadOnly: true,
+        });
+    });
+
+    test.each(['file:///repos/100%Free', 'file:///repos/report%2F2024'])(
+        'preserves a legacy raw file URL pathname containing %s', (cloneUrl) => {
+            const url = new URL(cloneUrl);
+            expect(getRepoPath(localRepo(cloneUrl))).toEqual({
+                path: url.pathname,
+                isReadOnly: true,
+            });
+        },
+    );
+
+    test('preserves a legacy local path containing a valid percent escape when that path exists', () => {
+        const tempRoot = mkdtempSync(path.join(tmpdir(), 'sourcebot-local-repo-'));
+        const repoPath = path.join(tempRoot, '100%20Free');
+        mkdirSync(repoPath);
+
+        try {
+            // Older records stored `file://` plus the raw path, so `%20` here
+            // is a literal part of the directory name rather than an escape.
+            expect(getRepoPath(localRepo(`file://${repoPath}`))).toEqual({
+                path: repoPath,
+                isReadOnly: true,
+            });
+        } finally {
+            rmSync(tempRoot, { recursive: true, force: true });
+        }
     });
 });
