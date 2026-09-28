@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added login wall for code search for Ask GitHub. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
+- [EE] Added support for promoting pending members to owner from the members table. [#1694](https://github.com/sourcebot-dev/sourcebot/pull/1694)
 
 ### Removed
 - Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
