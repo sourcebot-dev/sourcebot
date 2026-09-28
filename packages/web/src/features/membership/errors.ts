@@ -23,10 +23,10 @@ export const lastOwnerDemoteError = (): ServiceError => ({
     message: "Cannot demote the last owner. Promote another member to owner first.",
 });
 
-export const memberNotActiveError = (): ServiceError => ({
+export const memberSuspendedError = (): ServiceError => ({
     statusCode: StatusCodes.BAD_REQUEST,
-    errorCode: ErrorCode.MEMBER_NOT_ACTIVE,
-    message: "Only active members can be promoted or demoted.",
+    errorCode: ErrorCode.MEMBER_SUSPENDED,
+    message: "Suspended members cannot be promoted or demoted. Reactivate the member first.",
 });
 
 // When SCIM is enabled the IdP is the source of truth for membership, so paths
