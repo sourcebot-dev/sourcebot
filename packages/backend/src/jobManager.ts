@@ -6,6 +6,7 @@ import {
     DataOf,
     JobEnqueueOptions,
     QueueName,
+    QueueSpec,
     ResultOf,
     Schedule,
     scheduleToMs,
@@ -150,6 +151,9 @@ export class BullMQJobManager implements JobManager {
 
                 const process = async (signal: AbortSignal) => {
                     await workload.onStarted?.(lifecycleContext);
+                    // After onStarted so the parent's `latest...JobId` pointer has
+                    // moved to this job before its predecessor is removed.
+                    await this.trackLatestJob(spec, job);
                     return workload.process({
                         ...lifecycleContext,
                         signal,
@@ -253,6 +257,33 @@ export class BullMQJobManager implements JobManager {
                 schedule.interval,
                 schedule.data,
                 schedule.options,
+            );
+        }
+    }
+
+    private async trackLatestJob<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        job: Job,
+    ): Promise<void> {
+        if (!job.id) {
+            return;
+        }
+        try {
+            const removedJobId = await this.bullmqClient.trackLatestJob(
+                spec,
+                job.data,
+                job.id,
+            );
+            if (removedJobId) {
+                logger.debug(
+                    `Removed job ${removedJobId} superseded by ${job.id} on "${spec.name}"`,
+                );
+            }
+        } catch (error) {
+            // Retention is best-effort; the age backstop still bounds the queue.
+            logger.warn(
+                `Failed to track latest job ${job.id} on "${spec.name}"`,
+                error,
             );
         }
     }
