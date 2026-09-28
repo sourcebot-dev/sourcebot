@@ -42,6 +42,14 @@ export class BullMQJobManager implements JobManager {
         if (this.workloads.has(name)) {
             throw new Error(`Workload "${name}" is already registered`);
         }
+        if (
+            workload.queueSpec.jobOptions.retention.mode === "latestPerResource"
+            && !workload.onStarted
+        ) {
+            throw new Error(
+                `Workload "${name}" uses latestPerResource retention and must publish its job id to the parent resource in onStarted`,
+            );
+        }
         this.workloads.set(name, workload);
     }
 
@@ -151,8 +159,10 @@ export class BullMQJobManager implements JobManager {
 
                 const process = async (signal: AbortSignal) => {
                     await workload.onStarted?.(lifecycleContext);
-                    // After onStarted so the parent's `latest...JobId` pointer has
-                    // moved to this job before its predecessor is removed.
+                    // Contract: `latestPerResource` workloads publish this job's id to
+                    // their parent's `latest...JobId` pointer in onStarted (enforced in
+                    // `register`), so the pointer has moved before the superseded job
+                    // is removed.
                     await this.trackLatestJob(spec, job);
                     return workload.process({
                         ...lifecycleContext,

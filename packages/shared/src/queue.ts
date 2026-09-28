@@ -48,6 +48,9 @@ export type JobRetention =
     | {
         // Keeps only the most recent job for each resource, keyed by the queue's
         // deduplication id. When a job starts, the job it supersedes is removed.
+        // Workloads on these queues must publish the job id to their parent's
+        // `latest...JobId` pointer in `onStarted`, so the pointer never
+        // references a removed job.
         // `maxAgeSeconds` is an age-only backstop that reclaims jobs whose
         // resource stopped running (e.g. a deleted repo). It must exceed the
         // longest scheduler interval, or a resource's latest job can be

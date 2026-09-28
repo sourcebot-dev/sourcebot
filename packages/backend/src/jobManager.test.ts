@@ -157,6 +157,27 @@ describe("BullMQJobManager lifecycle", () => {
         );
     });
 
+    test("rejects a latestPerResource workload that does not publish its job id in onStarted", () => {
+        const manager = new BullMQJobManager({} as Redis);
+        const workload = createWorkload();
+        workload.queueSpec.jobOptions = {
+            ...workload.queueSpec.jobOptions,
+            retention: { mode: "latestPerResource", maxAgeSeconds: 60 },
+        };
+
+        expect(() => manager.register(workload)).toThrow(
+            /must publish its job id to the parent resource in onStarted/,
+        );
+        expect(() =>
+            manager.register(
+                createWorkload({
+                    queueSpec: workload.queueSpec,
+                    onStarted: vi.fn(),
+                }),
+            ),
+        ).not.toThrow();
+    });
+
     test("delegates enqueueing to BullMQClient and returns its job id", async () => {
         const manager = new BullMQJobManager({} as Redis);
         const workload = createWorkload();
