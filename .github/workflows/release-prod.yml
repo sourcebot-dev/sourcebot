@@ -145,7 +145,7 @@ jobs:
       - name: Commit changes
         run: |
           git add CHANGELOG.md packages/shared/src/version.ts docs/api-reference/sourcebot-public.openapi.json
-          git commit -m "[skip ci] Release v$VERSION"
+          git commit -m "Release v$VERSION"
 
       - name: Push to temporary branch
         id: push_temp_branch
@@ -246,27 +246,6 @@ jobs:
               --verify-tag \
               --generate-notes \
               --latest
-
-  # The release commit is marked `[skip ci]`, which also suppresses the `push`
-  # event for the tag that points at it, so the tag push alone never starts the
-  # cloud prod build. Dispatch it explicitly against the new tag instead.
-  # (workflow_dispatch is one of the events GITHUB_TOKEN is allowed to trigger.)
-  release-cloud-prod:
-    needs: [prepare-release, finalize-release]
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-
-    steps:
-      - name: Dispatch cloud production release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: |
-          gh workflow run release-cloud-prod.yml \
-              --repo "$GITHUB_REPOSITORY" \
-              --ref "v$VERSION"
-          echo "Dispatched release-cloud-prod.yml for v$VERSION"
 
   publish-to-registry:
     needs: [prepare-release, build, finalize-release]
