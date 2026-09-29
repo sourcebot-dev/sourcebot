@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.15] - 2026-09-29
+
 ### Added
 - Added login wall for code search for Ask GitHub. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
 - [EE] Added support for promoting pending members to owner from the members table. [#1694](https://github.com/sourcebot-dev/sourcebot/pull/1694)
