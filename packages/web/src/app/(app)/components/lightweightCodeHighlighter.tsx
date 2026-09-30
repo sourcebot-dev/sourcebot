@@ -30,6 +30,37 @@ const MAX_NUMBER_OF_CHARACTER_PER_LINE = 1000;
  * 
  * Inspired by: https://github.com/craftzdog/react-codemirror-runmode
  */
+/**
+ * Calculates 0-based character ranges to highlight on a specific line from 1-based SourceRanges,
+ * handling single-line, start, intermediate, and end lines of multi-line ranges.
+ */
+export const computeLineHighlightRanges = (
+    highlightRanges: SourceRange[] | undefined,
+    lineNumber: number,
+    lineLength: number,
+): { from: number; to: number }[] => {
+    if (!highlightRanges || highlightRanges.length === 0) {
+        return [];
+    }
+
+    return highlightRanges
+        .filter(
+            (range) =>
+                lineNumber >= range.start.lineNumber &&
+                lineNumber <= range.end.lineNumber,
+        )
+        .map((range) => {
+            const isStart = range.start.lineNumber === lineNumber;
+            const isEnd = range.end.lineNumber === lineNumber;
+
+            const from = isStart ? Math.max(0, range.start.column - 1) : 0;
+            const to = isEnd ? Math.min(lineLength, range.end.column - 1) : lineLength;
+
+            return { from, to };
+        })
+        .filter((range) => range.to > range.from);
+};
+
 export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((props: LightweightCodeHighlighter) => {
     const {
         language,
@@ -64,13 +95,11 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
                 .map(async (line, index) => {
                     const lineNumber = index + lineNumbersOffset;
 
-                    // @todo: we will need to handle the case where a range spans multiple lines.
-                    const ranges = highlightRanges?.filter(range => {
-                        return range.start.lineNumber === lineNumber || range.end.lineNumber === lineNumber;
-                    }).map(range => ({
-                        from: range.start.column - 1,
-                        to: range.end.column - 1,
-                    }));
+                    const ranges = computeLineHighlightRanges(
+                        highlightRanges,
+                        lineNumber,
+                        line.length,
+                    );
 
                     const snippets = await highlightCode(
                         language,
