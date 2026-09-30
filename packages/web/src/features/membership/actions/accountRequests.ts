@@ -113,7 +113,7 @@ export const createAccountRequest = async () => sew(async () => {
                 text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
             });
 
-            const failed = result.rejected.concat(result.pending).filter(Boolean);
+            const failed = result.rejected.concat(result.pending ?? []).filter(Boolean);
             if (failed.length > 0) {
                 logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
             }
@@ -220,7 +220,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}`,
                 });
 
-                const failed = result.rejected.concat(result.pending).filter(Boolean);
+                const failed = result.rejected.concat(result.pending ?? []).filter(Boolean);
                 if (failed.length > 0) {
                     logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
                 }
