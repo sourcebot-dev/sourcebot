@@ -67,7 +67,7 @@ export const buildFileTree = (flatList: { type: string, path: string }[]): FileT
             if (!next) {
                 next = {
                     name: part,
-                    path: item.path,
+                    path: parts.slice(0, i + 1).join('/'),
                     type: nodeType,
                     children: [],
                 };
