@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
+- Upgraded `markdown-it` to `^14.3.2`. [#1702](https://github.com/sourcebot-dev/sourcebot/pull/1702)
 
 ## [5.1.15] - 2026-09-29
 
