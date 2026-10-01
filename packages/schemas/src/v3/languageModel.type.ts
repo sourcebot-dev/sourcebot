@@ -42,6 +42,18 @@ export interface AmazonBedrockLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.
@@ -58,6 +70,18 @@ export interface AmazonBedrockLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.
@@ -74,6 +98,18 @@ export interface AmazonBedrockLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * The AWS region. Defaults to the `AWS_REGION` environment variable.
@@ -112,6 +148,18 @@ export interface LanguageModelHeaders {
              */
             googleCloudSecret: string;
           }
+        | {
+            /**
+             * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+             */
+            file: string;
+          }
+        | {
+            /**
+             * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+             */
+            azureKeyVaultSecret: string;
+          }
       );
 }
 export interface AnthropicLanguageModel {
@@ -142,6 +190,18 @@ export interface AnthropicLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
@@ -158,6 +218,18 @@ export interface AnthropicLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -201,6 +273,18 @@ export interface AzureLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Sets a custom api version. Defaults to `preview`.
@@ -252,6 +336,18 @@ export interface DeepSeekLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -291,6 +387,18 @@ export interface GoogleGenerativeAILanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -346,6 +454,18 @@ export interface GoogleVertexAnthropicLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -393,6 +513,18 @@ export interface GoogleVertexLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -440,6 +572,18 @@ export interface MistralLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -479,6 +623,18 @@ export interface OpenAILanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -526,6 +682,18 @@ export interface OpenAICompatibleLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Base URL of the OpenAI-compatible chat completions API endpoint.
@@ -565,6 +733,18 @@ export interface LanguageModelQueryParams {
              */
             googleCloudSecret: string;
           }
+        | {
+            /**
+             * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+             */
+            file: string;
+          }
+        | {
+            /**
+             * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+             */
+            azureKeyVaultSecret: string;
+          }
       );
 }
 export interface OpenRouterLanguageModel {
@@ -595,6 +775,18 @@ export interface OpenRouterLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.
@@ -634,6 +826,18 @@ export interface XaiLanguageModel {
          * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
         googleCloudSecret: string;
+      }
+    | {
+        /**
+         * The path to a file that contains the token. The file is re-read each time the token is used, so its contents can be rotated without restarting Sourcebot (e.g., a mounted Kubernetes secret).
+         */
+        file: string;
+      }
+    | {
+        /**
+         * The identifier of an Azure Key Vault secret. Must be in the format `https://<vault-name>.vault.azure.net/secrets/<secret-name>` or `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If the version is omitted, the latest version is used. Authenticates using DefaultAzureCredential. See https://learn.microsoft.com/en-us/azure/key-vault/secrets/about-secrets
+         */
+        azureKeyVaultSecret: string;
       };
   /**
    * Optional base URL.

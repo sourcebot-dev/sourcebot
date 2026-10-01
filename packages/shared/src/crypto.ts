@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { env } from './env.server.js';
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { DefaultAzureCredential } from "@azure/identity";
+import { parseKeyVaultSecretIdentifier, SecretClient } from "@azure/keyvault-secrets";
 import { API_KEY_PREFIX, OAUTH_ACCESS_TOKEN_PREFIX, OAUTH_REFRESH_TOKEN_PREFIX, SCIM_TOKEN_PREFIX, SCOPED_ACCESS_TOKEN_PREFIX } from './constants.js';
 
 const algorithm = 'aes-256-cbc';
@@ -121,6 +123,22 @@ export function verifySignature(data: string, signature: string, publicKeyPath: 
     }
 }
 
+// Clients (and the shared credential) are cached so that the credential's
+// access token is reused across lookups. Secret values themselves are not cached.
+let azureCredential: DefaultAzureCredential | undefined;
+const azureKeyVaultSecretClients = new Map<string, SecretClient>();
+
+const getAzureKeyVaultSecretClient = (vaultUrl: string): SecretClient => {
+    let client = azureKeyVaultSecretClients.get(vaultUrl);
+    if (!client) {
+        azureCredential ??= new DefaultAzureCredential();
+        client = new SecretClient(vaultUrl, azureCredential);
+        azureKeyVaultSecretClients.set(vaultUrl, client);
+    }
+
+    return client;
+};
+
 export const getTokenFromConfig = async (token: Token): Promise<string> => {
     if ('env' in token) {
         const envToken = process.env[token.env];
@@ -143,6 +161,41 @@ export const getTokenFromConfig = async (token: Token): Promise<string> => {
             return response.payload.data.toString().trim();
         } catch (error) {
             throw new Error(`Failed to access Google Cloud secret ${token.googleCloudSecret}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    } else if ('file' in token) {
+        // Read on every call (no caching) so that rotated secrets
+        // (e.g., mounted Kubernetes secrets) are picked up without a restart.
+        let contents: string;
+        try {
+            contents = await fs.promises.readFile(token.file, 'utf8');
+        } catch (error) {
+            throw new Error(`Failed to read token file ${token.file}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        const fileToken = contents.trim();
+        if (!fileToken) {
+            throw new Error(`Token file ${token.file} is empty.`);
+        }
+
+        return fileToken;
+    } else if ('azureKeyVaultSecret' in token) {
+        try {
+            // parseKeyVaultSecretIdentifier does not check the collection, so a
+            // key or certificate URL would otherwise resolve to a same-named secret.
+            if (!/^https:\/\/[^/]+\/secrets\/[^/]+(\/[^/]+)?$/.test(token.azureKeyVaultSecret)) {
+                throw new Error('Expected the format https://<vault-name>.vault.azure.net/secrets/<secret-name>[/<version>].');
+            }
+
+            const { vaultUrl, name, version } = parseKeyVaultSecretIdentifier(token.azureKeyVaultSecret);
+            const secret = await getAzureKeyVaultSecretClient(vaultUrl).getSecret(name, { version });
+
+            if (!secret.value) {
+                throw new Error(`Secret ${token.azureKeyVaultSecret} has no value.`);
+            }
+
+            return secret.value.trim();
+        } catch (error) {
+            throw new Error(`Failed to access Azure Key Vault secret ${token.azureKeyVaultSecret}: ${error instanceof Error ? error.message : String(error)}`);
         }
     } else {
         throw new Error('Invalid token configuration');
