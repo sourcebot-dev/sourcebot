@@ -11,6 +11,8 @@
         "tool:resolve-env-overrides": "tsx tools/resolveEnvOverrides.ts"
     },
     "dependencies": {
+        "@azure/identity": "^4.13.3",
+        "@azure/keyvault-secrets": "^4.11.2",
         "@google-cloud/secret-manager": "^6.1.1",
         "@logtail/node": "^0.5.2",
         "@logtail/winston": "^0.5.2",

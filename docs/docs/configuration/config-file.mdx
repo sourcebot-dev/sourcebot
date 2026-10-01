@@ -58,7 +58,9 @@ The following are settings that can be provided in your config file to modify So
 
 # Tokens
 
-Tokens are used to securely pass secrets to Sourcebot in a config file. They are used in various places, including connections, language model providers, auth providers, etc. Tokens can be passed as either environment variables or Google Cloud secrets:
+Tokens are used to securely pass secrets to Sourcebot in a config file. They are used in various places, including connections, language model providers, auth providers, etc. Tokens can be passed as environment variables, files, Google Cloud secrets, or Azure Key Vault secrets.
+
+Environment variables are fixed when the container starts. File, Google Cloud, and Azure Key Vault tokens are read each time Sourcebot resolves them. For connection tokens, this happens on every sync, so you can rotate short-lived credentials (e.g., GitHub App installation tokens) without restarting Sourcebot. Tokens used in `environmentOverrides` are resolved once at startup.
 
 <AccordionGroup>
   <Accordion title="Environment Variables">
@@ -79,11 +81,41 @@ Tokens are used to securely pass secrets to Sourcebot in a config file. They are
     }
     ```
   </Accordion>
+  <Accordion title="Files">
+    ```json
+    {
+        "token": {
+            "file": "/var/run/secrets/sourcebot/token"
+        }
+    }
+    ```
+
+    The path is resolved inside the Sourcebot container. Use an absolute path. Leading and trailing whitespace is trimmed.
+
+    This works with Kubernetes Secret volumes, Docker secrets, the [Secrets Store CSI driver](https://secrets-store-csi-driver.sigs.k8s.io/), or a sidecar that writes refreshed tokens to a shared volume.
+
+    <Note>
+    Kubernetes does not update Secrets mounted with `subPath`. Mount the whole volume if you want rotated values to be picked up.
+    </Note>
+  </Accordion>
+  <Accordion title="Azure Key Vault Secrets">
+    ```json
+    {
+        "token": {
+            "azureKeyVaultSecret": "https://<vault-name>.vault.azure.net/secrets/<secret-name>"
+        }
+    }
+    ```
+
+    To pin a specific version, append it to the identifier: `https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>`. If you omit the version, Sourcebot reads the latest version each time.
+
+    Sourcebot authenticates with [`DefaultAzureCredential`](https://learn.microsoft.com/en-us/azure/developer/javascript/sdk/authentication/credential-chains#use-defaultazurecredential-for-flexibility). This supports AKS Workload Identity, managed identity, and the `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_CLIENT_SECRET` environment variables. The identity needs the **Key Vault Secrets User** role, or a `get` secret access policy, on the vault.
+  </Accordion>
 </AccordionGroup>
 
 # Overriding environment variables from the config
 
-You can override / set environment variables from the config file by using the `environmentOverrides` property. Overrides can be of type `string`, `number`, `boolean`, or a [token](/docs/configuration/config-file#tokens). Tokens are useful when you want to configure a environment variable using a Google Cloud Secret or other supported secret management service.
+You can override / set environment variables from the config file by using the `environmentOverrides` property. Overrides can be of type `string`, `number`, `boolean`, or a [token](/docs/configuration/config-file#tokens). Tokens are useful when you want to configure a environment variable using a Google Cloud secret, an Azure Key Vault secret, or other supported secret management service.
 
 <AccordionGroup>
     <Accordion title="Token">
