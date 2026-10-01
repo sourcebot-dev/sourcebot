@@ -17,6 +17,11 @@ import { getFiles } from "@/app/api/(client)/client";
 
 const MAX_RESULTS = 100;
 
+type RecentlyOpenedFile = {
+    revision: string;
+    file: FileTreeItem;
+};
+
 type SearchResult = {
     file: FileTreeItem;
     match?: {
@@ -35,7 +40,11 @@ export const FileSearchCommandDialog = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
 
-    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
+    const revision = revisionName ?? 'HEAD';
+    const [history, setHistory] = useLocalStorage<RecentlyOpenedFile[]>(
+        `recentlyOpenedFiles-v2-${JSON.stringify(repoName)}`,
+        [],
+    );
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
@@ -60,6 +69,16 @@ export const FileSearchCommandDialog = () => {
         queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' })),
         enabled: isFileSearchOpen,
     });
+
+    const recentlyOpened = useMemo(() => {
+        const currentFiles = new Map(files?.map(file => [file.path, file]));
+        return history
+            .filter(entry => entry.revision === revision)
+            .flatMap(entry => {
+                const file = currentFiles.get(entry.file.path);
+                return file ? [file] : [];
+            });
+    }, [history, revision, files]);
 
     const { filteredFiles, maxResultsHit } = useMemo((): { filteredFiles: SearchResult[]; maxResultsHit: boolean } => {
         if (!files || isLoading) {
@@ -104,9 +123,9 @@ export const FileSearchCommandDialog = () => {
     }, [searchQuery]);
 
     const onSelect = useCallback((file: FileTreeItem) => {
-        setRecentlyOpened((prev) => {
-            const filtered = prev.filter(f => f.path !== file.path);
-            return [file, ...filtered];
+        setHistory((prev) => {
+            const filtered = prev.filter(entry => entry.revision !== revision || entry.file.path !== file.path);
+            return [{ revision, file }, ...filtered].slice(0, MAX_RESULTS);
         });
         navigateToPath({
             repoName,
@@ -117,7 +136,7 @@ export const FileSearchCommandDialog = () => {
         updateBrowseState({
             isFileSearchOpen: false,
         });
-    }, [navigateToPath, repoName, revisionName, setRecentlyOpened, updateBrowseState]);
+    }, [navigateToPath, repoName, revisionName, revision, setHistory, updateBrowseState]);
 
     // @note: We were hitting issues when the user types into the input field while the files are still
     // loading. The workaround was to set `disabled` when loading and then focus the input field when
