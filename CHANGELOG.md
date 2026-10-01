@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `file` and `azureKeyVaultSecret` token sources, so rotated credentials (e.g., GitHub App installation tokens) are picked up without restarting Sourcebot. [#1705](https://github.com/sourcebot-dev/sourcebot/pull/1705)
+
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
 
