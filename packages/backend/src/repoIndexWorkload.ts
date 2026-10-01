@@ -25,13 +25,22 @@ export const createRepoIndexWorkload = ({
     queueSpec: REPO_INDEX_QUEUE,
     concurrency: settings.maxRepoIndexingJobConcurrency,
     executionLock: REPOSITORY_EXECUTION_LOCK,
-    process: async ({ data, jobId, signal }) => {
+    onStarted: async ({ data: { repoId }, jobId }) => {
+        await db.repo.updateMany({
+            where: {
+                id: repoId,
+            },
+            data: {
+                latestIndexingJobId: jobId,
+            },
+        });
+    },
+    process: async ({ data, signal }) => {
         signal.throwIfAborted();
 
         const start = await prepareRepoIndexJob({
             db,
             repoId: data.repoId,
-            jobId,
         });
 
         if (start.action === "skip") {
@@ -119,45 +128,33 @@ type RepoIndexStartDecision =
 const prepareRepoIndexJob = async ({
     db,
     repoId,
-    jobId,
 }: {
     db: PrismaClient;
     repoId: number;
-    jobId: string;
-}): Promise<RepoIndexStartDecision> =>
-    db.$transaction(async (tx) => {
-        const repo = await tx.repo.findUnique({
-            where: { id: repoId },
-            include: {
-                connections: {
-                    include: {
-                        connection: true,
-                    },
+}): Promise<RepoIndexStartDecision> => {
+    const repo = await db.repo.findUnique({
+        where: { id: repoId },
+        include: {
+            connections: {
+                include: {
+                    connection: true,
                 },
             },
-        });
-
-        if (!repo) {
-            return {
-                action: "skip",
-                reason: "repository no longer exists",
-            };
-        }
-
-        await tx.repo.update({
-            where: {
-                id: repoId,
-            },
-            data: {
-                latestIndexingJobId: jobId,
-            },
-        });
-
-        return {
-            action: "run",
-            repo,
-        };
+        },
     });
+
+    if (!repo) {
+        return {
+            action: "skip",
+            reason: "repository no longer exists",
+        };
+    }
+
+    return {
+        action: "run",
+        repo,
+    };
+};
 
 const indexRepository = async (
     db: PrismaClient,

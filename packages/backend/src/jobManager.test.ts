@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => {
         upsertJobScheduler: vi.fn(),
         getJobSchedulerIds: vi.fn(),
         removeJobScheduler: vi.fn(),
+        trackLatestJob: vi.fn(async () => null),
         producerClose: vi.fn(),
         workerClose: vi.fn(),
         executionLockUsing: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock("@sourcebot/shared", () => ({
         upsertJobScheduler = mocks.upsertJobScheduler;
         getJobSchedulerIds = mocks.getJobSchedulerIds;
         removeJobScheduler = mocks.removeJobScheduler;
+        trackLatestJob = mocks.trackLatestJob;
         close = mocks.producerClose;
         getQueue = vi.fn(() => ({
             getJobCounts: vi.fn(),
@@ -113,9 +115,12 @@ const createWorkload = (
         jobOptions: {
             attempts: 2,
             backoff: { type: "exponential", delayMs: 5000 },
-            keepJobs: {
-                completed: { count: 50 },
-                failed: { count: 50 },
+            retention: {
+                mode: "window",
+                keepJobs: {
+                    completed: { count: 50 },
+                    failed: { count: 50 },
+                },
             },
             keepLogs: 500,
         },
@@ -150,6 +155,27 @@ describe("BullMQJobManager lifecycle", () => {
             async (_resource, _durationMs, _shutdownSignal, routine) =>
                 routine(new AbortController().signal),
         );
+    });
+
+    test("rejects a latestPerResource workload that does not publish its job id in onStarted", () => {
+        const manager = new BullMQJobManager({} as Redis);
+        const workload = createWorkload();
+        workload.queueSpec.jobOptions = {
+            ...workload.queueSpec.jobOptions,
+            retention: { mode: "latestPerResource", maxAgeSeconds: 60 },
+        };
+
+        expect(() => manager.register(workload)).toThrow(
+            /must publish its job id to the parent resource in onStarted/,
+        );
+        expect(() =>
+            manager.register(
+                createWorkload({
+                    queueSpec: workload.queueSpec,
+                    onStarted: vi.fn(),
+                }),
+            ),
+        ).not.toThrow();
     });
 
     test("delegates enqueueing to BullMQClient and returns its job id", async () => {
@@ -295,6 +321,52 @@ describe("BullMQJobManager lifecycle", () => {
         await vi.waitFor(() => {
             expect(mocks.jobLogSink.flush).toHaveBeenCalledTimes(2);
         });
+    });
+
+    test("tracks the latest job for its resource after onStarted and before processing", async () => {
+        const calls: string[] = [];
+        mocks.trackLatestJob.mockImplementation(async () => {
+            calls.push("tracked");
+            return "job-0";
+        });
+        const workload = createWorkload({
+            onStarted: vi.fn(async () => {
+                calls.push("started");
+            }),
+            process: vi.fn(async () => {
+                calls.push("processed");
+                return { outcome: "SUCCESS" };
+            }),
+        });
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(workload);
+        await manager.start();
+
+        await mocks.workers[0].processor({ ...job, attemptsMade: 0 });
+
+        expect(calls).toEqual(["started", "tracked", "processed"]);
+        expect(mocks.trackLatestJob).toHaveBeenCalledWith(
+            workload.queueSpec,
+            data,
+            "job-1",
+        );
+    });
+
+    test("still processes the job when tracking the latest job fails", async () => {
+        mocks.trackLatestJob.mockRejectedValue(new Error("redis unavailable"));
+        const workload = createWorkload();
+        const manager = new BullMQJobManager({} as Redis);
+        manager.register(workload);
+        await manager.start();
+
+        await expect(
+            mocks.workers[0].processor({ ...job, attemptsMade: 0 }),
+        ).resolves.toEqual({ outcome: "SUCCESS" });
+        expect(workload.process).toHaveBeenCalledTimes(1);
+        expect(mocks.logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to track latest job"),
+            expect.any(Error),
+        );
     });
 
     test("runs onStarted and processing while the execution lock is held", async () => {
