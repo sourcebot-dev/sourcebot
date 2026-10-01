@@ -31,12 +31,33 @@ export type JobOptions = {
         delayMs: number;
         jitter?: number;
     };
-    keepJobs: {
-        completed: KeepJobs;
-        failed: KeepJobs;
-    };
+    retention: JobRetention;
     keepLogs: number;
 };
+
+export type JobRetention =
+    | {
+        // Keeps the N most recently finished jobs in the queue (or those younger
+        // than `age`), regardless of which resource they belong to.
+        mode: "window";
+        keepJobs: {
+            completed: KeepJobs;
+            failed: KeepJobs;
+        };
+    }
+    | {
+        // Keeps only the most recent job for each resource, keyed by the queue's
+        // deduplication id. When a job starts, the job it supersedes is removed.
+        // Workloads on these queues must publish the job id to their parent's
+        // `latest...JobId` pointer in `onStarted`, so the pointer never
+        // references a removed job.
+        // `maxAgeSeconds` is an age-only backstop that reclaims jobs whose
+        // resource stopped running (e.g. a deleted repo). It must exceed the
+        // longest scheduler interval, or a resource's latest job can be
+        // reclaimed before its successor starts.
+        mode: "latestPerResource";
+        maxAgeSeconds: number;
+    };
 
 export type JobEnqueueOptions = {
     priority?: number;
@@ -48,10 +69,9 @@ export const JOB_PRIORITIES = {
     SCHEDULED: 10,
 } as const;
 
-// BullMQ evaluates age-based cleanup only when another job reaches the same
-// terminal state. A lone completed or failed job therefore remains available
-// past this age; once a newer same-state job finishes, it replaces the old one.
-const TWO_WEEKS_IN_SECONDS = 14 * 24 * 60 * 60;
+const ONE_DAY_IN_SECONDS = 24 * 60 * 60;
+const ONE_WEEK_IN_SECONDS = 7 * ONE_DAY_IN_SECONDS;
+const TWO_WEEKS_IN_SECONDS = 14 * ONE_DAY_IN_SECONDS;
 
 export const DEFAULT_JOB_OPTIONS: JobOptions = {
     attempts: 2,
@@ -60,11 +80,46 @@ export const DEFAULT_JOB_OPTIONS: JobOptions = {
         delayMs: 30_000,
         jitter: 0.5,
     },
-    keepJobs: {
-        completed: { age: TWO_WEEKS_IN_SECONDS },
-        failed: { age: TWO_WEEKS_IN_SECONDS },
+    retention: {
+        mode: "window",
+        keepJobs: {
+            completed: {
+                age: ONE_DAY_IN_SECONDS,
+                count: 5_000,
+            },
+            failed: {
+                age: TWO_WEEKS_IN_SECONDS,
+                count: 10_000,
+            },
+        },
     },
     keepLogs: DEFAULT_JOB_LOGS_MAX_ENTRIES,
+};
+
+// For queues whose latest job per resource is resolved by the web app through
+// a `latest...JobId` pointer. Window retention cannot guarantee that job
+// survives, since the window is shared by every resource in the queue.
+export const LATEST_PER_RESOURCE_JOB_OPTIONS: JobOptions = {
+    ...DEFAULT_JOB_OPTIONS,
+    retention: {
+        mode: "latestPerResource",
+        maxAgeSeconds: ONE_WEEK_IN_SECONDS,
+    },
+};
+
+/**
+ * Translates a queue's retention policy into BullMQ's per-job removal options.
+ */
+export const toBullMQKeepJobs = (
+    retention: JobRetention,
+): { completed: KeepJobs; failed: KeepJobs } => {
+    if (retention.mode === "window") {
+        return retention.keepJobs;
+    }
+    return {
+        completed: { age: retention.maxAgeSeconds },
+        failed: { age: retention.maxAgeSeconds },
+    };
 };
 
 export type QueueName = keyof QueueRegistry;
@@ -143,13 +198,13 @@ export const AUDIT_LOG_PRUNE_QUEUE: QueueSpec<"audit-log-prune"> = {
 export const CONNECTION_QUEUE: QueueSpec<"connection-sync"> = {
     name: "connection-sync",
     resultSchema: connectionSyncResultSchema,
-    jobOptions: DEFAULT_JOB_OPTIONS,
+    jobOptions: LATEST_PER_RESOURCE_JOB_OPTIONS,
     deduplication: (data) => ({ id: `connection:${data.connectionId}` }),
 };
 
 export const REPO_INDEX_QUEUE: QueueSpec<"repo-index"> = {
     name: "repo-index",
-    jobOptions: DEFAULT_JOB_OPTIONS,
+    jobOptions: LATEST_PER_RESOURCE_JOB_OPTIONS,
     deduplication: ({ repoId }) => ({
         id: `repo:${repoId}`,
         keepLastIfActive: true,
@@ -167,14 +222,14 @@ export const REPO_CLEANUP_QUEUE: QueueSpec<"repo-cleanup"> = {
 
 export const ACCOUNT_PERMISSION_SYNC_QUEUE: QueueSpec<"account-permission-sync"> = {
     name: "account-permission-sync",
-    jobOptions: DEFAULT_JOB_OPTIONS,
+    jobOptions: LATEST_PER_RESOURCE_JOB_OPTIONS,
     deduplication: (data) => ({ id: `account:${data.accountId}` }),
 };
 
 export const REPO_PERMISSION_SYNC_QUEUE: QueueSpec<"repo-permission-sync"> = {
     name: "repo-permission-sync",
     resultSchema: repoPermissionSyncResultSchema,
-    jobOptions: DEFAULT_JOB_OPTIONS,
+    jobOptions: LATEST_PER_RESOURCE_JOB_OPTIONS,
     deduplication: (data) => ({ id: `repo:${data.repoId}` }),
 };
 

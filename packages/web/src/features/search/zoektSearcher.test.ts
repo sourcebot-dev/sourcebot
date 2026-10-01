@@ -65,6 +65,7 @@ vi.mock('@/lib/posthog', () => ({
 }));
 
 import { zoektSearch, zoektStreamSearch } from './zoektSearcher';
+import type { SearchResultFile, StreamedSearchResponse } from './types';
 
 const searchRequest = {} as ZoektGrpcSearchRequest;
 
@@ -118,7 +119,7 @@ describe('zoektSearch', () => {
         });
         const prisma = {
             repo: {
-                findUnique: vi.fn().mockRejectedValue(new Error('database unavailable')),
+                findMany: vi.fn().mockRejectedValue(new Error('database unavailable')),
             },
         } as unknown as PrismaClient;
 
@@ -126,20 +127,21 @@ describe('zoektSearch', () => {
         expect(mocks.close).toHaveBeenCalledOnce();
     });
 
-    test.each([1, 2])('looks up each of %i repositories only once for 100 files', async (repoCount) => {
+    test.each([1, 2])('batches %i repositories into one lookup for 100 files', async (repoCount) => {
         const files = Array.from({ length: 100 }, (_, index) => createFile(index % repoCount + 1));
         mocks.search.mockImplementation((_request, _metadata, callback) => {
             callback(null, { files });
         });
-        const findUnique = vi.fn(async ({ where: { id } }) => createRepo(id));
-        const prisma = { repo: { findUnique } } as unknown as PrismaClient;
+        const ids = Array.from({ length: repoCount }, (_, index) => index + 1);
+        const findMany = vi.fn().mockResolvedValue(ids.toReversed().map(id => createRepo(id)));
+        const prisma = { repo: { findMany } } as unknown as PrismaClient;
 
         const response = await zoektSearch(searchRequest, prisma);
 
-        expect(findUnique).toHaveBeenCalledTimes(repoCount);
+        expect(findMany).toHaveBeenCalledExactlyOnceWith({ where: { id: { in: ids } } });
         expect(response.files).toHaveLength(100);
         expect(response.files.map(file => file.repositoryId)).toEqual(files.map(file => file.repository_id));
-        expect(response.repositoryInfo).toHaveLength(repoCount);
+        expect(response.repositoryInfo.map(repo => repo.id)).toEqual(ids);
     });
 
     test('deduplicates lookups by name for legacy shards without repository IDs', async () => {
@@ -159,12 +161,12 @@ describe('zoektSearch', () => {
         mocks.search.mockImplementation((_request, _metadata, callback) => {
             callback(null, { files: Array.from({ length: 100 }, () => createFile(1)) });
         });
-        const findUnique = vi.fn().mockResolvedValue(null);
-        const prisma = { repo: { findUnique } } as unknown as PrismaClient;
+        const findMany = vi.fn().mockResolvedValue([]);
+        const prisma = { repo: { findMany } } as unknown as PrismaClient;
 
         const response = await zoektSearch(searchRequest, prisma);
 
-        expect(findUnique).toHaveBeenCalledOnce();
+        expect(findMany).toHaveBeenCalledOnce();
         expect(response.files).toEqual([]);
         expect(response.repositoryInfo).toEqual([]);
     });
@@ -176,24 +178,82 @@ describe('zoektSearch', () => {
             cancel: vi.fn(),
         });
         mocks.streamSearch.mockReturnValue(grpcStream);
-        const findUnique = vi.fn(async ({ where: { id } }) => createRepo(id));
-        const prisma = { repo: { findUnique } } as unknown as PrismaClient;
+        const findMany = vi.fn()
+            .mockResolvedValueOnce([createRepo(2, 'repo-2'), createRepo(1, 'repo-1')])
+            .mockResolvedValueOnce([createRepo(3, 'repo-3')]);
+        const prisma = { repo: { findMany } } as unknown as PrismaClient;
         const stream = await zoektStreamSearch(searchRequest, prisma);
         const reader = stream.getReader();
 
         for (const ids of [[1, 1, 2, 2], [1, 2, 3, 3]]) {
             grpcStream.emit('data', { response_chunk: { files: ids.map(id => createFile(id)) } });
             const chunk = await reader.read();
-            const response = JSON.parse(new TextDecoder().decode(chunk.value).slice('data: '.length));
-            expect(response.files).toHaveLength(ids.length);
-            expect(response.repositoryInfo).toHaveLength(new Set(ids).size);
+            const response = JSON.parse(new TextDecoder().decode(chunk.value).slice('data: '.length)) as Extract<StreamedSearchResponse, { type: 'chunk' }>;
+            expect(response.files.map(file => file.repositoryId)).toEqual(ids);
+            expect(response.repositoryInfo.map(repo => repo.id)).toEqual([...new Set(ids)]);
+            for (const file of response.files) {
+                expect(response.repositoryInfo.find(repo => repo.id === file.repositoryId)?.name).toBe(file.repository);
+                expect(file.repository).toBe(`repo-${file.repositoryId}`);
+            }
         }
 
-        expect(findUnique).toHaveBeenCalledTimes(3);
+        expect(findMany).toHaveBeenCalledTimes(2);
+        expect(findMany).toHaveBeenNthCalledWith(1, { where: { id: { in: [1, 2] } } });
+        expect(findMany).toHaveBeenNthCalledWith(2, { where: { id: { in: [3] } } });
         grpcStream.emit('end');
         while (!(await reader.read()).done) {
             // Drain the final statistics and completion marker.
         }
         expect(mocks.close).toHaveBeenCalledOnce();
+    });
+
+    test('keeps missing IDs and legacy names cached only for the current stream', async () => {
+        const findMany = vi.fn().mockResolvedValue([createRepo(2, 'visible-repo')]);
+        const findFirst = vi.fn().mockResolvedValue(null);
+        const prisma = { repo: { findMany, findFirst } } as unknown as PrismaClient;
+        const files = [createFile(1), createFile(undefined, 'missing-repo'), createFile(2)];
+
+        for (let request = 0; request < 2; request++) {
+            const grpcStream = Object.assign(new EventEmitter(), {
+                pause: vi.fn(),
+                resume: vi.fn(),
+                cancel: vi.fn(),
+            });
+            mocks.streamSearch.mockReturnValue(grpcStream);
+            const reader = (await zoektStreamSearch(searchRequest, prisma)).getReader();
+            for (let chunk = 0; chunk < 2; chunk++) {
+                grpcStream.emit('data', { response_chunk: { files } });
+                const result = await reader.read();
+                const response = JSON.parse(new TextDecoder().decode(result.value).slice('data: '.length));
+                expect(response.files.map((file: SearchResultFile) => file.repositoryId)).toEqual([2]);
+                expect(response.repositoryInfo).toEqual([expect.objectContaining({ id: 2, name: 'visible-repo' })]);
+            }
+            grpcStream.emit('end');
+            while (!(await reader.read()).done) {
+                // Drain the final statistics and completion marker.
+            }
+        }
+
+        expect(findMany).toHaveBeenCalledTimes(2);
+        expect(findMany).toHaveBeenCalledWith({ where: { id: { in: [1, 2] } } });
+        expect(findFirst).toHaveBeenCalledTimes(2);
+        expect(findFirst).toHaveBeenCalledWith({ where: { name: 'missing-repo' } });
+    });
+
+    test('keeps numeric IDs separate from legacy names in mixed shards', async () => {
+        const files = [createFile(1), createFile(undefined, '1'), createFile(1), createFile(undefined, '1')];
+        mocks.search.mockImplementation((_request, _metadata, callback) => {
+            callback(null, { files });
+        });
+        const findMany = vi.fn().mockResolvedValue([createRepo(1, 'numeric-repo')]);
+        const findFirst = vi.fn().mockResolvedValue(createRepo(2, '1'));
+        const prisma = { repo: { findMany, findFirst } } as unknown as PrismaClient;
+
+        const response = await zoektSearch(searchRequest, prisma);
+
+        expect(response.files.map(file => file.repositoryId)).toEqual([1, 2, 1, 2]);
+        expect(response.repositoryInfo.map(repo => repo.name)).toEqual(['numeric-repo', '1']);
+        expect(findMany).toHaveBeenCalledExactlyOnceWith({ where: { id: { in: [1] } } });
+        expect(findFirst).toHaveBeenCalledExactlyOnceWith({ where: { name: '1' } });
     });
 });

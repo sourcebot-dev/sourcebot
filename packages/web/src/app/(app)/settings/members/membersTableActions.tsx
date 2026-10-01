@@ -89,11 +89,15 @@ const getDialogCopy = (action: MemberAction, row: TableRowData) => {
     const name = getDisplayName(row);
 
     switch (action) {
-        case "promote":
+        case "promote": {
+            const isPending = row.kind === "member" && row.suspendedAt == null && row.lastActiveAt == null;
             return {
                 title: "Promote to Owner",
-                description: `Are you sure you want to promote ${name} to owner? They will have full administrative access.`,
+                description: isPending
+                    ? `Are you sure you want to promote ${name} to owner? They will have full administrative access once they sign in.`
+                    : `Are you sure you want to promote ${name} to owner? They will have full administrative access.`,
             };
+        }
         case "demote":
             return {
                 title: "Demote to Member",
@@ -156,8 +160,7 @@ export const MembersTableActions = ({
     const isCurrentUser = row.kind === "member" && row.id === currentUserId;
     const isSuspended = row.kind === "member" && row.suspendedAt != null;
     const isActiveMember = row.kind === "member" && row.suspendedAt == null && row.lastActiveAt != null;
-    const isLastActiveOwner = row.kind === "member"
-        && !isSuspended
+    const isLastActiveOwner = isActiveMember
         && row.role === OrgRole.OWNER
         && activeOwnerCount <= 1;
     const scimDisabledTitle = scimEnabled ? "SCIM provisioning is enabled" : undefined;
@@ -308,7 +311,7 @@ export const MembersTableActions = ({
                     )}
                     {row.kind === "member" && (
                         <>
-                            {isActiveMember && row.role === OrgRole.MEMBER && (
+                            {!isSuspended && row.role === OrgRole.MEMBER && (
                                 <DropdownMenuItem
                                     className="cursor-pointer"
                                     disabled={!hasOrgManagement}
@@ -318,7 +321,7 @@ export const MembersTableActions = ({
                                     Promote to owner
                                 </DropdownMenuItem>
                             )}
-                            {isActiveMember && row.role === OrgRole.OWNER && (
+                            {!isSuspended && row.role === OrgRole.OWNER && (
                                 <DropdownMenuItem
                                     className="cursor-pointer text-destructive"
                                     disabled={!hasOrgManagement || isLastActiveOwner}

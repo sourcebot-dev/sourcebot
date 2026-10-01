@@ -242,7 +242,7 @@ describe('removeMember', () => {
     });
 
     test('blocks removing the last active owner', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null, lastActiveAt: ACTIVE_AT }));
         prisma.userToOrg.count.mockResolvedValue(1);
 
         const result = await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
@@ -252,8 +252,19 @@ describe('removeMember', () => {
         expect(prisma.userToOrg.delete).not.toHaveBeenCalled();
     });
 
+    test('allows removing a pending owner without applying the last-owner guard', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null, lastActiveAt: null }));
+        prisma.userToOrg.count.mockResolvedValue(1);
+
+        const result = await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
+
+        expect(result).toBeNull();
+        expect(prisma.userToOrg.count).not.toHaveBeenCalled();
+        expect(prisma.userToOrg.delete).toHaveBeenCalled();
+    });
+
     test('allows removing an owner when others remain', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null, lastActiveAt: ACTIVE_AT }));
         prisma.userToOrg.count.mockResolvedValue(2);
 
         const result = await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
@@ -306,13 +317,41 @@ describe('setMemberRole', () => {
         expect(prisma.userToOrg.update).not.toHaveBeenCalled();
     });
 
-    test('blocks promoting a pending member', async () => {
+    test('promotes a pending member to owner and audits it', async () => {
         prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.MEMBER, lastActiveAt: null }));
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.OWNER, { actor: ACTOR });
 
+        expect(result).toBeNull();
+        expect(prisma.userToOrg.update).toHaveBeenCalledWith(
+            expect.objectContaining({ data: { role: OrgRole.OWNER } }),
+        );
+        expect(mocks.createAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'org.member_promoted_to_owner' }));
+    });
+
+    test('demotes a pending owner without applying the last-owner guard', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, lastActiveAt: null }));
+        prisma.userToOrg.count.mockResolvedValue(1);
+
+        const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
+
+        expect(result).toBeNull();
+        expect(prisma.userToOrg.count).not.toHaveBeenCalled();
+        expect(prisma.userToOrg.update).toHaveBeenCalledWith(
+            expect.objectContaining({ data: { role: OrgRole.MEMBER } }),
+        );
+    });
+
+    test('blocks promoting a suspended member', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({
+            role: OrgRole.MEMBER,
+            suspendedAt: SUSPENDED_AT,
+        }));
+
+        const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.OWNER, { actor: ACTOR });
+
         expect(isServiceError(result)).toBe(true);
-        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_NOT_ACTIVE);
+        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_SUSPENDED);
         expect(prisma.userToOrg.update).not.toHaveBeenCalled();
     });
 
@@ -326,7 +365,7 @@ describe('setMemberRole', () => {
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
 
         expect(isServiceError(result)).toBe(true);
-        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_NOT_ACTIVE);
+        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_SUSPENDED);
         expect(prisma.userToOrg.update).not.toHaveBeenCalled();
     });
 

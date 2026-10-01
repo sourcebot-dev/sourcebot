@@ -136,7 +136,7 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
             });
         });
 
-        const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
+        const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo | null>(), prisma);
         const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
 
         return {
@@ -210,7 +210,7 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
 
                 // `_reposMapCache` is used to cache repository metadata across all chunks.
                 // This reduces the number of database queries required to transform file matches.
-                const _reposMapCache = new Map<string | number, Repo>();
+                const _reposMapCache = new Map<string | number, Repo | null>();
 
                 // Handle incoming data chunks
                 grpcStream.on('data', async (chunk: ZoektGrpcStreamSearchResponse) => {
@@ -339,42 +339,42 @@ const encodeSSEREsponseChunk = (response: object | string) => {
 
 // Creates a mapping between all repository ids in a given response
 // chunk. The mapping allows us to efficiently lookup repository metadata.
-const createReposMapForChunk = async (chunk: ZoektGrpcSearchResponse, reposMapCache: Map<string | number, Repo>, prisma: PrismaClient): Promise<Map<string | number, Repo>> => {
+const createReposMapForChunk = async (chunk: ZoektGrpcSearchResponse, reposMapCache: Map<string | number, Repo | null>, prisma: PrismaClient): Promise<Map<string | number, Repo>> => {
     const reposMap = new Map<string | number, Repo>();
     const repoIds = [...new Set(chunk.files.map(getRepoIdForFile))];
-    await Promise.all(repoIds.map(async (id) => {
-        const repo = await (async () => {
-            // If it's in the cache, return the cached value.
-            if (reposMapCache.has(id)) {
-                return reposMapCache.get(id);
+    const uncachedIds = repoIds.filter(id => !reposMapCache.has(id));
+    const numericIds = uncachedIds.filter((id): id is number => typeof id === 'number');
+    const names = uncachedIds.filter((id): id is string => typeof id === 'string');
+
+    await Promise.all([
+        (async () => {
+            if (numericIds.length === 0) {
+                return;
             }
 
-            // Otherwise, query the database for the record.
-            const repo = typeof id === 'number' ?
-                await prisma.repo.findUnique({
-                    where: {
-                        id: id,
-                    },
-                }) :
-                await prisma.repo.findFirst({
-                    where: {
-                        name: id,
-                    },
-                });
-
-            // If a repository is found, cache it for future lookups.
-            if (repo) {
-                reposMapCache.set(id, repo);
+            const repos = await prisma.repo.findMany({ where: { id: { in: numericIds } } });
+            // Cache missing rows too, so later chunks do not repeat those lookups.
+            for (const id of numericIds) {
+                reposMapCache.set(id, null);
             }
+            for (const repo of repos) {
+                reposMapCache.set(repo.id, repo);
+            }
+        })(),
+        ...names.map(async name => {
+            // Legacy shards use names, which are not guaranteed to be unique.
+            const repo = await prisma.repo.findFirst({ where: { name } });
+            reposMapCache.set(name, repo);
+        }),
+    ]);
 
-            return repo;
-        })();
-
+    for (const id of repoIds) {
+        const repo = reposMapCache.get(id);
         // Only add the repository to the map if it was found.
         if (repo) {
             reposMap.set(id, repo);
         }
-    }));
+    }
 
     return reposMap;
 }
