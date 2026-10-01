@@ -8,7 +8,7 @@ import { notFound, type ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma as prisma } from "@/prisma";
 import { OrgRole, Prisma, type UserToOrg } from "@sourcebot/db";
-import { lastOwnerDemoteError, lastOwnerError, memberNotActiveError, seatLimitReached } from "./errors";
+import { lastOwnerDemoteError, lastOwnerError, memberSuspendedError, seatLimitReached } from "./errors";
 
 export interface EnsureActiveMemberOptions {
     actor: AuditActor;
@@ -160,7 +160,7 @@ export const removeMember = async (
             return notFound("Member not found in this organization");
         }
 
-        if (target.role === OrgRole.OWNER && target.suspendedAt === null) {
+        if (isActiveOwner(target)) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerError(reason);
             }
@@ -194,9 +194,11 @@ export interface SetMemberRoleOptions {
 }
 
 /**
- * Changes a member's role (no-op when unchanged). No session/token revocation:
- * role is resolved from the DB on every request, so a change takes effect on the
- * member's next request. Seats are unaffected, so no lighthouse sync.
+ * Changes a member's role (no-op when unchanged). Pending members can be
+ * promoted or demoted so an owner can be lined up before they first sign in;
+ * suspended members cannot. No session/token revocation: role is resolved from
+ * the DB on every request, so a change takes effect on the member's next
+ * request. Seats are unaffected, so no lighthouse sync.
  */
 export const setMemberRole = async (
     orgId: number,
@@ -220,12 +222,12 @@ export const setMemberRole = async (
             return null;
         }
 
-        if (target.suspendedAt !== null || target.lastActiveAt === null) {
-            return memberNotActiveError();
+        if (target.suspendedAt !== null) {
+            return memberSuspendedError();
         }
 
         const isDemotionFromOwner = target.role === OrgRole.OWNER && role !== OrgRole.OWNER;
-        if (isDemotionFromOwner && target.suspendedAt === null) {
+        if (isDemotionFromOwner && isActiveOwner(target)) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerDemoteError();
             }
@@ -361,6 +363,15 @@ export const setMembershipSuspended = async (
         return result;
     }
 };
+
+// Pending owners have never signed in and are excluded from `countActiveOwners`,
+// so the last-owner guards only apply when the target itself is an active owner.
+// Otherwise removing or demoting a pending owner would be blocked by the actor's
+// own seat being the only active one counted.
+const isActiveOwner = (membership: UserToOrg): boolean =>
+    membership.role === OrgRole.OWNER
+    && membership.suspendedAt === null
+    && membership.lastActiveAt !== null;
 
 const countActiveOwners = (tx: Prisma.TransactionClient, orgId: number): Promise<number> =>
     tx.userToOrg.count({

@@ -145,7 +145,7 @@ jobs:
       - name: Commit changes
         run: |
           git add CHANGELOG.md packages/shared/src/version.ts docs/api-reference/sourcebot-public.openapi.json
-          git commit -m "[skip ci] Release v$VERSION"
+          git commit -m "Release v$VERSION"
 
       - name: Push to temporary branch
         id: push_temp_branch

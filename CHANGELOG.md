@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
+- Fixed recently opened files appearing across different browse revisions. [#1686](https://github.com/sourcebot-dev/sourcebot/pull/1686)
+
+## [5.1.15] - 2026-09-29
+
 ### Added
 - Added login wall for code search for Ask GitHub. [#1680](https://github.com/sourcebot-dev/sourcebot/pull/1680)
+- [EE] Added support for promoting pending members to owner from the members table. [#1694](https://github.com/sourcebot-dev/sourcebot/pull/1694)
 
 ### Removed
 - Removed the Ask Sourcebot first-visit tutorial banner. [#1675](https://github.com/sourcebot-dev/sourcebot/pull/1675)
@@ -17,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Made the default home page configurable with `DEFAULT_HOME_VIEW_PAGE`, defaulting to Code Search and supporting Ask. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
 - Require authentication for the streaming and blocking Ask APIs in Public SaaS deployments. [#1679](https://github.com/sourcebot-dev/sourcebot/pull/1679)
-- Fixed recently opened files appearing across different browse revisions. [#1686](https://github.com/sourcebot-dev/sourcebot/pull/1686)
+- Bounded BullMQ job retention to keep Redis memory from growing with repo count, retaining only the latest job per repo, connection, and account. [#1693](https://github.com/sourcebot-dev/sourcebot/pull/1693)
 
 ## [5.1.14] - 2026-09-17
 

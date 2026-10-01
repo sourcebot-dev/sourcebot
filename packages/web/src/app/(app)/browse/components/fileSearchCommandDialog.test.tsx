@@ -6,6 +6,10 @@ const mocks = vi.hoisted(() => ({
     params: { repoName: 'github.com/org/repo', revisionName: 'main' as string | undefined },
     navigateToPath: vi.fn(),
     updateBrowseState: vi.fn(),
+    files: [
+        { type: 'blob', name: 'main.ts', path: 'src/main.ts' },
+        { type: 'blob', name: 'feature.ts', path: 'src/feature.ts' },
+    ],
 }));
 
 vi.mock('../hooks/useBrowseParams', () => ({ useBrowseParams: () => mocks.params }));
@@ -21,10 +25,7 @@ vi.mock('../hooks/useBrowseState', () => ({
 vi.mock('react-hotkeys-hook', () => ({ useHotkeys: vi.fn() }));
 vi.mock('@tanstack/react-query', () => ({
     useQuery: () => ({
-        data: [
-            { type: 'blob', name: 'main.ts', path: 'src/main.ts' },
-            { type: 'blob', name: 'feature.ts', path: 'src/feature.ts' },
-        ],
+        data: mocks.files,
         isLoading: false,
         isError: false,
     }),
@@ -36,6 +37,10 @@ beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
     mocks.params = { repoName: 'github.com/org/repo', revisionName: 'main' };
+    mocks.files = [
+        { type: 'blob', name: 'main.ts', path: 'src/main.ts' },
+        { type: 'blob', name: 'feature.ts', path: 'src/feature.ts' },
+    ];
     vi.stubGlobal('ResizeObserver', class {
         observe() {}
         unobserve() {}
@@ -112,5 +117,41 @@ describe('file search recents', () => {
         mocks.params = { repoName: 'repo', revisionName: 'branch@feature' };
         view.rerender(<FileSearchCommandDialog />);
         expect(screen.queryByText('main.ts')).toBeNull();
+    });
+
+    it('hides files removed from the current revision when its file list changes', () => {
+        const view = render(<FileSearchCommandDialog />);
+        selectFile('main.ts');
+        selectFile('feature.ts');
+
+        mocks.files = mocks.files.filter(file => file.name !== 'main.ts');
+        view.rerender(<FileSearchCommandDialog />);
+
+        expect(screen.queryByText('main.ts')).toBeNull();
+        fireEvent.click(screen.getByRole('option'));
+        expect(mocks.navigateToPath).toHaveBeenLastCalledWith(expect.objectContaining({ path: 'src/feature.ts' }));
+    });
+
+    it('bounds history across revisions without creating a key for every commit', () => {
+        const key = `recentlyOpenedFiles-v2-${JSON.stringify(mocks.params.repoName)}`;
+        const history = Array.from({ length: 100 }, (_, index) => ({
+            revision: `commit-${index}`,
+            file: { type: 'blob', name: 'main.ts', path: 'src/main.ts' },
+        }));
+        localStorage.setItem(key, JSON.stringify(history));
+        const view = render(<FileSearchCommandDialog />);
+        selectFile('main.ts');
+
+        mocks.params.revisionName = 'next-commit';
+        view.rerender(<FileSearchCommandDialog />);
+        selectFile('feature.ts');
+        selectFile('feature.ts');
+
+        const stored = JSON.parse(localStorage.getItem(key)!);
+        expect(localStorage.length).toBe(1);
+        expect(stored).toHaveLength(100);
+        expect(stored[0]).toEqual({ revision: 'next-commit', file: mocks.files[1] });
+        expect(stored[1]).toEqual({ revision: 'main', file: mocks.files[0] });
+        expect(stored.at(-1).revision).toBe('commit-97');
     });
 });
