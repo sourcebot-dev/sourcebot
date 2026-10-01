@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
+- Fixed selected language and repository filters disappearing when filtering the available options. [#1685](https://github.com/sourcebot-dev/sourcebot/pull/1685)
 
 ## [5.1.15] - 2026-09-29
 
