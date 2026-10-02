@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
+- Upgraded `brace-expansion` to `^1.1.21`, `^2.1.7`, and `^5.0.12`. [#1700](https://github.com/sourcebot-dev/sourcebot/pull/1700)
 
 ## [5.1.15] - 2026-09-29
 
