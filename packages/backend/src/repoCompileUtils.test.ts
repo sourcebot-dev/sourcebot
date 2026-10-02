@@ -334,4 +334,24 @@ describe('compileGenericGitHostConfig_url', () => {
         const metadata = result[0].metadata as { gitConfig?: Record<string, string> };
         expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/repo');
     });
+
+    test('should decode percent-encoded characters in the repo name', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(true);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://github.com/test/Project%20Name%20With%20Spaces.git',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result).toHaveLength(1);
+        // The repo name should have decoded spaces, not %20
+        expect(result[0].name).toBe('github.com/test/Project Name With Spaces');
+        expect(result[0].displayName).toBe('github.com/test/Project Name With Spaces');
+
+        const metadata = result[0].metadata as { gitConfig?: Record<string, string> };
+        expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/Project Name With Spaces');
+        expect(metadata.gitConfig!['zoekt.display-name']).toBe('github.com/test/Project Name With Spaces');
+    });
 });
