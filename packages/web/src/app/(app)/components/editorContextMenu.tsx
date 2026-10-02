@@ -2,6 +2,7 @@
 
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { autoPlacement, computePosition, offset, shift, VirtualElement } from "@floating-ui/react";
@@ -28,6 +29,7 @@ export const EditorContextMenu = ({
     const ref = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
     const captureEvent = useCaptureEvent();
+    const { createChatFromSource } = useCreateNewChatThread();
     useEffect(() => {
         if (selection.empty) {
             ref.current?.classList.add('hidden');
@@ -126,19 +128,47 @@ export const EditorContextMenu = ({
         )
     }, [selection.from, selection.to, repoName, revisionName, path, toast, captureEvent, view]);
 
+    const onAskSourcebot = useCallback(() => {
+        if (selection.empty) {
+            return;
+        }
+
+        const startLine = view.state.doc.lineAt(selection.from).number;
+        const endLine = view.state.doc.lineAt(selection.to - 1).number;
+
+        void createChatFromSource({
+            type: 'file',
+            repo: repoName,
+            path,
+            name: path.split('/').pop() ?? path,
+            revision: revisionName,
+            range: { startLine, endLine },
+        });
+    }, [createChatFromSource, path, repoName, revisionName, selection, view]);
+
     return (
-        <div
-            ref={ref}
-            className="absolute z-10 flex flex-col gap-2 bg-background border border-gray-300 dark:border-gray-700 rounded-md shadow-lg p-2"
-        >
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={onCopyLinkToSelection}
-            >
-                <Link2Icon className="h-4 w-4 mr-1" />
-                Share selection
-            </Button>
-        </div>
+<div
+  ref={ref}
+  className="absolute z-10 flex items-center gap-1 rounded-lg border border-border bg-popover p-1 shadow-xl"
+>
+  <Button
+    variant="secondary"
+    size="sm"
+    onClick={onCopyLinkToSelection}
+    className="h-8 px-3 hover:bg-black/50"
+  >
+    <Link2Icon className="mr-2 h-4 w-4" />
+    Share selection
+  </Button>
+
+  <Button
+    variant="secondary"
+    size="sm"
+    onClick={onAskSourcebot}
+    className="h-8 px-3 hover:bg-black/50"
+  >
+    Ask SourceBot
+  </Button>
+</div>
     )
 }
