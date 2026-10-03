@@ -103,3 +103,28 @@ test('buildFileTree builds a sorted tree from a flat list', () => {
     });
 });
 
+test('buildFileTree correctly sets intermediate directory paths', () => {
+    const flatList: { type: string, path: string }[] = [
+        { type: 'blob', path: 'src/components/buttons/PrimaryButton.tsx' },
+        { type: 'blob', path: 'src/index.ts' },
+    ];
+
+    const tree = buildFileTree(flatList);
+
+    const srcNode = tree.children.find((c) => c.name === 'src');
+    expect(srcNode?.path).toBe('src');
+    expect(srcNode?.type).toBe('tree');
+
+    const compNode = srcNode?.children.find((c) => c.name === 'components');
+    expect(compNode?.path).toBe('src/components');
+    expect(compNode?.type).toBe('tree');
+
+    const btnDir = compNode?.children.find((c) => c.name === 'buttons');
+    expect(btnDir?.path).toBe('src/components/buttons');
+    expect(btnDir?.type).toBe('tree');
+
+    const btnFile = btnDir?.children.find((c) => c.name === 'PrimaryButton.tsx');
+    expect(btnFile?.path).toBe('src/components/buttons/PrimaryButton.tsx');
+    expect(btnFile?.type).toBe('blob');
+});
+
