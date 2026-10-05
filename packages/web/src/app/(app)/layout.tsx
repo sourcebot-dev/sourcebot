@@ -32,7 +32,6 @@ import { RoleProvider } from "@/features/auth/roleProvider";
 import { HasLicenseProvider } from "@/features/billing/hasLicenseProvider";
 import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 import { LanguageModelProvider } from "@/features/chat/languageModelContext";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { NavigationGuardProvider } from "next-navigation-guard";
 import { getRepositorySyncCounts } from "@/features/repos/repositorySyncCounts.server";
 import { getConnectionSyncCounts } from "@/features/connections/connectionSyncCounts.server";
@@ -183,15 +182,13 @@ export default async function Layout(props: LayoutProps) {
         timeoutMs: 3000
     });
 
-    const languageModels = await getConfiguredLanguageModelsInfo();
-
     return (
         <AccountLinkingGuard callbackUrl="/">
             <RoleProvider role={role}>
                 <HasLicenseProvider
                     hasLicense={offlineLicense !== null || license !== null}
                 >
-                    <LanguageModelProvider languageModels={languageModels}>
+                    <LanguageModelProvider>
                         <SyntaxGuideProvider>
                             {/* Keep one guard provider above both sidebar and content so browser history is tracked before guarded routes mount. */}
                             <NavigationGuardProvider>
