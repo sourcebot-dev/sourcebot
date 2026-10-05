@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
-- Upgraded Next.js to 16.3.8 to address an upstream remote code execution vulnerability. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
+- Upgraded `next` to `^16.3.8`. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
 
 ## [5.1.15] - 2026-09-29
 
