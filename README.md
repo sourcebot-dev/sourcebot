@@ -56,7 +56,9 @@ Try it: [search for `render` in TypeScript code](https://app.sourcebot.dev/searc
 
 Open cited code alongside the answer, explore generated diagrams, and share the conversation with your team. Ask runs on a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key), so you control where your code is sent.
 
-[![Ask Sourcebot demo: tool calls, a streaming answer, and cited source files shown side by side](.github/images/askSourcebot.gif)](https://www.sourcebot.dev/)
+Try it: [explore an example Ask Sourcebot conversation](https://app.sourcebot.dev/chat/cmt1kzlyv0062oq5axens5rdl) in the public demo.
+
+[![Ask Sourcebot demo: tool calls, a streaming answer, and cited source files shown side by side](.github/images/askSourcebot.gif)](https://app.sourcebot.dev/chat/cmt1kzlyv0062oq5axens5rdl)
 
 Try both in the [public demo](https://app.sourcebot.dev). See [pricing](https://www.sourcebot.dev/pricing) for plan details.
 
