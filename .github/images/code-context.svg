@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="404" viewBox="0 0 1000 404" role="img" aria-labelledby="title desc">
+  <title id="title">Your repositories, connected through Sourcebot</title>
+  <desc id="desc">Collections of repositories on GitHub, GitLab, Bitbucket, and Azure DevOps connect to Sourcebot. Agents use the API or MCP; humans use Code Search and Ask Sourcebot in the web app.</desc>
+  <style>
+    :root { color-scheme:light dark; --ink:#36363b; --muted:#626267; --border:#c5c5c0; --wire:#858580; --surface:#f7f7f5; --stack:#edede8; --accent:#0099ff; }
+    @media (prefers-color-scheme:dark) { :root { --ink:#edede8; --muted:#b0b0aa; --border:#51514e; --wire:#858580; --surface:#181818; --stack:#232321; --accent:#0099ff; } }
+    text { font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; fill:var(--ink); }
+    .card { fill:var(--surface); stroke:var(--border); }
+    .stack { fill:var(--stack); stroke:var(--border); }
+    .wire { fill:none; stroke:var(--wire); stroke-width:1.5; }
+    .muted { fill:var(--muted); }
+  </style>
+  <defs>
+    <!-- Code-host marks reused from packages/web/public. -->
+    <symbol id="github" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+    <symbol id="gitlab" viewBox="0 0 256 236"><path d="M128.075 236.075l47.104-144.97H80.97l47.104 144.97z" fill="#E24329"/><path d="M128.075 236.074L80.97 91.104H14.956l113.119 144.97z" fill="#FC6D26"/><path d="M14.956 91.104L.642 135.16a9.752 9.752 0 0 0 3.542 10.903l123.891 90.012-113.12-144.97z" fill="#FCA326"/><path d="M14.956 91.105H80.97L52.601 3.79c-1.46-4.493-7.816-4.492-9.275 0l-28.37 87.315z" fill="#E24329"/><path d="M128.075 236.074l47.104-144.97h66.015l-113.12 144.97z" fill="#FC6D26"/><path d="M241.194 91.104l14.314 44.056a9.752 9.752 0 0 1-3.543 10.903l-123.89 90.012 113.119-144.97z" fill="#FCA326"/><path d="M241.194 91.105h-66.015l28.37-87.315c1.46-4.493 7.816-4.492 9.275 0l28.37 87.315z" fill="#E24329"/></symbol>
+    <symbol id="bitbucket" viewBox="80 108 350 322">
+<path fill="#2684ff" d="M422 130a10 10 0 00-9.9-11.7H100.5a10 10 0 00-10 11.7L136 409a10 10 0 009.9 8.4h221c5 0 9.2-3.5 10 -8.4L422 130zM291 316.8h-69.3l-18.7-98h104.8z"/><path fill="url(#a)" d="M59.632 25.2H40.94l-3.1 18.3h-13v18.9H52c1 0 1.7-.7 1.8-1.6l5.8-35.6z" transform="translate(89.8 85) scale(5.3285)"/><linearGradient id="a" x2="1" gradientTransform="rotate(141 22.239 22.239) scale(31.4)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0052cc"/><stop offset="1" stop-color="#2684ff"/></linearGradient></symbol>
+    <symbol id="azuredevops" viewBox="0 0 18 18"><defs><linearGradient id="ba420277-700e-42cc-9de9-5388a5c16e54" x1="9" y1="16.97" x2="9" y2="1.03" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0078d4" /><stop offset="0.16" stop-color="#1380da" /><stop offset="0.53" stop-color="#3c91e5" /><stop offset="0.82" stop-color="#559cec" /><stop offset="1" stop-color="#5ea0ef" /></linearGradient></defs><path id="a91f0ca4-8fb7-4019-9c09-0a52e2c05754" d="M17,4v9.74l-4,3.28-6.2-2.26V17L3.29,12.41l10.23.8V4.44Zm-3.41.49L7.85,1V3.29L2.58,4.84,1,6.87v4.61l2.26,1V6.57Z" fill="url(#ba420277-700e-42cc-9de9-5388a5c16e54)" /></symbol>
+    <g id="repo" fill="none" stroke="var(--muted)" stroke-width="1.1">
+      <rect x="0" y="0" width="11" height="16" rx="1.8"/>
+      <path d="M3 0v16M5.5 4h3M5.5 7h3"/>
+    </g>
+  </defs>
+  <rect width="1000" height="404" fill="var(--surface)"/>
+  <!-- A shared connection line with a junction for each host. -->
+  <path class="wire" d="M298 70h50v264h-50M298 158h50M298 246h50M348 202h65"/>
+  <path class="wire" d="m407 197 6 5-6 5"/>
+  <g fill="var(--wire)"><circle cx="348" cy="158" r="2.5"/><circle cx="348" cy="246" r="2.5"/></g>
+  <circle cx="348" cy="202" r="3" fill="var(--accent)"/>
+  <g transform="translate(32 38)">
+    <rect class="stack" x="8" y="-8" width="258" height="64" rx="2"/>
+    <rect class="card" width="266" height="64" rx="2"/>
+    <use href="#github" x="18" y="18" width="28" height="28" fill="var(--ink)"/>
+    <text x="60" y="38" font-size="16" font-weight="400">GitHub</text>
+    <use href="#repo" x="207" y="22"/>
+    <use href="#repo" x="224" y="22"/>
+    <use href="#repo" x="241" y="22"/>
+  </g>
+  <g transform="translate(32 126)">
+    <rect class="stack" x="8" y="-8" width="258" height="64" rx="2"/>
+    <rect class="card" width="266" height="64" rx="2"/>
+    <use href="#gitlab" x="18" y="18" width="28" height="28" fill="var(--ink)"/>
+    <text x="60" y="38" font-size="16" font-weight="400">GitLab</text>
+    <use href="#repo" x="207" y="22"/>
+    <use href="#repo" x="224" y="22"/>
+    <use href="#repo" x="241" y="22"/>
+  </g>
+  <g transform="translate(32 214)">
+    <rect class="stack" x="8" y="-8" width="258" height="64" rx="2"/>
+    <rect class="card" width="266" height="64" rx="2"/>
+    <use href="#bitbucket" x="18" y="18" width="28" height="28" fill="var(--ink)"/>
+    <text x="60" y="38" font-size="16" font-weight="400">Bitbucket</text>
+    <use href="#repo" x="207" y="22"/>
+    <use href="#repo" x="224" y="22"/>
+    <use href="#repo" x="241" y="22"/>
+  </g>
+  <g transform="translate(32 302)">
+    <rect class="stack" x="8" y="-8" width="258" height="64" rx="2"/>
+    <rect class="card" width="266" height="64" rx="2"/>
+    <use href="#azuredevops" x="18" y="18" width="28" height="28" fill="var(--ink)"/>
+    <text x="60" y="38" font-size="16" font-weight="400">Azure DevOps</text>
+    <use href="#repo" x="207" y="22"/>
+    <use href="#repo" x="224" y="22"/>
+    <use href="#repo" x="241" y="22"/>
+  </g>
+  <rect x="426" y="150" width="160" height="104" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="506" y="210" text-anchor="middle" font-size="24" font-weight="600" letter-spacing="-1">Sourcebot</text>
+  <path class="wire" d="M586 202h58M644 128h62M644 128v148h62"/>
+  <path class="wire" d="m700 123 6 5-6 5m0 138 6 5-6 5"/>
+  <circle cx="644" cy="202" r="3" fill="var(--accent)"/>
+  <g transform="translate(718 78)">
+    <path d="M0 0h250M0 100h250" fill="none" stroke="var(--border)"/>
+    <text x="22" y="35" font-size="18" font-weight="600">Agents</text>
+    <rect x="164" y="18" width="65" height="22" rx="2" fill="var(--stack)" stroke="var(--border)"/>
+    <text class="muted" x="196.5" y="33" text-anchor="middle" font-size="11" font-weight="600">API/MCP</text>
+    <text class="muted" x="22" y="63" font-size="13">Claude Code, Codex, Cursor</text>
+    <text class="muted" x="22" y="82" font-size="13">and other clients</text>
+  </g>
+  <g transform="translate(718 226)">
+    <path d="M0 0h250M0 100h250" fill="none" stroke="var(--border)"/>
+    <text x="22" y="35" font-size="18" font-weight="600">Humans</text>
+    <rect x="164" y="18" width="65" height="22" rx="2" fill="var(--stack)" stroke="var(--border)"/>
+    <text class="muted" x="196.5" y="33" text-anchor="middle" font-size="11" font-weight="600">Web App</text>
+    <text class="muted" x="22" y="63" font-size="13">Code Search</text>
+    <text class="muted" x="22" y="82" font-size="13">Ask Sourcebot</text>
+  </g>
+</svg>
