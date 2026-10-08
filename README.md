@@ -44,7 +44,11 @@ Connect repos from GitHub, GitLab, Bitbucket, Azure DevOps, or local Git directo
 
 [Code Search](https://docs.sourcebot.dev/docs/features/search/code-search) lets you search across repos and branches in the web app. It supports regex, repo and language filters, and boolean queries.
 
+[![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://www.sourcebot.dev/)
+
 [Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase with inline citations you can open alongside the answer. It uses the same search and navigation tools as the MCP server, with a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key).
+
+[![Ask Sourcebot demo: tool calls, a streaming answer, and cited source files shown side by side](.github/images/askSourcebot.gif)](https://www.sourcebot.dev/)
 
 Try both in the [public demo](https://app.sourcebot.dev). See [pricing](https://www.sourcebot.dev/pricing) for plan details.
 
