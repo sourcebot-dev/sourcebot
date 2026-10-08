@@ -46,7 +46,9 @@ Connect repos from GitHub, GitLab, Bitbucket, Azure DevOps, or local Git directo
 
 Use regular expressions and boolean queries, then narrow the results by repo, file, language, or symbol definition. Results include syntax-highlighted code, with repo and language filters alongside them.
 
-[![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://www.sourcebot.dev/)
+Try it: [search for `render` in TypeScript code](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript) in the public demo.
+
+[![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript)
 
 ## Ask Sourcebot
 
