@@ -28,9 +28,9 @@ You'll need Node.js (24 LTS recommended), Docker, and Docker Compose.
 
 This wizard walks you through indexing your repos, optionally configuring a language model provider (for [Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot)), and then creates the config files for you and starts up Sourcebot.
 
-For manual setup, use [Docker Compose](https://docs.sourcebot.dev/docs/deployment/docker-compose) or the [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart).
+For manual setup, use [Docker Compose](https://docs.sourcebot.dev/docs/deployment/docker-compose) or the [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart). Check out our [docs](https://docs.sourcebot.dev/) for more info on how to configure Sourcebot. 
 
-## Connect your agent
+## Code Context for Agents
 
 Your agent can use [Sourcebot MCP](https://docs.sourcebot.dev/docs/features/mcp-server) to search repos you haven't checked out locally. For example, it can find callers of an API in other services or read the implementation for dependencies that you don't have checked out locally.
 
@@ -46,7 +46,7 @@ Connect repos from GitHub, GitLab, Bitbucket, Azure DevOps, or local Git directo
 
 Use regular expressions and boolean queries, then narrow the results by repo, file, language, or symbol definition. Results include syntax-highlighted code, with repo and language filters alongside them.
 
-Try it: [search for `render` in TypeScript code](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript) in the public demo.
+Try it: [example search](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript) in the public demo.
 
 [![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript)
 
