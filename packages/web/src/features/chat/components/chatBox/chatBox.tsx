@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileMentionComponent, MentionChip } from "@/features/chat/components/mentionChip";
-import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
+import { AttachmentData, CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
@@ -56,6 +56,7 @@ interface ChatBoxProps {
     isTurnInProgress?: boolean;
     isNetworkActive?: boolean;
     isDisabled?: boolean;
+    languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
     askCommands: AskCommandDefinition[];
@@ -78,6 +79,7 @@ const ChatBoxComponent = ({
     isDisabled,
     isLoginWallEnabled,
     isAuthenticated,
+    languageModels,
     selectedSearchScopes,
     searchContexts,
     maxImageBytes = ATTACHMENT_MAX_IMAGE_BYTES,
@@ -107,7 +109,7 @@ const ChatBoxComponent = ({
         }).flat(),
         askCommands,
     });
-    const { selectedLanguageModel } = useSelectedLanguageModel();
+    const { selectedLanguageModel } = useSelectedLanguageModel(languageModels);
     const { toast } = useToast();
     const isMac = useIsMac();
     const isAskEnabled = useHasEntitlement('ask');
