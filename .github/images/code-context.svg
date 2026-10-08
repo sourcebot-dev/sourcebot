@@ -70,7 +70,7 @@
   <path class="wire" d="m700 123 6 5-6 5m0 138 6 5-6 5"/>
   <circle cx="644" cy="202" r="3" fill="var(--accent)"/>
   <g transform="translate(718 78)">
-    <path d="M0 0h250M0 100h250" fill="none" stroke="var(--border)"/>
+    <rect class="card" width="250" height="100" rx="2"/>
     <text x="22" y="35" font-size="18" font-weight="600">Agents</text>
     <rect x="164" y="18" width="65" height="22" rx="2" fill="var(--stack)" stroke="var(--border)"/>
     <text class="muted" x="196.5" y="33" text-anchor="middle" font-size="11" font-weight="600">API/MCP</text>
@@ -78,7 +78,7 @@
     <text class="muted" x="22" y="82" font-size="13">and other clients</text>
   </g>
   <g transform="translate(718 226)">
-    <path d="M0 0h250M0 100h250" fill="none" stroke="var(--border)"/>
+    <rect class="card" width="250" height="100" rx="2"/>
     <text x="22" y="35" font-size="18" font-weight="600">Humans</text>
     <rect x="164" y="18" width="65" height="22" rx="2" fill="var(--stack)" stroke="var(--border)"/>
     <text class="muted" x="196.5" y="33" text-anchor="middle" font-size="11" font-weight="600">Web App</text>
