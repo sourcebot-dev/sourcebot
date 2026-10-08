@@ -52,7 +52,7 @@ Try it: [search for `render` in TypeScript code](https://app.sourcebot.dev/searc
 
 ## Ask Sourcebot
 
-[Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase, including repos you haven't checked out locally. Ask how a feature works or what a migration would involve. It searches your code and follows references using the same tools as the MCP server.
+[Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase, including repos you haven't checked out locally. Ask how a feature works or what a migration would involve. [Connectors](https://docs.sourcebot.dev/docs/features/ask/connectors) let Ask access your apps and services with your permissions, so it can pull in context and take actions like creating a Linear or Jira issue with its findings. It searches your code and follows references using the same tools as the MCP server.
 
 Open cited code alongside the answer, explore generated diagrams, and share the conversation with your team. Ask runs on a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key), so you control where your code is sent.
 
