@@ -3,7 +3,7 @@ import { ServiceError, notFound, fileNotFound, invalidGitRef, unresolvedGitRef, 
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
-import simpleGit from 'simple-git';
+import { simpleGit } from 'simple-git';
 import type z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
 import { fileBlameRequestSchema, fileBlameResponseSchema } from './schemas';

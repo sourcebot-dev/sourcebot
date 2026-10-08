@@ -48,6 +48,28 @@ const createGitClientForPath = (
     }
 
     const parentPath = resolve(dirname(path));
+    const gitEnvironment: NodeJS.ProcessEnv = {
+        ...process.env,
+        ...environment,
+        /**
+         * @note on some inside-baseball on why this is necessary: The specific
+         * issue we saw was that a `git clone` would fail without throwing, and
+         * then a subsequent `git config` command would run, but since the clone
+         * failed, it wouldn't be running in a git directory. Git would then walk
+         * up the directory tree until it either found a git directory (in the case
+         * of the development env) or it would hit a GIT_DISCOVERY_ACROSS_FILESYSTEM
+         * error when trying to cross a filesystem boundary (in the prod case).
+         * GIT_CEILING_DIRECTORIES ensures that this walk will be limited to the
+         * parent directory.
+         */
+        GIT_CEILING_DIRECTORIES: parentPath,
+        /**
+         * Disable git credential prompts. This ensures that git operations will fail
+         * immediately if credentials are not available, rather than prompting for input.
+         */
+        GIT_TERMINAL_PROMPT: '0',
+    };
+
     const git = simpleGit({
         progress: onProgress,
         abort: signal,
@@ -55,28 +77,17 @@ const createGitClientForPath = (
             ...unsafe,
             ...additionalUnsafe,
         },
+        /**
+         * simple-git throws when an explicitly supplied git-related env var
+         * (e.g., GIT_CEILING_DIRECTORIES, GIT_ASKPASS) is not in this allowlist.
+         * We construct this environment ourselves, so every key is permitted.
+         * Values that enable unsafe behaviour are still gated by `unsafe` above.
+         *
+         * @see https://github.com/steveukx/git-js/releases/tag/simple-git%404.0.0
+         */
+        allowEnvironment: Object.keys(gitEnvironment),
     })
-        .env({
-            ...process.env,
-            ...environment,
-            /**
-             * @note on some inside-baseball on why this is necessary: The specific
-             * issue we saw was that a `git clone` would fail without throwing, and
-             * then a subsequent `git config` command would run, but since the clone
-             * failed, it wouldn't be running in a git directory. Git would then walk
-             * up the directory tree until it either found a git directory (in the case
-             * of the development env) or it would hit a GIT_DISCOVERY_ACROSS_FILESYSTEM
-             * error when trying to cross a filesystem boundary (in the prod case).
-             * GIT_CEILING_DIRECTORIES ensures that this walk will be limited to the
-             * parent directory.
-             */
-            GIT_CEILING_DIRECTORIES: parentPath,
-            /**
-             * Disable git credential prompts. This ensures that git operations will fail
-             * immediately if credentials are not available, rather than prompting for input.
-             */
-            GIT_TERMINAL_PROMPT: '0',
-        })
+        .env(gitEnvironment)
         .cwd({
             path,
         });
