@@ -14,7 +14,7 @@
   <a href="https://www.sourcebot.dev/changelog">Changelog</a>
 </p>
 
-Sourcebot is a self-hosted code context layer for your team and AI coding agents. Index your repositories in one place, then let Claude Code, Codex, Cursor, and other MCP clients search and explore code beyond their local workspace.
+Sourcebot is a self-hosted code context layer for your team and AI coding agents. Index your repositories in one place, then let Claude Code, Codex, Cursor, and other MCP clients search and explore them—even when you haven't checked them out locally.
 
 Use the same index yourself to search across repositories and branches, navigate code, and ask questions with answers grounded in your codebase.
 
@@ -30,9 +30,9 @@ You'll need **Node.js (24 LTS recommended), Docker, and Docker Compose**. The wi
 
 Prefer to configure the deployment yourself? Use [Docker Compose](#docker-compose) or the [Helm chart](#kubernetes).
 
-## Give your agents the whole codebase
+## Give your agents context beyond local checkouts
 
-Your coding agent can see the repository you're working in. Sourcebot gives it context across the rest of your codebase: shared libraries, upstream services, API consumers, and implementation examples in other repositories.
+Your coding agent can read repositories you have checked out locally. Sourcebot extends that context to repositories you've indexed, without requiring a local checkout of each one. That includes shared libraries, upstream services, API consumers, and implementation examples across your codebase.
 
 ```mermaid
 flowchart LR
