@@ -103,3 +103,20 @@ test('buildFileTree builds a sorted tree from a flat list', () => {
     });
 });
 
+test('buildFileTree gives implicit directories their own path, not the leaf file path', () => {
+    const flatList: { type: string, path: string }[] = [
+        { type: 'blob', path: 'src/components/buttons/PrimaryButton.tsx' },
+    ];
+
+    const tree = buildFileTree(flatList);
+
+    const src = tree.children[0];
+    const components = src.children[0];
+    const buttons = components.children[0];
+
+    expect(src.path).toBe('src');
+    expect(components.path).toBe('src/components');
+    expect(buttons.path).toBe('src/components/buttons');
+    expect(buttons.children[0].path).toBe('src/components/buttons/PrimaryButton.tsx');
+});
+

@@ -67,7 +67,11 @@ export const buildFileTree = (flatList: { type: string, path: string }[]): FileT
             if (!next) {
                 next = {
                     name: part,
-                    path: item.path,
+                    // A node's path is its own location, not the leaf's: an
+                    // implicit directory (`src` for `src/main.ts`) used to get
+                    // the file's path, which broke folder expansion, route
+                    // sync and the /api/git/tree payload.
+                    path: parts.slice(0, i + 1).join('/'),
                     type: nodeType,
                     children: [],
                 };
