@@ -40,13 +40,19 @@ The MCP server exposes code search, file reading, and symbol definitions and ref
 
 Connect repos from GitHub, GitLab, Bitbucket, Azure DevOps, or local Git directories using the [connection guides](https://docs.sourcebot.dev/docs/connections/indexing-your-code). [Permission syncing](https://docs.sourcebot.dev/docs/features/permission-syncing) controls access based on your code host's repository permissions.
 
-## Code Search and Ask Sourcebot
+## Code Search
 
-[Code Search](https://docs.sourcebot.dev/docs/features/search/code-search) lets you search across repos and branches in the web app. It supports regex, repo and language filters, and boolean queries.
+[Code Search](https://docs.sourcebot.dev/docs/features/search/code-search) lets you search across all your indexed repos and branches in one place. Find uses of a dependency, track down a function, or look for a pattern across services without cloning each repo.
+
+Use regular expressions and boolean queries, then narrow the results by repo, file, language, or symbol definition. Results include syntax-highlighted code, with repo and language filters alongside them.
 
 [![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://www.sourcebot.dev/)
 
-[Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase with inline citations you can open alongside the answer. It uses the same search and navigation tools as the MCP server, with a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key).
+## Ask Sourcebot
+
+[Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase, including repos you haven't checked out locally. Ask how a feature works or what a migration would involve. It searches your code and follows references using the same tools as the MCP server.
+
+Open cited code alongside the answer, explore generated diagrams, and share the conversation with your team. Ask runs on a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key), so you control where your code is sent.
 
 [![Ask Sourcebot demo: tool calls, a streaming answer, and cited source files shown side by side](.github/images/askSourcebot.gif)](https://www.sourcebot.dev/)
 
