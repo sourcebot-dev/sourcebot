@@ -50,6 +50,7 @@ export const LandingPageChatBox = ({
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
+                    languageModels={languageModels}
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
                     askCommands={askCommands}
