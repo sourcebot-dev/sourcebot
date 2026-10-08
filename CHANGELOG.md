@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
 - Upgraded `nodemailer` to `^10.0.2`. [#1703](https://github.com/sourcebot-dev/sourcebot/pull/1703)
+- Upgraded `markdown-it` to `^14.3.2`. [#1702](https://github.com/sourcebot-dev/sourcebot/pull/1702)
+- Fixed Ask model selections reverting to a stale default after the model configuration changed during a browser session. [#1710](https://github.com/sourcebot-dev/sourcebot/pull/1710)
+- Upgraded `next` to `^16.3.8`. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
 
 ## [5.1.15] - 2026-09-29
 
