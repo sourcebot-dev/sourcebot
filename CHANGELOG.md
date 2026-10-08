@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Ask model selections reverting to a stale default after the model configuration changed during a browser session. [#1710](https://github.com/sourcebot-dev/sourcebot/pull/1710)
 - Upgraded `next` to `^16.3.8`. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
 - Upgraded `seroval` to `^1.6.8`, `proxy-addr` to `^2.0.8`, `shell-quote` to `^1.12.0`, and `@grpc/grpc-js` to `^1.14.6`. [#1713](https://github.com/sourcebot-dev/sourcebot/pull/1713)
+- Upgraded `katex` to `^0.18.2` and `postcss-selector-parser` to `^7.1.6`. [#1717](https://github.com/sourcebot-dev/sourcebot/pull/1717)
 
 ## [5.1.15] - 2026-09-29
 
