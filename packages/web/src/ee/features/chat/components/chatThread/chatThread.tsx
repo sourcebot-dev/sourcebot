@@ -126,7 +126,7 @@ export const ChatThread = ({
     const [failedMcpServers, setFailedMcpServers] = useState<McpServerLoadFailureData[]>([]);
     const [isFailedMcpBannerVisible, setIsFailedMcpBannerVisible] = useState(false);
 
-    const { selectedLanguageModel } = useSelectedLanguageModel();
+    const { selectedLanguageModel } = useSelectedLanguageModel(languageModels);
 
     // Refs to capture the latest request params for the transport body.
     // The transport is created once (useMemo) but params change over time,
@@ -566,6 +566,7 @@ export const ChatThread = ({
                                     isTurnInProgress={isTurnInProgress}
                                     isNetworkActive={isNetworkActive}
                                     onStop={stop}
+                                    languageModels={languageModels}
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
                                     askCommands={askCommands}
