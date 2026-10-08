@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
 - Upgraded `next` to `^16.3.8`. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
+- Fixed implicit directories in the file tree carrying the leaf file's path, which broke folder expansion and the `/api/git/tree` payload. [#1712](https://github.com/sourcebot-dev/sourcebot/pull/1712)
 
 ## [5.1.15] - 2026-09-29
 
