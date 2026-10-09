@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `exclude.private` option to github connection config. [#1632](https://github.com/sourcebot-dev/sourcebot/pull/1632)
+
 ### Fixed
 - Silenced a false-positive `MaxListenersExceededWarning` logged on every request proxied through an external rewrite. [#1697](https://github.com/sourcebot-dev/sourcebot/pull/1697)
+- Upgraded `brace-expansion` to `^1.1.21`, `^2.1.7`, and `^5.0.12`. [#1700](https://github.com/sourcebot-dev/sourcebot/pull/1700)
+- Upgraded `fast-uri` to `^3.1.8`. [#1701](https://github.com/sourcebot-dev/sourcebot/pull/1701)
+- Upgraded `nodemailer` to `^10.0.2`. [#1703](https://github.com/sourcebot-dev/sourcebot/pull/1703)
+- Upgraded `markdown-it` to `^14.3.2`. [#1702](https://github.com/sourcebot-dev/sourcebot/pull/1702)
+- Fixed Ask model selections reverting to a stale default after the model configuration changed during a browser session. [#1710](https://github.com/sourcebot-dev/sourcebot/pull/1710)
+- Upgraded `next` to `^16.3.8`. [#1709](https://github.com/sourcebot-dev/sourcebot/pull/1709)
+- Upgraded `seroval` to `^1.6.8`, `proxy-addr` to `^2.0.8`, `shell-quote` to `^1.12.0`, and `@grpc/grpc-js` to `^1.14.6`. [#1713](https://github.com/sourcebot-dev/sourcebot/pull/1713)
+- Upgraded `katex` to `^0.18.2` and `postcss-selector-parser` to `^7.1.6`. [#1717](https://github.com/sourcebot-dev/sourcebot/pull/1717)
+- Upgraded `engine.io` to `^6.6.11`, `source-map-js` to `^1.2.2`, `smol-toml` to `^1.9.0`, `fast-copy` to `^3.1.0`, and `dompurify` to `^3.4.16`. [#1714](https://github.com/sourcebot-dev/sourcebot/pull/1714)
+- Upgraded `golang.org/x/crypto` to `v0.56.0` and OpenTelemetry-Go exporters and SDK to `v1.45.0` in Zoekt. [#1716](https://github.com/sourcebot-dev/sourcebot/pull/1716)
+- Upgraded `@modelcontextprotocol/sdk` to `^1.32.1`. [#1719](https://github.com/sourcebot-dev/sourcebot/pull/1719)
+- Decoded percent-encoded characters in repo names derived from direct generic git URLs. [#1666](https://github.com/sourcebot-dev/sourcebot/pull/1666)
+- Fixed `.gitattributes` `linguist-language` overrides being ignored for files in subdirectories. [#1692](https://github.com/sourcebot-dev/sourcebot/pull/1692)
+- Fixed selected language and repository filters disappearing when filtering the available options. [#1685](https://github.com/sourcebot-dev/sourcebot/pull/1685)
+- Fixed code highlights not covering every line of a multi-line range. [#1699](https://github.com/sourcebot-dev/sourcebot/pull/1699)
 - Fixed duplicate repository metadata lookups within search result chunks. [#1684](https://github.com/sourcebot-dev/sourcebot/pull/1684)
 
 ## [5.1.15] - 2026-09-29
@@ -25,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made the default home page configurable with `DEFAULT_HOME_VIEW_PAGE`, defaulting to Code Search and supporting Ask. [#1677](https://github.com/sourcebot-dev/sourcebot/pull/1677)
 - Require authentication for the streaming and blocking Ask APIs in Public SaaS deployments. [#1679](https://github.com/sourcebot-dev/sourcebot/pull/1679)
 - Bounded BullMQ job retention to keep Redis memory from growing with repo count, retaining only the latest job per repo, connection, and account. [#1693](https://github.com/sourcebot-dev/sourcebot/pull/1693)
+- Upgraded `ip-address` to `^10.7.2`. [#1695](https://github.com/sourcebot-dev/sourcebot/pull/1695)
 
 ## [5.1.14] - 2026-09-17
 
