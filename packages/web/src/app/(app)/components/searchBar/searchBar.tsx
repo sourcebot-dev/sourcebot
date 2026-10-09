@@ -47,6 +47,7 @@ import Link from "next/link";
 import { CaseSensitiveIcon, RegexIcon, Wand2Icon } from "lucide-react";
 import { SearchAssistBox } from "./searchAssistBox";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { LoginDialog } from "@/app/components/loginDialog";
 
 const LANGUAGE_MODEL_DOCS_URL = "https://docs.sourcebot.dev/docs/configuration/language-model-providers"; 
 
@@ -60,6 +61,7 @@ interface SearchBarProps {
     }
     autoFocus?: boolean;
     isSearchAssistSupported: boolean;
+    showLoginWall: boolean;
 }
 
 const searchBarKeymap: readonly KeyBinding[] = ([
@@ -107,6 +109,7 @@ export const SearchBar = ({
         query: defaultQuery = "",
     } = {},
     isSearchAssistSupported,
+    showLoginWall,
 }: SearchBarProps) => {
     const router = useRouter();
     const captureEvent = useCaptureEvent();
@@ -120,6 +123,7 @@ export const SearchBar = ({
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
     const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
+    const [loginCallbackUrl, setLoginCallbackUrl] = useState<string>();
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
@@ -230,8 +234,24 @@ export const SearchBar = ({
             [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
+
+        if (showLoginWall) {
+            if (query.trim().length === 0) {
+                return;
+            }
+            captureEvent('wa_publicsaas_cs_login_wall_prompted', {});
+            setLoginCallbackUrl(url);
+            return;
+        }
+
         router.push(url);
-    }, [router, isRegexEnabled, isCaseSensitivityEnabled]);
+    }, [
+        captureEvent,
+        isCaseSensitivityEnabled,
+        isRegexEnabled,
+        router,
+        showLoginWall,
+    ]);
 
     return (
         <div
@@ -400,6 +420,15 @@ export const SearchBar = ({
                 }}
                 cursorPosition={cursorPosition}
                 {...suggestionData}
+            />
+            <LoginDialog
+                isOpen={loginCallbackUrl !== undefined}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setLoginCallbackUrl(undefined);
+                    }
+                }}
+                callbackUrl={loginCallbackUrl}
             />
         </div>
     )

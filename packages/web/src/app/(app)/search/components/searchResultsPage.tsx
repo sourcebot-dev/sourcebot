@@ -39,6 +39,7 @@ interface SearchResultsPageProps {
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
     isSearchAssistSupported: boolean;
+    showLoginWall: boolean;
 }
 
 export const SearchResultsPage = ({
@@ -47,6 +48,7 @@ export const SearchResultsPage = ({
     isRegexEnabled,
     isCaseSensitivityEnabled,
     isSearchAssistSupported,
+    showLoginWall,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -179,6 +181,7 @@ export const SearchResultsPage = ({
                         }}
                         className="w-full"
                         isSearchAssistSupported={isSearchAssistSupported}
+                        showLoginWall={showLoginWall}
                     />
                 </div>
                 <Separator />

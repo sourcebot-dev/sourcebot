@@ -2,6 +2,7 @@ import { Queue } from "bullmq";
 import { randomUUID } from "crypto";
 import { Redis } from "ioredis";
 import { isDeepStrictEqual } from "node:util";
+import { toBullMQKeepJobs } from "./queue.js";
 import type {
     DataOf,
     JobEnqueueOptions,
@@ -37,6 +38,23 @@ type WorkloadQueue<TName extends QueueName> = Queue<
     ResultOf<TName>,
     string
 >;
+
+const LATEST_JOB_KEY_PREFIX = "sourcebot:latest-job";
+
+// QueueSpec is distributive so queue names, data, and result schemas stay
+// correlated when TName is a union. Re-establish the shared generic here
+// before invoking the optional method.
+const getDeduplication = <TName extends QueueName>(
+    spec: QueueSpec<TName>,
+    data: DataOf<TName>,
+): { id: string; keepLastIfActive?: boolean } | undefined => {
+    const { deduplication }: {
+        deduplication?(
+            data: DataOf<TName>,
+        ): { id: string; keepLastIfActive?: boolean };
+    } = spec;
+    return deduplication?.(data);
+};
 
 const normalizeJobState = (state: string): WorkloadJobStatus | null => {
     switch (state) {
@@ -150,15 +168,8 @@ export class BullMQClient {
         data: DataOf<TName>,
         options: JobEnqueueOptions = {},
     ): Promise<string> {
-        // QueueSpec is distributive so queue names, data, and result schemas stay
-        // correlated when TName is a union. Re-establish the shared generic here
-        // before invoking the optional method.
-        const { deduplication: getDeduplication }: {
-            deduplication?(
-                data: DataOf<TName>,
-            ): { id: string; keepLastIfActive?: boolean };
-        } = spec;
-        const deduplication = getDeduplication?.(data);
+        const deduplication = getDeduplication(spec, data);
+        const keepJobs = toBullMQKeepJobs(spec.jobOptions.retention);
         const queue = this.getQueue(spec);
 
         const requestedJobId = randomUUID();
@@ -176,8 +187,8 @@ export class BullMQClient {
                     ? { jitter: spec.jobOptions.backoff.jitter }
                     : {}),
             },
-            removeOnComplete: spec.jobOptions.keepJobs.completed,
-            removeOnFail: spec.jobOptions.keepJobs.failed,
+            removeOnComplete: keepJobs.completed,
+            removeOnFail: keepJobs.failed,
             keepLogs: spec.jobOptions.keepLogs,
         });
 
@@ -199,6 +210,7 @@ export class BullMQClient {
     ): Promise<string> {
         const queue = this.getQueue(spec);
         const intervalMs = scheduleToMs(schedule);
+        const keepJobs = toBullMQKeepJobs(spec.jobOptions.retention);
         const template = {
             name: spec.name,
             data,
@@ -214,8 +226,8 @@ export class BullMQClient {
                         ? { jitter: spec.jobOptions.backoff.jitter }
                         : {}),
                 },
-                removeOnComplete: spec.jobOptions.keepJobs.completed,
-                removeOnFail: spec.jobOptions.keepJobs.failed,
+                removeOnComplete: keepJobs.completed,
+                removeOnFail: keepJobs.failed,
                 keepLogs: spec.jobOptions.keepLogs,
             },
         };
@@ -256,6 +268,57 @@ export class BullMQClient {
         }
 
         return job.id;
+    }
+
+    /**
+     * For queues with `latestPerResource` retention, records `jobId` as the
+     * latest job for the resource `data` belongs to and removes the job it
+     * supersedes. Returns the removed job id, or null when nothing was removed.
+     *
+     * Retrying the same job leaves the record untouched. A superseded job that
+     * is still locked (active) is left for the age backstop to reclaim.
+     */
+    async trackLatestJob<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        data: DataOf<TName>,
+        jobId: string,
+    ): Promise<string | null> {
+        const { retention } = spec.jobOptions;
+        if (retention.mode !== "latestPerResource") {
+            return null;
+        }
+
+        const resourceId = getDeduplication(spec, data)?.id;
+        if (!resourceId) {
+            throw new Error(
+                `Workload "${spec.name}" uses latestPerResource retention but declares no deduplication id`,
+            );
+        }
+
+        const key = `${LATEST_JOB_KEY_PREFIX}:${spec.name}:${resourceId}`;
+        // The record expires with the same age backstop as the job itself, so a
+        // resource that stops running leaves nothing behind.
+        const results = await this.connection
+            .multi()
+            .get(key)
+            .set(key, jobId, "EX", retention.maxAgeSeconds)
+            .exec();
+        const previousJobId = results?.[0]?.[1];
+        if (typeof previousJobId !== "string" || previousJobId === jobId) {
+            return null;
+        }
+
+        const previousJob = await this.getQueue(spec).getJob(previousJobId);
+        if (!previousJob) {
+            return null;
+        }
+
+        try {
+            await previousJob.remove();
+        } catch {
+            return null;
+        }
+        return previousJobId;
     }
 
     async getJobSchedulerIds<TName extends QueueName>(

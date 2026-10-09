@@ -1,4 +1,5 @@
 import { env } from "@sourcebot/shared";
+import { auth } from "@/auth";
 import { SearchLandingPage } from "./components/searchLandingPage";
 import { SearchResultsPage } from "./components/searchResultsPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
@@ -16,12 +17,19 @@ export default async function SearchPage(props: SearchPageProps) {
     const query = searchParams?.query;
     const isRegexEnabled = searchParams?.isRegexEnabled === "true";
     const isCaseSensitivityEnabled = searchParams?.isCaseSensitivityEnabled === "true";
+    const session = await auth();
+    const showLoginWall = env.EXPERIMENT_ASK_GH_ENABLED === "true" && !session?.user;
 
     const languageModels = await getConfiguredLanguageModelsInfo();
     const isSearchAssistSupported = languageModels.length > 0;
 
     if (query === undefined || query.length === 0) {
-        return <SearchLandingPage isSearchAssistSupported={isSearchAssistSupported} />
+        return (
+            <SearchLandingPage
+                isSearchAssistSupported={isSearchAssistSupported}
+                showLoginWall={showLoginWall}
+            />
+        )
     }
 
     return (
@@ -31,6 +39,7 @@ export default async function SearchPage(props: SearchPageProps) {
             isRegexEnabled={isRegexEnabled}
             isCaseSensitivityEnabled={isCaseSensitivityEnabled}
             isSearchAssistSupported={isSearchAssistSupported}
+            showLoginWall={showLoginWall}
         />
     )
 }

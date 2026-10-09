@@ -144,8 +144,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # SENTRY_RELEASE is the commit SHA rather than SOURCEBOT_VERSION so that
-          # every prod build gets a distinct release (prod tracks `main`, where the
-          # version only moves on a tagged release). packages/backend/src/instrument.ts
+          # every cloud build gets a distinct release. packages/backend/src/instrument.ts
           # reports NEXT_PUBLIC_BUILD_COMMIT_SHA as its release to match; the webapp
           # gets SENTRY_RELEASE injected into its bundle by withSentryConfig.
           build-args: |

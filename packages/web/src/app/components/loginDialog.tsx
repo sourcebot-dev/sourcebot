@@ -13,11 +13,13 @@ import { usePathname } from "next/navigation";
 interface LoginDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    callbackUrl?: string;
 }
 
 export const LoginDialog = ({
     isOpen,
     onOpenChange,
+    callbackUrl,
 }: LoginDialogProps) => {
     const pathname = usePathname();
 
@@ -33,7 +35,7 @@ export const LoginDialog = ({
                 <div className="mt-4">
                     <AuthMethodSelector
                         context="login"
-                        callbackUrl={pathname}
+                        callbackUrl={callbackUrl ?? pathname}
                         hideSecurityNotice={true}
                     />
                 </div>

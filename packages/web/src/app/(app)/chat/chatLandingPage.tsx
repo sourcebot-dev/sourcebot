@@ -10,8 +10,6 @@ import { env } from "@sourcebot/shared";
 import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
 import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/skillCommands.server";
-import { ExampleQuestionBadges } from "./components/exampleQuestionBadges";
-import { selectRandomExampleQuestions } from "./components/exampleQuestions";
 
 export async function ChatLandingPage() {
     const languageModels = await getConfiguredLanguageModelsInfo();
@@ -22,7 +20,6 @@ export async function ChatLandingPage() {
     const askCommands = session?.user && hasAskEntitlement
         ? await listAgentSkillCommandsOrEmpty()
         : [];
-    const exampleQuestions = selectRandomExampleQuestions(3);
 
     if (isServiceError(allRepos)) {
         throw new ServiceErrorException(allRepos);
@@ -49,10 +46,6 @@ export async function ChatLandingPage() {
                             isAuthenticated={!!session}
                             isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                             maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
-                        />
-                        <ExampleQuestionBadges
-                            questions={exampleQuestions}
-                            disabled={languageModels.length === 0}
                         />
                     </CustomSlateEditor>
                 </div>
