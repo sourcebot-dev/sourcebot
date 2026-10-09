@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.16] - 2026-10-09
+
 ### Added
 - Added `exclude.private` option to github connection config. [#1632](https://github.com/sourcebot-dev/sourcebot/pull/1632)
 
