@@ -58,14 +58,31 @@ export function parseGitAttributes(content: string): GitAttributes {
     return { rules };
 }
 
+// matchesGitAttributesPattern applies gitattributes pattern rules: a pattern
+// without a slash matches the file name at any depth, and any other pattern
+// is matched against the full path from the repository root.
+// @see https://git-scm.com/docs/gitattributes#_description
+function matchesGitAttributesPattern(filePath: string, pattern: string): boolean {
+    const normalizedFilePath = filePath
+        .split('/')
+        .filter((pathSegment) => pathSegment !== '.')
+        .join('/');
+    if (!pattern.includes('/')) {
+        const fileName = normalizedFilePath.slice(normalizedFilePath.lastIndexOf('/') + 1);
+        return micromatch.isMatch(fileName, pattern, { dot: true });
+    }
+    return micromatch.isMatch(normalizedFilePath, pattern.replace(/^\//, ''), { dot: true });
+}
+
 // resolveLanguageFromGitAttributes returns the linguist-language override for
 // the given file path based on the parsed .gitattributes rules, or undefined
 // if no rule matches. Last matching rule wins, consistent with gitattributes semantics.
 export function resolveLanguageFromGitAttributes(filePath: string, gitAttributes: GitAttributes): string | undefined {
     let language: string | undefined;
     for (const rule of gitAttributes.rules) {
-        if (micromatch.isMatch(filePath, rule.pattern) && rule.attrs['linguist-language']) {
-            language = rule.attrs['linguist-language'];
+        const languageAttribute = rule.attrs['linguist-language'];
+        if (matchesGitAttributesPattern(filePath, rule.pattern) && languageAttribute !== undefined) {
+            language = languageAttribute === 'false' || languageAttribute === 'unspecified' ? undefined : languageAttribute;
         }
     }
     return language;
