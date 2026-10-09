@@ -44,7 +44,7 @@ runs:
           -e POSTGRES_USER=postgres \
           -e POSTGRES_PASSWORD=postgres \
           -e POSTGRES_DB=sourcebot \
-          -p 5432:5432 postgres:16
+          -p 5432:5432 public.ecr.aws/docker/library/postgres:16
         for i in $(seq 1 30); do
           if docker exec prisma-check-pg pg_isready -U postgres -q; then
             echo "Postgres ready."

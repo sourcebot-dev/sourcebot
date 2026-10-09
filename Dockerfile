@@ -13,8 +13,8 @@ ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
 ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
 ARG NEXT_PUBLIC_BUILD_COMMIT_SHA
 
-FROM node:24-alpine3.23 AS node-alpine
-FROM golang:1.26-alpine AS go-alpine
+FROM public.ecr.aws/docker/library/node:24-alpine3.23 AS node-alpine
+FROM public.ecr.aws/docker/library/golang:1.26-alpine AS go-alpine
 # ----------------------------------
 
 # ------ Build Zoekt ------
