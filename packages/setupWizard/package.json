@@ -14,7 +14,7 @@
         "watch": "tsc --watch",
         "dev": "tsx src/index.ts",
         "prepublishOnly": "yarn build",
-        "test": "node --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
+        "test": "yarn build && node --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
         "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
         "test:platform": "node --test tests/e2e/platform.test.mjs",
         "test:linux": "node tests/e2e/linux.mjs",
