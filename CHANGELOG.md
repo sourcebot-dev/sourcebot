@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `@modelcontextprotocol/sdk` to `^1.32.1`. [#1719](https://github.com/sourcebot-dev/sourcebot/pull/1719)
 - Decoded percent-encoded characters in repo names derived from direct generic git URLs. [#1666](https://github.com/sourcebot-dev/sourcebot/pull/1666)
 - Fixed `.gitattributes` `linguist-language` overrides being ignored for files in subdirectories. [#1692](https://github.com/sourcebot-dev/sourcebot/pull/1692)
+- Fixed selected language and repository filters disappearing when filtering the available options. [#1685](https://github.com/sourcebot-dev/sourcebot/pull/1685)
 
 ## [5.1.15] - 2026-09-29
 
