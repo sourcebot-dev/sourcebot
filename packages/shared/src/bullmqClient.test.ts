@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
         { key: "scheduler-2" },
     ]),
     removeJobScheduler: vi.fn(async () => true),
+    removeJob: vi.fn(async () => undefined),
+    multiExec: vi.fn(async () => [[null, null], [null, "OK"]]),
+    multiSet: vi.fn(),
 }));
 
 vi.mock("bullmq", () => ({
@@ -32,7 +35,23 @@ vi.mock("./jobLogger.js", () => ({
 }));
 
 import { BullMQClient } from "./bullmqClient.js";
-import { CONNECTION_QUEUE, type QueueSpec } from "./queue.js";
+import {
+    ATTACHMENT_PRUNE_QUEUE,
+    CONNECTION_QUEUE,
+    type QueueSpec,
+} from "./queue.js";
+
+const createRedis = () => {
+    const multi = {
+        get: vi.fn(() => multi),
+        set: vi.fn((...args: unknown[]) => {
+            mocks.multiSet(...args);
+            return multi;
+        }),
+        exec: mocks.multiExec,
+    };
+    return { multi: vi.fn(() => multi) } as unknown as Redis;
+};
 
 describe("BullMQClient", () => {
     beforeEach(() => {
@@ -202,12 +221,75 @@ describe("BullMQClient", () => {
                         delay: 30_000,
                         jitter: 0.5,
                     },
-                    removeOnComplete: { age: 1_209_600 },
-                    removeOnFail: { age: 1_209_600 },
+                    removeOnComplete: { age: 604_800 },
+                    removeOnFail: { age: 604_800 },
                     keepLogs: 500,
                 },
             }),
         );
+    });
+
+    describe("trackLatestJob", () => {
+        test("records the new job and removes the one it supersedes", async () => {
+            mocks.multiExec.mockResolvedValue([[null, "job-1"], [null, "OK"]]);
+            mocks.getJob.mockResolvedValue({ id: "job-1", remove: mocks.removeJob });
+            const client = new BullMQClient(createRedis());
+
+            await expect(
+                client.trackLatestJob(CONNECTION_QUEUE, { connectionId: 42 }, "job-2"),
+            ).resolves.toBe("job-1");
+
+            expect(mocks.multiSet).toHaveBeenCalledWith(
+                "sourcebot:latest-job:connection-sync:connection:42",
+                "job-2",
+                "EX",
+                604_800,
+            );
+            expect(mocks.getJob).toHaveBeenCalledWith("job-1");
+            expect(mocks.removeJob).toHaveBeenCalledTimes(1);
+        });
+
+        test("keeps the record when there is no previous job", async () => {
+            mocks.multiExec.mockResolvedValue([[null, null], [null, "OK"]]);
+            const client = new BullMQClient(createRedis());
+
+            await expect(
+                client.trackLatestJob(CONNECTION_QUEUE, { connectionId: 42 }, "job-2"),
+            ).resolves.toBeNull();
+            expect(mocks.getJob).not.toHaveBeenCalled();
+        });
+
+        test("does not remove the job on a retry of the same job", async () => {
+            mocks.multiExec.mockResolvedValue([[null, "job-2"], [null, "OK"]]);
+            const client = new BullMQClient(createRedis());
+
+            await expect(
+                client.trackLatestJob(CONNECTION_QUEUE, { connectionId: 42 }, "job-2"),
+            ).resolves.toBeNull();
+            expect(mocks.getJob).not.toHaveBeenCalled();
+            expect(mocks.removeJob).not.toHaveBeenCalled();
+        });
+
+        test("leaves a superseded job that cannot be removed to the age backstop", async () => {
+            mocks.multiExec.mockResolvedValue([[null, "job-1"], [null, "OK"]]);
+            mocks.removeJob.mockRejectedValueOnce(new Error("Job job-1 is locked"));
+            mocks.getJob.mockResolvedValue({ id: "job-1", remove: mocks.removeJob });
+            const client = new BullMQClient(createRedis());
+
+            await expect(
+                client.trackLatestJob(CONNECTION_QUEUE, { connectionId: 42 }, "job-2"),
+            ).resolves.toBeNull();
+        });
+
+        test("is a no-op for queues with window retention", async () => {
+            const redis = createRedis();
+            const client = new BullMQClient(redis);
+
+            await expect(
+                client.trackLatestJob(ATTACHMENT_PRUNE_QUEUE, {}, "job-2"),
+            ).resolves.toBeNull();
+            expect(redis.multi).not.toHaveBeenCalled();
+        });
     });
 
     test("adds enqueue priority to immediate jobs", async () => {
@@ -309,8 +391,8 @@ describe("BullMQClient", () => {
                         delay: 30_000,
                         jitter: 0.5,
                     },
-                    removeOnComplete: { age: 1_209_600 },
-                    removeOnFail: { age: 1_209_600 },
+                    removeOnComplete: { age: 604_800 },
+                    removeOnFail: { age: 604_800 },
                     keepLogs: 500,
                 },
             },
@@ -346,8 +428,8 @@ describe("BullMQClient", () => {
                         delay: 30_000,
                         jitter: 0.5,
                     },
-                    removeOnComplete: { age: 1_209_600 },
-                    removeOnFail: { age: 1_209_600 },
+                    removeOnComplete: { age: 604_800 },
+                    removeOnFail: { age: 604_800 },
                     keepLogs: 500,
                 },
             },

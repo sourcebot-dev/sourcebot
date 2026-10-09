@@ -6,6 +6,7 @@ import {
     DataOf,
     JobEnqueueOptions,
     QueueName,
+    QueueSpec,
     ResultOf,
     Schedule,
     scheduleToMs,
@@ -40,6 +41,14 @@ export class BullMQJobManager implements JobManager {
         const name = workload.queueSpec.name;
         if (this.workloads.has(name)) {
             throw new Error(`Workload "${name}" is already registered`);
+        }
+        if (
+            workload.queueSpec.jobOptions.retention.mode === "latestPerResource"
+            && !workload.onStarted
+        ) {
+            throw new Error(
+                `Workload "${name}" uses latestPerResource retention and must publish its job id to the parent resource in onStarted`,
+            );
         }
         this.workloads.set(name, workload);
     }
@@ -150,6 +159,11 @@ export class BullMQJobManager implements JobManager {
 
                 const process = async (signal: AbortSignal) => {
                     await workload.onStarted?.(lifecycleContext);
+                    // Contract: `latestPerResource` workloads publish this job's id to
+                    // their parent's `latest...JobId` pointer in onStarted (enforced in
+                    // `register`), so the pointer has moved before the superseded job
+                    // is removed.
+                    await this.trackLatestJob(spec, job);
                     return workload.process({
                         ...lifecycleContext,
                         signal,
@@ -253,6 +267,33 @@ export class BullMQJobManager implements JobManager {
                 schedule.interval,
                 schedule.data,
                 schedule.options,
+            );
+        }
+    }
+
+    private async trackLatestJob<TName extends QueueName>(
+        spec: QueueSpec<TName>,
+        job: Job,
+    ): Promise<void> {
+        if (!job.id) {
+            return;
+        }
+        try {
+            const removedJobId = await this.bullmqClient.trackLatestJob(
+                spec,
+                job.data,
+                job.id,
+            );
+            if (removedJobId) {
+                logger.debug(
+                    `Removed job ${removedJobId} superseded by ${job.id} on "${spec.name}"`,
+                );
+            }
+        } catch (error) {
+            // Retention is best-effort; the age backstop still bounds the queue.
+            logger.warn(
+                `Failed to track latest job ${job.id} on "${spec.name}"`,
+                error,
             );
         }
     }

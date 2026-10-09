@@ -19,18 +19,10 @@ const repoFindUnique = vi.fn();
 const repoUpdate = vi.fn();
 const repoUpdateMany = vi.fn();
 
-const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
-    callback({
-        repo: {
-            findUnique: repoFindUnique,
-            update: repoUpdate,
-        },
-    }),
-);
-
 const db = {
-    $transaction: transaction,
     repo: {
+        findUnique: repoFindUnique,
+        update: repoUpdate,
         updateMany: repoUpdateMany,
     },
 } as unknown as PrismaClient;
@@ -121,10 +113,20 @@ describe("repoIndexWorkload", () => {
         });
     });
 
+    test("publishes the job as the repository's latest indexing job when it starts", async () => {
+        await workload.onStarted!(lifecycleContext);
+
+        expect(repoUpdateMany).toHaveBeenCalledWith({
+            where: { id: 42 },
+            data: { latestIndexingJobId: "job-1" },
+        });
+    });
+
     test("skips an INDEX job when the repository no longer exists", async () => {
         await workload.process(processContext);
 
         expect(repoUpdate).not.toHaveBeenCalled();
+        expect(repoUpdateMany).not.toHaveBeenCalled();
         expect(lifecycleLogger.debug).toHaveBeenCalledWith(
             "Skipping INDEX job for repo 42: repository no longer exists",
         );
