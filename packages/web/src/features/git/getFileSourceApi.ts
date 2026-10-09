@@ -9,7 +9,7 @@ import { withOptionalAuth } from '@/middleware/withAuth';
 import { env, getRepoPath } from '@sourcebot/shared';
 import { Org, PrismaClient } from '@sourcebot/db';
 import { headers } from 'next/headers';
-import simpleGit from 'simple-git';
+import { simpleGit } from 'simple-git';
 import type z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
 import { fileSourceRequestSchema, fileSourceResponseSchema } from './schemas';

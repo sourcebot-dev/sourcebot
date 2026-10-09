@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // Hoist the mock function so it can be referenced in both the vi.mock factory
-// and the test body. The SUT imports simpleGit as a default export; the factory
-// maps both default and named exports to the same fn so both resolve identically.
+// and the test body.
 const mockSimpleGit = vi.hoisted(() => vi.fn());
 
 vi.mock('simple-git', () => ({
-    default: mockSimpleGit,
     simpleGit: mockSimpleGit,
 }));
 vi.mock('@sourcebot/shared', () => ({

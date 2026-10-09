@@ -4,7 +4,7 @@ import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/se
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
-import simpleGit from 'simple-git';
+import { simpleGit } from 'simple-git';
 import type z from 'zod';
 import { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
 import { buildFileTree, isGitRefValid, isPathValid, normalizePath } from './utils';

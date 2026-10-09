@@ -3,7 +3,7 @@ import { FileTreeItem } from "./types";
 import { notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
-import simpleGit from 'simple-git';
+import { simpleGit } from 'simple-git';
 import z from 'zod';
 import { compareFileTreeItems, isPathValid, normalizePath } from './utils';
 import { logger } from './logger';
