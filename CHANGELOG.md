@@ -28,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `.gitattributes` `linguist-language` overrides being ignored for files in subdirectories. [#1692](https://github.com/sourcebot-dev/sourcebot/pull/1692)
 - Fixed selected language and repository filters disappearing when filtering the available options. [#1685](https://github.com/sourcebot-dev/sourcebot/pull/1685)
 - Fixed code highlights not covering every line of a multi-line range. [#1699](https://github.com/sourcebot-dev/sourcebot/pull/1699)
-- Switched Docker base images to Amazon ECR Public to avoid Docker Hub pull failures. [#1720](https://github.com/sourcebot-dev/sourcebot/pull/1720)
 
 ## [5.1.15] - 2026-09-29
 
