@@ -1,119 +1,68 @@
-
-<div align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/images/logo_dark.png">
-  <img height="150" src=".github/images/logo_light.png">
-</picture>
-</div>
-<div align="center">
-   <div>
-      <h3>
-         <a href="https://docs.sourcebot.dev">
-            <strong>Self Host</strong>
-         </a> · 
-         <a href="https://app.sourcebot.dev">
-            <strong>Public Demo</strong>
-         </a>
-      </h3>
-   </div>
-
-   <div>
-      <a href="https://docs.sourcebot.dev/"><strong>Docs</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/issues/459"><strong>Roadmap</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=bug_report.yml"><strong>Report Bug</strong></a> ·
-      <a href="https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md"><strong>Feature Request</strong></a> ·
-      <a href="https://www.sourcebot.dev/changelog"><strong>Changelog</strong></a>
-   </div>
-   <br/>
-   <div>
-   </div>
-</div>
 <p align="center">
-  <a href="mailto:team@sourcebot.dev"><img src="https://img.shields.io/badge/Email%20Us-brightgreen" /></a>
-  <a href="https://github.com/sourcebot-dev/sourcebot/actions/workflows/release-prod.yml"><img src="https://img.shields.io/github/actions/workflow/status/sourcebot-dev/sourcebot/release-prod.yml"/><a>
-  <a href="https://github.com/sourcebot-dev/sourcebot/stargazers"><img src="https://img.shields.io/github/stars/sourcebot-dev/sourcebot" /></a>
-</p>
-<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/images/logo_dark.png">
+    <img height="100" src=".github/images/logo_light.png" alt="Sourcebot">
+  </picture>
 </p>
 
-Sourcebot is a self-hosted tool that helps you understand your codebase. 
+<h3 align="center">Code understanding for humans and agents</h3>
 
-- **Ask Sourcebot:** Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations.
-- **Code search:** Search and navigate across all your repos and branches, no matter where they’re hosted.
+<p align="center">
+  <a href="https://www.sourcebot.dev">Website</a> ·
+  <a href="https://docs.sourcebot.dev">Docs</a> ·
+  <a href="https://app.sourcebot.dev">Public demo</a> ·
+  <a href="https://www.sourcebot.dev/changelog">Changelog</a>
+</p>
 
-Try it out in our [public demo](https://app.sourcebot.dev)!
+Sourcebot is a self-hosted code context layer for humans and AI agents. Index all your repos in one place so you and your agents can search and navigate them.
 
-https://github.com/user-attachments/assets/ed66a622-e38f-4947-a531-86df1e1e0218
+## Get started
 
-# Features
-![Sourcebot Features](https://github.com/user-attachments/assets/3aed7348-7aeb-4af3-89da-b617c3db2e02)
+Run the setup wizard:
 
-## Ask Sourcebot
-Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language.
+```sh
+npx setup-sourcebot
+```
 
-It uses Sourcebot's existing code search and navigation tools to allow reasoning models to search your code, follow code nav references, and provide an answer that's rich with inline citations and navigable code snippets.
+You'll need Node.js (24 LTS recommended), Docker, and Docker Compose.
 
-https://github.com/user-attachments/assets/8212cd16-683f-468f-8ea5-67455c0931e2
+This wizard walks you through indexing your repos, optionally configuring a language model provider (for [Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot)), and then creates the config files for you and starts up Sourcebot.
+
+For manual setup, use [Docker Compose](https://docs.sourcebot.dev/docs/deployment/docker-compose) or the [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart). Check out our [docs](https://docs.sourcebot.dev/) for more info on how to configure Sourcebot. 
+
+## Code Context for Agents
+
+Your agent can use [Sourcebot MCP](https://docs.sourcebot.dev/docs/features/mcp-server) to search repos you haven't checked out locally. For example, it can find callers of an API in other services or read the implementation for dependencies that you don't have checked out locally.
+
+![Repositories on GitHub, GitLab, Bitbucket, and Azure DevOps connected through Sourcebot to agents via API/MCP and humans via the web app](.github/images/code-context.svg)
+
+The MCP server exposes code search, file reading, and symbol definitions and references for the repos you've indexed. Open **Settings → MCP** in Sourcebot to connect Claude Code, Codex, Cursor, or another MCP client. The [MCP docs](https://docs.sourcebot.dev/docs/features/mcp-server) cover setup and authentication for each client.
+
+Connect repos from GitHub, GitLab, Bitbucket, Azure DevOps, or local Git directories using the [connection guides](https://docs.sourcebot.dev/docs/connections/indexing-your-code). [Permission syncing](https://docs.sourcebot.dev/docs/features/permission-syncing) controls access based on your code host's repository permissions.
 
 ## Code Search
-Search across all your repos/branches across any code host platform. Blazingly fast, and supports regular expressions, repo/language search filters, boolean logic, and more.
 
-https://github.com/user-attachments/assets/3b381452-d329-4949-b6f2-2fc38952e481
+[Code Search](https://docs.sourcebot.dev/docs/features/search/code-search) lets you search across all your indexed repos and branches in one place. Find uses of a dependency, track down a function, or look for a pattern across services without cloning each repo.
 
-## Code Navigation
-IDE-level code navigation (goto definition and find references) across all your repos.
+Use regular expressions and boolean queries, then narrow the results by repo, file, language, or symbol definition. Results include syntax-highlighted code, with repo and language filters alongside them.
 
-https://github.com/user-attachments/assets/e2da2829-71cc-40af-98b4-7ba52e945530
+Try it: [example search](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript) in the public demo.
 
-## Built-in File Explorer
-Explore every file across all of your repos. Modern UI with syntax highlighting, file tree, code navigation, etc.
+[![Code Search demo: a regex query streams matching code from repositories across multiple code hosts](.github/images/codeSearch.gif)](https://app.sourcebot.dev/search?query=render%20lang%3Atypescript)
 
-https://github.com/user-attachments/assets/31ec0669-707d-4e03-b511-1bc33d44197a
+## Ask Sourcebot
 
-# Deploy Sourcebot
+[Ask Sourcebot](https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot) answers questions about your codebase, including repos you haven't checked out locally. Ask how a feature works or what a migration would involve. [Connectors](https://docs.sourcebot.dev/docs/features/ask/connectors) let Ask access your apps and services with your permissions, so it can pull in context and take actions like creating a Linear or Jira issue with its findings. It searches your code and follows references using the same tools as the MCP server.
 
-Sourcebot can be deployed in seconds using Docker Compose. Visit our [docs](https://docs.sourcebot.dev/docs/deployment/docker-compose) for more information.
+Open cited code alongside the answer, explore generated diagrams, and share the conversation with your team. Ask runs on a [language model provider you configure](https://docs.sourcebot.dev/docs/configuration/language-model-providers) (Bring Your Own Key), so you control where your code is sent.
 
-1. Download the docker-compose.yml file
-```sh
-curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
-```
+Try it: [explore an example Ask Sourcebot conversation](https://app.sourcebot.dev/chat/cmt1kzlyv0062oq5axens5rdl) in the public demo.
 
-2. In the same directory as the `docker-compose.yml` file, create a [configuration file](https://docs.sourcebot.dev/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including what repositories to index, language model providers, auth providers, and more.
-```sh
-echo '{
-    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
-    // Comments are supported.
-    // This config creates a single connection to GitHub.com that
-    // indexes the Sourcebot repository
-    "connections": {
-        "starter-connection": {
-            "type": "github",
-            "repos": [
-                "sourcebot-dev/sourcebot"
-            ]
-        }
-    }
-}' > config.json
-```
+[![Ask Sourcebot demo: tool calls, a streaming answer, and cited source files shown side by side](.github/images/askSourcebot.gif)](https://app.sourcebot.dev/chat/cmt1kzlyv0062oq5axens5rdl)
 
-3.  Update the secrets in the `docker-compose.yml` and then run Sourcebot using:
-```sh
-docker compose up
-```
+Try both in the [public demo](https://app.sourcebot.dev). See [pricing](https://www.sourcebot.dev/pricing) for plan details.
 
-4. Visit `http://localhost:3000` to start using Sourcebot
-</br>
 
-To configure Sourcebot (index your own repos, connect your LLMs, etc), check out our [docs](https://docs.sourcebot.dev/docs/configuration/config-file).
+## Feedback
 
-> [!NOTE]
-> Sourcebot collects <a href="https://app.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
-> variable to `true`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/docs/overview#telemetry) for more information.
-
-# Build from source
->[!NOTE]
-> Building from source is only required if you'd like to contribute. If you'd just like to use Sourcebot, we recommend checking out our self-hosting [docs](https://docs.sourcebot.dev/self-hosting/overview).
-
-If you'd like to build from source, please checkout the `CONTRIBUTING.md` file for more information.
-
+[Report a bug or request a feature](https://github.com/sourcebot-dev/sourcebot/issues/new/choose).

@@ -99,7 +99,7 @@ export const getProviders = async () => {
                         text: `Log in to Sourcebot using this code: ${token}`
                     });
 
-                    const failed = result.rejected.concat(result.pending).filter(Boolean);
+                    const failed = result.rejected.concat(result.pending ?? []).filter(Boolean);
                     if (failed.length) {
                         throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
                     }
