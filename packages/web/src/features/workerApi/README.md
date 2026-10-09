@@ -1,1 +1,0 @@
-This folder contains utilities to interact with the internal worker REST api. See packages/backend/api.ts

@@ -1,1 +1,0 @@
-export const LOGIN_MESSAGE_MAX_LENGTH = 5000;

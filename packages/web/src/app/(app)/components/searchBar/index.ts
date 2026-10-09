@@ -1,2 +1,0 @@
-
-export { SearchBar } from "./searchBar";
