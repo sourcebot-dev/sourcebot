@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `engine.io` to `^6.6.11`, `source-map-js` to `^1.2.2`, `smol-toml` to `^1.9.0`, `fast-copy` to `^3.1.0`, and `dompurify` to `^3.4.16`. [#1714](https://github.com/sourcebot-dev/sourcebot/pull/1714)
 - Upgraded `golang.org/x/crypto` to `v0.56.0` and OpenTelemetry-Go exporters and SDK to `v1.45.0` in Zoekt. [#1716](https://github.com/sourcebot-dev/sourcebot/pull/1716)
 - Upgraded `@modelcontextprotocol/sdk` to `^1.32.1`. [#1719](https://github.com/sourcebot-dev/sourcebot/pull/1719)
+- Decoded percent-encoded characters in repo names derived from direct generic git URLs. [#1666](https://github.com/sourcebot-dev/sourcebot/pull/1666)
 
 ## [5.1.15] - 2026-09-29
 
@@ -47,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed missing account-linking prompts during OAuth authorization and restored prompts when new optional providers are configured. [#1663](https://github.com/sourcebot-dev/sourcebot/pull/1663)
 - Prevented browser performance instrumentation from breaking code views when `performance.measure()` returns no value. [#1665](https://github.com/sourcebot-dev/sourcebot/pull/1665)
 - Added specific authentication error messages and recovery guidance shared by the login form and error page. [#1669](https://github.com/sourcebot-dev/sourcebot/pull/1669)
-- Decoded percent-encoded characters in repo names derived from direct generic git URLs. [#1666](https://github.com/sourcebot-dev/sourcebot/pull/1666)
 
 ## [5.1.13] - 2026-09-12
 
