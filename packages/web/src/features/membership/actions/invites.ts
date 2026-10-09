@@ -173,7 +173,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                         text: `Join ${invite.org.name} on Sourcebot by clicking here: ${inviteLink}`,
                     });
 
-                    const failed = result.rejected.concat(result.pending).filter(Boolean);
+                    const failed = result.rejected.concat(result.pending ?? []).filter(Boolean);
                     if (failed.length > 0) {
                         logger.error(`Failed to send invite email to ${email}: ${failed}`);
                     }
