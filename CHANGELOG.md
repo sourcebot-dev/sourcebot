@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-10-10
+
+Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v5-to-v6-guide) for details on upgrading your instance to v6.
+
+### Changed
+- [**Breaking Change**] Deployments must now be registered and activated by an owner, including on the free Basic plan, which is limited to five seats. See the [v5 to v6 guide](https://docs.sourcebot.dev/docs/upgrade/v5-to-v6-guide).
+- [**Breaking Change**] Removed anonymous access.
+- [**Breaking Change**] Offline license keys now list the entitlements they grant. Keys issued before v6 must be reissued.
+- [**Breaking Change**] Removed AI Search Assist. Use Ask Sourcebot instead.
+- Redesigned onboarding.
+
+### Added
+- Added the Knowledge Base: generated, citation-backed architecture docs for selected repositories, searchable by agents.
+- Added Markdown previews when browsing files.
+
+### Fixed
+- Fixed long responses from Anthropic models unknown to the AI SDK being cut off at 4096 output tokens.
+- Fixed Ask Sourcebot chats being written to disk when `DEBUG_WRITE_CHAT_MESSAGES_TO_FILE` was not `true`.
+
 ## [5.1.16] - 2026-10-09
 
 ### Added

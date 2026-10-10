@@ -49,6 +49,11 @@
                     "description": "The number of repo indexing jobs to run concurrently. Defaults to 8.",
                     "minimum": 1
                 },
+                "maxKnowledgeScanJobConcurrency": {
+                    "type": "integer",
+                    "description": "The number of knowledge scan jobs to run concurrently. Defaults to 1.",
+                    "minimum": 1
+                },
                 "maxRepoGarbageCollectionJobConcurrency": {
                     "type": "number",
                     "description": "The number of repo GC jobs to run concurrently. Defaults to 8.",
@@ -68,7 +73,7 @@
                 "enablePublicAccess": {
                     "type": "boolean",
                     "deprecated": true,
-                    "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
+                    "description": "This setting is deprecated.",
                     "default": false
                 },
                 "repoDrivenPermissionSyncIntervalMs": {
