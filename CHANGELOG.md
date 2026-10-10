@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Upgraded `ai` to `^6.0.303`. [#1722](https://github.com/sourcebot-dev/sourcebot/pull/1722)
+
 ## [5.1.16] - 2026-10-09
 
 ### Added
