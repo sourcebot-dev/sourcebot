@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.1] - 2026-10-16
+
+### Added
+- Added user-driven permission syncing for Azure DevOps Cloud through Microsoft Entra OAuth.
+
 ## [6.0.0] - 2026-10-10
 
 Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v5-to-v6-guide) for details on upgrading your instance to v6.
