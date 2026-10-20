@@ -48,6 +48,11 @@
                     "type": "number",
                     "description": "Optional temperature setting to use with the model."
                 },
+                "maxOutputTokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional maximum number of output tokens per request, including thinking. Defaults to the model's output limit for known Claude models, and to Bedrock's own default otherwise. Set this for application inference profiles or other models Sourcebot cannot identify, or lower it if your tokens-per-minute quota throttles requests."
+                },
                 "headers": {
                     "$ref": "./shared.json#/definitions/LanguageModelHeaders"
                 }

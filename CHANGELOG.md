@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.2] - 2026-10-20
+
+### Changed
+- Removed the `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` environment variable. Audit logging is now always enabled, and audit logs are always pruned according to `SOURCEBOT_EE_AUDIT_RETENTION_DAYS`.
+- A request whose `Authorization` token is rejected now falls back to a valid `X-Sourcebot-Api-Key` header. Previously, only an unknown or expired OAuth token or an invalid Bearer API key fell back.
+- Upgraded the AI SDK to `ai` `^6.0.309` and the latest v6 provider packages.
+- [EE] Knowledge Base stages without a chosen reasoning effort now use `high` when their model supports it, and Discovery and Overview no longer inherit the Survey effort.
+
+### Added
+- [EE] Added reasoning effort for Amazon Bedrock Claude and OpenAI models in Knowledge Base stages.
+
+### Fixed
+- Fixed Amazon Bedrock Claude responses being cut off at 4,096 output tokens, with thinking now on by default and a new `maxOutputTokens` option to override the output limit.
+- [EE] Fixed Knowledge Base scans retrying output-limit failures and re-running failing full scans every day, with repeatedly failing full scans now backing off while scheduled scans run as delta scans.
+- [EE] Fixed a React error when choosing a reasoning effort on the Knowledge Base configuration page.
+- Fixed oversized Ask Sourcebot tool results causing model requests to fail.
+
 ## [6.0.1] - 2026-10-16
 
 ### Added
