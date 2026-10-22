@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.3] - 2026-10-22
+
+### Added
+- [EE] Added an audit log viewer to workspace settings, with person and event filters. Audit records now include `actorLabel` and `targetLabel`, the display names of the actor and target when the event was recorded.
+
+### Fixed
+- Fixed Amazon Bedrock Claude models never using prompt caching, which made Knowledge Base scans and Ask Sourcebot resend every step's full history at full price.
+- [EE] Fixed Knowledge Base scan failures hiding their cause, with job logs now keeping an error's cause, aggregated errors, and fields such as its HTTP status, and scan errors summarizing the agent failures behind them.
+- [EE] Fixed Knowledge Base usage going unrecorded when the database was briefly unreachable, with usage now recorded after every step so a scan stopped by its budget no longer shows less usage than the budget.
+
 ## [6.0.2] - 2026-10-20
 
 ### Changed
