@@ -1,0 +1,25 @@
+{
+    "$schema": "../schemas/v3/index.json",
+    "connections": {
+        "acme-github": {
+            "type": "github",
+            "orgs": ["acme"],
+            "revisions": {
+                "branches": [
+                    "main",
+                    "release/*"
+                ],
+                "tags": [
+                    "v*"
+                ],
+                "repositories": {
+                    "acme/datastore": {
+                        "branches": [
+                            "datastore-release/*"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

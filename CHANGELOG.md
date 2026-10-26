@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GitHub connections can now set per-repository branch and tag globs under `revisions.repositories`, so patterns like `datastore-release/*` apply to one repository without affecting the rest of the connection. ([SOU-2701](https://linear.app/sourcebot/issue/SOU-2701/add-per-repository-branch-configuration-for-indexing))
+
 ## [6.0.3] - 2026-10-22
 
 ### Added
