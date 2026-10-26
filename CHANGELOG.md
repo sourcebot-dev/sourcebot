@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.4] - 2026-10-26
+
+### Changed
+- Improved logging for bitbucket server oauth flow.
+
+### Added
+- [EE] Added a View knowledge base action to repository menus in Knowledge Base settings to open generated documentation in a new tab, including after a later failed scan.
+
+### Fixed
+- [EE] Fixed Knowledge Base action menu icon spacing to match repository and connection menus.
+- [EE] Fixed application navigation freezing after viewing Knowledge Base run logs.
+
 ## [6.0.3] - 2026-10-22
 
 ### Added
