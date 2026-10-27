@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${LINEAR_API_KEY:-}" ]]; then
-  echo "LINEAR_API_KEY is required" >&2
+# OAuth access tokens (see linear-app-token.sh) are sent as bearer tokens;
+# personal API keys are sent as-is.
+if [[ -n "${LINEAR_ACCESS_TOKEN:-}" ]]; then
+  authorization="Bearer $LINEAR_ACCESS_TOKEN"
+elif [[ -n "${LINEAR_API_KEY:-}" ]]; then
+  authorization="$LINEAR_API_KEY"
+else
+  echo "LINEAR_ACCESS_TOKEN or LINEAR_API_KEY is required" >&2
   exit 1
 fi
 
@@ -34,7 +40,7 @@ for ((attempt = 1; attempt <= attempts; attempt++)); do
     --max-time 45 \
     -X POST "$endpoint" \
     -H "Content-Type: application/json" \
-    -H "Authorization: $LINEAR_API_KEY" \
+    -H "Authorization: $authorization" \
     -d "$payload"); then
     response=$(<"$response_file")
     rm -f "$response_file"
