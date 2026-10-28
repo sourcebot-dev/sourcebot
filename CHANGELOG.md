@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.5] - 2026-10-28
+
+### Changed
+- Updated the bundled Zoekt version.
+- [EE] Revamped analytics page with improved user activity chart and usage leaderboard.
+
+### Removed
+- [EE] Removed usage events from the audit log: `user.performed_code_search`, `user.performed_find_references`, `user.performed_goto_definition`, `user.created_ask_chat`, `user.listed_repos`, `user.fetched_file_source`, `user.fetched_file_tree`, and `user.fetched_file_blame`. Existing records stay available through the audit API until the retention policy removes them.
+
+### Security
+- Upgraded `vite` to `^8.3.5`.
+- Upgraded `vitest` to `^4.1.12`.
+- Upgraded `js-yaml` to `^4.3.2`.
+- Upgraded `markdown-it` to `^14.3.3`.
+- Upgraded `@humanfs/node` to `^0.16.8`.
+- Upgraded `hono` to `^4.13.13`.
+- Upgraded `next` to `16.4.2`.
+- Upgraded `baseline-browser-mapping` to `2.11.31`.
+- Upgraded `fflate` to `0.4.9`.
+- Upgraded `ip-address` to `10.7.4`.
+- Upgraded `undici` to `6.29.1` and `7.30.1`.
+- Upgraded `body-parser` to `1.20.9` and `2.4.0`.
+- Upgraded `fast-uri` to `3.1.9`.
+- Upgraded `@sentry/nextjs` to `^10.76.2`.
+- Upgraded `dompurify` to `^3.4.17`.
+- Upgraded `nodemailer` to `^10.2.1`.
+- Upgraded `qs` to `^6.17.0`.
+- Upgraded `http-cache-semantics` to `4.3.0`.
+
 ## [6.0.4] - 2026-10-26
 
 ### Changed
