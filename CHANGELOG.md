@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.6] - 2026-10-29
+
+### Fixed
+- [EE] Fixed Knowledge Base scans failing with "prompt is too long" when an agent searched a repository with minified or generated files, with read tools now cutting long lines, paging through files, and capping each result as the Ask Sourcebot and MCP tools do.
+
 ## [6.0.5] - 2026-10-28
 
 ### Changed
