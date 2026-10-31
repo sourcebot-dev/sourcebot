@@ -69,6 +69,88 @@
                         ]
                     ],
                     "default": []
+                },
+                "overrides": {
+                    "type": "array",
+                    "description": "Per-repository overrides of `branches` and `tags`. For a given repo, the first override whose `repos` matches the repo is applied, and any later overrides are ignored. Repos that do not match any override use the connection-level `branches` and `tags`.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "repos": {
+                                "type": "array",
+                                "description": "List of repositories this override applies to. Patterns are matched case-insensitively against the repo's display name (e.g., `org/repo`) and its full name (e.g., `github.com/org/repo`). Glob patterns are supported.",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1,
+                                "examples": [
+                                    [
+                                        "org/repo"
+                                    ],
+                                    [
+                                        "org/legacy-*"
+                                    ]
+                                ]
+                            },
+                            "mode": {
+                                "type": "string",
+                                "enum": [
+                                    "append",
+                                    "replace"
+                                ],
+                                "default": "append",
+                                "description": "How this override's `branches` and `tags` are combined with the connection-level `branches` and `tags`. `append` indexes both the connection-level patterns and this override's patterns. `replace` indexes only this override's patterns; if `branches` or `tags` is omitted from the override, the connection-level value is used for that field."
+                            },
+                            "branches": {
+                                "type": "array",
+                                "description": "List of branches to include when indexing the matching repos. Glob patterns are supported.",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "examples": [
+                                    [
+                                        "datastore-release/*"
+                                    ]
+                                ]
+                            },
+                            "tags": {
+                                "type": "array",
+                                "description": "List of tags to include when indexing the matching repos. Glob patterns are supported.",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "examples": [
+                                    [
+                                        "v*"
+                                    ]
+                                ]
+                            }
+                        },
+                        "required": [
+                            "repos"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "examples": [
+                        [
+                            {
+                                "repos": [
+                                    "org/datastore"
+                                ],
+                                "branches": [
+                                    "datastore-release/*"
+                                ]
+                            },
+                            {
+                                "repos": [
+                                    "org/legacy-*"
+                                ],
+                                "mode": "replace",
+                                "branches": [],
+                                "tags": []
+                            }
+                        ]
+                    ]
                 }
             },
             "additionalProperties": false

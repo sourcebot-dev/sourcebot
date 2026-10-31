@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.7] - 2026-10-31
+
+### Added
+- Added `revisions.overrides` to connection configs, allowing different branches and tags to be indexed for specific repositories.
+
+### Security
+- Upgraded `zod` to `^4.6.7`.
+
 ## [6.0.6] - 2026-10-29
 
 ### Fixed
