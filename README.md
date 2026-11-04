@@ -14,6 +14,12 @@
   <a href="https://www.sourcebot.dev/changelog">Changelog</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot"><img alt="Docker pulls" src="https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgithub.com%2Fsourcebot-dev%2Fsourcebot%2Fpkgs%2Fcontainer%2Fsourcebot&search=Total%20downloads%3C%2Fspan%3E%5Cs*%3Ch3%5B%5E%3E%5D*%3E%28%5B%5E%3C%5D%2B%29%3C%2Fh3%3E&replace=%241&label=docker%20pulls&logo=docker&logoColor=white&color=2496ED&cacheSeconds=86400"></a>
+  <a href="https://github.com/sourcebot-dev/sourcebot"><img alt="GitHub stars" src="https://img.shields.io/github/stars/sourcebot-dev/sourcebot?style=flat&logo=github&logoColor=white&color=2496ED"></a>
+  <a href="https://github.com/sourcebot-dev/sourcebot/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/sourcebot-dev/sourcebot?color=2496ED"></a>
+</p>
+
 Sourcebot is a self-hosted code context layer for humans and AI agents. Index all your repos in one place so you and your agents can search and navigate them.
 
 ## Get started
