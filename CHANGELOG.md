@@ -5,7 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- Don't add entries to this file. Add a fragment under .changelog/ instead (see .changelog/README.md); each release builds its section from them. -->
+
 ## [Unreleased]
+
+## [6.0.8] - 2026-11-04
+
+### Added
+- Added server-side telemetry for how members join an instance (invite link, email invite, approved request, auto-join, SCIM).
+
+### Fixed
+- [EE] Fixed MCP clients not starting a new session after the Sourcebot MCP server restarts.
+- [EE] Fixed the MCP server's sign-in challenge naming the OAuth metadata parameter `resource_metadata_uri` instead of `resource_metadata`, which kept MCP clients from finding where to sign in.
+- Fixed chat page titles repeating "Sourcebot".
+- Fixed owners who haven't connected a connector being unable to see or manage its tools.
+- Fixed adding a duplicate connector not being rejected until after the OAuth scopes step.
+- Fixed OpenAI models in Ask Sourcebot filling in every optional connector tool argument, which made connectors reject the call.
+- Fixed private chats showing "Private Chat" as the browser tab title to people who can view them, instead of the chat's name.
+
+### Security
+- Upgraded `re2js` to `2.9.1`.
+- Upgraded `@hono/node-server` to `2.1.5`.
+- Upgraded `@ai-sdk/mcp` to `^1.0.100`.
 
 ## [6.0.7] - 2026-10-31
 
