@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-11-10
+
+### Added
+- The Sourcebot MCP server now tells MCP clients what its tools are for when they connect.
+- Added the MCP Gateway, which lets MCP clients such as Claude Code and Cursor use your workspace's connectors through the Sourcebot MCP server.
+- Added `includeTotalCount` and `includeRefs` query parameters to `GET /api/commits` that skip counting every matching commit and looking up each commit's branches and tags, both of which are slow on large repositories.
+- Added repository home pages at `/browse/<repo>`, which show the README at the repository's root.
+
+### Changed
+- Renamed the Ask Sourcebot settings pages to Connectors and the Connections settings page to Code Hosts, and moved shared skills to their own page. Old URLs redirect.
+- Removed the Needs approval tool permission. Connector tools are now Allowed or Blocked, new tools start Allowed, and tools that previously needed approval are now Allowed.
+
+### Fixed
+- Fixed adding a connector failing when its OAuth server advertises more than 200 scopes.
+- Fixed connectors requesting every OAuth scope the connector advertises instead of the scopes chosen when adding the connector.
+- Fixed signing in from a link, such as a search or Ask URL, going to the home page instead of the page you opened.
+- Fixed slow file previews on repositories with long histories, which loaded and counted the file's entire commit history even while the History panel was closed.
+- [EE] Fixed OAuth client registration returning server errors for malformed JSON or unsupported content types.
+
 ## [6.0.8] - 2026-11-04
 
 ### Added
