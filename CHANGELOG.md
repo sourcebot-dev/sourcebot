@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.1] - 2026-11-18
+
+### Added
+- Added category badges and animated collapsible sections to the What's new dialog, which sorts a list of categorized changes by category.
+- Added a Wiki tab to every repository that shows its generated docs like files in the code view, with Preview, Code and Blame views, History, and the commit and model behind each doc, and removed the virtual `knowledge-base` folder from the code file tree.
+- Added a `GET /api/wiki` endpoint that reports whether a repository has a wiki and returns a link to it.
+- Added steps to owner onboarding for setting your name and subscribing to the changelog.
+- Added a one-time onboarding flow for new members that helps them link their accounts, set their name, connect their coding agent, and subscribe to the changelog.
+
+### Changed
+- Made switching files in the code browser feel faster: hovering a file preloads it, hovering a folder in the file tree preloads its contents, the current file stays on screen, blurred, while the next one loads, and the file tree shows a loading folder's spinner in place of its icon.
+- [EE] Renamed Knowledge Base to Wiki, including its settings page and docs page. Old URLs redirect.
+- Moved the repository's code host logo, name and revision from the path row above each file and folder into the repository's tab row, beside Code and Wiki.
+- Moved the prompt to link optional accounts into a banner.
+- Updated the bundled Zoekt version.
+- The warning logged when a repository has more than 64 branches and tags to index now names the repository instead of giving only its ID.
+
+### Fixed
+- Fixed MCP Gateway connectors losing their session state between tool calls, such as PostHog's active project.
+- Fixed the extra space between the Audit Log settings page title and its description.
+- Fixed code search streams throwing errors when cancelled or interrupted while processing results.
+
+### Security
+- Upgraded `@aws-sdk/xml-builder` to `^3.972.43`.
+- Upgraded `@hono/node-server` to `^2.1.8`.
+- Upgraded `hono` to `^4.13.19`.
+
 ## [6.1.0] - 2026-11-10
 
 ### Added
