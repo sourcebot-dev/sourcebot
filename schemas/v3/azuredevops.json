@@ -9,7 +9,21 @@
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
-            "description": "A Personal Access Token (PAT)."
+            "description": "A Personal Access Token (PAT). Required unless `managedIdentity` is set."
+        },
+        "managedIdentity": {
+            "type": "object",
+            "description": "Authenticate with an Azure managed identity instead of a PAT. Only supported when `deploymentType` is `cloud`.",
+            "properties": {
+                "clientId": {
+                    "type": "string",
+                    "description": "The client ID of a user-assigned managed identity. If omitted, Sourcebot uses the system-assigned managed identity, or on AKS with Workload Identity, the identity in the pod's `AZURE_CLIENT_ID` environment variable.",
+                    "examples": [
+                        "00000000-0000-0000-0000-000000000000"
+                    ]
+                }
+            },
+            "additionalProperties": false
         },
         "url": {
             "type": "string",
@@ -135,8 +149,29 @@
     },
     "required": [
         "type",
-        "token",
         "deploymentType"
     ],
+    "if": {
+        "required": [
+            "managedIdentity"
+        ]
+    },
+    "then": {
+        "not": {
+            "required": [
+                "token"
+            ]
+        },
+        "properties": {
+            "deploymentType": {
+                "const": "cloud"
+            }
+        }
+    },
+    "else": {
+        "required": [
+            "token"
+        ]
+    },
     "additionalProperties": false
 }

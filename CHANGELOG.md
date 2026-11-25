@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.2] - 2026-11-25
+
+### Added
+- Added telemetry for when someone is refused a seat because the seat cap is reached.
+- Added support for authenticating Azure DevOps Cloud connections with an Azure managed identity.
+- Added a command menu (⌘K / Ctrl+K, or the search button next to the sidebar logo) for going to any page, opening a settings page, repository or chat by name, and acting on the current file or chat, with "G then <letter>" and "O then <letter>" keyboard shortcuts.
+
+### Changed
+- Pressing Esc in the code search bar or the chat box now moves focus out of it, unless a suggestions list is open, in which case Esc closes the list first.
+
+### Fixed
+- Fixed high database CPU with permission syncing enabled, caused by every repository lookup scanning the whole repository permissions table.
+
 ## [6.1.1] - 2026-11-18
 
 ### Added
